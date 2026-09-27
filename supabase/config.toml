@@ -473,3 +473,15 @@ additional_redirect_urls = [
 [remotes.production.auth.email]
 # Délai minimal entre deux e-mails pour une même personne.
 max_frequency = "60s"
+# En ligne, on garde la confirmation des adresses (réglage d'origine du projet).
+enable_confirmations = true
+
+# Réglages d'origine du projet en ligne, gardés tels quels : sans ces lignes, `config push`
+# les remplacerait par les valeurs locales.
+[remotes.production.db.pooler]
+default_pool_size = 15
+max_client_conn = 200
+
+[remotes.production.storage.analytics]
+enabled = true
+max_namespaces = 10
