@@ -10,6 +10,10 @@ Le projet a trois parties. Les deux applications sont en TypeScript et se connec
 
 Chaque dossier a son propre `package.json` et son propre `node_modules` (pas de workspace npm). Le `package.json` de la racine ne contient que le CLI Supabase.
 
+**Nouveau départ.** Declikora reprend le produit de l'ancien dépôt `declikora-project`, mais repart de zéro. Aucun terme, aucune structure ni aucun choix de l'ancien projet n'est repris sans être redécidé. On emploie des mots courants.
+
+**Administration** : les décisions sont dans [docs/ADMINISTRATION.md](docs/ADMINISTRATION.md). À lire avant de travailler sur `web/`.
+
 ## Versions de référence
 
 Elles ont été vérifiées sur npm et Expo le 2026-09-27. Elles sont épinglées sans `^` dans `web/` et à la racine. Ne les monte pas sans vérifier la compatibilité.
