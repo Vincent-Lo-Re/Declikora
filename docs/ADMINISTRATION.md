@@ -26,13 +26,14 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 
 ## 2. Équipe, connexion et sécurité
 
-- [ ] **Deux rôles** :
+- [x] **Deux rôles** :
   - **Admin** : tout ce que fait l'éditeur, plus l'équipe (inviter, changer un rôle, retirer quelqu'un, réinitialiser sa double vérification) et les paramètres (dont les formules d'abonnement).
   - **Éditeur** : écrit, publie, dépublie et supprime les contenus ; vide la corbeille ; gère les catégories, les modèles et la médiathèque.
-- [ ] **Sur invitation seulement.** Un admin saisit l'e-mail et le rôle de la personne. Personne ne peut s'inscrire seul (inscriptions fermées dans Supabase).
-- [ ] **Connexion sans mot de passe** : on tape son e-mail, puis le code à 6 chiffres reçu par e-mail.
-- [ ] **Double vérification obligatoire pour tous.** Après le code reçu par e-mail, on saisit le code d'une app du téléphone (Google Authenticator, 1Password…). Elle se configure à la première connexion. Tant qu'elle n'est pas faite, la base refuse tout accès aux données.
-- [ ] **Téléphone perdu** : un admin réinitialise la double vérification d'un autre membre. Il faut donc **toujours au moins deux admins**. Le dernier admin ne peut être ni retiré ni rétrogradé.
+- [x] **Sur invitation seulement.** Un admin saisit l'e-mail et le rôle de la personne. Personne ne peut s'inscrire seul (inscriptions fermées dans Supabase). Un compte ne reçoit une fiche d'équipe que si son rôle a été posé par la clé secrète (invitation) : un compte créé autrement n'a accès à rien. Le lien d'invitation est valable 10 minutes, comme le code ; « Renvoyer l'invitation » en envoie un nouveau.
+- [x] **Connexion sans mot de passe** : on tape son e-mail, puis le code à 6 chiffres reçu par e-mail (valable 10 minutes). La page affiche le même message que l'adresse fasse partie de l'équipe ou non. Limite connue : l'API de Supabase, elle, laisse deviner si une adresse a un compte.
+- [x] **Double vérification obligatoire pour tous.** Après le code reçu par e-mail, on saisit le code d'une app du téléphone (Google Authenticator, 1Password…). Elle se configure à la première connexion. Tant qu'elle n'est pas faite, la base refuse tout accès aux données.
+- [x] **Téléphone perdu** : un admin réinitialise la double vérification d'un autre membre (ses sessions sont aussitôt fermées). Il faut donc **toujours au moins deux admins** : la page Équipe le rappelle tant qu'il n'y en a qu'un. La base garantit qu'il reste toujours un admin **capable d'agir** (invitation acceptée et double vérification configurée). On ne change pas son propre rôle, et on ne se retire pas soi-même.
+- [ ] **Premier admin (une seule fois, en production)** : l'inviter depuis le tableau de bord Supabase (Authentication › Users › Invite user), puis, dans l'éditeur SQL, poser son rôle avant qu'il accepte : `update auth.users set raw_app_meta_data = coalesce(raw_app_meta_data, '{}') || '{"role":"admin"}' where email = '<son adresse>';`. Aucune adresse n'est écrite dans le dépôt.
 - [ ] **E-mails** (invitation, code) envoyés par **Brevo**, depuis `ne-pas-repondre@declikora.app` (domaine déjà authentifié dans Brevo : DKIM et DMARC), avec des textes en français.
 
 ## 3. Contenus et publication
@@ -105,22 +106,22 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Domaine principal : `declikora.app`** (déjà à nous, chez Cloudflare, DNS chez Cloudflare, à renouveler avant le 23/05/2027). `declikora.fr` est aussi à nous (chez Scaleway, à renouveler avant le 02/07/2027) : il pourra rediriger vers `declikora.app`.
 - [x] **À chaque envoi sur GitHub** : mise en forme, relecture du code (lint), tests, vérification des types et construction de l'admin, et tests de la base (pgTAP).
 - [x] **En-têtes de sécurité** : le navigateur refuse d'afficher l'admin dans un autre site, et n'exécute que ses propres scripts (et ceux de Supabase et Sentry).
-- [ ] **Tests de parcours**, lancés automatiquement : un robot ouvre l'admin dans un navigateur et refait les parcours principaux (se connecter avec les deux codes, écrire, publier).
+- [x] **Tests de parcours**, lancés automatiquement : un robot ouvre l'admin dans un navigateur et refait les parcours principaux (se connecter avec les deux codes, écrire, publier).
 - [x] **Alerte en cas d'erreur** dans l'admin en ligne (Sentry), sans données personnelles. Organisation « Declikora » (`declikora-zc`, données en Europe), projet `declikora-admin` (surveillance des erreurs seulement, alerte par e-mail sur les erreurs importantes). L'organisation ne stocke pas les adresses IP, impose le nettoyage des données sensibles, et ne partage rien publiquement. L'identifiant (`VITE_SENTRY_DSN`) et le nom de l'environnement sont dans Vercel.
 - [ ] **Offre Pro de Supabase avant le lancement de l'app.** L'offre gratuite ne suffit pas pour les podcasts (vérifié le 27/09/2026) : 50 Mo au plus par fichier, 1 Go de stockage en tout, 5 Go téléchargés par mois, et un projet mis en pause après une semaine sans activité. L'offre Pro commence à 25 $ par mois, avec 100 Go de stockage.
 
 ## 9. Choix techniques
 
 - [x] **Même version de Node partout** (la 24) : ton ordinateur, GitHub et Vercel.
-- [ ] **Deux environnements** : ton ordinateur (Supabase local) et la production (le projet Supabase « Declikora »). Pas de préproduction, parce que l'offre gratuite de Supabase est limitée à 2 projets actifs, déjà utilisés tous les deux.
+- [x] **Deux environnements** : ton ordinateur (Supabase local) et la production (le projet Supabase « Declikora »). Pas de préproduction, parce que l'offre gratuite de Supabase est limitée à 2 projets actifs, déjà utilisés tous les deux.
 - [x] **Fuseau horaire Europe/Paris** pour toutes les dates et les publications programmées.
-- [ ] **TanStack Query** : garde en mémoire les données déjà chargées, pour que l'admin reste rapide et à jour.
-- [ ] **React Hook Form + Zod** : gère les formulaires et affiche clairement les erreurs.
-- [ ] **Types générés depuis la base** après chaque migration (`supabase gen types`), pour que le code connaisse exactement les tables.
+- [x] **TanStack Query** : garde en mémoire les données déjà chargées, pour que l'admin reste rapide et à jour.
+- [x] **React Hook Form + Zod** : gère les formulaires et affiche clairement les erreurs.
+- [x] **Types générés depuis la base** après chaque migration (`supabase gen types`), pour que le code connaisse exactement les tables.
 - [ ] **Forme de chaque bloc décrite une seule fois**, puis vérifiée par l'admin, par l'app et par la base.
 - [x] **Prettier** : met le code en forme automatiquement.
-- [ ] **Playwright** pour les tests de parcours.
-- [ ] **Sentry hébergé en Europe.**
+- [x] **Playwright** pour les tests de parcours.
+- [x] **Sentry hébergé en Europe.**
 - [x] **Icônes Lucide**, celles que shadcn/ui utilise par défaut.
 
 ## 10. Remis à plus tard

@@ -5,7 +5,8 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "functions:test": "cd supabase/functions/equipe && npx --yes deno@2.9.6 fmt --check && npx --yes deno@2.9.6 lint && npx --yes deno@2.9.6 check index.ts && npx --yes deno@2.9.6 test"
   },
   "devDependencies": {
     "supabase": "2.118.0"

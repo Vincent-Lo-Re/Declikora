@@ -22,3 +22,8 @@ if (!window.matchMedia) {
     }),
   })
 }
+
+// jsdom ne connaît pas non plus elementFromPoint, utilisé par la saisie des codes (input-otp).
+if (!document.elementFromPoint) {
+  document.elementFromPoint = () => null
+}
