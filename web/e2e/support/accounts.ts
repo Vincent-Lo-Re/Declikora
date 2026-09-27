@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js"
 import postgres from "postgres"
 
 import { localSupabase } from "./local-supabase.ts"
+import { deleteMediaOf } from "./media.ts"
 
 // Toutes les adresses de test finissent ainsi : on les reconnaît au nettoyage.
 export const testDomain = "e2e.exemple.test"
@@ -57,6 +58,8 @@ function database() {
  */
 export async function deleteAccounts(emails: string[] | "all") {
   if (emails !== "all" && emails.length === 0) return
+  // D'abord les fichiers qu'ils ont envoyés (sinon leur auteur pointerait vers une fiche effacée).
+  await deleteMediaOf(emails === "all" ? { domain: testDomain } : { emails })
   const sql = database()
   try {
     const where =

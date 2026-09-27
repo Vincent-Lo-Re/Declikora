@@ -1,0 +1,12 @@
+<svg version="1.1" id="Calque_1" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 100 100"
+  style="enable-background:new 0 0 100 100;" xml:space="preserve">
+  <linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100">
+    <stop offset="0" style="stop-color:#FFFFFF"></stop>
+    <stop offset="1" style="stop-color:#000000"></stop>
+  </linearGradient>
+  <circle class="st0" cx="50" cy="50" r="40"></circle>
+  <rect class="st1" width="20" height="20"></rect>
+  <image width="10" height="10"
+    xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="></image>
+</svg>

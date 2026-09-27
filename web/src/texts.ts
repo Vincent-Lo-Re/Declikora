@@ -60,7 +60,8 @@ export const texts = {
     },
     media: {
       title: "Médiathèque",
-      description: "Les images, sons, animations et documents.",
+      description:
+        "Les images, SVG, animations, audios et PDF, utilisables dans tous les contenus.",
     },
     trash: {
       title: "Corbeille",
@@ -264,6 +265,329 @@ export const texts = {
         "L'équipe doit garder au moins un admin qui a accepté son invitation et configuré la double vérification. Nomme d'abord un autre admin.",
       trop_de_demandes: "Trop d'e-mails envoyés. Réessaie dans une minute.",
     },
+  },
+
+  media: {
+    upload: "Envoyer des fichiers",
+    uploadInput: "Fichiers à envoyer",
+    dropTitle: "Dépose tes fichiers ici",
+    dropHint:
+      "Images, SVG, animations Lottie (.json), audios (MP3, M4A) et PDF. 50 Mo au plus par fichier.",
+    search: "Rechercher un fichier",
+    searchPlaceholder: "Rechercher par nom…",
+    filters: {
+      label: "Type de fichier",
+      all: "Tout",
+      image: "Images",
+      svg: "SVG",
+      lottie: "Animations",
+      audio: "Audios",
+      pdf: "PDF",
+    },
+    kinds: {
+      image: "Image",
+      svg: "SVG",
+      lottie: "Animation Lottie",
+      audio: "Audio",
+      pdf: "PDF",
+    },
+    view: {
+      label: "Affichage",
+      grid: "Grille",
+      list: "Liste",
+    },
+    status: {
+      pending: "Envoi en cours…",
+      interrupted: "Envoi interrompu",
+      checking: "Vérification…",
+      ready: "Prêt",
+      rejected: "Refusé",
+    },
+    rejectedBecause: (reason: string) => `Refusé : ${reason}`,
+    // Unités (web/src/lib/media/format.ts) : « 812 octets », « 3 min 05 s », « 1200 × 800 px ».
+    units: {
+      bytes: (value: string) => `${value} octets`,
+      kilobytes: (value: string) => `${value} Ko`,
+      megabytes: (value: string) => `${value} Mo`,
+      gigabytes: (value: string) => `${value} Go`,
+      hoursMinutes: (hours: number, minutes: string) =>
+        `${hours} h ${minutes} min`,
+      minutesSeconds: (minutes: number, seconds: string) =>
+        `${minutes} min ${seconds} s`,
+      seconds: (seconds: number) => `${seconds} s`,
+      dimensions: (width: number, height: number) => `${width} × ${height} px`,
+      percent: (value: number) => `${value} %`,
+    },
+    // Codes de media.reject_reason (fonction « files » et media_confirm).
+    rejectReasons: {
+      fichier_incoherent:
+        "le fichier reçu ne correspond pas à celui annoncé. Envoie-le de nouveau.",
+      fichier_trop_lourd:
+        "fichier trop lourd pour être vérifié (5 Mo au plus).",
+      verification_impossible:
+        "la vérification a échoué trois fois. Envoie-le de nouveau.",
+      svg_illisible: "ce SVG est illisible.",
+      svg_element_interdit:
+        "ce SVG contient un élément interdit (script, animation, lien…).",
+      svg_attribut_interdit:
+        "ce SVG contient un attribut interdit (code caché, style actif…).",
+      svg_lien_externe:
+        "ce SVG charge une image, une police ou un style extérieur.",
+      lottie_illisible: "ce fichier d'animation est illisible (JSON invalide).",
+      lottie_invalide: "ce n'est pas une animation Lottie valide.",
+      lottie_lien_externe:
+        "cette animation charge une image ou une police extérieure.",
+      inconnue: "le fichier n'a pas été accepté.",
+    },
+    rejectedCleanup:
+      "Il sera retiré automatiquement de la médiathèque dans les 24 heures.",
+    columns: {
+      preview: "Aperçu",
+      name: "Nom",
+      kind: "Type",
+      size: "Poids",
+      details: "Dimensions ou durée",
+      createdAt: "Ajouté le",
+      status: "État",
+    },
+    open: (name: string) => `Ouvrir la fiche de ${name}`,
+    empty: {
+      title: "Aucun fichier pour l'instant",
+      description:
+        "Envoie des images, des sons, des animations ou des PDF : ils serviront dans les contenus.",
+    },
+    noResults: {
+      title: "Aucun fichier trouvé",
+      description: "Essaie un autre nom ou un autre type.",
+    },
+    tooMany: (count: number) =>
+      `Seuls les ${count} fichiers les plus récents sont affichés. Affine ta recherche pour trouver les autres.`,
+    loadFailed: "La médiathèque n'a pas pu être chargée.",
+    refreshFailed:
+      "La médiathèque n'a pas pu être mise à jour : elle date peut-être un peu.",
+    retry: "Réessayer",
+    storage: {
+      label: "Place occupée",
+      value: (used: string, total: string) => `${used} sur ${total}`,
+      alertTitle: "Stockage presque plein",
+      alert: (used: string) =>
+        `Les fichiers occupent ${used} sur 1 Go. Au-delà, plus aucun envoi ne sera possible : mets à la corbeille ce qui ne sert plus, puis vide-la.`,
+    },
+    orphans: {
+      title: (count: number) =>
+        count === 1
+          ? "1 fichier sans fiche dans le stockage"
+          : `${count} fichiers sans fiche dans le stockage`,
+      description: (date: string) =>
+        `Trouvés au contrôle du ${date}. Ce sont des restes d'envois interrompus : ils occupent de la place sans apparaître dans la médiathèque.`,
+      show: "Voir la liste",
+      hide: "Masquer la liste",
+      more: (count: number) => `… et ${count} de plus`,
+      clean: "Nettoyer",
+      cleaned: (count: number) =>
+        count === 0
+          ? "Rien à effacer : ces fichiers ont moins de 24 heures ou ont retrouvé leur fiche."
+          : count === 1
+            ? "1 fichier effacé du stockage."
+            : `${count} fichiers effacés du stockage.`,
+    },
+    uploads: {
+      title: "Envois",
+      clear: "Effacer la liste",
+      cancel: (name: string) => `Annuler l'envoi de ${name}`,
+      retry: (name: string) => `Réessayer l'envoi de ${name}`,
+      dismiss: (name: string) => `Retirer ${name} de la liste`,
+      stages: {
+        waiting: "En attente",
+        preparing: "Préparation…",
+        sending: "Envoi…",
+        confirming: "Enregistrement…",
+        done: "Envoyé",
+        error: "Échec",
+        cancelled: "Annulé",
+      },
+      checking: "Envoyé, vérification en cours",
+      checked: "Envoyé et vérifié",
+      announcerLabel: "Suivi des envois",
+      // Annonces lues par les lecteurs d'écran (une par étape, pas à chaque pourcentage).
+      announce: {
+        sending: (name: string) => `Envoi de ${name}…`,
+        checking: (name: string) =>
+          `${name} est envoyé. Vérification en cours.`,
+        ready: (name: string) => `${name} est envoyé et prêt.`,
+        rejected: (name: string, reason: string) =>
+          `${name} est refusé : ${reason}`,
+        failed: (name: string, error: string) =>
+          `Échec de l'envoi de ${name}. ${error}`,
+        cancelled: (name: string) => `Envoi de ${name} annulé.`,
+      },
+      resumable: "Envoi reprenable",
+      gifWarning:
+        "GIF animé : seule la première image est gardée. Pour une animation, utilise un fichier Lottie.",
+      leaveWarning: "Des fichiers sont en cours d'envoi.",
+    },
+    // Refus avant l'envoi (préparation dans le navigateur).
+    prepareErrors: {
+      type_refuse:
+        "Format refusé. Envoie une image (JPEG, PNG, WebP, GIF, HEIC), un SVG, une animation Lottie (.json), un audio (MP3, M4A) ou un PDF.",
+      video_refusee:
+        "Les vidéos ne sont pas acceptées. Pour un son, envoie un MP3 ou un M4A.",
+      fichier_vide: "Ce fichier est vide.",
+      fichier_trop_lourd: "Fichier trop lourd : 50 Mo au plus.",
+      fichier_a_verifier_trop_lourd:
+        "Fichier trop lourd : 5 Mo au plus pour un SVG ou une animation Lottie.",
+      image_illisible:
+        "Cette image est illisible par ton navigateur. Enregistre-la en JPEG ou en PNG, puis envoie-la de nouveau.",
+      heic_illisible:
+        "Ton navigateur ne sait pas lire les photos HEIC (iPhone). Ouvre-la avec Safari, ou enregistre-la en JPEG, puis envoie-la de nouveau.",
+      svg_illisible:
+        "Ce SVG est illisible, ou il déclare des entités (refusées par sécurité).",
+      svg_element_interdit:
+        "Ce SVG contient un élément qui ne peut pas être retiré sans l'abîmer.",
+      svg_attribut_interdit:
+        "Ce SVG contient un attribut qui ne peut pas être retiré sans l'abîmer.",
+      svg_lien_externe:
+        "Ce SVG charge une ressource extérieure qui ne peut pas être retirée.",
+      lottie_illisible:
+        "Ce fichier .json est illisible : ce n'est pas du JSON valide.",
+      lottie_invalide:
+        "Ce fichier .json n'est pas une animation Lottie valide (calques, taille, images par seconde…).",
+      lottie_lien_externe:
+        "Cette animation charge une image ou une police extérieure. Exporte-la avec les images intégrées.",
+    },
+    transferErrors: {
+      annule: "Envoi annulé.",
+      envoi_interrompu:
+        "L'envoi a été interrompu. Vérifie ta connexion, puis réessaie.",
+      fichier_trop_lourd: "Fichier trop lourd : 50 Mo au plus.",
+      type_refuse: "Ce type de fichier est refusé par le stockage.",
+      envoi_refuse: "Le stockage a refusé l'envoi. Réessaie dans un instant.",
+      deja_envoye: "Ce fichier a déjà été envoyé.",
+    },
+    detail: {
+      noPreview: "Pas d'aperçu pour ce fichier.",
+      openFile: "Ouvrir le fichier",
+      lottieFailed: "L'aperçu de l'animation n'a pas pu s'afficher.",
+      name: "Nom",
+      nameRequired: "Donne un nom au fichier.",
+      nameTooLong: "Le nom ne doit pas dépasser 255 caractères.",
+      alt: "Texte alternatif",
+      altHint:
+        "Décris l'image en une phrase pour les personnes qui ne la voient pas. Laisse vide si elle est purement décorative.",
+      altTooLong: "Le texte alternatif ne doit pas dépasser 1 000 caractères.",
+      transcript: "Transcription",
+      transcriptHint: "Le texte de l'audio, pour qui ne peut pas l'écouter.",
+      transcriptTooLong: "La transcription est trop longue.",
+      save: "Enregistrer",
+      saved: "Fiche enregistrée.",
+      info: "Informations",
+      kind: "Type",
+      dimensions: "Dimensions",
+      duration: "Durée",
+      size: "Poids",
+      createdAt: "Ajouté le",
+      visibility: "Accès",
+      public: "Public (utilisé par un contenu gratuit en ligne)",
+      protected: "Protégé",
+      uses: "Utilisé dans",
+      usesLoading: "Recherche des contenus…",
+      notUsed:
+        "Ce fichier n'est utilisé dans aucun contenu pour l'instant. Tu pourras l'insérer dans un contenu depuis l'éditeur.",
+      usesFailed: "La liste des contenus n'a pas pu être chargée.",
+      inDraft: "Brouillon",
+      inApp: "Dans l'app",
+      trash: "Mettre à la corbeille",
+      trashed: "Fichier mis à la corbeille.",
+      undo: "Annuler",
+      restored: "Fichier restauré.",
+      used: "Ce fichier est encore utilisé : retire-le d'abord des contenus.",
+    },
+    // Erreurs de la base (RPC) et de la fonction « files », selon leur code.
+    errors: {
+      reserve_a_l_equipe:
+        "Ta session ne donne plus accès à la médiathèque. Reconnecte-toi.",
+      non_connecte: "Ta session a expiré. Reconnecte-toi pour continuer.",
+      type_refuse: "Ce type de fichier n'est pas accepté.",
+      nom_invalide: "Le nom du fichier doit faire entre 1 et 255 caractères.",
+      fichier_vide: "Ce fichier est vide.",
+      fichier_trop_lourd:
+        "Fichier trop lourd : 50 Mo au plus, 5 Mo pour un SVG ou une animation Lottie.",
+      fichier_invalide: "Les informations du fichier ne sont pas valides.",
+      fichier_introuvable:
+        "Ce fichier n'existe plus ou est dans la corbeille. Recharge la page.",
+      fichier_absent:
+        "Le fichier n'est pas arrivé dans le stockage. Réessaie dans un instant.",
+      envoi_expire: "Cet envoi a expiré. Envoie le fichier de nouveau.",
+      fichier_utilise:
+        "Ce fichier est encore utilisé : retire-le d'abord des contenus.",
+      effacement_demande: "L'effacement de ce fichier est déjà en cours.",
+      demande_invalide: "La demande n'est pas valide. Recharge la page.",
+      reserve_aux_admins: "Cette action est réservée aux admins.",
+      methode_refusee: "La demande n'est pas valide. Recharge la page.",
+      trop_tot: "Trop de demandes rapprochées. Réessaie dans une minute.",
+      erreur_serveur:
+        "Le serveur n'a pas pu terminer. Réessaie dans un instant.",
+    },
+  },
+
+  trash: {
+    filters: {
+      label: "Type d'élément",
+      all: "Tout",
+      file: "Fichiers",
+    },
+    itemTypes: {
+      file: "Fichier",
+      content: "Contenu",
+    },
+    columns: {
+      name: "Nom",
+      type: "Type",
+      deletedAt: "Supprimé le",
+      purgeAt: "Effacement automatique",
+      actions: "Actions",
+    },
+    deletedBy: (name: string) => `par ${name}`,
+    purgeOn: (date: string) => `le ${date}`,
+    purgeRefused: "Effacement impossible : encore utilisé",
+    purgeRefusedHint:
+      "Ce fichier a été inséré dans un contenu entre-temps. Restaure-le, ou retire-le du contenu avant de vider la corbeille.",
+    restore: "Restaurer",
+    restoreItem: (name: string) => `Restaurer ${name}`,
+    restored: (name: string) => `${name} est restauré.`,
+    eraseItem: (name: string) => `Effacer définitivement ${name}`,
+    erase: "Effacer définitivement",
+    empty: "Vider la corbeille",
+    emptied: (count: number) =>
+      count === 0
+        ? "La corbeille était déjà vide."
+        : count === 1
+          ? "1 élément est en cours d'effacement."
+          : `${count} éléments sont en cours d'effacement.`,
+    confirmEmpty: {
+      title: "Vider la corbeille ?",
+      description: (count: number) =>
+        `${count === 1 ? "L'élément de la corbeille sera effacé" : `Les ${count} éléments de la corbeille seront effacés`} définitivement. Tu ne pourras pas revenir en arrière.`,
+      confirm: "Vider la corbeille",
+    },
+    confirmErase: {
+      title: "Effacer définitivement ?",
+      description: (name: string) =>
+        `${name} sera effacé définitivement. Tu ne pourras pas revenir en arrière.`,
+      confirm: "Effacer définitivement",
+    },
+    retention:
+      "Ce qui est supprimé reste ici 30 jours, puis est effacé automatiquement.",
+    emptyState: {
+      title: "La corbeille est vide",
+      description:
+        "Ce que tu supprimes arrive ici. Tu peux le restaurer pendant 30 jours.",
+    },
+    emptyFilter: "Aucun élément de ce type dans la corbeille.",
+    loadFailed: "La corbeille n'a pas pu être chargée.",
+    refreshFailed:
+      "La corbeille n'a pas pu être mise à jour : elle date peut-être un peu.",
+    retry: "Réessayer",
   },
 
   theme: {

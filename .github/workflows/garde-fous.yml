@@ -37,12 +37,17 @@ jobs:
       - name: Types et construction
         run: npm run build
 
-  # Fonction serveur « equipe » (Deno) : mise en forme, lint, types, et tests de ses règles
-  # CORS et de la validation des demandes. Les tests de parcours ne peuvent pas vérifier le
-  # CORS : en local, la passerelle de Supabase répond elle-même aux requêtes CORS.
+  # Fonctions serveur « equipe » et « files » (Deno) : mise en forme, lint, types et tests
+  # unitaires (règles CORS, validation des demandes, vérification des SVG et des Lottie, travail
+  # de « files » avec des doublures). Puis les tests d'intégration de « files » contre un
+  # Supabase local : vrais envois vers Storage avec un compte d'équipe en aal2, fonction servie
+  # par le runtime local, et un vrai passage de la tâche planifiée « fichiers »
+  # (pg_cron → pg_net → files). Les tests de parcours ne peuvent pas vérifier le CORS : en
+  # local, la passerelle de Supabase répond elle-même aux requêtes CORS.
   fonctions:
     name: Fonctions serveur
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -51,6 +56,15 @@ jobs:
       # Deno est lancé par npx, dans la même version qu'en local (package.json de la racine).
       - name: Vérifications et tests
         run: npm run functions:test
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.118.0
+      # Seulement ce que la fonction « files » utilise : base (pg_cron, pg_net), connexion, API,
+      # Storage, passerelle et fonctions.
+      - name: Démarrage de Supabase
+        run: supabase start -x studio,imgproxy,logflare,vector,supavisor,realtime,mailpit,postgres-meta
+      - name: Tests d'intégration de la fonction « files »
+        run: npm run functions:integration
 
   base:
     name: Base de données
@@ -60,10 +74,27 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: 2.118.0
+      # `supabase db start` applique aussi les migrations de Storage (et d'Auth) : les tests
+      # pgTAP des buckets et des politiques de Storage n'ont pas besoin de plus. pg_cron et
+      # pg_net sont dans l'image de la base. Le seed (supabase/seed.sql) est appliqué.
       - name: Démarrage de la base
         run: supabase db start
       - name: Tests pgTAP
         run: supabase test db
+      # Types générés (ADMIN § 9) : ils doivent correspondre aux migrations.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Dépendances de l'administration
+        working-directory: web
+        run: npm ci
+      - name: Contrôle des types générés
+        working-directory: web
+        run: |
+          npm run db:types
+          git diff --exit-code -- src/lib/database.types.ts
 
   parcours:
     name: Parcours
@@ -77,10 +108,12 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: 2.118.0
-      # Seulement ce que les parcours utilisent : base, connexion, API, fonctions, e-mails.
+      # Seulement ce que les parcours utilisent : base (avec pg_cron et pg_net, et le seed qui
+      # fait appeler la fonction « files » par la passerelle locale), connexion, API, passerelle,
+      # fichiers (Storage), fonctions (« equipe », « files ») et e-mails (Mailpit).
       - name: Démarrage de Supabase
         working-directory: .
-        run: supabase start -x studio,imgproxy,logflare,vector,supavisor,realtime,storage-api,postgres-meta
+        run: supabase start -x studio,imgproxy,logflare,vector,supavisor,realtime,postgres-meta
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc

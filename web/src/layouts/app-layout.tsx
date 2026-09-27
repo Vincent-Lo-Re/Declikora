@@ -1,6 +1,7 @@
 import { Outlet } from "react-router"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { UploadAnnouncer } from "@/components/media/upload-announcer"
 import {
   SidebarInset,
   SidebarProvider,
@@ -19,6 +20,8 @@ export function AppLayout() {
         <div className="flex-1 p-8">
           <Outlet />
         </div>
+        {/* Envois de la médiathèque : suivis dans toute l'admin. */}
+        <UploadAnnouncer />
       </SidebarInset>
     </SidebarProvider>
   )

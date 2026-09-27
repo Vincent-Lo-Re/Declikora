@@ -35,3 +35,17 @@ export const inviteSchema = z.object({
   full_name: fullName(texts.team.nameTooLong),
   role: z.enum(["admin", "editor"]),
 })
+
+// Fiche d'un fichier de la médiathèque : mêmes limites que la base (table media).
+export const mediaDetailsSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, texts.media.detail.nameRequired)
+    .max(255, texts.media.detail.nameTooLong),
+  alt: z.string().trim().max(1000, texts.media.detail.altTooLong),
+  transcript: z
+    .string()
+    .trim()
+    .max(200_000, texts.media.detail.transcriptTooLong),
+})

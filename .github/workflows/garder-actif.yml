@@ -1,0 +1,35 @@
+# Garder le projet Supabase gratuit actif (docs/ARCHITECTURE-CONTENUS.md, § 3.9, [D19]).
+#
+# Supabase met en pause un projet gratuit qui n'a pas reçu assez de requêtes vers sa base en
+# une semaine. Une fois par jour, ce workflow fait UNE requête légère à la base de PRODUCTION :
+# la fonction public.ping(), qui répond « true » sans rien lire ni écrire, appelée avec la clé
+# publishable (publique, déjà dans l'admin). Aucun secret.
+#
+# Un workflow planifié ne tourne que depuis la branche par défaut (main), en UTC ; GitHub peut
+# le retarder aux heures chargées (d'où 06:17 et non 06:00). À retirer au passage à l'offre Pro.
+name: Garder le projet actif
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  reveil:
+    name: Requête quotidienne à la base
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Appel de ping() sur le projet « Declikora »
+        env:
+          SUPABASE_URL: https://kajocxepxgaquculhrky.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_nwCD7WH9Btl4RDEWktB4zw_lcRYwrI_
+        run: |
+          answer=$(curl --fail --silent --show-error --retry 3 --retry-delay 20 --max-time 30 \
+            "$SUPABASE_URL/rest/v1/rpc/ping" \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Accept: application/json")
+          echo "Réponse : $answer"
+          test "$answer" = "true"

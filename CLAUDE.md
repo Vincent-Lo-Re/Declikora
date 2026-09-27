@@ -61,9 +61,10 @@ cd mobile && npx expo-doctor
 # Supabase (Docker doit tourner)
 npm run db:start               # démarre Supabase en local
 npm run db:reset               # réapplique les migrations
-npm run db:test                # tests pgTAP de supabase/tests/
-npm run functions:test         # fonctions serveur (Deno via npx : format, lint, types, tests)
-npx supabase gen types typescript --local > web/src/lib/database.types.ts   # après chaque migration, puis Prettier
+npm run db:test                # tests pgTAP de supabase/tests/ (aides communes : supabase/tests/aides/roles.inc)
+npm run functions:test         # fonctions serveur equipe et files (Deno via npx : format, lint, types, tests)
+npm run functions:integration  # fonction files contre le Supabase local : vrais envois, tâche « fichiers » (~1 min)
+cd web && npm run db:types     # après chaque migration : régénère web/src/lib/database.types.ts (+ Prettier)
 npm run db:stop
 ```
 
@@ -90,17 +91,25 @@ npm run db:stop
 - `web/src/navigation.ts` : les sections (adresse en français, icône) et le rangement du menu. `web/src/routes.tsx` : les pages.
 - `web/src/components/ui/` : les composants shadcn/ui (on peut les modifier ; leurs textes passent aussi par `texts.ts`).
 - `web/src/lib/dates.ts` : toutes les dates s'affichent avec `formatDateTime` (« 27 sept. 2026 à 14:30 », heure de Paris).
+- `web/src/lib/media/format.ts` : tailles, durées, dimensions et pourcentages (« 12,5 Mo », « 3 min 05 s ») ; les unités sont dans `texts.media.units`.
 - L'interface tutoie la personne (« Agrandis la fenêtre… »).
 - `web/vercel.json` : en-têtes de sécurité (CSP). Un nouveau service appelé par le navigateur doit y être ajouté.
+- `web/src/lib/media/` : la médiathèque sans React (reconnaissance des fichiers, réduction des photos, nettoyage des SVG, vérification des Lottie, envoi standard ou reprenable, file d'envoi, appels à la base et à la fonction `files`). Les écrans sont dans `web/src/pages/media-page.tsx`, `trash-page.tsx` et `web/src/components/media/`. Après un envoi, une mise à la corbeille, un vidage ou « Nettoyer », l'admin appelle `files` avec la session (`kickFiles()` / `callFiles()`), puis relit les données (TanStack Query).
+- Les tests Vitest des SVG lisent les fichiers types de `supabase/functions/files/fixtures/` (autorisés dans `vite.config.ts`, pendant les tests seulement) : un SVG nettoyé par l'admin doit rester accepté par le serveur.
 
 ## Mise en production de la base et des fonctions
 
 - Ordre : `npx supabase config diff` (relire), `npx supabase config push` (réglages d'auth : le bloc `[remotes.production]` de `supabase/config.toml` surcharge site_url et redirections), vérifier dans le tableau de bord que les inscriptions restent fermées, puis `npx supabase db push`, puis `npx supabase functions deploy <nom>`.
 - Ne jamais déclarer `[auth.email.smtp]` dans `config.toml` : un `config push` effacerait le SMTP de Brevo réglé à la main dans le tableau de bord.
 - La fonction `equipe` a `verify_jwt = false` et vérifie elle-même la session et `is_admin()`.
+- La fonction `files` a aussi `verify_jwt = false` : sans session de membre, elle ne fait que le travail décidé par la base (modes `kick` et `audit`, avec un frein en base) ; avec un membre aal2 (`is_staff()`), tous les modes. Déploiement : `npx supabase functions deploy files`.
+- Tâches planifiées (pg_cron + pg_net) : **rien à régler en ligne**. L'adresse de `files` et la clé publishable de production sont écrites par la migration dans `private.settings` ; `supabase/seed.sql` (local seulement, jamais poussé par `db push`) les remplace par les valeurs locales. Aucun secret n'est rangé dans la base.
+- Le workflow planifié `.github/workflows/garder-actif.yml` appelle chaque jour `public.ping()` en production (clé publishable) pour éviter la pause du projet gratuit. Il ne tourne que depuis `main`.
 
 ## Conventions
 
-- Schéma de la base : uniquement par des migrations dans `supabase/migrations/` (`npx supabase migration new <nom>`). Chaque table doit avoir sa politique RLS et un test pgTAP dans `supabase/tests/`.
+- Schéma de la base : uniquement par des migrations dans `supabase/migrations/` (`npx supabase migration new <nom>`). Chaque table doit avoir sa politique RLS et un test pgTAP dans `supabase/tests/`, puis `cd web && npm run db:types` (le garde-fou « Base de données » refuse des types pas à jour).
+- Toute fonction créée par une migration : retirer l'`EXECUTE` à `public` et `anon` (et `authenticated` si elle n'est pas appelée par l'admin), et ne jamais rendre une fonction de `private` exécutable par `anon` ou `authenticated` (sauf `reader_can_open`) : `supabase/tests/05_prive.test.sql` le vérifie.
+- Tests pgTAP : un fichier par sujet, qui commence par `begin;` puis `\ir aides/roles.inc` (profils anonyme, éditeur aal1/aal2, admin, lecteur sans fiche). Les aides portent l'extension `.inc` : `supabase test db` lance tout `.sql` et `.pg`, sous-dossiers compris.
 - Routes mobiles dans `mobile/src/app/`. Le reste du code (composants, hooks, utilitaires) va en dehors de `src/app/`.
 - Avant de dire qu'une tâche est finie, lancer le lint, la vérification des types et les tests de la partie touchée.

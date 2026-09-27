@@ -1,0 +1,57 @@
+// GIF fabriqués pour les tests : 1 × 1 pixel, une ou plusieurs images.
+
+const header = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61] // « GIF89a »
+// 1 × 1, table de 2 couleurs.
+const screen = [0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00]
+const colors = [0x00, 0x00, 0x00, 0xff, 0xff, 0xff]
+// Boucle infinie (extension NETSCAPE2.0).
+const loop = [
+  0x21,
+  0xff,
+  0x0b,
+  ...Array.from("NETSCAPE2.0", (c) => c.charCodeAt(0)),
+  0x03,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+]
+// Un commentaire plein d'octets 0x2C (le code d'une image) : ne doit pas compter.
+const comment = [0x21, 0xfe, 0x03, 0x2c, 0x2c, 0x2c, 0x00]
+const frame = [
+  0x21,
+  0xf9,
+  0x04,
+  0x00,
+  0x0a,
+  0x00,
+  0x00,
+  0x00, // délai
+  0x2c,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x01,
+  0x00,
+  0x00, // image
+  0x02,
+  0x02,
+  0x4c,
+  0x01,
+  0x00, // données
+]
+
+export function gifBytes(frames: number): Uint8Array<ArrayBuffer> {
+  const body = Array.from({ length: frames }, () => frame).flat()
+  return new Uint8Array([
+    ...header,
+    ...screen,
+    ...colors,
+    ...(frames > 1 ? loop : comment),
+    ...body,
+    0x3b,
+  ])
+}
