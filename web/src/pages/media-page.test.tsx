@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import * as api from "@/lib/media/api"
@@ -488,5 +488,36 @@ describe("Envoi", () => {
         listCalls
       )
     )
+  })
+
+  it("en quittant la Médiathèque, retire les envois réussis et garde les échecs", async () => {
+    vi.mocked(api.createMedia).mockResolvedValue(createdPdf)
+    vi.mocked(sendFile).mockResolvedValue()
+    vi.mocked(api.confirmMedia).mockResolvedValue({
+      ...createdPdf,
+      status: "ready",
+    })
+    const { router } = renderApp("/mediatheque")
+    await screen.findByText(photo.name)
+
+    fireEvent.change(input(), {
+      target: { files: [pdfFile(), new File(["bonjour"], "notes.txt")] },
+    })
+    const panel = await screen.findByRole("region", {
+      name: texts.media.uploads.title,
+    })
+    await within(panel).findByText(texts.media.uploads.stages.done)
+    await within(panel).findByText(texts.media.prepareErrors.type_refuse)
+
+    await act(() => router.navigate("/corbeille"))
+    // Le retrait attend la fin de la tâche en cours (voir UploadPanel).
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+    await act(() => router.navigate("/mediatheque"))
+
+    const back = await screen.findByRole("region", {
+      name: texts.media.uploads.title,
+    })
+    expect(within(back).getByText("notes.txt")).toBeVisible()
+    expect(within(back).queryByText("guide.pdf")).toBeNull()
   })
 })

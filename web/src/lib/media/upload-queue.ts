@@ -70,9 +70,12 @@ export class UploadQueue {
     return this.entries.some((entry) => isActive(entry.item))
   }
 
-  add(files: File[]) {
+  /** Ajoute des fichiers à la file et renvoie l'identifiant de chaque envoi. */
+  add(files: File[]): string[] {
+    const ids: string[] = []
     for (const file of files) {
       nextId += 1
+      ids.push(`envoi-${nextId}`)
       this.entries.push({
         item: {
           id: `envoi-${nextId}`,
@@ -92,6 +95,7 @@ export class UploadQueue {
     }
     this.emit()
     this.pump()
+    return ids
   }
 
   cancel(id: string) {
@@ -124,6 +128,19 @@ export class UploadQueue {
     for (const entry of this.entries) {
       if (!isActive(entry.item)) this.dismiss(entry.item.id)
     }
+  }
+
+  /**
+   * Retire les envois réussis et annulés, et garde ceux en échec : en revenant à la
+   * Médiathèque, on ne retrouve que ce qui tourne encore ou ce qui attend une action.
+   */
+  clearSettled() {
+    const settled = this.entries.filter(
+      (entry) => entry.item.stage === "done" || entry.item.stage === "cancelled"
+    )
+    if (settled.length === 0) return
+    this.entries = this.entries.filter((entry) => !settled.includes(entry))
+    this.emit()
   }
 
   private find(id: string) {

@@ -711,7 +711,8 @@ Les noms des jobs ne changent pas : les Deployment Checks de Vercel attendent «
 - **Taille** : l'admin refuse d'envoyer au-delà de 240 000 octets (JSON compact) et prévient dès 200 000.
 - **Heure d'enregistrement** : « Enregistré », avec « Enregistré le 27 sept. 2026 à 14:32 » en infobulle, plutôt que « Enregistré à 14:32 » : toutes les dates passent par `formatDateTime`.
 - **Glisser-déposer** : la cible du pointeur est gardée le temps d'un rafraîchissement après un changement de conteneur, et un bloc survolant l'encadré qui le contient déjà (hors de sa liste) y reste ; sinon le bloc oscille entre la page et l'encadré. Au clavier, une flèche qui sort de la liste d'un encadré place le bloc juste avant ou juste après lui.
-- **Choix d'une image** : images seulement (les blocs SVG, Lottie et PDF sont remis à plus tard, ADMIN § 10), et pas d'envoi depuis l'éditeur : on envoie dans la Médiathèque.
+- **Choix d'une image** : images seulement (les blocs SVG, Lottie et PDF sont remis à plus tard, ADMIN § 10). « Envoyer une image » (ajouté le 27/09/2026, demande de l'utilisateur) passe par la file d'envoi de la Médiathèque (réduction, envoi, enregistrement) ; l'image est choisie dès qu'elle est prête. Un autre type de fichier arrive dans la Médiathèque avec un message. Si on ferme la fenêtre avant la fin, l'envoi continue et le fichier arrive dans la Médiathèque.
+- **Liste des envois de la Médiathèque** (27/09/2026) : en quittant la Médiathèque, les envois réussis et annulés quittent la liste ; seuls restent ceux qui tournent encore ou qui ont échoué.
 - **Réglages du contenu** (adresse, catégories, « Montrer dans l'app ») : pas encore dans l'éditeur ; `save_draft` n'envoie que le brouillon. Ils arriveront avec les sections (étape 7) et la publication (étape 5).
 - **Reporté** : vérifier sous Hermes, dans `mobile/`, qu'un validateur généré se charge (`mobile/` reste hors de cette étape).
 
