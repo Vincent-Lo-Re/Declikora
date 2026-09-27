@@ -99,7 +99,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Demandes de fusion.** Chaque changement passe par une branche et une demande de fusion (pull request). Les garde-fous tournent, Vercel crée une adresse de test, et on ne fusionne dans `main` qu'avec le feu vert de l'utilisateur et des garde-fous au vert.
 - [x] **Réglages GitHub** : une demande de fusion arrive sur `main` en un seul commit (titre et description de la demande), sa branche est supprimée ensuite, et les alertes de sécurité (Dependabot) sont actives.
 - [x] **Vercel ne reconstruit l'admin que si `web/` change** (`ignoreCommand` dans `web/vercel.json`).
-- [ ] **Vercel attend les garde-fous** avant de mettre en ligne (Deployment Checks). À régler après leur premier passage sur GitHub.
+- [x] **Vercel attend les garde-fous** « Administration » et « Base de données » avant toute mise en production (Deployment Checks).
 - [ ] **Une adresse provisoire** pendant la construction (par exemple `declikora-admin.vercel.app`). Quand la nouvelle administration est prête, elle prend **`admin.declikora.app`**, à la place de l'ancienne.
 - [x] **À chaque envoi sur GitHub** : mise en forme, relecture du code (lint), tests, vérification des types et construction de l'admin, et tests de la base (pgTAP).
 - [x] **En-têtes de sécurité** : le navigateur refuse d'afficher l'admin dans un autre site, et n'exécute que ses propres scripts (et ceux de Supabase et Sentry).
