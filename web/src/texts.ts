@@ -732,16 +732,25 @@ export const texts = {
     },
     picker: {
       title: "Choisir une image",
-      description: "Les images prêtes de la médiathèque.",
+      description:
+        "Les images prêtes de la médiathèque, ou une nouvelle image à envoyer.",
       search: "Rechercher une image",
       searchPlaceholder: "Rechercher par nom…",
       choose: (name: string) => `Choisir ${name}`,
       empty:
-        "Aucune image dans la médiathèque. Envoie d'abord des images depuis la Médiathèque.",
+        "Aucune image dans la médiathèque. Envoies-en une avec « Envoyer une image ».",
       noResults: "Aucune image trouvée. Essaie un autre nom.",
       loadFailed: "Les images n'ont pas pu être chargées.",
       retry: "Réessayer",
-      toLibrary: "Ouvrir la Médiathèque",
+      upload: "Envoyer une image",
+      uploadInput: "Image à envoyer",
+      uploading: (name: string) => `Envoi de ${name}…`,
+      uploadingProgress: (name: string, percent: string) =>
+        `Envoi de ${name}… ${percent}`,
+      uploadFailed: (name: string, error: string) =>
+        `Échec de l'envoi de ${name}. ${error}`,
+      notImage: (name: string) =>
+        `${name} est dans la Médiathèque, mais le bloc Image n'accepte que les photos et les images (JPEG, PNG, WebP, GIF, HEIC).`,
     },
     settings: {
       label: "Réglages du bloc",

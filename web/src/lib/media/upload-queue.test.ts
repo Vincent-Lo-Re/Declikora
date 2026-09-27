@@ -101,4 +101,27 @@ describe("file d'envoi", () => {
     expect(queue.getSnapshot()).toEqual([])
     expect(discard).toHaveBeenCalledWith("ligne-a.pdf")
   })
+
+  it("retire les envois réussis et annulés, garde les échecs et ceux en cours", async () => {
+    const { runner, pending } = controlledRunner()
+    const discard = vi.fn(async () => {})
+    const queue = new UploadQueue({ runner, discard, concurrency: 4 })
+    queue.add(files("fait.pdf", "rate.pdf", "annule.pdf", "en-cours.pdf"))
+    pending.get("fait.pdf")!.resolve(media("fait", "ready"))
+    pending.get("rate.pdf")!.reject(new TransferError("envoi_interrompu"))
+    await flush()
+    queue.cancel(queue.getSnapshot()[2].id)
+    discard.mockClear()
+
+    queue.clearSettled()
+
+    expect(
+      queue.getSnapshot().map((item) => [item.fileName, item.stage])
+    ).toEqual([
+      ["rate.pdf", "error"],
+      ["en-cours.pdf", "sending"],
+    ])
+    // L'échec garde sa ligne : « Réessayer » la reprend.
+    expect(discard).not.toHaveBeenCalled()
+  })
 })

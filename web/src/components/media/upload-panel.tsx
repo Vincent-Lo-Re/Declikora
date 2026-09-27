@@ -1,4 +1,5 @@
 import { RotateCcw, TriangleAlert, X } from "lucide-react"
+import { useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -20,6 +21,27 @@ import {
 } from "@/lib/media/upload-queue"
 import { texts } from "@/texts"
 
+// Nombre de listes d'envois affichées (une seule en pratique : celle de la Médiathèque).
+let mountedPanels = 0
+
+/**
+ * En quittant la Médiathèque, les envois réussis et annulés quittent la liste : au retour, on
+ * ne retrouve que ce qui tourne encore ou ce qui a échoué. Le retrait attend la fin de la tâche
+ * en cours, pour ignorer un démontage suivi aussitôt d'un remontage (StrictMode en
+ * développement, nouvel affichage de la même page).
+ */
+function useClearSettledOnLeave(queue: UploadQueue) {
+  useEffect(() => {
+    mountedPanels += 1
+    return () => {
+      mountedPanels -= 1
+      setTimeout(() => {
+        if (mountedPanels === 0) queue.clearSettled()
+      }, 0)
+    }
+  }, [queue])
+}
+
 /** Les envois en cours et terminés : progression, annulation, erreurs, « Réessayer ». */
 export function UploadPanel({
   queue,
@@ -28,6 +50,7 @@ export function UploadPanel({
   queue: UploadQueue
   items: UploadItem[]
 }) {
+  useClearSettledOnLeave(queue)
   const verdictOf = useUploadVerdicts(items)
   if (items.length === 0) return null
   const hasFinished = items.some((item) => !isActive(item))

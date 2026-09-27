@@ -9,6 +9,7 @@
 //    retire pas.
 // 4. Une image de la médiathèque insérée (seule, puis dans un encadré) : elle apparaît dans
 //    « Utilisé dans » et ne peut plus aller à la corbeille, jusqu'à ce qu'on la retire.
+// 5. Une image envoyée depuis le bloc Image : réduite, envoyée, puis choisie d'elle-même.
 
 import type { Browser, Page } from "@playwright/test"
 
@@ -424,4 +425,39 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
   await sheet.getByRole("button", { name: texts.media.detail.trash }).click()
   await expect(page.getByText(texts.media.detail.trashed)).toBeVisible()
   await expect(card).toHaveCount(0)
+})
+
+test("une image envoyée depuis le bloc Image est choisie dès qu'elle est prête", async ({
+  page,
+  team,
+}) => {
+  test.setTimeout(90_000)
+  const admin = await team.createAdmin("Ulysse Upload")
+  const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+  const fileName = `falaise-${id}.png`
+
+  await createPage(page, admin)
+  await page.getByLabel(labels.title.label).fill(`La falaise ${id}`)
+  await page
+    .getByRole("button", { name: labels.blocks.text, exact: true })
+    .click()
+  await page.keyboard.type("Une falaise au soleil.")
+  await page.getByRole("button", { name: labels.add.label }).first().click()
+  await addMenuItem(page, labels.add.label, labels.blocks.image).click()
+
+  // Une grande photo (réduite dans le navigateur avant l'envoi).
+  const picker = page.getByRole("dialog", { name: labels.picker.title })
+  await picker
+    .getByLabel(labels.picker.uploadInput)
+    .setInputFiles([
+      { name: fileName, mimeType: "image/png", buffer: photoPng(2400, 1600) },
+    ])
+  await expect(picker).toHaveCount(0, { timeout: 60_000 })
+  const image = page.locator('[data-block-type="image"]')
+  await expect(image.locator("img")).toBeVisible()
+  await saved(page)
+
+  // Recharger : l'image est bien celle du brouillon.
+  await page.reload()
+  await expect(page.locator('[data-block-type="image"] img')).toBeVisible()
 })
