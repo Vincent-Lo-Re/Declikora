@@ -8,12 +8,14 @@ import { authPaths, sections, type SectionKey } from "@/navigation"
 import { AccountPage } from "@/pages/account-page"
 import { ErrorPage } from "@/pages/error-page"
 import { InvitationPage } from "@/pages/invitation-page"
+import { MediaPage } from "@/pages/media-page"
 import { MfaPage } from "@/pages/mfa-page"
 import { NotFoundPage } from "@/pages/not-found-page"
 import { SectionPage } from "@/pages/section-page"
 import { SignInPage } from "@/pages/sign-in-page"
 import { SignOutPage } from "@/pages/sign-out-page"
 import { TeamPage } from "@/pages/team-page"
+import { TrashPage } from "@/pages/trash-page"
 
 // Sections pas encore construites : elles affichent « Bientôt disponible ».
 const upcomingSections: SectionKey[] = [
@@ -23,8 +25,6 @@ const upcomingSections: SectionKey[] = [
   "methods",
   "pages",
   "templates",
-  "media",
-  "trash",
 ]
 
 const sectionRoute = (section: SectionKey) => ({
@@ -59,6 +59,8 @@ export const routes: RouteObject[] = [
                 errorElement: <ErrorPage />,
                 children: [
                   ...upcomingSections.map(sectionRoute),
+                  { path: sections.media.path, element: <MediaPage /> },
+                  { path: sections.trash.path, element: <TrashPage /> },
                   {
                     element: <RequireAdmin />,
                     children: [

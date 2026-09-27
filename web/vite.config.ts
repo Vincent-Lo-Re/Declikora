@@ -13,6 +13,18 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5173,
     strictPort: true,
+    // Pendant les tests seulement : les SVG types de la fonction « files » (même source pour
+    // les tests du serveur et ceux de l'admin, voir src/lib/media/svg.test.ts).
+    ...(process.env.VITEST && {
+      fs: {
+        allow: [
+          fileURLToPath(new URL(".", import.meta.url)),
+          fileURLToPath(
+            new URL("../supabase/functions/files/fixtures", import.meta.url)
+          ),
+        ],
+      },
+    }),
   },
   resolve: {
     alias: {

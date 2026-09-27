@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="ISO-2022-JP"?>
+<!-- Fichier piégé : lu en UTF-8 par le serveur, en ISO-2022-JP par le navigateur.
+     Les octets ESC (0x1B) changent la façon dont le navigateur lit la suite. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+  <desc>a$Bb(B</desc>
+  <rect width="10" height="10" fill="#f00" />
+</svg>

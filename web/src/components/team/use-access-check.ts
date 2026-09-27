@@ -2,12 +2,13 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
 
 import { profileQueryKey, useAuth } from "@/auth/auth-context"
+import { isMediaAccessLost } from "@/lib/media/api"
 import { isAccessLost } from "@/lib/team"
 
 /**
- * Quand la fonction « equipe » répond que la personne n'est plus admin (rôle retiré
- * par un autre admin, compte supprimé, session fermée), relit sa fiche : le menu et
- * les pages réservées aux admins suivent aussitôt, sans attendre un rechargement.
+ * Quand la fonction « equipe », la base ou la fonction « files » répond que la personne n'a
+ * plus accès (rôle retiré par un admin, compte supprimé, session fermée), relit sa fiche : le
+ * menu et les pages réservées suivent aussitôt, sans attendre un rechargement.
  */
 export function useAccessCheck() {
   const { profile } = useAuth()
@@ -16,7 +17,7 @@ export function useAccessCheck() {
 
   return useCallback(
     (error: unknown) => {
-      if (userId && isAccessLost(error)) {
+      if (userId && (isAccessLost(error) || isMediaAccessLost(error))) {
         void queryClient.invalidateQueries({
           queryKey: profileQueryKey(userId),
         })

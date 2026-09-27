@@ -19,7 +19,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [ ] **Méthodes** : une méthode contient des chapitres, et chaque chapitre contient des leçons. Le chapitre a sa propre introduction en blocs, affichée avant ses leçons. Chaque leçon a son contenu en blocs.
 - [ ] **Pages** : les pages simples de l'app (aide, mentions légales…).
 - [ ] **Modèles** : les modèles de blocs (voir § 5).
-- [ ] **Médiathèque** : tous les fichiers (voir § 6).
+- [x] **Médiathèque** : tous les fichiers (voir § 6).
 - [ ] **Corbeille** : une seule, pour tout ce qui a été supprimé (voir § 3).
 - [ ] **Équipe** et **Paramètres**, réservés aux admins. Les Paramètres contiennent les formules d'abonnement.
 - [ ] **Mon compte** : double vérification, déconnexion.
@@ -73,11 +73,11 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 
 ## 6. Médiathèque
 
-- [ ] **Une médiathèque commune**, avec une recherche et des filtres par type. Un fichier peut servir dans plusieurs contenus. On voit où il est utilisé, et on ne peut pas supprimer un fichier encore utilisé.
-- [ ] **Types de fichiers** : images, SVG, animations Lottie, audios, PDF. Pas de vidéo.
-- [ ] **Photos réduites automatiquement** avant l'envoi, à environ 300 Ko, sans différence visible. Les SVG, les animations Lottie, les audios et les PDF sont envoyés tels quels.
-- [ ] **SVG nettoyés à l'envoi** : un SVG peut contenir du code caché, qui est retiré.
-- [ ] **Informations sur un fichier** : un texte alternatif pour les images, une transcription pour les audios.
+- [x] **Une médiathèque commune**, avec une recherche et des filtres par type. Un fichier peut servir dans plusieurs contenus. On voit où il est utilisé, et on ne peut pas supprimer un fichier encore utilisé.
+- [x] **Types de fichiers** : images, SVG, animations Lottie, audios, PDF. Pas de vidéo.
+- [x] **Photos réduites automatiquement** avant l'envoi, à environ 300 Ko, sans différence visible. Les SVG, les animations Lottie, les audios et les PDF sont envoyés tels quels.
+- [x] **SVG nettoyés à l'envoi** : un SVG peut contenir du code caché, qui est retiré.
+- [x] **Informations sur un fichier** : un texte alternatif pour les images, une transcription pour les audios.
 - [ ] **Protection selon l'accès** : les fichiers des contenus gratuits sont publics. Ceux des contenus réservés sont protégés : l'app ne reçoit qu'un lien temporaire, et seulement pour un abonné du bon niveau.
 - [ ] **Quand un contenu gratuit devient réservé**, ses fichiers redeviennent protégés à la publication suivante, et leurs anciennes adresses cessent de marcher. Exception : un fichier qui sert encore dans un contenu gratuit publié reste public.
 - [ ] **Côté app mobile** : savoir afficher les SVG et les animations Lottie.

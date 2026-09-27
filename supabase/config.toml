@@ -423,6 +423,13 @@ deno_version = 2
 [functions.equipe]
 verify_jwt = false
 
+# Fonction serveur des fichiers de la médiathèque (vérifier, déplacer, effacer, contrôler).
+# verify_jwt = false : elle est appelée par les tâches planifiées (pg_cron + pg_net, avec la clé
+# publishable seulement) et par l'admin (session d'un membre, vérifiée par la fonction elle-même
+# avec is_staff()). Voir supabase/functions/files/index.ts.
+[functions.files]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

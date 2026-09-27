@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fichier piégé : image-set() charge une adresse extérieure sans passer par url(). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+  <style>
+  .a {
+    background-image: -webkit-image-set("https://pirate.fr/pixel.png" 1x);
+  }
+  </style>
+  <rect class="a" width="10" height="10"
+    style="fill:red;background-image:image-set('https://pirate.fr/p.png' 1x)" />
+  <circle cx="5" cy="5" r="2" style="cursor: '//pirate.fr/c.cur'" />
+</svg>

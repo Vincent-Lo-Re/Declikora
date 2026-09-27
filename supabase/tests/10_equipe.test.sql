@@ -68,7 +68,10 @@ select function_privs_are(
 
 -- La base de développement peut déjà contenir des comptes : on vide les fiches pour que
 -- l'amorçage soit testé sur une équipe vide (tout est annulé à la fin par le rollback).
-truncate public.profiles;
+-- « cascade » : les fichiers de la médiathèque citent leurs auteurs.
+set local client_min_messages = warning;
+truncate public.profiles cascade;
+reset client_min_messages;
 
 -- Équipe vide : un inconnu (inscription ouverte par erreur) ne devient pas admin.
 insert into auth.users (id, email) values

@@ -34,6 +34,120 @@ export type Database = {
   }
   public: {
     Tables: {
+      media: {
+        Row: {
+          alt: string | null
+          check_attempts: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          duration_s: number | null
+          height: number | null
+          id: string
+          is_public: boolean
+          kind: string
+          mime: string
+          name: string
+          path: string
+          purge_error: string | null
+          purge_requested_at: string | null
+          reject_reason: string | null
+          size_bytes: number
+          status: string
+          status_changed_at: string
+          sync_error: string | null
+          sync_failed_at: string | null
+          transcript: string | null
+          width: number | null
+        }
+        Insert: {
+          alt?: string | null
+          check_attempts?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          duration_s?: number | null
+          height?: number | null
+          id?: string
+          is_public?: boolean
+          kind: string
+          mime: string
+          name: string
+          path: string
+          purge_error?: string | null
+          purge_requested_at?: string | null
+          reject_reason?: string | null
+          size_bytes: number
+          status?: string
+          status_changed_at?: string
+          sync_error?: string | null
+          sync_failed_at?: string | null
+          transcript?: string | null
+          width?: number | null
+        }
+        Update: {
+          alt?: string | null
+          check_attempts?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          duration_s?: number | null
+          height?: number | null
+          id?: string
+          is_public?: boolean
+          kind?: string
+          mime?: string
+          name?: string
+          path?: string
+          purge_error?: string | null
+          purge_requested_at?: string | null
+          reject_reason?: string | null
+          size_bytes?: number
+          status?: string
+          status_changed_at?: string
+          sync_error?: string | null
+          sync_failed_at?: string | null
+          transcript?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_audit: {
+        Row: {
+          checked_at: string
+          id: number
+          orphan_paths: string[]
+        }
+        Insert: {
+          checked_at?: string
+          id?: never
+          orphan_paths?: string[]
+        }
+        Update: {
+          checked_at?: string
+          id?: never
+          orphan_paths?: string[]
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -63,12 +177,75 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      trash_items: {
+        Row: {
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_by_name: string | null
+          id: string | null
+          item_type: string | null
+          kind: string | null
+          parent_title: string | null
+          purge_at: string | null
+          purge_error: string | null
+          title: string | null
+          trash_batch: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      empty_trash: { Args: { items?: Json }; Returns: number }
       end_member_sessions: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      files_audit: { Args: Record<PropertyKey, never>; Returns: number }
+      files_claim_run: { Args: { run_mode: string }; Returns: boolean }
+      files_mark_check_failed: {
+        Args: { error: string; media_id: string }
+        Returns: string
+      }
+      files_mark_checked: {
+        Args: { accepted: boolean; media_id: string; reason?: string }
+        Returns: string
+      }
+      files_mark_erased: { Args: { media_id: string }; Returns: boolean }
+      files_mark_failed: {
+        Args: { error: string; media_id: string }
+        Returns: undefined
+      }
+      files_mark_moved: {
+        Args: { is_public: boolean; media_id: string }
+        Returns: boolean
+      }
+      files_orphans: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          bucket_id: string
+          name: string
+        }[]
+      }
+      files_worklist: {
+        Args: { max_items?: number }
+        Returns: {
+          action: string
+          is_public: boolean
+          kind: string
+          media_id: string
+          mime: string
+          path: string
+          size_bytes: number
+          to_public: boolean
+        }[]
       }
       has_other_active_admin: {
         Args: { excluded_user_id: string }
@@ -80,6 +257,167 @@ export type Database = {
       }
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
       is_staff: { Args: Record<PropertyKey, never>; Returns: boolean }
+      media_confirm: {
+        Args: { media_id: string }
+        Returns: {
+          alt: string | null
+          check_attempts: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          duration_s: number | null
+          height: number | null
+          id: string
+          is_public: boolean
+          kind: string
+          mime: string
+          name: string
+          path: string
+          purge_error: string | null
+          purge_requested_at: string | null
+          reject_reason: string | null
+          size_bytes: number
+          status: string
+          status_changed_at: string
+          sync_error: string | null
+          sync_failed_at: string | null
+          transcript: string | null
+          width: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "media"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      media_create: {
+        Args: {
+          duration_s?: number
+          height?: number
+          kind: string
+          mime: string
+          name: string
+          size_bytes: number
+          width?: number
+        }
+        Returns: {
+          alt: string | null
+          check_attempts: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          duration_s: number | null
+          height: number | null
+          id: string
+          is_public: boolean
+          kind: string
+          mime: string
+          name: string
+          path: string
+          purge_error: string | null
+          purge_requested_at: string | null
+          reject_reason: string | null
+          size_bytes: number
+          status: string
+          status_changed_at: string
+          sync_error: string | null
+          sync_failed_at: string | null
+          transcript: string | null
+          width: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "media"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      media_restore: {
+        Args: { media_id: string }
+        Returns: {
+          alt: string | null
+          check_attempts: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          duration_s: number | null
+          height: number | null
+          id: string
+          is_public: boolean
+          kind: string
+          mime: string
+          name: string
+          path: string
+          purge_error: string | null
+          purge_requested_at: string | null
+          reject_reason: string | null
+          size_bytes: number
+          status: string
+          status_changed_at: string
+          sync_error: string | null
+          sync_failed_at: string | null
+          transcript: string | null
+          width: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "media"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      media_storage_used: { Args: Record<PropertyKey, never>; Returns: number }
+      media_trash: {
+        Args: { media_id: string }
+        Returns: {
+          alt: string | null
+          check_attempts: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          duration_s: number | null
+          height: number | null
+          id: string
+          is_public: boolean
+          kind: string
+          mime: string
+          name: string
+          path: string
+          purge_error: string | null
+          purge_requested_at: string | null
+          reject_reason: string | null
+          size_bytes: number
+          status: string
+          status_changed_at: string
+          sync_error: string | null
+          sync_failed_at: string | null
+          transcript: string | null
+          width: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "media"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      media_uses: {
+        Args: { media_id: string }
+        Returns: {
+          content_id: string
+          in_app: boolean
+          in_draft: boolean
+          kind: string
+          parent_title: string
+          title: string
+        }[]
+      }
+      ping: { Args: Record<PropertyKey, never>; Returns: boolean }
       session_is_open: { Args: Record<PropertyKey, never>; Returns: boolean }
       team_members: {
         Args: Record<PropertyKey, never>
