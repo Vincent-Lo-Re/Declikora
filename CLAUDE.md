@@ -22,8 +22,10 @@ Elles ont été vérifiées sur npm et Expo le 2026-09-27. Elles sont épinglée
 - React 19.3, Vite 8.3, React Router 8.4
 - Tiptap 3.31 (`@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`)
 - dnd-kit : `@dnd-kit/core` 6.3, `@dnd-kit/sortable` 10.0, `@dnd-kit/utilities` 3.2
+- Tailwind CSS 4.3 + shadcn/ui (composants Base UI, style « base-nova », couleur de base neutre), icônes Lucide, police Inter
+- Sentry 11 (`@sentry/react`)
 - Vitest 5.0 (jsdom + Testing Library)
-- ESLint 10.11 + typescript-eslint 8.70
+- ESLint 10.11 + typescript-eslint 8.70, Prettier 3.9
 - **TypeScript 6.0, pas la 7** : typescript-eslint n'accepte pas encore la 7 (peer `<6.1.0`).
 
 **App mobile (`mobile/`)** : c'est Expo qui fixe les versions
@@ -36,14 +38,18 @@ Elles ont été vérifiées sur npm et Expo le 2026-09-27. Elles sont épinglée
 **Base et serveur**
 - Supabase CLI 2.118 (devDependency à la racine), supabase-js 2.117, Postgres 17
 
+**Node 24 partout** : `.nvmrc` à la racine, `engines` dans les `package.json` (Vercel s'en sert), et les garde-fous GitHub.
+
 ## Commandes
 
 ```bash
 # Administration
 cd web && npm run dev          # serveur de dev
 cd web && npm run lint         # ESLint
-cd web && npm run build        # tsc -b + build Vite
-cd web && npx vitest run       # tests
+cd web && npm run format       # Prettier (format:check pour vérifier seulement)
+cd web && npm test             # tests (test:watch pour relancer à chaque changement)
+cd web && npm run build        # vérification des types + construction
+cd web && npx shadcn add <composant>   # ajouter un composant shadcn/ui
 
 # App mobile
 cd mobile && npx expo start    # serveur de dev (génère aussi expo-env.d.ts)
@@ -66,6 +72,23 @@ npm run db:stop
 - Projet Supabase en ligne : « Declikora », réf. `kajocxepxgaquculhrky` (https://kajocxepxgaquculhrky.supabase.co). Ne pas le confondre avec « Declikora-Project » (`qmjmfkepmvdusgwynltg`), qui appartient à un autre dépôt.
 - Côté client, n'utiliser que la clé **publishable** (`sb_publishable_…`). La clé secrète (`sb_secret_…`) ne doit jamais se retrouver dans `web/` ni dans `mobile/`.
 - Le client Supabase est dans `web/src/lib/supabase.ts` et `mobile/src/lib/supabase.ts`.
+
+## Façon de travailler
+
+- **Jamais directement sur `main`.** Chaque chantier a sa branche. Quand l'utilisateur dit « commite et pousse », je pousse la branche et j'ouvre une demande de fusion (pull request) sur GitHub.
+- Les garde-fous (`.github/workflows/garde-fous.yml`) tournent sur chaque demande de fusion, et Vercel crée une adresse de test. Vercel ne met en production que si les garde-fous « Administration » et « Base de données » sont au vert (Deployment Checks) : si on renomme un de ces jobs, il faut aussi mettre à jour ce réglage dans Vercel.
+- **Je ne fusionne que quand l'utilisateur dit « fusionne », et seulement si tous les garde-fous sont au vert** (`gh pr checks`). L'offre GitHub gratuite ne permet pas de l'imposer sur un dépôt privé : c'est à moi de le respecter.
+- La fusion se fait en un seul commit (`gh pr merge --squash`), avec le titre et la description de la demande : ils doivent donc être soignés. La branche est ensuite supprimée par GitHub.
+- Services en ligne : Vercel `declikora-admin` (équipe `vincent-lo-re`, dossier `web`), Sentry `declikora-zc` / projet `declikora-admin` (Europe), Supabase « Declikora » (Paris). L'utilisateur m'a donné la main sur GitHub, Supabase, Vercel et Sentry via Chrome ; chaque changement de réglage se fait avec son accord.
+
+## Administration : où ranger le code
+
+- `web/src/texts.ts` : **tous** les textes de l'interface, en français. Aucun texte en dur dans les composants.
+- `web/src/navigation.ts` : les sections (adresse en français, icône) et le rangement du menu. `web/src/routes.tsx` : les pages.
+- `web/src/components/ui/` : les composants shadcn/ui (on peut les modifier ; leurs textes passent aussi par `texts.ts`).
+- `web/src/lib/dates.ts` : toutes les dates s'affichent avec `formatDateTime` (« 27 sept. 2026 à 14:30 », heure de Paris).
+- L'interface tutoie la personne (« Agrandis la fenêtre… »).
+- `web/vercel.json` : en-têtes de sécurité (CSP). Un nouveau service appelé par le navigateur doit y être ajouté.
 
 ## Conventions
 
