@@ -41,6 +41,16 @@ function textBlock(page: Page, index = 0) {
   return page.locator('[data-block-type="text"] [contenteditable]').nth(index)
 }
 
+/**
+ * Un choix du menu d'ajout ouvert par le bouton `menu` (« Ajouter un bloc » ou « Ajouter dans
+ * l'encadré ») : le menu précédent peut être encore là pendant qu'il se ferme.
+ */
+function addMenuItem(page: Page, menu: string, item: string) {
+  return page
+    .getByRole("menu", { name: menu })
+    .getByRole("menuitem", { name: item })
+}
+
 /** Un second navigateur, avec les mêmes réglages que le premier. */
 async function secondBrowser(
   browser: Browser,
@@ -82,7 +92,7 @@ test("écrire une page, déplacer un bloc par sa poignée, recharger et retrouve
 
   // Un encadré, ajouté après le texte.
   await page.getByRole("button", { name: labels.add.label }).first().click()
-  await page.getByRole("menuitem", { name: labels.blocks.box }).click()
+  await addMenuItem(page, labels.add.label, labels.blocks.box).click()
   const box = page.locator('[data-block-type="box"]')
   await expect(box).toContainText(labels.emptyBox)
   await saved(page)
@@ -319,7 +329,7 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
 
   const picker = page.getByRole("dialog", { name: labels.picker.title })
   await page.getByRole("button", { name: labels.add.label }).first().click()
-  await page.getByRole("menuitem", { name: labels.blocks.image }).click()
+  await addMenuItem(page, labels.add.label, labels.blocks.image).click()
   await picker
     .getByRole("button", { name: labels.picker.choose(fileName) })
     .click()
@@ -344,10 +354,10 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
 
   // Un encadré, avec la même image dedans.
   await page.getByRole("button", { name: labels.add.label }).first().click()
-  await page.getByRole("menuitem", { name: labels.blocks.box }).click()
+  await addMenuItem(page, labels.add.label, labels.blocks.box).click()
   const box = page.locator('[data-block-type="box"]')
   await box.getByRole("button", { name: labels.add.inBox }).click()
-  await page.getByRole("menuitem", { name: labels.blocks.image }).click()
+  await addMenuItem(page, labels.add.inBox, labels.blocks.image).click()
   await picker
     .getByRole("button", { name: labels.picker.choose(fileName) })
     .click()
