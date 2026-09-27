@@ -27,3 +27,12 @@ if (!window.matchMedia) {
 if (!document.elementFromPoint) {
   document.elementFromPoint = () => null
 }
+
+// jsdom ne mesure rien : ProseMirror (Tiptap) demande la position du curseur pour faire défiler.
+if (!Range.prototype.getClientRects) {
+  Range.prototype.getClientRects = () => [] as unknown as DOMRectList
+  Range.prototype.getBoundingClientRect = () => new DOMRect()
+}
+if (!Element.prototype.getClientRects) {
+  Element.prototype.getClientRects = () => [] as unknown as DOMRectList
+}

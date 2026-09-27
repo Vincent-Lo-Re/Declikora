@@ -1,0 +1,36 @@
+{
+  "description": "Modèle : un encadré avec du texte",
+  "variant": "template",
+  "valid": true,
+  "data": {
+    "v": 1,
+    "title": "À retenir",
+    "blocks": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "type": "box",
+        "look": "fill",
+        "blocks": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "type": "text",
+            "doc": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "À retenir"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

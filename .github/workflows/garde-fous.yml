@@ -28,6 +28,20 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
+      # Forme des blocs (docs/ARCHITECTURE-CONTENUS.md, § 2.1) : tout ce qui est tiré de
+      # blocks/ (schémas des variantes, empreinte, types, validateurs autonomes, mesures, cas
+      # pgTAP, migration du schéma) doit être à jour. Le script vérifie aussi chaque cas partagé
+      # avec les validateurs produits. Un fichier nouveau (migration oubliée) compte comme un écart.
+      - name: Forme des blocs à jour
+        run: |
+          npm run blocks:generate
+          cd ..
+          if [ -n "$(git status --porcelain -- blocks web/src/blocks/generated supabase/migrations supabase/tests/aides/blocs-cas.inc)" ]; then
+            git status --short -- blocks web/src/blocks/generated supabase/migrations supabase/tests/aides/blocs-cas.inc
+            git diff -- blocks web/src/blocks/generated supabase/tests/aides/blocs-cas.inc | head -200
+            echo "::error::Lance « cd web && npm run blocks:generate » et commite le résultat."
+            exit 1
+          fi
       - name: Mise en forme
         run: npm run format:check
       - name: Relecture du code
@@ -81,6 +95,19 @@ jobs:
         run: supabase db start
       - name: Tests pgTAP
         run: supabase test db
+      # Le schéma des blocs rangé dans la base (dernière migration générée) est bien celui de
+      # blocks/ : son empreinte est comparée à blocks/generated/schema.sha256, sans lire les
+      # migrations (§ 2.1).
+      - name: Empreinte du schéma des blocs
+        run: |
+          expected="$(tr -d '[:space:]' < blocks/generated/schema.sha256)"
+          actual="$(psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -tAc 'select private.blocks_schema_hash()')"
+          echo "attendue : $expected"
+          echo "en base  : $actual"
+          if [ "$expected" != "$actual" ]; then
+            echo "::error::La base n'a pas le schéma des blocs de blocks/ : lance « cd web && npm run blocks:generate » et commite la migration produite."
+            exit 1
+          fi
       # Types générés (ADMIN § 9) : ils doivent correspondre aux migrations.
       - uses: actions/setup-node@v7
         with:
@@ -110,10 +137,11 @@ jobs:
           version: 2.118.0
       # Seulement ce que les parcours utilisent : base (avec pg_cron et pg_net, et le seed qui
       # fait appeler la fonction « files » par la passerelle locale), connexion, API, passerelle,
-      # fichiers (Storage), fonctions (« equipe », « files ») et e-mails (Mailpit).
+      # fichiers (Storage), fonctions (« equipe », « files »), e-mails (Mailpit) et Realtime (le
+      # verrou de l'éditeur suit edit_locks en direct, étape 4).
       - name: Démarrage de Supabase
         working-directory: .
-        run: supabase start -x studio,imgproxy,logflare,vector,supavisor,realtime,postgres-meta
+        run: supabase start -x studio,imgproxy,logflare,vector,supavisor,postgres-meta
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc

@@ -1,0 +1,27 @@
+{
+  "description": "Liste sans élément",
+  "variant": "draft",
+  "valid": false,
+  "data": {
+    "v": 1,
+    "title": "Bien respirer",
+    "summary": null,
+    "cover": null,
+    "audio": null,
+    "blocks": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "type": "text",
+        "doc": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "bulletList",
+              "content": []
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

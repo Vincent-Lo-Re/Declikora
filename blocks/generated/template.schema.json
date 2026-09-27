@@ -1,0 +1,875 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://declikora.app/blocks/template.schema.json",
+  "$comment": "Généré par web/scripts/blocks-generate.mjs (npm run blocks:generate) depuis blocks/. Ne pas modifier. Variante « template ». Variante « template » : le brouillon d'un modèle de blocs (pas de bloc lié).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "title",
+    "blocks"
+  ],
+  "properties": {
+    "v": {
+      "const": 1
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "summary": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 1000
+    },
+    "cover": {
+      "$ref": "#/definitions/mediaRef"
+    },
+    "audio": {
+      "$ref": "#/definitions/mediaRef"
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/templateBlock"
+      }
+    }
+  },
+  "definitions": {
+    "uuid": {
+      "$comment": "UUID en minuscules, comme crypto.randomUUID() et uuid::text.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "nullableUuid": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "mediaRef": {
+      "$comment": "Référence à un fichier de la médiathèque (image de présentation, son d'un épisode), ou null. Toute référence de fichier s'appelle mediaId ([D9]).",
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "mediaId"
+      ],
+      "properties": {
+        "mediaId": {
+          "$ref": "#/definitions/uuid"
+        }
+      }
+    },
+    "href": {
+      "$comment": "Liens https:// et mailto: seulement ([D10]), sensible à la casse, sans espace.",
+      "type": "string",
+      "maxLength": 2048,
+      "pattern": "^(https://|mailto:)[^\\s]+$"
+    },
+    "basicMark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "bold",
+            "italic"
+          ]
+        }
+      }
+    },
+    "linkMark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "attrs"
+      ],
+      "properties": {
+        "type": {
+          "const": "link"
+        },
+        "attrs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "href"
+          ],
+          "properties": {
+            "href": {
+              "$ref": "#/definitions/href"
+            }
+          }
+        }
+      }
+    },
+    "mark": {
+      "tsType": "BasicMark | LinkMark",
+      "if": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "link"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/definitions/linkMark"
+      },
+      "else": {
+        "$ref": "#/definitions/basicMark"
+      }
+    },
+    "marks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/mark"
+      }
+    },
+    "textNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "text"
+      ],
+      "properties": {
+        "type": {
+          "const": "text"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "marks": {
+          "$ref": "#/definitions/marks"
+        }
+      }
+    },
+    "hardBreak": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "hardBreak"
+        },
+        "marks": {
+          "$ref": "#/definitions/marks"
+        }
+      }
+    },
+    "inlineNode": {
+      "tsType": "TextNode | HardBreak",
+      "if": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "text"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/definitions/textNode"
+      },
+      "else": {
+        "$ref": "#/definitions/hardBreak"
+      }
+    },
+    "inline": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/inlineNode"
+      }
+    },
+    "paragraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "paragraph"
+        },
+        "content": {
+          "$ref": "#/definitions/inline"
+        }
+      }
+    },
+    "heading": {
+      "$comment": "Niveaux 2 et 3 seulement : le titre du contenu fait office de niveau 1.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "attrs"
+      ],
+      "properties": {
+        "type": {
+          "const": "heading"
+        },
+        "attrs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "level"
+          ],
+          "properties": {
+            "level": {
+              "enum": [
+                2,
+                3
+              ]
+            }
+          }
+        },
+        "content": {
+          "$ref": "#/definitions/inline"
+        }
+      }
+    },
+    "bulletList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "content"
+      ],
+      "properties": {
+        "type": {
+          "const": "bulletList"
+        },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/listItem"
+          }
+        }
+      }
+    },
+    "orderedList": {
+      "$comment": "Seul l'attribut start est gardé (le type « a », « i »… est un choix d'affichage).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "content"
+      ],
+      "properties": {
+        "type": {
+          "const": "orderedList"
+        },
+        "attrs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "start": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99999
+            }
+          }
+        },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/listItem"
+          }
+        }
+      }
+    },
+    "listItem": {
+      "$comment": "Premier enfant : un paragraphe ; ensuite des paragraphes ou des listes (pas de titre).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "content"
+      ],
+      "properties": {
+        "type": {
+          "const": "listItem"
+        },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "items": [
+            {
+              "$ref": "#/definitions/paragraph"
+            }
+          ],
+          "additionalItems": {
+            "$ref": "#/definitions/listChild"
+          }
+        }
+      }
+    },
+    "listChild": {
+      "tsType": "Paragraph | BulletList | OrderedList",
+      "if": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "paragraph"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/definitions/paragraph"
+      },
+      "else": {
+        "if": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "bulletList"
+            }
+          }
+        },
+        "then": {
+          "$ref": "#/definitions/bulletList"
+        },
+        "else": {
+          "if": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "orderedList"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/definitions/orderedList"
+          },
+          "else": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "paragraph",
+                  "bulletList",
+                  "orderedList"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "docChild": {
+      "tsType": "Paragraph | Heading | BulletList | OrderedList",
+      "if": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "paragraph"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/definitions/paragraph"
+      },
+      "else": {
+        "if": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "heading"
+            }
+          }
+        },
+        "then": {
+          "$ref": "#/definitions/heading"
+        },
+        "else": {
+          "if": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "bulletList"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/definitions/bulletList"
+          },
+          "else": {
+            "if": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "orderedList"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/definitions/orderedList"
+            },
+            "else": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "paragraph",
+                    "heading",
+                    "bulletList",
+                    "orderedList"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "doc": {
+      "$comment": "JSON ProseMirror (format Tiptap) restreint.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "content"
+      ],
+      "properties": {
+        "type": {
+          "const": "doc"
+        },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/docChild"
+          }
+        }
+      }
+    },
+    "textBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "doc"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/uuid"
+        },
+        "type": {
+          "const": "text"
+        },
+        "doc": {
+          "$ref": "#/definitions/doc"
+        }
+      }
+    },
+    "imageBlock": {
+      "$comment": "mediaId null : image pas encore choisie. alt null : reprendre le texte alternatif de la médiathèque. Légende : texte simple, 300 caractères au plus ([D34]), comptés en points de code.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "mediaId",
+        "caption",
+        "alt"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/uuid"
+        },
+        "type": {
+          "const": "image"
+        },
+        "mediaId": {
+          "$ref": "#/definitions/nullableUuid"
+        },
+        "caption": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 300
+        },
+        "alt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1000
+        }
+      }
+    },
+    "boxBlock": {
+      "$comment": "Encadré : un seul niveau, Texte et Image seulement (ni encadré, ni bloc lié).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "look",
+        "blocks"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/uuid"
+        },
+        "type": {
+          "const": "box"
+        },
+        "look": {
+          "enum": [
+            "fill",
+            "border"
+          ]
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/boxChild"
+          }
+        }
+      }
+    },
+    "boxChild": {
+      "tsType": "TextBlock | ImageBlock",
+      "if": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "text"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/definitions/textBlock"
+      },
+      "else": {
+        "if": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "image"
+            }
+          }
+        },
+        "then": {
+          "$ref": "#/definitions/imageBlock"
+        },
+        "else": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "text",
+                "image"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "linkedBlock": {
+      "$comment": "Bloc identique partout (modèle « shared ») : au premier niveau d'un brouillon de contenu seulement.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "templateId"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/uuid"
+        },
+        "type": {
+          "const": "linked"
+        },
+        "templateId": {
+          "$ref": "#/definitions/uuid"
+        }
+      }
+    },
+    "topBlock": {
+      "$comment": "Un bloc au premier niveau d'un brouillon de contenu.",
+      "tsType": "TextBlock | ImageBlock | BoxBlock | LinkedBlock",
+      "if": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "text"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/definitions/textBlock"
+      },
+      "else": {
+        "if": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "image"
+            }
+          }
+        },
+        "then": {
+          "$ref": "#/definitions/imageBlock"
+        },
+        "else": {
+          "if": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "box"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/definitions/boxBlock"
+          },
+          "else": {
+            "if": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "linked"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/definitions/linkedBlock"
+            },
+            "else": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "text",
+                    "image",
+                    "box",
+                    "linked"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "templateBlock": {
+      "$comment": "Un bloc au premier niveau d'un modèle : pas de bloc lié (ni chaîne ni boucle).",
+      "tsType": "TextBlock | ImageBlock | BoxBlock",
+      "if": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "text"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/definitions/textBlock"
+      },
+      "else": {
+        "if": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "image"
+            }
+          }
+        },
+        "then": {
+          "$ref": "#/definitions/imageBlock"
+        },
+        "else": {
+          "if": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "box"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/definitions/boxBlock"
+          },
+          "else": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "text",
+                  "image",
+                  "box"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "draft": {
+      "title": "Draft",
+      "$comment": "Variante « draft » : le brouillon d'un contenu (article, épisode, méthode, chapitre, leçon, page).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "title",
+        "blocks"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1000
+        },
+        "cover": {
+          "$ref": "#/definitions/mediaRef"
+        },
+        "audio": {
+          "$ref": "#/definitions/mediaRef"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/topBlock"
+          }
+        }
+      }
+    },
+    "template": {
+      "title": "TemplateDraft",
+      "$comment": "Variante « template » : le brouillon d'un modèle de blocs (pas de bloc lié).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "title",
+        "blocks"
+      ],
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1000
+        },
+        "cover": {
+          "$ref": "#/definitions/mediaRef"
+        },
+        "audio": {
+          "$ref": "#/definitions/mediaRef"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/templateBlock"
+          }
+        }
+      }
+    }
+  }
+}

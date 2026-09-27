@@ -1,0 +1,16 @@
+{
+  "description": "Un bloc lié dans un modèle",
+  "variant": "template",
+  "valid": false,
+  "data": {
+    "v": 1,
+    "title": "Contact",
+    "blocks": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "type": "linked",
+        "templateId": "00000000-0000-4000-8000-000000000092"
+      }
+    ]
+  }
+}

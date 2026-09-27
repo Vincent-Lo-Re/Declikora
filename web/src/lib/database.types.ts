@@ -34,6 +34,231 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+          section: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          position: number
+          section: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          section?: string
+        }
+        Relationships: []
+      }
+      content_categories: {
+        Row: {
+          category_id: string
+          content_id: string
+        }
+        Insert: {
+          category_id: string
+          content_id: string
+        }
+        Update: {
+          category_id?: string
+          content_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_categories_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "contents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contents: {
+        Row: {
+          access_level_id: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          draft: NonNullable<Json>
+          draft_media_ids: string[]
+          draft_rev: number
+          draft_saved_at: string
+          draft_saved_by: string | null
+          draft_template_ids: string[]
+          first_published_at: string | null
+          id: string
+          in_app: boolean
+          is_free: boolean
+          kind: string
+          live_version_id: string | null
+          parent_id: string | null
+          position: number | null
+          schedule_error: string | null
+          scheduled_at: string | null
+          scheduled_by: string | null
+          scheduled_rev: number | null
+          scheduled_set_at: string | null
+          slug: string | null
+          template_sort: string | null
+          title: string | null
+          trash_batch: string | null
+        }
+        Insert: {
+          access_level_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          draft: NonNullable<Json>
+          draft_media_ids?: string[]
+          draft_rev?: number
+          draft_saved_at?: string
+          draft_saved_by?: string | null
+          draft_template_ids?: string[]
+          first_published_at?: string | null
+          id?: string
+          in_app?: boolean
+          is_free?: boolean
+          kind: string
+          live_version_id?: string | null
+          parent_id?: string | null
+          position?: number | null
+          schedule_error?: string | null
+          scheduled_at?: string | null
+          scheduled_by?: string | null
+          scheduled_rev?: number | null
+          scheduled_set_at?: string | null
+          slug?: string | null
+          template_sort?: string | null
+          title?: never
+          trash_batch?: string | null
+        }
+        Update: {
+          access_level_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          draft?: NonNullable<Json>
+          draft_media_ids?: string[]
+          draft_rev?: number
+          draft_saved_at?: string
+          draft_saved_by?: string | null
+          draft_template_ids?: string[]
+          first_published_at?: string | null
+          id?: string
+          in_app?: boolean
+          is_free?: boolean
+          kind?: string
+          live_version_id?: string | null
+          parent_id?: string | null
+          position?: number | null
+          schedule_error?: string | null
+          scheduled_at?: string | null
+          scheduled_by?: string | null
+          scheduled_rev?: number | null
+          scheduled_set_at?: string | null
+          slug?: string | null
+          template_sort?: string | null
+          title?: never
+          trash_batch?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contents_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contents_draft_saved_by_fkey"
+            columns: ["draft_saved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contents_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contents_scheduled_by_fkey"
+            columns: ["scheduled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      edit_locks: {
+        Row: {
+          content_id: string
+          draft_rev: number
+          heartbeat_at: string
+          holder_id: string | null
+          holder_session: string | null
+          taken_at: string | null
+        }
+        Insert: {
+          content_id: string
+          draft_rev?: number
+          heartbeat_at?: string
+          holder_id?: string | null
+          holder_session?: string | null
+          taken_at?: string | null
+        }
+        Update: {
+          content_id?: string
+          draft_rev?: number
+          heartbeat_at?: string
+          holder_id?: string | null
+          holder_session?: string | null
+          taken_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edit_locks_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: true
+            referencedRelation: "contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edit_locks_holder_id_fkey"
+            columns: ["holder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media: {
         Row: {
           alt: string | null
@@ -203,6 +428,51 @@ export type Database = {
       }
     }
     Functions: {
+      content_create: {
+        Args: {
+          from_template_id?: string
+          kind: string
+          parent_id?: string
+          template_sort?: string
+          title?: string
+        }
+        Returns: {
+          access_level_id: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          draft: NonNullable<Json>
+          draft_media_ids: string[]
+          draft_rev: number
+          draft_saved_at: string
+          draft_saved_by: string | null
+          draft_template_ids: string[]
+          first_published_at: string | null
+          id: string
+          in_app: boolean
+          is_free: boolean
+          kind: string
+          live_version_id: string | null
+          parent_id: string | null
+          position: number | null
+          schedule_error: string | null
+          scheduled_at: string | null
+          scheduled_by: string | null
+          scheduled_rev: number | null
+          scheduled_set_at: string | null
+          slug: string | null
+          template_sort: string | null
+          title: string | null
+          trash_batch: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "contents"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       empty_trash: { Args: { items?: Json }; Returns: number }
       end_member_sessions: {
         Args: { target_user_id: string }
@@ -257,6 +527,38 @@ export type Database = {
       }
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
       is_staff: { Args: Record<PropertyKey, never>; Returns: boolean }
+      lock_heartbeat: {
+        Args: { content_id: string; editor_session?: string }
+        Returns: boolean
+      }
+      lock_release: {
+        Args: { content_id: string; editor_session?: string }
+        Returns: boolean
+      }
+      lock_status: {
+        Args: { content_id: string; editor_session?: string }
+        Returns: {
+          draft_rev: number
+          heartbeat_at: string
+          holder_id: string
+          holder_name: string
+          is_active: boolean
+          mine: boolean
+          taken_at: string
+        }[]
+      }
+      lock_take: {
+        Args: { content_id: string; editor_session?: string; force?: boolean }
+        Returns: {
+          draft_rev: number
+          heartbeat_at: string
+          holder_id: string
+          holder_name: string
+          is_active: boolean
+          mine: boolean
+          taken_at: string
+        }[]
+      }
       media_confirm: {
         Args: { media_id: string }
         Returns: {
@@ -418,6 +720,19 @@ export type Database = {
         }[]
       }
       ping: { Args: Record<PropertyKey, never>; Returns: boolean }
+      save_draft: {
+        Args: {
+          base_rev: number
+          content_id: string
+          draft: Json
+          editor_session?: string
+          settings?: Json
+        }
+        Returns: {
+          draft_rev: number
+          draft_saved_at: string
+        }[]
+      }
       session_is_open: { Args: Record<PropertyKey, never>; Returns: boolean }
       team_members: {
         Args: Record<PropertyKey, never>

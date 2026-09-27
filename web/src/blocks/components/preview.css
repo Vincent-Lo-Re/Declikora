@@ -1,0 +1,170 @@
+/* Aperçu des blocs : le rendu du téléphone, avec les mesures de blocks/blocks.tokens.json
+   (les mêmes que l'app, [D12]). Les couleurs de l'admin (sélection, poignées) restent celles
+   de shadcn/ui ; tout ce qui est dans .blocks-phone imite l'app. */
+
+@import "../generated/tokens.css";
+
+.blocks-phone {
+  width: var(--blocks-phone-width);
+  min-height: 640px;
+  background: var(--blocks-color-background);
+  color: var(--blocks-color-text);
+  font-family: var(--blocks-font-family), "Inter Variable", sans-serif;
+  font-size: var(--blocks-font-body-size);
+  line-height: var(--blocks-font-body-line-height);
+  font-weight: var(--blocks-font-regular-weight);
+  padding: var(--blocks-space-page-padding);
+}
+
+.blocks-title {
+  display: block;
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font-size: var(--blocks-font-title-size);
+  line-height: var(--blocks-font-title-line-height);
+  font-weight: var(--blocks-font-heading-weight);
+  margin-bottom: var(--blocks-space-block-gap);
+}
+
+.blocks-title::placeholder,
+.blocks-caption::placeholder {
+  color: var(--blocks-color-text-muted);
+  opacity: 1;
+}
+
+.blocks-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--blocks-space-block-gap);
+}
+
+.blocks-box-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--blocks-space-box-gap);
+  min-height: 2.5rem;
+}
+
+/* Texte */
+.blocks-text .ProseMirror {
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.blocks-text .ProseMirror > * + * {
+  margin-top: var(--blocks-space-paragraph-gap);
+}
+
+.blocks-text .ProseMirror > h2:not(:first-child),
+.blocks-text .ProseMirror > h3:not(:first-child) {
+  margin-top: calc(
+    var(--blocks-space-paragraph-gap) + var(--blocks-space-heading-top-gap)
+  );
+}
+
+.blocks-text h2 {
+  font-size: var(--blocks-font-h2-size);
+  line-height: var(--blocks-font-h2-line-height);
+  font-weight: var(--blocks-font-heading-weight);
+}
+
+.blocks-text h3 {
+  font-size: var(--blocks-font-h3-size);
+  line-height: var(--blocks-font-h3-line-height);
+  font-weight: var(--blocks-font-heading-weight);
+}
+
+.blocks-text ul,
+.blocks-text ol {
+  padding-left: var(--blocks-space-list-indent);
+}
+
+.blocks-text ul {
+  list-style: disc;
+}
+
+.blocks-text ol {
+  list-style: decimal;
+}
+
+.blocks-text li + li,
+.blocks-text li > * + * {
+  margin-top: var(--blocks-space-list-item-gap);
+}
+
+.blocks-text strong {
+  font-weight: var(--blocks-font-bold-weight);
+}
+
+.blocks-text a {
+  color: var(--blocks-color-link);
+  text-decoration: underline;
+}
+
+.blocks-text .is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--blocks-color-text-muted);
+}
+
+/* Image */
+.blocks-image img,
+.blocks-image-placeholder {
+  display: block;
+  width: 100%;
+  border-radius: var(--blocks-radius-image);
+}
+
+.blocks-image-placeholder {
+  aspect-ratio: 4 / 3;
+  background: var(--blocks-color-image-placeholder);
+  color: var(--blocks-color-text-muted);
+  font-size: var(--blocks-font-caption-size);
+  line-height: var(--blocks-font-caption-line-height);
+}
+
+.blocks-caption {
+  display: block;
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  border: 0;
+  outline: none;
+  background: transparent;
+  margin-top: var(--blocks-space-caption-gap);
+  color: var(--blocks-color-text-muted);
+  font: inherit;
+  font-size: var(--blocks-font-caption-size);
+  line-height: var(--blocks-font-caption-line-height);
+}
+
+/* Encadré */
+.blocks-box {
+  border-radius: var(--blocks-radius-box);
+  padding: var(--blocks-space-box-padding);
+}
+
+.blocks-box[data-look="fill"] {
+  background: var(--blocks-color-box-fill);
+}
+
+.blocks-box[data-look="border"] {
+  border: var(--blocks-border-box-width) solid var(--blocks-color-box-border);
+}
+
+/* Titre et légende n'ont pas de cadre : un contour montre où est le focus (comme la sélection
+   des blocs). */
+.blocks-title:focus-visible,
+.blocks-caption:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}

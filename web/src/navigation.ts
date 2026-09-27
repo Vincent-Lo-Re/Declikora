@@ -63,6 +63,23 @@ export const menu = {
   bottom: SectionKey[]
 }
 
+/** Adresse de l'éditeur d'un contenu : « /pages/<id> ». */
+export function editorPath(section: SectionKey, contentId: string): string {
+  return `${sections[section].path}/${contentId}`
+}
+
+// Section de l'éditeur de chaque sorte de contenu (les autres sections arrivent à l'étape 7).
+const editorSections: Partial<Record<string, SectionKey>> = { page: "pages" }
+
+/** Adresse de l'éditeur d'un contenu d'après sa sorte, ou null si son éditeur n'existe pas encore. */
+export function contentEditorPath(
+  kind: string,
+  contentId: string
+): string | null {
+  const section = editorSections[kind]
+  return section ? editorPath(section, contentId) : null
+}
+
 /** Vrai si l'adresse affichée appartient à la section (ou à l'une de ses pages). */
 export function isInSection(path: string, pathname: string) {
   if (path === "/") return pathname === "/"

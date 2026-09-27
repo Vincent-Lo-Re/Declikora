@@ -1,0 +1,21 @@
+{
+  "description": "UUID en majuscules",
+  "variant": "draft",
+  "valid": false,
+  "data": {
+    "v": 1,
+    "title": "Bien respirer",
+    "summary": null,
+    "cover": null,
+    "audio": null,
+    "blocks": [
+      {
+        "id": "ABCDEF00-0000-4000-8000-000000000001",
+        "type": "image",
+        "mediaId": null,
+        "caption": null,
+        "alt": null
+      }
+    ]
+  }
+}

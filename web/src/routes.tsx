@@ -6,6 +6,7 @@ import { AuthLayout } from "@/layouts/auth-layout"
 import { RootLayout } from "@/layouts/root-layout"
 import { authPaths, sections, type SectionKey } from "@/navigation"
 import { AccountPage } from "@/pages/account-page"
+import { ContentListPage } from "@/pages/content-list-page"
 import { ErrorPage } from "@/pages/error-page"
 import { InvitationPage } from "@/pages/invitation-page"
 import { MediaPage } from "@/pages/media-page"
@@ -23,7 +24,6 @@ const upcomingSections: SectionKey[] = [
   "blog",
   "podcasts",
   "methods",
-  "pages",
   "templates",
 ]
 
@@ -52,6 +52,16 @@ export const routes: RouteObject[] = [
         element: <RequireTeamMember />,
         children: [
           {
+            // L'éditeur prend tout l'écran : le menu se cache, « ← Pages » ramène à la liste.
+            path: `${sections.pages.path}/:contentId`,
+            // Chargé à part : Tiptap et le glisser-déposer ne pèsent que sur l'éditeur.
+            lazy: async () => {
+              const { EditorPage } = await import("@/pages/editor-page")
+              return { element: <EditorPage section="pages" kind="page" /> }
+            },
+            errorElement: <ErrorPage />,
+          },
+          {
             element: <AppLayout />,
             children: [
               {
@@ -59,6 +69,10 @@ export const routes: RouteObject[] = [
                 errorElement: <ErrorPage />,
                 children: [
                   ...upcomingSections.map(sectionRoute),
+                  {
+                    path: sections.pages.path,
+                    element: <ContentListPage section="pages" kind="page" />,
+                  },
                   { path: sections.media.path, element: <MediaPage /> },
                   { path: sections.trash.path, element: <TrashPage /> },
                   {

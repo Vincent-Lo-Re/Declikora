@@ -1,0 +1,13 @@
+{
+  "description": "Image de présentation sans mediaId",
+  "variant": "draft",
+  "valid": false,
+  "data": {
+    "v": 1,
+    "title": "Bien respirer",
+    "summary": null,
+    "cover": {},
+    "audio": null,
+    "blocks": []
+  }
+}

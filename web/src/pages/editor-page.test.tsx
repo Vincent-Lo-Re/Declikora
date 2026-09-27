@@ -1,0 +1,505 @@
+import { act, fireEvent, screen, waitFor } from "@testing-library/react"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import type { Draft, ImageBlock, TextBlock } from "@/blocks/types"
+import * as api from "@/lib/contents/api"
+import type { Media } from "@/lib/media/constants"
+import { renderApp, testProfile } from "@/test/render"
+import { texts } from "@/texts"
+
+// La base et Realtime sont simulés.
+vi.mock("@/lib/contents/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof api>()
+  return {
+    ...actual,
+    listContents: vi.fn(),
+    createContent: vi.fn(),
+    getContent: vi.fn(),
+    getMediaByIds: vi.fn(async () => []),
+    saveDraft: vi.fn(),
+    lockTake: vi.fn(),
+    lockStatus: vi.fn(),
+    lockHeartbeat: vi.fn(async () => true),
+    lockRelease: vi.fn(async () => true),
+    lockReleaseOnExit: vi.fn(),
+    subscribeLock: vi.fn(() => () => {}),
+  }
+})
+
+const PAGE_ID = "00000000-0000-4000-8000-0000000000aa"
+const BLOCK_ID = "00000000-0000-4000-8000-0000000000bb"
+const CLAIRE = "00000000-0000-4000-8000-0000000000cc"
+
+const draft: Draft = {
+  v: 1,
+  title: "Mentions légales",
+  summary: null,
+  cover: null,
+  audio: null,
+  blocks: [
+    {
+      id: BLOCK_ID,
+      type: "text",
+      doc: {
+        type: "doc",
+        content: [
+          { type: "paragraph", content: [{ type: "text", text: "Bonjour" }] },
+        ],
+      },
+    },
+  ],
+}
+
+const content: api.Content = {
+  id: PAGE_ID,
+  kind: "page",
+  title: "Mentions légales",
+  draft,
+  draft_rev: 4,
+  draft_saved_at: "2026-09-27T12:30:00Z",
+  deleted_at: null,
+  parent_id: null,
+}
+
+const mineRow: api.LockRow = {
+  mine: true,
+  holder_id: testProfile.id,
+  holder_name: testProfile.full_name,
+  taken_at: "2026-09-27T12:30:00Z",
+  heartbeat_at: "2026-09-27T12:30:00Z",
+  is_active: true,
+  draft_rev: 4,
+}
+
+const claireRow: api.LockRow = {
+  ...mineRow,
+  mine: false,
+  holder_id: CLAIRE,
+  holder_name: "Claire Martin",
+}
+
+// Le faux Realtime : envoie un changement de la ligne de verrou à l'éditeur ouvert.
+let emitLock: (change: api.LockChange) => void = () => {}
+
+function lockChange(
+  holder: string | null,
+  rev: number,
+  session: string | null = null
+): api.LockChange {
+  return {
+    holder_id: holder,
+    holder_session: session,
+    heartbeat_at: new Date().toISOString(),
+    draft_rev: rev,
+    taken_at: holder ? new Date().toISOString() : null,
+  }
+}
+
+/** L'ouverture de l'éditeur (session) passée à lock_take. */
+function editorSession(): string {
+  return vi.mocked(api.lockTake).mock.calls[0][2]
+}
+
+function textBlock(id: string, text: string): TextBlock {
+  return {
+    id,
+    type: "text",
+    doc: {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+    },
+  }
+}
+
+function imageBlock(id: string, mediaId: string): ImageBlock {
+  return { id, type: "image", mediaId, caption: null, alt: null }
+}
+
+function withDraft(changes: Partial<Draft>, rev = 4): api.Content {
+  const next = { ...draft, ...changes }
+  return { ...content, draft: next, title: next.title, draft_rev: rev }
+}
+
+function media(id: string): Media {
+  return {
+    id,
+    name: `${id}.jpg`,
+    status: "pending",
+    deleted_at: null,
+    alt: null,
+  } as unknown as Media
+}
+
+/** Lecture seule : Claire écrit (prise de main et relectures). */
+function claireWrites() {
+  vi.mocked(api.lockTake).mockResolvedValue(claireRow)
+  vi.mocked(api.lockStatus).mockResolvedValue(claireRow)
+}
+
+beforeEach(() => {
+  vi.mocked(api.getContent).mockResolvedValue(content)
+  vi.mocked(api.lockTake).mockResolvedValue(mineRow)
+  vi.mocked(api.lockStatus).mockResolvedValue(mineRow)
+  vi.mocked(api.subscribeLock).mockImplementation((_id, onChange) => {
+    emitLock = onChange
+    return () => {}
+  })
+})
+
+afterEach(() => {
+  vi.clearAllMocks()
+})
+
+describe("liste des pages", () => {
+  it("liste les pages et en crée une nouvelle, ouverte dans l'éditeur plein écran", async () => {
+    vi.mocked(api.listContents).mockResolvedValue([
+      {
+        id: PAGE_ID,
+        title: "Mentions légales",
+        draft_saved_at: "2026-09-27T12:30:00Z",
+        saved_by_name: "Anne Admin",
+        editing_name: "Claire Martin",
+      },
+    ])
+    vi.mocked(api.createContent).mockResolvedValue(content)
+    const { router } = renderApp("/pages")
+
+    const link = await screen.findByRole("link", { name: "Mentions légales" })
+    expect(link).toHaveAttribute("href", `/pages/${PAGE_ID}`)
+    expect(
+      screen.getByText(/27 sept\. 2026 à 14:30 par Anne Admin/)
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(texts.contentList.beingEdited("Claire Martin"))
+    ).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.contentList.create })
+    )
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/pages/${PAGE_ID}`)
+    )
+    expect(api.createContent).toHaveBeenCalledWith("page")
+    // Plein écran : le menu de l'admin est caché, « ← Pages » ramène à la liste.
+    expect(
+      await screen.findByRole("link", { name: texts.editor.back("Pages") })
+    ).toHaveAttribute("href", "/pages")
+    expect(
+      screen.queryByRole("navigation", { name: texts.nav.label })
+    ).toBeNull()
+  })
+})
+
+describe("éditeur", () => {
+  it("prend le verrou, écrit dans l'aperçu et enregistre tout seul", async () => {
+    vi.mocked(api.saveDraft).mockResolvedValue({
+      rev: 5,
+      savedAt: "2026-09-27T12:31:00Z",
+    })
+    renderApp(`/pages/${PAGE_ID}`)
+
+    const title = await screen.findByLabelText(texts.editor.title.label)
+    await waitFor(() => expect(title).not.toHaveAttribute("readonly"))
+    expect(api.lockTake).toHaveBeenCalledWith(
+      PAGE_ID,
+      false,
+      expect.any(String)
+    )
+    // Le plan est fermé par défaut.
+    expect(
+      screen.queryByRole("navigation", { name: texts.editor.outline.title })
+    ).toBeNull()
+
+    fireEvent.change(title, { target: { value: "Mentions légales 2026" } })
+    await waitFor(() => expect(api.saveDraft).toHaveBeenCalledTimes(1), {
+      timeout: 4000,
+    })
+    const [id, baseRev, saved, session] = vi.mocked(api.saveDraft).mock.calls[0]
+    expect(id).toBe(PAGE_ID)
+    expect(baseRev).toBe(4)
+    // Enregistré depuis la même ouverture de l'éditeur que celle qui tient le verrou.
+    expect(session).toBe(editorSession())
+    expect(saved.title).toBe("Mentions légales 2026")
+    expect(await screen.findByText(texts.editor.save.saved)).toBeInTheDocument()
+
+    // Le plan s'ouvre à la demande.
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.editor.outline.show })
+    )
+    expect(
+      screen.getByRole("navigation", { name: texts.editor.outline.title })
+    ).toHaveTextContent("Texte « Bonjour »")
+  })
+
+  it("montre le brouillon en lecture seule quand un autre membre écrit", async () => {
+    vi.mocked(api.lockTake).mockResolvedValue(claireRow)
+    renderApp(`/pages/${PAGE_ID}`)
+
+    expect(
+      await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText(texts.editor.title.label)).toHaveAttribute(
+      "readonly"
+    )
+    expect(
+      screen.getByRole("button", { name: texts.editor.lock.forceTake })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: texts.editor.add.label })
+    ).toBeDisabled()
+  })
+
+  it("« Reprendre la main » demande confirmation, puis force la prise du verrou", async () => {
+    vi.mocked(api.lockTake)
+      .mockResolvedValueOnce(claireRow)
+      .mockResolvedValue(mineRow)
+    renderApp(`/pages/${PAGE_ID}`)
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: texts.editor.lock.forceTake })
+    )
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: texts.editor.lock.confirmForce.confirm,
+      })
+    )
+    await waitFor(() =>
+      expect(api.lockTake).toHaveBeenLastCalledWith(
+        PAGE_ID,
+        true,
+        editorSession()
+      )
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText(texts.editor.title.label)
+      ).not.toHaveAttribute("readonly")
+    )
+  })
+
+  it("notre enregistrement vu par Realtime avant sa réponse ne bloque pas l'écriture", async () => {
+    let answer: (saved: api.SavedDraft) => void = () => {}
+    vi.mocked(api.saveDraft).mockImplementation(
+      () => new Promise((resolve) => (answer = resolve))
+    )
+    renderApp(`/pages/${PAGE_ID}`)
+    const title = await screen.findByLabelText(texts.editor.title.label)
+    await waitFor(() => expect(title).not.toHaveAttribute("readonly"))
+
+    fireEvent.change(title, { target: { value: "Mentions" } })
+    await waitFor(() => expect(api.saveDraft).toHaveBeenCalledTimes(1), {
+      timeout: 4000,
+    })
+    // La base a enregistré (révision 5) : Realtime le dit avant la réponse de save_draft.
+    act(() => emitLock(lockChange(testProfile.id, 5, editorSession())))
+    expect(title).not.toHaveAttribute("readonly")
+    await act(async () => answer({ rev: 5, savedAt: "2026-09-27T12:31:00Z" }))
+    expect(title).not.toHaveAttribute("readonly")
+    expect(api.getContent).toHaveBeenCalledTimes(1)
+  })
+
+  it("une relecture du brouillon qui échoue ne ferme pas l'éditeur, et elle est retentée", async () => {
+    claireWrites()
+    vi.mocked(api.getContent)
+      .mockResolvedValueOnce(content)
+      .mockRejectedValueOnce(new api.ContentError(null, { retryable: true }))
+      .mockResolvedValue(withDraft({ title: "Titre de Claire" }, 5))
+    renderApp(`/pages/${PAGE_ID}`)
+    await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
+
+    act(() => emitLock(lockChange(CLAIRE, 5)))
+    await waitFor(() => expect(api.getContent).toHaveBeenCalledTimes(2))
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
+    expect(screen.queryByText(texts.editor.notFound.title)).toBeNull()
+    const title = screen.getByLabelText(texts.editor.title.label)
+    expect(title).toHaveValue("Mentions légales")
+
+    await waitFor(() => expect(title).toHaveValue("Titre de Claire"), {
+      timeout: 5000,
+    })
+    expect(api.getContent).toHaveBeenCalledTimes(3)
+  }, 10_000)
+
+  it("relit la dernière révision, pas une relecture plus ancienne encore en cours", async () => {
+    claireWrites()
+    const reads: ((value: api.Content) => void)[] = []
+    vi.mocked(api.getContent)
+      .mockResolvedValueOnce(content)
+      .mockImplementation(() => new Promise((resolve) => reads.push(resolve)))
+    renderApp(`/pages/${PAGE_ID}`)
+    await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
+
+    act(() => emitLock(lockChange(CLAIRE, 5)))
+    await waitFor(() => expect(reads).toHaveLength(1))
+    act(() => emitLock(lockChange(CLAIRE, 6)))
+    await waitFor(() => expect(reads).toHaveLength(2))
+    await act(async () => reads[1](withDraft({ title: "Révision 6" }, 6)))
+    await act(async () => reads[0](withDraft({ title: "Révision 5" }, 5)))
+    expect(screen.getByLabelText(texts.editor.title.label)).toHaveValue(
+      "Révision 6"
+    )
+  })
+
+  it("relit encore si la lecture rend une révision en retard", async () => {
+    claireWrites()
+    vi.mocked(api.getContent)
+      .mockResolvedValueOnce(content)
+      .mockResolvedValueOnce(withDraft({ title: "Révision 5" }, 5))
+      .mockResolvedValue(withDraft({ title: "Révision 6" }, 6))
+    renderApp(`/pages/${PAGE_ID}`)
+    await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
+
+    act(() => emitLock(lockChange(CLAIRE, 6)))
+    await waitFor(() =>
+      expect(screen.getByLabelText(texts.editor.title.label)).toHaveValue(
+        "Révision 6"
+      )
+    )
+    expect(api.getContent).toHaveBeenCalledTimes(3)
+  })
+
+  it("un autre onglet du même membre a la main : lecture seule, sans nommer quelqu'un d'autre", async () => {
+    const otherTab = { ...mineRow, mine: false }
+    vi.mocked(api.lockTake).mockResolvedValue(otherTab)
+    vi.mocked(api.lockStatus).mockResolvedValue(otherTab)
+    renderApp(`/pages/${PAGE_ID}`)
+    expect(
+      await screen.findByText(texts.editor.lock.readOnlySelf)
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText(texts.editor.title.label)).toHaveAttribute(
+      "readonly"
+    )
+  })
+
+  it("n'ouvre pas un contenu d'une autre sorte", async () => {
+    vi.mocked(api.getContent).mockResolvedValue({ ...content, kind: "article" })
+    renderApp(`/pages/${PAGE_ID}`)
+    expect(
+      await screen.findByText(texts.editor.notFound.title)
+    ).toBeInTheDocument()
+  })
+})
+
+describe("éditeur : images", () => {
+  const IMAGE_A = "00000000-0000-4000-8000-0000000000a1"
+  const IMAGE_B = "00000000-0000-4000-8000-0000000000b1"
+  const MEDIA_A = "00000000-0000-4000-8000-0000000000a2"
+  const MEDIA_B = "00000000-0000-4000-8000-0000000000b2"
+
+  it("une lecture des fichiers qui échoue n'est pas un fichier supprimé : on peut réessayer", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(
+      withDraft({ blocks: [imageBlock(IMAGE_A, MEDIA_A)] })
+    )
+    vi.mocked(api.getMediaByIds)
+      .mockRejectedValueOnce(new api.ContentError(null, { retryable: true }))
+      .mockResolvedValue([media(MEDIA_A)])
+    renderApp(`/pages/${PAGE_ID}`)
+
+    expect(
+      await screen.findByText(texts.editor.image.loadFailed)
+    ).toBeInTheDocument()
+    expect(screen.queryByText(texts.editor.image.missing)).toBeNull()
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.editor.image.retry })
+    )
+    expect(
+      await screen.findByText(texts.editor.image.notReady)
+    ).toBeInTheDocument()
+    expect(api.getMediaByIds).toHaveBeenCalledTimes(2)
+  })
+
+  it("une image ajoutée ailleurs s'affiche « en chargement », pas « supprimée », le temps de la lire", async () => {
+    claireWrites()
+    vi.mocked(api.getContent)
+      .mockResolvedValueOnce(
+        withDraft({ blocks: [imageBlock(IMAGE_A, MEDIA_A)] })
+      )
+      .mockResolvedValue(
+        withDraft(
+          {
+            blocks: [
+              imageBlock(IMAGE_A, MEDIA_A),
+              imageBlock(IMAGE_B, MEDIA_B),
+            ],
+          },
+          5
+        )
+      )
+    let answer: (value: Media[]) => void = () => {}
+    vi.mocked(api.getMediaByIds)
+      .mockResolvedValueOnce([media(MEDIA_A)])
+      .mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+    renderApp(`/pages/${PAGE_ID}`)
+    await screen.findByText(texts.editor.image.notReady)
+
+    act(() => emitLock(lockChange(CLAIRE, 5)))
+    const second = await waitFor(() => {
+      const element = document.querySelector(`[data-block-id="${IMAGE_B}"]`)
+      expect(element).not.toBeNull()
+      return element as HTMLElement
+    })
+    expect(second).toHaveTextContent(texts.common.loading)
+    expect(second).not.toHaveTextContent(texts.editor.image.missing)
+
+    await act(async () => answer([media(MEDIA_A), media(MEDIA_B)]))
+    await waitFor(() =>
+      expect(
+        document.querySelector(`[data-block-id="${IMAGE_B}"]`)
+      ).toHaveTextContent(texts.editor.image.notReady)
+    )
+  })
+})
+
+describe("éditeur : clavier", () => {
+  const ONE = "00000000-0000-4000-8000-0000000000d1"
+  const TWO = "00000000-0000-4000-8000-0000000000d2"
+
+  it("« Monter » garde le focus et annonce la place ; « Supprimer » donne le focus au voisin", async () => {
+    vi.mocked(api.saveDraft).mockResolvedValue({
+      rev: 5,
+      savedAt: "2026-09-27T12:31:00Z",
+    })
+    vi.mocked(api.getContent).mockResolvedValue(
+      withDraft({ blocks: [textBlock(ONE, "Un"), textBlock(TWO, "Deux")] })
+    )
+    renderApp(`/pages/${PAGE_ID}`)
+    const labels = texts.editor.settings
+
+    // Le second bloc est choisi (focus sur sa poignée).
+    const twoHandle = await screen.findByRole("button", {
+      name: texts.editor.handle("Texte « Deux »"),
+    })
+    act(() => twoHandle.focus())
+    const moveUp = await screen.findByRole("button", { name: labels.moveUp })
+    act(() => moveUp.focus())
+    fireEvent.click(moveUp)
+
+    // Arrivé en haut : « Monter » est désactivé, mais garde le focus.
+    await waitFor(() => expect(moveUp).toHaveAttribute("aria-disabled", "true"))
+    expect(moveUp).not.toHaveAttribute("disabled")
+    expect(moveUp).toHaveFocus()
+    expect(
+      screen.getByText(labels.moved(1, 2, texts.editor.dnd.page))
+    ).toBeInTheDocument()
+
+    // Supprimer : le focus va au bloc suivant (sa poignée).
+    const remove = screen.getByRole("button", { name: labels.remove })
+    act(() => remove.focus())
+    fireEvent.click(remove)
+    const oneHandle = screen.getByRole("button", {
+      name: texts.editor.handle("Texte « Un »"),
+    })
+    await waitFor(() => expect(oneHandle).toHaveFocus())
+
+    // Plus aucun bloc : le focus va à « Ajouter un bloc ».
+    fireEvent.click(screen.getByRole("button", { name: labels.remove }))
+    await waitFor(() =>
+      expect(document.activeElement).toHaveAccessibleName(
+        texts.editor.add.label
+      )
+    )
+    expect(
+      screen.queryAllByRole("status").map((el) => el.textContent)
+    ).toContain(labels.moved(1, 2, texts.editor.dnd.page))
+  })
+})

@@ -1,0 +1,27 @@
+{
+  "description": "Un encadré dans un encadré",
+  "variant": "draft",
+  "valid": false,
+  "data": {
+    "v": 1,
+    "title": "Bien respirer",
+    "summary": null,
+    "cover": null,
+    "audio": null,
+    "blocks": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "type": "box",
+        "look": "fill",
+        "blocks": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "type": "box",
+            "look": "border",
+            "blocks": []
+          }
+        ]
+      }
+    ]
+  }
+}
