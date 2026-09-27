@@ -5,20 +5,22 @@ import { createRoot } from "react-dom/client"
 import { createBrowserRouter } from "react-router"
 import { RouterProvider } from "react-router/dom"
 
-import { ThemeProvider } from "@/components/theme/theme-provider"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { AuthProvider } from "@/auth/auth-provider"
+import { AppProviders } from "@/components/app-providers"
+import { createQueryClient } from "@/lib/query-client"
 import { initSentry } from "@/lib/sentry"
 import { routes } from "@/routes"
 
 const rootOptions = initSentry()
 const router = createBrowserRouter(routes)
+const queryClient = createQueryClient()
 
 createRoot(document.getElementById("root")!, rootOptions).render(
   <StrictMode>
-    <ThemeProvider>
-      <TooltipProvider>
+    <AppProviders queryClient={queryClient}>
+      <AuthProvider>
         <RouterProvider router={router} />
-      </TooltipProvider>
-    </ThemeProvider>
+      </AuthProvider>
+    </AppProviders>
   </StrictMode>
 )

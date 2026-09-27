@@ -32,6 +32,17 @@ export const sections = {
   account: { path: "/mon-compte", icon: CircleUser },
 } satisfies Record<SectionKey, { path: string; icon: LucideIcon }>
 
+// Pages de connexion, sans le menu.
+export const authPaths = {
+  signIn: "/connexion",
+  mfa: "/double-verification",
+  invitation: "/invitation",
+  signOut: "/deconnexion",
+} as const
+
+// Sections réservées aux admins : cachées dans le menu d'un éditeur.
+export const adminOnlySections: readonly SectionKey[] = ["team", "settings"]
+
 // Rangement du menu : l'accueil, puis les groupes, et en bas l'équipe et le compte.
 export const menu = {
   top: ["home"],

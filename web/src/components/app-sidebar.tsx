@@ -13,10 +13,24 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { isInSection, menu, sections, type SectionKey } from "@/navigation"
+import { useAuth } from "@/auth/auth-context"
+import {
+  adminOnlySections,
+  isInSection,
+  menu,
+  sections,
+  type SectionKey,
+} from "@/navigation"
 import { texts } from "@/texts"
 
 export function AppSidebar() {
+  const { profile } = useAuth()
+  // Équipe et Paramètres n'apparaissent que pour les admins.
+  const bottom =
+    profile?.role === "admin"
+      ? menu.bottom
+      : menu.bottom.filter((key) => !adminOnlySections.includes(key))
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -53,7 +67,7 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <nav aria-label={texts.nav.footerLabel}>
-          <MenuItems sectionKeys={menu.bottom} />
+          <MenuItems sectionKeys={bottom} />
         </nav>
       </SidebarFooter>
 

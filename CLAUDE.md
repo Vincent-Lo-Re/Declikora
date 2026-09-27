@@ -48,6 +48,7 @@ cd web && npm run dev          # serveur de dev
 cd web && npm run lint         # ESLint
 cd web && npm run format       # Prettier (format:check pour vérifier seulement)
 cd web && npm test             # tests (test:watch pour relancer à chaque changement)
+cd web && npm run test:e2e     # tests de parcours Playwright (Supabase local démarré ; la 1re fois : npx playwright install chromium)
 cd web && npm run build        # vérification des types + construction
 cd web && npx shadcn add <composant>   # ajouter un composant shadcn/ui
 
@@ -61,6 +62,8 @@ cd mobile && npx expo-doctor
 npm run db:start               # démarre Supabase en local
 npm run db:reset               # réapplique les migrations
 npm run db:test                # tests pgTAP de supabase/tests/
+npm run functions:test         # fonctions serveur (Deno via npx : format, lint, types, tests)
+npx supabase gen types typescript --local > web/src/lib/database.types.ts   # après chaque migration, puis Prettier
 npm run db:stop
 ```
 
@@ -77,7 +80,7 @@ npm run db:stop
 
 - **Jamais directement sur `main`.** Chaque chantier a sa branche. Quand l'utilisateur dit « commite et pousse », je pousse la branche et j'ouvre une demande de fusion (pull request) sur GitHub.
 - Les garde-fous (`.github/workflows/garde-fous.yml`) tournent sur chaque demande de fusion, et Vercel crée une adresse de test. Vercel ne met en production que si les garde-fous « Administration » et « Base de données » sont au vert (Deployment Checks) : si on renomme un de ces jobs, il faut aussi mettre à jour ce réglage dans Vercel.
-- **Je ne fusionne que quand l'utilisateur dit « fusionne », et seulement si tous les garde-fous sont au vert** (`gh pr checks`). L'offre GitHub gratuite ne permet pas de l'imposer sur un dépôt privé : c'est à moi de le respecter.
+- **Je ne fusionne que si tous les garde-fous sont au vert** (`gh pr checks`). L'offre GitHub gratuite ne permet pas de l'imposer sur un dépôt privé : c'est à moi de le respecter. Depuis le 27/09/2026, l'utilisateur m'a donné carte blanche pour construire ce qui est décidé dans docs/ADMINISTRATION.md : je fusionne moi-même quand tout est vert, sans attendre « fusionne », et je déploie ce que l'étape demande (migrations, fonctions, config d'auth).
 - La fusion se fait en un seul commit (`gh pr merge --squash`), avec le titre et la description de la demande : ils doivent donc être soignés. La branche est ensuite supprimée par GitHub.
 - Services en ligne : Vercel `declikora-admin` (équipe `vincent-lo-re`, dossier `web`), Sentry `declikora-zc` / projet `declikora-admin` (Europe), Supabase « Declikora » (Paris), Brevo (e-mails, expéditeur `ne-pas-repondre@declikora.app`). Domaine : `declikora.app` (Cloudflare) ; `declikora.fr` (Scaleway) est aussi à nous. L'utilisateur m'a donné la main sur GitHub, Supabase, Vercel, Sentry et Brevo via Chrome ; chaque changement de réglage se fait avec son accord. Je ne saisis jamais de clé secrète (clé SMTP de Brevo…) : c'est l'utilisateur qui la colle.
 
@@ -89,6 +92,12 @@ npm run db:stop
 - `web/src/lib/dates.ts` : toutes les dates s'affichent avec `formatDateTime` (« 27 sept. 2026 à 14:30 », heure de Paris).
 - L'interface tutoie la personne (« Agrandis la fenêtre… »).
 - `web/vercel.json` : en-têtes de sécurité (CSP). Un nouveau service appelé par le navigateur doit y être ajouté.
+
+## Mise en production de la base et des fonctions
+
+- Ordre : `npx supabase config diff` (relire), `npx supabase config push` (réglages d'auth : le bloc `[remotes.production]` de `supabase/config.toml` surcharge site_url et redirections), vérifier dans le tableau de bord que les inscriptions restent fermées, puis `npx supabase db push`, puis `npx supabase functions deploy <nom>`.
+- Ne jamais déclarer `[auth.email.smtp]` dans `config.toml` : un `config push` effacerait le SMTP de Brevo réglé à la main dans le tableau de bord.
+- La fonction `equipe` a `verify_jwt = false` et vérifie elle-même la session et `is_admin()`.
 
 ## Conventions
 

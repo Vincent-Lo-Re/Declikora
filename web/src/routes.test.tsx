@@ -1,22 +1,11 @@
-import { fireEvent, render, screen, within } from "@testing-library/react"
-import { createMemoryRouter, RouterProvider } from "react-router"
+import { fireEvent, screen, within } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 
-import { ThemeProvider } from "@/components/theme/theme-provider"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { routes } from "@/routes"
+import { fakeAuth, renderApp } from "@/test/render"
 import { texts } from "@/texts"
 
-function renderAt(path: string) {
-  const router = createMemoryRouter(routes, { initialEntries: [path] })
-  render(
-    <ThemeProvider>
-      <TooltipProvider>
-        <RouterProvider router={router} />
-      </TooltipProvider>
-    </ThemeProvider>
-  )
-}
+// Par défaut : un admin connecté, double vérification faite.
+const renderAt = (path: string) => renderApp(path)
 
 afterEach(() => {
   localStorage.clear()
@@ -100,5 +89,86 @@ describe("thème", () => {
 
     expect(document.documentElement).toHaveClass("dark")
     expect(localStorage.getItem("declikora-theme")).toBe("dark")
+  })
+})
+
+describe("accès", () => {
+  it("envoie vers la connexion sans session, en gardant la page demandée", () => {
+    const { router } = renderApp("/blog?page=2", fakeAuth("signed-out"))
+
+    expect(router.state.location.pathname).toBe("/connexion")
+    expect(router.state.location.state).toEqual({ from: "/blog?page=2" })
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      texts.signIn.title
+    )
+    // Les pages de connexion n'ont pas le menu.
+    expect(
+      screen.queryByRole("navigation", { name: texts.nav.label })
+    ).not.toBeInTheDocument()
+  })
+
+  it("demande le code de l'app après le code reçu par e-mail", () => {
+    const { router } = renderApp("/mon-compte", fakeAuth({ level: "aal1" }))
+
+    expect(router.state.location.pathname).toBe("/double-verification")
+    expect(router.state.location.state).toEqual({ from: "/mon-compte" })
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      texts.mfa.verifyTitle
+    )
+  })
+
+  it("ramène à la page demandée quand la double vérification est faite", () => {
+    const { router } = renderApp("/double-verification")
+
+    expect(router.state.location.pathname).toBe("/")
+  })
+
+  it("ne rouvre pas la connexion quand on est déjà connecté", () => {
+    const { router } = renderApp("/connexion")
+
+    expect(router.state.location.pathname).toBe("/")
+  })
+})
+
+describe("déconnexion", () => {
+  it("ouvre la connexion sans garder la page d'où l'on vient", () => {
+    const { router } = renderApp("/deconnexion", fakeAuth("signed-out"))
+
+    expect(router.state.location.pathname).toBe("/connexion")
+    expect(router.state.location.state).toBeNull()
+  })
+})
+
+describe("rôles", () => {
+  it("cache Équipe et Paramètres dans le menu d'un éditeur", () => {
+    renderApp("/", fakeAuth({ role: "editor" }))
+
+    const footer = screen.getByRole("navigation", {
+      name: texts.nav.footerLabel,
+    })
+    expect(
+      within(footer)
+        .getAllByRole("link")
+        .map((link) => link.textContent)
+    ).toEqual(["Mon compte"])
+  })
+
+  it.each(["/equipe", "/parametres"])(
+    "affiche « Réservé aux admins » à un éditeur sur %s",
+    (path) => {
+      renderApp(path, fakeAuth({ role: "editor" }))
+
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+        texts.adminOnly.title
+      )
+    }
+  )
+
+  it("ouvre les Paramètres à un admin", () => {
+    renderApp("/parametres")
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      texts.sections.settings.title
+    )
   })
 })

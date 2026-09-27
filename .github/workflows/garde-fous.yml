@@ -37,6 +37,21 @@ jobs:
       - name: Types et construction
         run: npm run build
 
+  # Fonction serveur « equipe » (Deno) : mise en forme, lint, types, et tests de ses règles
+  # CORS et de la validation des demandes. Les tests de parcours ne peuvent pas vérifier le
+  # CORS : en local, la passerelle de Supabase répond elle-même aux requêtes CORS.
+  fonctions:
+    name: Fonctions serveur
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      # Deno est lancé par npx, dans la même version qu'en local (package.json de la racine).
+      - name: Vérifications et tests
+        run: npm run functions:test
+
   base:
     name: Base de données
     runs-on: ubuntu-latest
@@ -49,3 +64,38 @@ jobs:
         run: supabase db start
       - name: Tests pgTAP
         run: supabase test db
+
+  parcours:
+    name: Parcours
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.118.0
+      # Seulement ce que les parcours utilisent : base, connexion, API, fonctions, e-mails.
+      - name: Démarrage de Supabase
+        working-directory: .
+        run: supabase start -x studio,imgproxy,logflare,vector,supavisor,realtime,storage-api,postgres-meta
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Navigateur Chromium
+        run: npx playwright install --with-deps --only-shell chromium
+      # Les clés du Supabase local sont lues par playwright.config.ts (supabase status).
+      - name: Tests de parcours
+        run: npm run test:e2e
+      - name: Rapport des tests de parcours
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rapport-parcours
+          path: web/playwright-report/
+          retention-days: 7

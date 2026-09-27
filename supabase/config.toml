@@ -108,8 +108,10 @@ port = 54324
 # Uncomment to expose additional ports for testing user applications that send emails.
 # smtp_port = 54325
 # pop3_port = 54326
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# Expéditeur des e-mails en local (Mailpit). En ligne, il se règle avec le SMTP de Brevo dans le
+# tableau de bord Supabase.
+admin_email = "ne-pas-repondre@declikora.app"
+sender_name = "Declikora"
 
 [storage]
 enabled = true
@@ -155,11 +157,13 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+# Local : l'admin (serveur Vite). La production est réglée dans [remotes.production], plus bas.
+site_url = "http://127.0.0.1:5173"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
-# A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+# URLs that auth providers are permitted to redirect to post authentication. Wildcards are accepted:
+# `*` (any characters except `.` and `/`), `**` (anything).
+additional_redirect_urls = ["http://127.0.0.1:5173/**", "http://localhost:5173/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -172,7 +176,11 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-enable_signup = true
+# Declikora : sur invitation seulement. Les invitations (clé secrète) restent possibles.
+# En production, pousser ce réglage (`supabase config push`) et vérifier dans le tableau de bord
+# que « Allow new users to sign up » est désactivé AVANT le premier `supabase db push` (voir la
+# migration de l'équipe). Un projet neuf a les inscriptions ouvertes par défaut.
+enable_signup = false
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
@@ -195,7 +203,10 @@ password_requirements = ""
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
+# Volontairement non déclaré : en local, sans SMTP, la CLI l'ignore (Mailpit reçoit tout), et en
+# ligne il se règle dans le tableau de bord avec le SMTP de Brevo. Le déclarer ici l'écraserait au
+# prochain `supabase config push`.
+# email_sent = 2
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -217,6 +228,8 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
+# Attention : malgré son nom, cette clé active tout le fournisseur e-mail (connexion par code
+# comprise). Elle doit rester à true ; les inscriptions sont fermées par `auth.enable_signup`.
 enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
@@ -226,13 +239,19 @@ enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
+# 1 s en local pour les tests ; la production a sa propre valeur dans [remotes.production].
 max_frequency = "1s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# 10 minutes. Attention : la même durée s'applique au lien d'invitation. La page Équipe signale
+# les invitations expirées et met en avant « Renvoyer l'invitation » (web/src/lib/team.ts).
+otp_expiry = 600
 
 # Use a production-ready SMTP server
+# Declikora : NE PAS déclarer cette section, même avec enabled = false. Le SMTP de Brevo se règle à
+# la main dans le tableau de bord ; une section déclarée ici l'écraserait (ou le désactiverait) au
+# prochain `supabase config push`.
 # [auth.email.smtp]
 # enabled = true
 # host = "smtp.sendgrid.net"
@@ -242,10 +261,21 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Modèles d'e-mails en français. Les chemins partent de la racine du dépôt.
+# Invitation : lien vers la page /invitation de l'admin, qui demande un clic avant de valider.
+[auth.email.template.invite]
+subject = "Ton invitation à l'administration de Declikora"
+content_path = "./supabase/templates/invitation.html"
+
+# Code de connexion (envoyé par signInWithOtp à un membre qui a déjà accepté son invitation).
+[auth.email.template.magic_link]
+subject = "Ton code de connexion à Declikora"
+content_path = "./supabase/templates/code-connexion.html"
+
+# Confirmation d'adresse : ne devrait pas servir (inscriptions fermées), traduite par prudence.
+[auth.email.template.confirmation]
+subject = "Confirme ton adresse e-mail pour Declikora"
+content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
@@ -292,15 +322,17 @@ message_service_sid = ""
 # DO NOT commit your Twilio auth token to git. Use environment variable substitution instead:
 auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 
-# Multi-factor-authentication is available to Supabase Pro plan.
+# Multi-factor authentication. TOTP (app du téléphone) est inclus dans toutes les offres ; seul le
+# MFA par téléphone (SMS) demande l'offre Pro.
 [auth.mfa]
 # Control how many MFA factors can be enrolled at once per user.
 max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
+# Declikora : double vérification obligatoire pour toute l'équipe (imposée par la base, aal2).
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]
@@ -384,6 +416,13 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Fonction serveur de gestion de l'équipe (réservée aux admins).
+# verify_jwt = false : la fonction vérifie elle-même la session de l'appelant (voir index.ts). La
+# vérification automatique repose sur l'ancien secret JWT et casserait avec les clés de signature
+# asymétriques.
+[functions.equipe]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
@@ -413,3 +452,36 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# ---------------------------------------------------------------------------------------------
+# Production : projet Supabase « Declikora » (kajocxepxgaquculhrky).
+# Ces valeurs remplacent celles du dessus lors d'un `supabase config push` vers ce projet ; elles
+# sont ignorées en local. Les listes sont remplacées, pas complétées. Tout ce qui n'est pas repris
+# ici est poussé tel quel : relire `npx supabase config diff` avant chaque push.
+# ---------------------------------------------------------------------------------------------
+[remotes.production]
+project_id = "kajocxepxgaquculhrky"
+
+[remotes.production.auth]
+site_url = "https://declikora-admin.vercel.app"
+# L'admin en ligne et ses adresses de test Vercel.
+additional_redirect_urls = [
+  "https://declikora-admin.vercel.app/**",
+  "https://declikora-admin-*-vincent-lo-re.vercel.app/**",
+]
+
+[remotes.production.auth.email]
+# Délai minimal entre deux e-mails pour une même personne.
+max_frequency = "60s"
+# En ligne, on garde la confirmation des adresses (réglage d'origine du projet).
+enable_confirmations = true
+
+# Réglages d'origine du projet en ligne, gardés tels quels : sans ces lignes, `config push`
+# les remplacerait par les valeurs locales.
+[remotes.production.db.pooler]
+default_pool_size = 15
+max_client_conn = 200
+
+[remotes.production.storage.analytics]
+enabled = true
+max_namespaces = 10
