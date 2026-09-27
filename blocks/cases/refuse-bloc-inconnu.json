@@ -1,0 +1,19 @@
+{
+  "description": "Bloc d'une sorte inconnue",
+  "variant": "draft",
+  "valid": false,
+  "data": {
+    "v": 1,
+    "title": "Bien respirer",
+    "summary": null,
+    "cover": null,
+    "audio": null,
+    "blocks": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "type": "video",
+        "mediaId": "00000000-0000-4000-8000-000000000090"
+      }
+    ]
+  }
+}

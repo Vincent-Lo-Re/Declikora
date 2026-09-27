@@ -1,0 +1,13 @@
+{
+  "description": "v vaut 2",
+  "variant": "draft",
+  "valid": false,
+  "data": {
+    "v": 2,
+    "title": "Bien respirer",
+    "summary": null,
+    "cover": null,
+    "audio": null,
+    "blocks": []
+  }
+}

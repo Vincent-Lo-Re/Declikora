@@ -1,0 +1,21 @@
+{
+  "description": "Identifiant de bloc qui n'est pas un UUID",
+  "variant": "draft",
+  "valid": false,
+  "data": {
+    "v": 1,
+    "title": "Bien respirer",
+    "summary": null,
+    "cover": null,
+    "audio": null,
+    "blocks": [
+      {
+        "id": "bloc-1",
+        "type": "image",
+        "mediaId": null,
+        "caption": null,
+        "alt": null
+      }
+    ]
+  }
+}

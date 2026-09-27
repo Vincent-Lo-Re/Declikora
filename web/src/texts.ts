@@ -492,9 +492,10 @@ export const texts = {
       uses: "Utilisé dans",
       usesLoading: "Recherche des contenus…",
       notUsed:
-        "Ce fichier n'est utilisé dans aucun contenu pour l'instant. Tu pourras l'insérer dans un contenu depuis l'éditeur.",
+        "Ce fichier n'est utilisé dans aucun contenu pour l'instant. Tu peux l'insérer dans un contenu depuis l'éditeur (bloc Image).",
       usesFailed: "La liste des contenus n'a pas pu être chargée.",
       inDraft: "Brouillon",
+      untitled: "Sans titre",
       inApp: "Dans l'app",
       trash: "Mettre à la corbeille",
       trashed: "Fichier mis à la corbeille.",
@@ -588,6 +589,308 @@ export const texts = {
     refreshFailed:
       "La corbeille n'a pas pu être mise à jour : elle date peut-être un peu.",
     retry: "Réessayer",
+  },
+
+  // Liste des pages (étape 4 : minimale, pour essayer l'éditeur ; complétée à l'étape 7).
+  contentList: {
+    create: "Nouvelle page",
+    createFailed: "La page n'a pas pu être créée.",
+    columns: {
+      title: "Titre",
+      savedAt: "Dernière modification",
+      status: "État",
+    },
+    untitled: "Sans titre",
+    savedBy: (name: string) => `par ${name}`,
+    beingEdited: (name: string) => `${name} écrit`,
+    empty: {
+      title: "Aucune page pour l'instant",
+      description:
+        "Crée une page : elle s'ouvre aussitôt dans l'éditeur, et tout ce que tu écris est enregistré au fur et à mesure.",
+    },
+    loadFailed: "La liste n'a pas pu être chargée.",
+    refreshFailed:
+      "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
+    retry: "Réessayer",
+  },
+
+  // Éditeur de blocs (plein écran) : docs/ARCHITECTURE-CONTENUS.md, § 2.7 et § 3.3.
+  editor: {
+    back: (section: string) => `Retour à ${section}`,
+    loading: "Ouverture du brouillon…",
+    notFound: {
+      title: "Contenu introuvable",
+      description:
+        "Ce contenu n'existe plus, ou il est dans la corbeille. Retourne à la liste.",
+    },
+    title: {
+      label: "Titre du contenu",
+      placeholder: "Titre",
+      tooLong: "Le titre ne doit pas dépasser 200 caractères.",
+    },
+    untitled: "Sans titre",
+    pageTitle: (title: string) => `${title} — Éditeur`,
+    blocks: {
+      text: "Texte",
+      image: "Image",
+      box: "Encadré",
+      linked: "Bloc lié",
+    },
+    // Nom d'un bloc dans le plan, les annonces et les boutons.
+    blockLabel: {
+      text: (excerpt: string) =>
+        excerpt ? `Texte « ${excerpt} »` : "Texte vide",
+      image: (caption: string) => (caption ? `Image « ${caption} »` : "Image"),
+      box: (count: number) =>
+        count === 0
+          ? "Encadré vide"
+          : count === 1
+            ? "Encadré (1 bloc)"
+            : `Encadré (${count} blocs)`,
+      linked: "Bloc lié",
+    },
+    textPlaceholder: "Écris ici…",
+    add: {
+      label: "Ajouter un bloc",
+      hint: "Ajouté après le bloc choisi, ou à la fin.",
+      inBox: "Ajouter dans l'encadré",
+    },
+    emptyPage: {
+      title: "Page vide",
+      description:
+        "Ajoute un premier bloc : un texte, une image ou un encadré.",
+    },
+    emptyBox:
+      "Encadré vide : ajoute un texte ou une image, ou dépose un bloc ici.",
+    handle: (label: string) => `Déplacer : ${label}`,
+    // Glisser-déposer : annonces lues par les lecteurs d'écran.
+    dnd: {
+      roleDescription: "bloc déplaçable",
+      instructions:
+        "Pour déplacer un bloc, appuie sur Espace ou Entrée sur sa poignée. Déplace-le avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour le déposer, ou sur Échap pour annuler.",
+      page: "la page",
+      box: (position: number) => `l'encadré (bloc n° ${position})`,
+      start: (label: string) => `Tu as pris ${label}.`,
+      over: (label: string, target: string, container: string) =>
+        `${label} est au niveau de ${target}, dans ${container}.`,
+      overZone: (label: string, container: string) =>
+        `${label} est dans ${container}.`,
+      outside: (label: string) => `${label} n'est au-dessus d'aucune place.`,
+      // Accordé à « Bloc » : le nom du bloc peut être masculin (Texte) ou féminin (Image).
+      end: (label: string, container: string) =>
+        `Bloc déposé dans ${container} : ${label}.`,
+      endOutside: (label: string) =>
+        `Bloc lâché hors de la page : ${label} reprend sa place.`,
+      cancel: (label: string) =>
+        `Déplacement annulé : ${label} reprend sa place.`,
+      refused: "Un encadré ne peut pas aller dans un autre encadré.",
+    },
+    outline: {
+      toggle: "Plan",
+      show: "Afficher le plan",
+      hide: "Masquer le plan",
+      title: "Plan",
+      empty: "Aucun bloc pour l'instant.",
+      select: (label: string) => `Aller à ${label}`,
+    },
+    toolbar: {
+      label: "Mise en forme",
+      unavailable: "Clique dans un texte pour le mettre en forme.",
+      paragraph: "Paragraphe",
+      h2: "Titre",
+      h3: "Sous-titre",
+      bulletList: "Liste à puces",
+      orderedList: "Liste numérotée",
+      bold: "Gras",
+      italic: "Italique",
+      link: "Lien",
+      undo: "Annuler",
+      redo: "Rétablir",
+    },
+    link: {
+      title: "Lien",
+      description:
+        "Une adresse qui commence par https:// (site) ou mailto: (e-mail).",
+      url: "Adresse",
+      placeholder: "https://exemple.fr",
+      invalid: "L'adresse doit commencer par https:// ou mailto:, sans espace.",
+      apply: "Appliquer",
+      remove: "Retirer le lien",
+    },
+    image: {
+      choose: "Choisir une image",
+      replace: "Changer d'image",
+      none: "Aucune image choisie",
+      missing: "Fichier supprimé, choisis-en un autre.",
+      loadFailed: "L'image n'a pas pu être chargée.",
+      retry: "Réessayer",
+      notReady: "Ce fichier n'est pas prêt. Choisis-en un autre.",
+      captionLabel: "Légende",
+      captionPlaceholder: "Ajoute une légende (facultatif)",
+      altWarning:
+        "Pas de texte alternatif : décris l'image pour les personnes qui ne la voient pas.",
+    },
+    picker: {
+      title: "Choisir une image",
+      description: "Les images prêtes de la médiathèque.",
+      search: "Rechercher une image",
+      searchPlaceholder: "Rechercher par nom…",
+      choose: (name: string) => `Choisir ${name}`,
+      empty:
+        "Aucune image dans la médiathèque. Envoie d'abord des images depuis la Médiathèque.",
+      noResults: "Aucune image trouvée. Essaie un autre nom.",
+      loadFailed: "Les images n'ont pas pu être chargées.",
+      retry: "Réessayer",
+      toLibrary: "Ouvrir la Médiathèque",
+    },
+    settings: {
+      label: "Réglages du bloc",
+      title: (label: string) => `Réglages : ${label}`,
+      none: "Choisis un bloc dans l'aperçu pour voir ses réglages.",
+      readOnly: "Lecture seule : tu ne peux rien modifier.",
+      text: "Écris directement dans l'aperçu. Sélectionne des mots pour les mettre en forme avec la barre au-dessus du téléphone.",
+      image: {
+        file: "Fichier",
+        alt: "Texte alternatif",
+        altFromLibrary: "Reprendre celui de la médiathèque",
+        libraryAlt: (alt: string) => `Médiathèque : « ${alt} »`,
+        noLibraryAlt:
+          "La médiathèque n'a pas de texte alternatif pour cette image.",
+        altHint:
+          "Décris l'image en une phrase pour les personnes qui ne la voient pas.",
+        altTooLong: "1 000 caractères au plus.",
+        caption: "Légende",
+        captionCount: (count: number) => `${count} / 300 caractères`,
+        captionHint: "Texte simple, écrit sous l'image dans l'aperçu.",
+      },
+      box: {
+        look: "Apparence",
+        fill: "Fond",
+        border: "Bordure",
+        hint: "Un encadré contient des textes et des images, pas d'autre encadré.",
+      },
+      linked:
+        "Ce bloc vient d'un modèle identique partout. Les modèles arrivent bientôt.",
+      moveUp: "Monter",
+      moveDown: "Descendre",
+      remove: "Supprimer le bloc",
+      removed: (label: string) => `Bloc supprimé : ${label}.`,
+      undo: "Annuler",
+      // Annoncé après « Monter » ou « Descendre ».
+      moved: (position: number, count: number, container: string) =>
+        `Bloc n° ${position} sur ${count}, dans ${container}.`,
+      inBox: "l'encadré",
+    },
+    page: {
+      title: "Brouillon",
+      savedAt: (date: string) => `Enregistré le ${date}`,
+      size: (percent: string) => `Taille : ${percent} de la limite`,
+    },
+    // Enregistrement automatique.
+    save: {
+      saved: "Enregistré",
+      savedAt: (date: string) => `Enregistré le ${date}`,
+      // Lu après « Enregistré » par les lecteurs d'écran.
+      savedOn: (date: string) => `le ${date}`,
+      pending: "Modifications en attente…",
+      saving: "Enregistrement…",
+      offline: "Hors ligne, nouvel essai…",
+      failed: "Non enregistré",
+      stopped: "Non enregistré",
+      // Lu par les lecteurs d'écran, seulement quand l'état change vraiment (pas à chaque
+      // enregistrement).
+      announce: {
+        offline:
+          "Hors ligne : tes modifications seront enregistrées au retour du réseau.",
+        saved: "Tes modifications sont enregistrées.",
+      },
+      leave: {
+        title: "Quitter sans enregistrer ?",
+        description:
+          "Tes dernières modifications ne sont pas encore enregistrées : elles seront perdues.",
+        stay: "Rester",
+        confirm: "Quitter quand même",
+      },
+      nearLimit:
+        "Ce brouillon approche de la taille maximale. Pense à le découper en plusieurs contenus.",
+      invalidAt: (position: number) =>
+        `Le bloc n° ${position} n'a pas la forme attendue.`,
+    },
+    // Un seul membre à la fois sur un brouillon.
+    lock: {
+      taking: "Ouverture du brouillon…",
+      readOnly: (name: string) =>
+        `${name} écrit ce brouillon. Tu le vois en lecture seule, et il se met à jour à chaque enregistrement.`,
+      readOnlySelf:
+        "Tu écris ce brouillon dans un autre onglet. Ici, tu le vois en lecture seule.",
+      free: "Personne n'écrit ce brouillon en ce moment.",
+      take: "Modifier",
+      forceTake: "Reprendre la main",
+      confirmForce: {
+        title: "Reprendre la main ?",
+        description: (name: string) =>
+          `${name} passera en lecture seule. Ce qui n'est pas encore enregistré de son côté restera dans son navigateur.`,
+        descriptionSelf:
+          "L'autre onglet passera en lecture seule. Ce qui n'y est pas encore enregistré y restera.",
+        confirm: "Reprendre la main",
+      },
+      lost: (name: string) =>
+        `${name} a repris la main : tu vois maintenant ce brouillon en lecture seule.`,
+      lostUnknown:
+        "Quelqu'un a repris la main : tu vois maintenant ce brouillon en lecture seule.",
+      lostSelf:
+        "Tu as pris la main dans un autre onglet : ici, tu vois maintenant ce brouillon en lecture seule.",
+      unsaved:
+        "Ce que tu n'avais pas encore enregistré n'est pas perdu : copie-le avant de quitter la page.",
+      stashKept:
+        "Le texte que tu n'avais pas enregistré avant de perdre la main est encore disponible.",
+      dismiss: "Ignorer",
+      copy: "Copier mon texte",
+      copied: "Ton texte est copié. Colle-le où tu veux.",
+      copyFailed: "La copie n'a pas marché. Sélectionne ton texte à la main.",
+      released:
+        "Cet onglet est resté caché plus de 30 minutes : le brouillon a été libéré pour l'équipe.",
+      retake: "Reprendre l'écriture",
+      someone: "Quelqu'un",
+      trashed:
+        "Ce contenu est dans la corbeille : restaure-le pour le modifier.",
+      failed:
+        "L'état du brouillon n'a pas pu être lu. Réessaie dans un instant.",
+      retry: "Réessayer",
+      reloadFailed:
+        "Le brouillon n'a pas pu être relu. Ton texte reste à l'écran : réessaie dans un instant.",
+    },
+    // Erreurs de la base (RPC), selon leur code (docs/ARCHITECTURE-CONTENUS.md, « Étape 4 »).
+    errors: {
+      reserve_a_l_equipe:
+        "Ta session ne donne plus accès à l'éditeur. Reconnecte-toi.",
+      demande_invalide: "La demande n'est pas valide. Recharge la page.",
+      sorte_invalide: "Cette sorte de contenu n'existe pas.",
+      parent_invalide: "Ce contenu ne peut pas être rangé à cet endroit.",
+      contenu_introuvable: "Ce contenu n'existe plus.",
+      dans_la_corbeille:
+        "Ce contenu est dans la corbeille : restaure-le pour le modifier.",
+      verrou_perdu:
+        "Quelqu'un d'autre a pris la main sur ce brouillon : tes dernières modifications ne sont pas enregistrées.",
+      conflit_revision:
+        "Le brouillon a changé ailleurs depuis ta dernière lecture. Copie ton texte, puis recharge la page.",
+      reglages_invalides: "Un réglage n'est pas valide pour ce contenu.",
+      adresse_invalide:
+        "L'adresse ne contient que des lettres minuscules sans accent, des chiffres et des tirets.",
+      adresse_prise: "Une autre page a déjà cette adresse.",
+      categorie_invalide: "Une des catégories n'existe plus. Recharge la page.",
+      brouillon_trop_lourd:
+        "Ce brouillon est trop long pour être enregistré (256 Ko au plus). Découpe-le en plusieurs contenus.",
+      brouillon_trop_imbrique:
+        "Une liste contient trop de niveaux. Réduis les listes dans les listes.",
+      forme_invalide:
+        "Le brouillon n'a pas la forme attendue : il n'a pas été enregistré.",
+      id_en_double:
+        "Deux blocs ont le même identifiant. Recharge la page, puis réessaie.",
+      fichier_indisponible:
+        "Une image n'est plus disponible (supprimée ou pas prête). Choisis-en une autre.",
+      modele_indisponible: "Un modèle utilisé n'est plus disponible.",
+    },
   },
 
   theme: {

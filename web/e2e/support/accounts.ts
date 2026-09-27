@@ -58,8 +58,11 @@ function database() {
  */
 export async function deleteAccounts(emails: string[] | "all") {
   if (emails !== "all" && emails.length === 0) return
-  // D'abord les fichiers qu'ils ont envoyés (sinon leur auteur pointerait vers une fiche effacée).
-  await deleteMediaOf(emails === "all" ? { domain: testDomain } : { emails })
+  // D'abord les contenus qu'ils ont créés (leurs brouillons citent peut-être leurs fichiers),
+  // puis les fichiers qu'ils ont envoyés (sinon leur auteur pointerait vers une fiche effacée).
+  const who = emails === "all" ? { domain: testDomain } : { emails }
+  await deleteContentsOf(who)
+  await deleteMediaOf(who)
   const sql = database()
   try {
     const where =
@@ -72,6 +75,28 @@ export async function deleteAccounts(emails: string[] | "all") {
       await tx`set local session_replication_role = origin`
       await tx`delete from auth.users where ${where}`
     })
+  } finally {
+    await sql.end()
+  }
+}
+
+/**
+ * Supprime les contenus créés par des comptes de test (leurs verrous partent avec eux). Le
+ * garde de corbeille ne s'oppose pas à une suppression : seule la modification est gardée.
+ */
+async function deleteContentsOf(
+  where: { emails: string[] } | { domain: string }
+) {
+  const sql = database()
+  try {
+    await sql`
+      delete from public.contents c
+      using public.profiles p
+      where p.id = c.created_by and ${
+        "emails" in where
+          ? sql`p.email = any(${where.emails})`
+          : sql`p.email like ${`%@${where.domain}`}`
+      }`
   } finally {
     await sql.end()
   }

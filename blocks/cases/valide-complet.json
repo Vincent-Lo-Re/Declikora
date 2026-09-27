@@ -1,0 +1,233 @@
+{
+  "description": "Toutes les formes permises : titres 2 et 3, gras, italique, liens https et mailto, saut de ligne, listes, image, encadrés, bloc lié, couverture et son",
+  "variant": "draft",
+  "valid": true,
+  "data": {
+    "v": 1,
+    "title": "Bien respirer",
+    "summary": "Un résumé",
+    "cover": {
+      "mediaId": "00000000-0000-4000-8000-000000000093"
+    },
+    "audio": {
+      "mediaId": "00000000-0000-4000-8000-000000000094"
+    },
+    "blocks": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "type": "text",
+        "doc": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "heading",
+              "attrs": {
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Respirer"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Du "
+                },
+                {
+                  "type": "text",
+                  "text": "gras",
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "text": " et de l'"
+                },
+                {
+                  "type": "text",
+                  "text": "italique",
+                  "marks": [
+                    {
+                      "type": "italic"
+                    },
+                    {
+                      "type": "bold"
+                    }
+                  ]
+                },
+                {
+                  "type": "hardBreak"
+                },
+                {
+                  "type": "text",
+                  "text": "un lien",
+                  "marks": [
+                    {
+                      "type": "link",
+                      "attrs": {
+                        "href": "https://declikora.app/aide?x=1#y"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "text": " et "
+                },
+                {
+                  "type": "text",
+                  "text": "un e-mail",
+                  "marks": [
+                    {
+                      "type": "link",
+                      "attrs": {
+                        "href": "mailto:bonjour@declikora.app"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "attrs": {
+                "level": 3
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Étapes"
+                }
+              ]
+            },
+            {
+              "type": "orderedList",
+              "attrs": {
+                "start": 3
+              },
+              "content": [
+                {
+                  "type": "listItem",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "un"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "listItem",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "deux"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "suite"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "bulletList",
+                      "content": [
+                        {
+                          "type": "listItem",
+                          "content": [
+                            {
+                              "type": "paragraph",
+                              "content": [
+                                {
+                                  "type": "text",
+                                  "text": "sous-point"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "paragraph"
+            }
+          ]
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000002",
+        "type": "image",
+        "mediaId": "00000000-0000-4000-8000-000000000090",
+        "caption": "Une légende",
+        "alt": "Un texte alternatif"
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000003",
+        "type": "box",
+        "look": "fill",
+        "blocks": [
+          {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "type": "text",
+            "doc": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Dans l'encadré"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000005",
+            "type": "image",
+            "mediaId": "00000000-0000-4000-8000-000000000091",
+            "caption": null,
+            "alt": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000006",
+        "type": "box",
+        "look": "border",
+        "blocks": []
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000007",
+        "type": "linked",
+        "templateId": "00000000-0000-4000-8000-000000000092"
+      }
+    ]
+  }
+}

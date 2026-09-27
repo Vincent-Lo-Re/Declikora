@@ -1,0 +1,10 @@
+{
+  "description": "Brouillon vide (sans bloc, titre vide), comme à la création",
+  "variant": "draft",
+  "valid": true,
+  "data": {
+    "v": 1,
+    "title": "",
+    "blocks": []
+  }
+}

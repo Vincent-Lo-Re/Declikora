@@ -1,0 +1,35 @@
+{
+  "description": "Titre de niveau 1 (le titre du contenu fait office de niveau 1)",
+  "variant": "draft",
+  "valid": false,
+  "data": {
+    "v": 1,
+    "title": "Bien respirer",
+    "summary": null,
+    "cover": null,
+    "audio": null,
+    "blocks": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "type": "text",
+        "doc": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "heading",
+              "attrs": {
+                "level": 1
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Titre"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

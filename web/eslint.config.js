@@ -6,7 +6,14 @@ import globals from "globals"
 import tseslint from "typescript-eslint"
 
 export default defineConfig([
-  globalIgnores(["dist", "playwright-report", "test-results", "blob-report"]),
+  // src/blocks/generated : tiré de blocks/ par npm run blocks:generate (ne pas modifier).
+  globalIgnores([
+    "dist",
+    "playwright-report",
+    "test-results",
+    "blob-report",
+    "src/blocks/generated",
+  ]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [

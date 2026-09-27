@@ -1,0 +1,48 @@
+/* Généré par web/scripts/blocks-generate.mjs (npm run blocks:generate) depuis blocks/. Ne pas modifier. */
+/* Aperçu des blocs dans l'admin : mêmes mesures que l'app (blocks/blocks.tokens.json). */
+:root {
+  --blocks-phone-width: 390px;
+  --blocks-font-family: Inter;
+  --blocks-font-title-size: 28px;
+  --blocks-font-title-line-height: 1.2;
+  --blocks-font-body-size: 17px;
+  --blocks-font-body-line-height: 1.5;
+  --blocks-font-h2-size: 24px;
+  --blocks-font-h2-line-height: 1.25;
+  --blocks-font-h3-size: 20px;
+  --blocks-font-h3-line-height: 1.3;
+  --blocks-font-caption-size: 14px;
+  --blocks-font-caption-line-height: 1.4;
+  --blocks-font-regular-weight: 400;
+  --blocks-font-bold-weight: 700;
+  --blocks-font-heading-weight: 700;
+  --blocks-space-page-padding: 20px;
+  --blocks-space-block-gap: 24px;
+  --blocks-space-paragraph-gap: 12px;
+  --blocks-space-heading-top-gap: 8px;
+  --blocks-space-list-indent: 24px;
+  --blocks-space-list-item-gap: 6px;
+  --blocks-space-box-padding: 16px;
+  --blocks-space-box-gap: 12px;
+  --blocks-space-caption-gap: 8px;
+  --blocks-radius-box: 12px;
+  --blocks-radius-image: 8px;
+  --blocks-border-box-width: 1px;
+  --blocks-color-background: #ffffff;
+  --blocks-color-text: #1c1c1e;
+  --blocks-color-text-muted: #6b6b70;
+  --blocks-color-link: #0b62d6;
+  --blocks-color-box-fill: #f2f2f5;
+  --blocks-color-box-border: #d4d4d8;
+  --blocks-color-image-placeholder: #e5e5ea;
+}
+
+.dark {
+  --blocks-color-background: #000000;
+  --blocks-color-text: #f2f2f7;
+  --blocks-color-text-muted: #a1a1a8;
+  --blocks-color-link: #5aa2ff;
+  --blocks-color-box-fill: #1c1c1e;
+  --blocks-color-box-border: #3a3a3c;
+  --blocks-color-image-placeholder: #2c2c2e;
+}

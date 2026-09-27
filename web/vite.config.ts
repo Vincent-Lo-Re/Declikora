@@ -14,7 +14,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     // Pendant les tests seulement : les SVG types de la fonction « files » (même source pour
-    // les tests du serveur et ceux de l'admin, voir src/lib/media/svg.test.ts).
+    // les tests du serveur et ceux de l'admin, voir src/lib/media/svg.test.ts) et les cas
+    // partagés des blocs (src/blocks/validators.test.ts).
     ...(process.env.VITEST && {
       fs: {
         allow: [
@@ -22,6 +23,8 @@ export default defineConfig({
           fileURLToPath(
             new URL("../supabase/functions/files/fixtures", import.meta.url)
           ),
+          // Les cas partagés du schéma des blocs (lus aussi par pgTAP).
+          fileURLToPath(new URL("../blocks/cases", import.meta.url)),
         ],
       },
     }),

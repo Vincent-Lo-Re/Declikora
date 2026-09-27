@@ -50,14 +50,14 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 
 ## 4. Éditeur
 
-- [ ] Un contenu est une suite de **blocs**, qu'on ajoute, qu'on déplace par glisser-déposer et qu'on règle un par un.
+- [x] Un contenu est une suite de **blocs**, qu'on ajoute, qu'on déplace par glisser-déposer et qu'on règle un par un.
 - [ ] **Trois blocs au départ.** D'autres pourront s'ajouter ensuite, et l'app mobile devra savoir afficher chacun d'eux.
   - **Texte** : titres, paragraphes, listes, gras, italique, liens.
   - **Image** : l'image, sa légende et son texte alternatif.
   - **Encadré** : un bloc qui contient du texte et des images, avec un fond ou une bordure. Un encadré ne contient pas d'autre encadré.
-- [ ] **On écrit dans l'aperçu.** Au centre, le contenu tel qu'il apparaîtra sur le téléphone. À droite, les réglages du bloc choisi. À gauche, le plan du contenu (la liste des blocs), qu'on ouvre à la demande.
-- [ ] **Enregistrement automatique**, quelques secondes après chaque changement. Publier reste un geste volontaire.
-- [ ] **Un seul membre à la fois sur un brouillon.** Les autres le voient en lecture seule, avec le nom de la personne qui l'édite, et peuvent en reprendre la main.
+- [x] **On écrit dans l'aperçu.** Au centre, le contenu tel qu'il apparaîtra sur le téléphone. À droite, les réglages du bloc choisi. À gauche, le plan du contenu (la liste des blocs), qu'on ouvre à la demande.
+- [x] **Enregistrement automatique**, quelques secondes après chaque changement. Publier reste un geste volontaire.
+- [x] **Un seul membre à la fois sur un brouillon.** Les autres le voient en lecture seule, avec le nom de la personne qui l'édite, et peuvent en reprendre la main.
 
 ## 5. Modèles de blocs
 
@@ -89,7 +89,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Pensée pour l'ordinateur**, sur des écrans de 13 pouces et plus. Sous 1 024 px de large, un message invite à agrandir la fenêtre ou à passer sur un ordinateur.
 - [x] **En français**, avec tous les textes de l'interface dans un seul fichier (`web/src/texts.ts`). L'interface tutoie.
 - [x] **Menu à gauche, déplié**, repliable en icônes (avec une infobulle au survol). Rangement : Accueil ; **Contenus** (Blog, Podcasts, Méthodes, Pages) ; **Outils** (Modèles, Médiathèque, Corbeille) ; en bas, Équipe, Paramètres et Mon compte.
-- [ ] **Dans l'éditeur, le menu se cache** : l'éditeur prend tout l'écran, et « ← Blog » (par exemple) ramène à la liste.
+- [x] **Dans l'éditeur, le menu se cache** : l'éditeur prend tout l'écran, et « ← Blog » (par exemple) ramène à la liste.
 - [x] **Police Inter**, livrée avec l'admin, sans appel à Google.
 - [x] **Dates courtes** : « 27 sept. 2026 à 14:30 », à l'heure de Paris.
 - [x] **Adresses en français** : `/blog`, `/mediatheque`, `/corbeille`, `/mon-compte`…

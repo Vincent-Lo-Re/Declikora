@@ -48,7 +48,7 @@ cd web && npm run dev          # serveur de dev
 cd web && npm run lint         # ESLint
 cd web && npm run format       # Prettier (format:check pour vérifier seulement)
 cd web && npm test             # tests (test:watch pour relancer à chaque changement)
-cd web && npm run test:e2e     # tests de parcours Playwright (Supabase local démarré ; la 1re fois : npx playwright install chromium)
+cd web && npm run test:e2e     # tests de parcours Playwright (Supabase local démarré, Realtime compris ; la 1re fois : npx playwright install chromium)
 cd web && npm run build        # vérification des types + construction
 cd web && npx shadcn add <composant>   # ajouter un composant shadcn/ui
 
@@ -65,6 +65,7 @@ npm run db:test                # tests pgTAP de supabase/tests/ (aides communes 
 npm run functions:test         # fonctions serveur equipe et files (Deno via npx : format, lint, types, tests)
 npm run functions:integration  # fonction files contre le Supabase local : vrais envois, tâche « fichiers » (~1 min)
 cd web && npm run db:types     # après chaque migration : régénère web/src/lib/database.types.ts (+ Prettier)
+cd web && npm run blocks:generate  # après chaque changement de blocks/ : types, validateurs, cas pgTAP, empreinte et, si le schéma a changé, nouvelle migration
 npm run db:stop
 ```
 
@@ -95,7 +96,13 @@ npm run db:stop
 - L'interface tutoie la personne (« Agrandis la fenêtre… »).
 - `web/vercel.json` : en-têtes de sécurité (CSP). Un nouveau service appelé par le navigateur doit y être ajouté.
 - `web/src/lib/media/` : la médiathèque sans React (reconnaissance des fichiers, réduction des photos, nettoyage des SVG, vérification des Lottie, envoi standard ou reprenable, file d'envoi, appels à la base et à la fonction `files`). Les écrans sont dans `web/src/pages/media-page.tsx`, `trash-page.tsx` et `web/src/components/media/`. Après un envoi, une mise à la corbeille, un vidage ou « Nettoyer », l'admin appelle `files` avec la session (`kickFiles()` / `callFiles()`), puis relit les données (TanStack Query).
-- Les tests Vitest des SVG lisent les fichiers types de `supabase/functions/files/fixtures/` (autorisés dans `vite.config.ts`, pendant les tests seulement) : un SVG nettoyé par l'admin doit rester accepté par le serveur.
+- Les tests Vitest des SVG lisent les fichiers types de `supabase/functions/files/fixtures/` (autorisés dans `vite.config.ts`, pendant les tests seulement) : un SVG nettoyé par l'admin doit rester accepté par le serveur. De même, `web/src/blocks/validators.test.ts` lit les cas partagés de `blocks/cases/`.
+- Éditeur de blocs (étape 4) :
+  - `web/src/blocks/` : sans React, `draft.ts` (créer, trouver, déplacer, préparer un brouillon : `cleanTextDoc` puis le validateur généré, 240 000 octets au plus), `dnd.ts` (règles de dépôt et détection des cibles), `registry.ts` (les blocs qu'on ajoute), `labels.ts`, `text/` (configuration de Tiptap et `cleanTextDoc`) ; avec React, `components/` (aperçu : `block-canvas.tsx` pour le glisser-déposer, un fichier par bloc, `preview.css` avec les mesures de `blocks.tokens.json`).
+  - `web/src/lib/editor/` : `autosave.ts` (enregistrement automatique) et `edit-lock.ts` (verrou et sa machine d'états), sans React, testés avec de fausses minuteries ; les hooks `web/src/hooks/use-autosave.ts` et `use-edit-lock.ts` les branchent.
+  - `web/src/lib/contents/api.ts` : table `contents`, RPC `content_create`, `save_draft`, `lock_*`, Realtime sur `edit_locks` (codes d'erreur dans `texts.editor.errors`).
+  - Écrans : `web/src/pages/editor-page.tsx` (plein écran, hors `AppLayout`, chargé à part), `web/src/pages/content-list-page.tsx`, `web/src/components/editor/` (barre de mise en forme, plan, réglages, bandeau du verrou, choix d'une image).
+  - Un nouveau bloc : son schéma dans `blocks/`, `npm run blocks:generate`, une entrée dans `registry.ts`, son affichage (`BlockBody` de `block-canvas.tsx`) et ses réglages (`components/editor/block-settings.tsx`).
 
 ## Mise en production de la base et des fonctions
 
@@ -113,6 +120,7 @@ npm run db:stop
 ## Conventions
 
 - Schéma de la base : uniquement par des migrations dans `supabase/migrations/` (`npx supabase migration new <nom>`). Chaque table doit avoir sa politique RLS et un test pgTAP dans `supabase/tests/`, puis `cd web && npm run db:types` (le garde-fou « Base de données » refuse des types pas à jour).
+- Forme des blocs : source unique dans `blocks/` (`blocks.schema.json` en draft-07 écrit à la main, `blocks.tokens.json`, cas partagés `cases/*.json` avec `{ description, variant, valid, data }`). Jamais de `oneOf`/`anyOf`/`allOf`/`format` (pg_jsonschema 0.3.3 : validation exponentielle, formats ignorés) : les unions s'écrivent en `if`/`then`/`else` sur `type`, avec `tsType` pour les types. On ne fait qu'ajouter. Tout ce qui en est tiré (`blocks/generated/`, `web/src/blocks/generated/`, `supabase/tests/aides/blocs-cas.inc`, migrations `…_schema_blocs.sql`) est produit par `cd web && npm run blocks:generate` et ne se modifie pas à la main ; les garde-fous le relancent (job « Administration ») et comparent l'empreinte de la base (job « Base de données »).
 - Toute fonction créée par une migration : retirer l'`EXECUTE` à `public` et `anon` (et `authenticated` si elle n'est pas appelée par l'admin), et ne jamais rendre une fonction de `private` exécutable par `anon` ou `authenticated` (sauf `reader_can_open`) : `supabase/tests/05_prive.test.sql` le vérifie.
 - Tests pgTAP : un fichier par sujet, qui commence par `begin;` puis `\ir aides/roles.inc` (profils anonyme, éditeur aal1/aal2, admin, lecteur sans fiche). Les aides portent l'extension `.inc` : `supabase test db` lance tout `.sql` et `.pg`, sous-dossiers compris.
 - Routes mobiles dans `mobile/src/app/`. Le reste du code (composants, hooks, utilitaires) va en dehors de `src/app/`.

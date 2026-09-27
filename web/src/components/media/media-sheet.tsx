@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ExternalLink, Trash2, TriangleAlert } from "lucide-react"
 import { type ComponentProps, lazy, Suspense, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
+import { Link } from "react-router"
 import { toast } from "sonner"
 
 import { kindIcons, rejectedText } from "@/components/media/media-kinds"
@@ -40,6 +41,7 @@ import {
   trashMedia,
   updateMedia,
   type MediaChanges,
+  type MediaUse,
 } from "@/lib/media/api"
 import type { Media } from "@/lib/media/constants"
 import {
@@ -48,6 +50,7 @@ import {
   formatDuration,
 } from "@/lib/media/format"
 import { mediaDetailsSchema } from "@/lib/schemas"
+import { contentEditorPath } from "@/navigation"
 import { texts } from "@/texts"
 
 const LottiePreview = lazy(() =>
@@ -401,7 +404,7 @@ function MediaUses({ media }: { media: Media }) {
               className="flex flex-wrap items-center gap-2"
             >
               <span>
-                {use.title}
+                <UseTitle use={use} />
                 {use.parent_title && (
                   <span className="text-muted-foreground">
                     {" "}
@@ -498,5 +501,18 @@ function TrashButton({
         {texts.media.detail.trash}
       </Button>
     </div>
+  )
+}
+
+/** Titre d'un contenu qui utilise le fichier, avec un lien vers son éditeur s'il existe. */
+function UseTitle({ use }: { use: MediaUse }) {
+  const title = use.title?.trim() || texts.media.detail.untitled
+  const path = contentEditorPath(use.kind, use.content_id)
+  return path ? (
+    <Link to={path} className="underline-offset-4 hover:underline">
+      {title}
+    </Link>
+  ) : (
+    title
   )
 }

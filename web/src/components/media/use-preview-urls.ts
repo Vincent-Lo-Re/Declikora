@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { useCallback } from "react"
 
 import {
   getPreviewUrls,
@@ -29,6 +30,12 @@ export function usePreviewUrls(items: Media[] | undefined) {
     refetchInterval: PREVIEW_REFRESH_MS,
     placeholderData: keepPreviousData,
   })
-  return (media: Media): string | undefined =>
-    hasPreview(media) ? query.data?.[previewKey(media)] : undefined
+  // Même fonction tant que les adresses ne changent pas : les composants mémoïsés (blocs de
+  // l'éditeur) ne se redessinent pas pour rien.
+  const urls = query.data
+  return useCallback(
+    (media: Media): string | undefined =>
+      hasPreview(media) ? urls?.[previewKey(media)] : undefined,
+    [urls]
+  )
 }

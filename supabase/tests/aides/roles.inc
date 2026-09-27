@@ -14,6 +14,7 @@
 --   select pg_temp.as_person('reader');       -- compte sans fiche d'équipe (lecteur), aal2
 --   select pg_temp.as_postgres();             -- retour à postgres (ignore les politiques)
 --   select pg_temp.empty_media_library();     -- médiathèque vide (fichiers, contrôles, objets)
+--   select pg_temp.empty_contents();          -- aucun contenu, verrou ni catégorie
 -- Chaque profil a un compte et une session ouverte, créés par pg_temp.create_people().
 -- Les identifiants sont fixes : pg_temp.person_id('editor')…
 
@@ -137,6 +138,18 @@ begin
 end;
 $$;
 
+-- Part de zéro contenu (la base de développement peut contenir des brouillons écrits depuis
+-- l'admin locale ou par les tests de parcours) : contenus, verrous, catégories et leurs liens.
+-- Tout est annulé par le rollback de fin de fichier. À appeler en postgres.
+create function pg_temp.empty_contents()
+returns void
+language plpgsql
+as $$
+begin
+  truncate public.contents, public.edit_locks, public.categories, public.content_categories;
+end;
+$$;
+
 -- Les migrations retirent l'EXECUTE par défaut de PUBLIC sur les fonctions créées par postgres
 -- (20260927170000_socle_contenus.sql) : on le rend à ces aides, appelées sous chaque rôle.
 grant execute on function
@@ -147,5 +160,6 @@ grant execute on function
   pg_temp.as_service(),
   pg_temp.as_postgres(),
   pg_temp.affected(text),
-  pg_temp.empty_media_library()
+  pg_temp.empty_media_library(),
+  pg_temp.empty_contents()
 to public;
