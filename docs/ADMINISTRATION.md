@@ -83,32 +83,43 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 
 ## 7. Interface
 
-- [ ] **Kit de composants shadcn/ui avec Tailwind CSS**, dans son **style neutre** par défaut, sans couleur de marque.
-- [ ] **Thèmes clair, sombre et automatique** (qui suit l'ordinateur), au choix de chacun.
-- [ ] **Pensée pour l'ordinateur**, sur des écrans de 13 pouces et plus.
-- [ ] **En français**, avec tous les textes de l'interface dans un seul fichier.
+- [x] **Kit de composants shadcn/ui avec Tailwind CSS**, dans son **style neutre** par défaut, sans couleur de marque.
+- [x] **Thèmes clair, sombre et automatique** (qui suit l'ordinateur), au choix de chacun, dans Mon compte.
+- [x] **Pensée pour l'ordinateur**, sur des écrans de 13 pouces et plus. Sous 1 024 px de large, un message invite à agrandir la fenêtre ou à passer sur un ordinateur.
+- [x] **En français**, avec tous les textes de l'interface dans un seul fichier (`web/src/texts.ts`). L'interface tutoie.
+- [x] **Menu à gauche, déplié**, repliable en icônes (avec une infobulle au survol). Rangement : Accueil ; **Contenus** (Blog, Podcasts, Méthodes, Pages) ; **Outils** (Modèles, Médiathèque, Corbeille) ; en bas, Équipe, Paramètres et Mon compte.
+- [ ] **Dans l'éditeur, le menu se cache** : l'éditeur prend tout l'écran, et « ← Blog » (par exemple) ramène à la liste.
+- [x] **Police Inter**, livrée avec l'admin, sans appel à Google.
+- [x] **Dates courtes** : « 27 sept. 2026 à 14:30 », à l'heure de Paris.
+- [x] **Adresses en français** : `/blog`, `/mediatheque`, `/corbeille`, `/mon-compte`…
 
 ## 8. Mise en ligne et garde-fous
 
-- [ ] **Vercel**, qui met l'admin en ligne à chaque envoi sur GitHub.
+- [ ] **Vercel**, qui met l'admin en ligne à chaque envoi sur GitHub. Le projet se crée en ligne de commande (`npx vercel login`, puis je configure).
+- [x] **Demandes de fusion.** Chaque changement passe par une branche et une demande de fusion (pull request). Les garde-fous tournent, Vercel crée une adresse de test, et on ne fusionne dans `main` qu'avec le feu vert de l'utilisateur et des garde-fous au vert.
+- [x] **Réglages GitHub** : une demande de fusion arrive sur `main` en un seul commit (titre et description de la demande), sa branche est supprimée ensuite, et les alertes de sécurité (Dependabot) sont actives.
+- [x] **Vercel ne reconstruit l'admin que si `web/` change** (`ignoreCommand` dans `web/vercel.json`).
+- [ ] **Vercel attend les garde-fous** avant de mettre en ligne (Deployment Checks). À régler après leur premier passage sur GitHub.
 - [ ] **Une adresse provisoire** pendant la construction (par exemple `declikora-admin.vercel.app`). Quand la nouvelle administration est prête, elle prend **`admin.declikora.app`**, à la place de l'ancienne.
-- [ ] **À chaque envoi sur GitHub** : relecture du code (lint), vérification des types, tests, construction de l'admin, et tests de la base (pgTAP).
+- [x] **À chaque envoi sur GitHub** : mise en forme, relecture du code (lint), tests, vérification des types et construction de l'admin, et tests de la base (pgTAP).
+- [x] **En-têtes de sécurité** : le navigateur refuse d'afficher l'admin dans un autre site, et n'exécute que ses propres scripts (et ceux de Supabase et Sentry).
 - [ ] **Tests de parcours**, lancés automatiquement : un robot ouvre l'admin dans un navigateur et refait les parcours principaux (se connecter avec les deux codes, écrire, publier).
-- [ ] **Alerte en cas d'erreur** dans l'admin en ligne (Sentry), sans données personnelles.
+- [x] **Alerte en cas d'erreur** dans l'admin en ligne (Sentry), sans données personnelles. Organisation « Declikora » (`declikora-zc`, données en Europe), projet `declikora-admin` (surveillance des erreurs seulement, alerte par e-mail sur les erreurs importantes). L'organisation ne stocke pas les adresses IP, impose le nettoyage des données sensibles, et ne partage rien publiquement. L'identifiant (`VITE_SENTRY_DSN`) et le nom de l'environnement sont dans Vercel.
 - [ ] **Offre Pro de Supabase avant le lancement de l'app.** L'offre gratuite ne suffit pas pour les podcasts (vérifié le 27/09/2026) : 50 Mo au plus par fichier, 1 Go de stockage en tout, 5 Go téléchargés par mois, et un projet mis en pause après une semaine sans activité. L'offre Pro commence à 25 $ par mois, avec 100 Go de stockage.
 
 ## 9. Choix techniques
 
+- [x] **Même version de Node partout** (la 24) : ton ordinateur, GitHub et Vercel.
 - [ ] **Deux environnements** : ton ordinateur (Supabase local) et la production (le projet Supabase « Declikora »). Pas de préproduction, parce que l'offre gratuite de Supabase est limitée à 2 projets actifs, déjà utilisés tous les deux.
-- [ ] **Fuseau horaire Europe/Paris** pour toutes les dates et les publications programmées.
+- [x] **Fuseau horaire Europe/Paris** pour toutes les dates et les publications programmées.
 - [ ] **TanStack Query** : garde en mémoire les données déjà chargées, pour que l'admin reste rapide et à jour.
 - [ ] **React Hook Form + Zod** : gère les formulaires et affiche clairement les erreurs.
 - [ ] **Types générés depuis la base** après chaque migration (`supabase gen types`), pour que le code connaisse exactement les tables.
 - [ ] **Forme de chaque bloc décrite une seule fois**, puis vérifiée par l'admin, par l'app et par la base.
-- [ ] **Prettier** : met le code en forme automatiquement.
+- [x] **Prettier** : met le code en forme automatiquement.
 - [ ] **Playwright** pour les tests de parcours.
 - [ ] **Sentry hébergé en Europe.**
-- [ ] **Icônes Lucide**, celles que shadcn/ui utilise par défaut.
+- [x] **Icônes Lucide**, celles que shadcn/ui utilise par défaut.
 
 ## 10. Remis à plus tard
 

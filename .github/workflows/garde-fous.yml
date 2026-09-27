@@ -1,0 +1,51 @@
+# Garde-fous : lancés à chaque demande de fusion et à chaque envoi sur main.
+name: Garde-fous
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: garde-fous-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  administration:
+    name: Administration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Mise en forme
+        run: npm run format:check
+      - name: Relecture du code
+        run: npm run lint
+      - name: Tests
+        run: npm test
+      - name: Types et construction
+        run: npm run build
+
+  base:
+    name: Base de données
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.118.0
+      - name: Démarrage de la base
+        run: supabase db start
+      - name: Tests pgTAP
+        run: supabase test db

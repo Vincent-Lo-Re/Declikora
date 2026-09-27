@@ -1,2 +1,9 @@
 node_modules
 .DS_Store
+
+# Lien local vers le projet Vercel
+.vercel
+
+# Variables d'environnement : jamais dans git (les modèles .env.example, eux, le sont)
+.env
+.env*.local
