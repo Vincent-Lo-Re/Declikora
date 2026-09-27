@@ -56,9 +56,11 @@ npm run db:stop
 
 ## Configuration
 
-- `web/.env` : `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (modèle dans `web/.env.example`)
-- `mobile/.env` : `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` (modèle dans `mobile/.env.example`)
-- Les fichiers `.env` sont ignorés par git.
+- `web/.env` : `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (modèle dans `web/.env.example`)
+- `mobile/.env` : `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (modèle dans `mobile/.env.example`)
+- Les fichiers `.env` sont ignorés par git. Par défaut, ils pointent vers le Supabase **local**. Les valeurs du projet en ligne sont en commentaire dans les `.env.example`.
+- Projet Supabase en ligne : « Declikora », réf. `kajocxepxgaquculhrky` (https://kajocxepxgaquculhrky.supabase.co). Ne pas le confondre avec « Declikora-Project » (`qmjmfkepmvdusgwynltg`), qui appartient à un autre dépôt.
+- Côté client, n'utiliser que la clé **publishable** (`sb_publishable_…`). La clé secrète (`sb_secret_…`) ne doit jamais se retrouver dans `web/` ni dans `mobile/`.
 - Le client Supabase est dans `web/src/lib/supabase.ts` et `mobile/src/lib/supabase.ts`.
 
 ## Conventions
