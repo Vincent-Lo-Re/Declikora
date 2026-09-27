@@ -45,6 +45,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [ ] **Supprimer** : tout ce qu'on supprime (articles, épisodes, méthodes, pages, modèles, fichiers) va dans **la corbeille**, commune à toute l'admin, avec un filtre par type. On peut l'en restaurer pendant 30 jours, puis il est effacé définitivement. S'il était publié, il disparaît aussi de l'app. L'admin et l'éditeur peuvent vider la corbeille avant la fin des 30 jours.
 - [ ] **Niveaux d'accès** : chaque contenu indique le niveau nécessaire pour le lire, gratuit ou une formule d'abonnement. Un admin crée, renomme et range les formules dans les Paramètres, de la moins complète à la plus complète. On en ajoute sans toucher au code.
 - [ ] **Accès d'une méthode** : un niveau pour toute la méthode, et on peut rendre gratuites quelques leçons, par exemple la première, pour la faire découvrir.
+- [ ] **Une méthode se publie d'un seul geste** : un seul bouton « Publier », celui de la méthode, envoie sa fiche, son plan et les chapitres et leçons modifiés. Une leçon ou un chapitre neuf reste caché de l'app tant qu'on n'a pas coché « Montrer dans l'app ». Avant de publier, l'admin montre la liste de ce qui va changer dans l'app et demande de confirmer.
 - [ ] **Catégories** : une liste pour le Blog, une autre pour les Podcasts, gérées par l'équipe. Un contenu peut en avoir une ou plusieurs, et l'app s'en sert pour filtrer.
 - [ ] **Qui a fait quoi** : chaque version et chaque publication indique son auteur et sa date. Il n'y a pas de journal complet des actions.
 
@@ -78,8 +79,8 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Photos réduites automatiquement** avant l'envoi, à environ 300 Ko, sans différence visible. Les SVG, les animations Lottie, les audios et les PDF sont envoyés tels quels.
 - [x] **SVG nettoyés à l'envoi** : un SVG peut contenir du code caché, qui est retiré.
 - [x] **Informations sur un fichier** : un texte alternatif pour les images, une transcription pour les audios.
-- [ ] **Protection selon l'accès** : les fichiers des contenus gratuits sont publics. Ceux des contenus réservés sont protégés : l'app ne reçoit qu'un lien temporaire, et seulement pour un abonné du bon niveau.
-- [ ] **Quand un contenu gratuit devient réservé**, ses fichiers redeviennent protégés à la publication suivante, et leurs anciennes adresses cessent de marcher. Exception : un fichier qui sert encore dans un contenu gratuit publié reste public.
+- [ ] **Protection selon l'accès** : les fichiers des contenus gratuits sont publics. Ceux des contenus réservés sont protégés : l'app ne reçoit qu'un lien temporaire, et seulement pour un abonné du bon niveau. **Exception : l'image de présentation** d'un contenu publié (sa vignette dans les listes de l'app) est toujours publique, même si le contenu est réservé : elle sert de vitrine.
+- [ ] **Quand un contenu gratuit devient réservé**, ses fichiers redeviennent protégés à la publication suivante, et leurs anciennes adresses cessent de marcher en deux minutes au plus (le cache ne peut pas être vidé avec l'offre gratuite ; environ une minute avec l'offre Pro). Exception : un fichier qui sert encore dans un contenu gratuit publié reste public.
 - [ ] **Côté app mobile** : savoir afficher les SVG et les animations Lottie.
 
 ## 7. Interface
