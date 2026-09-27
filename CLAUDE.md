@@ -79,7 +79,7 @@ npm run db:stop
 - Les garde-fous (`.github/workflows/garde-fous.yml`) tournent sur chaque demande de fusion, et Vercel crée une adresse de test. Vercel ne met en production que si les garde-fous « Administration » et « Base de données » sont au vert (Deployment Checks) : si on renomme un de ces jobs, il faut aussi mettre à jour ce réglage dans Vercel.
 - **Je ne fusionne que quand l'utilisateur dit « fusionne », et seulement si tous les garde-fous sont au vert** (`gh pr checks`). L'offre GitHub gratuite ne permet pas de l'imposer sur un dépôt privé : c'est à moi de le respecter.
 - La fusion se fait en un seul commit (`gh pr merge --squash`), avec le titre et la description de la demande : ils doivent donc être soignés. La branche est ensuite supprimée par GitHub.
-- Services en ligne : Vercel `declikora-admin` (équipe `vincent-lo-re`, dossier `web`), Sentry `declikora-zc` / projet `declikora-admin` (Europe), Supabase « Declikora » (Paris). L'utilisateur m'a donné la main sur GitHub, Supabase, Vercel et Sentry via Chrome ; chaque changement de réglage se fait avec son accord.
+- Services en ligne : Vercel `declikora-admin` (équipe `vincent-lo-re`, dossier `web`), Sentry `declikora-zc` / projet `declikora-admin` (Europe), Supabase « Declikora » (Paris), Brevo (e-mails, expéditeur `ne-pas-repondre@declikora.app`). Domaine : `declikora.app` (Cloudflare) ; `declikora.fr` (Scaleway) est aussi à nous. L'utilisateur m'a donné la main sur GitHub, Supabase, Vercel, Sentry et Brevo via Chrome ; chaque changement de réglage se fait avec son accord. Je ne saisis jamais de clé secrète (clé SMTP de Brevo…) : c'est l'utilisateur qui la colle.
 
 ## Administration : où ranger le code
 
