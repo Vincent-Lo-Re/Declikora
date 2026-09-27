@@ -33,7 +33,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [ ] **Connexion sans mot de passe** : on tape son e-mail, puis le code à 6 chiffres reçu par e-mail.
 - [ ] **Double vérification obligatoire pour tous.** Après le code reçu par e-mail, on saisit le code d'une app du téléphone (Google Authenticator, 1Password…). Elle se configure à la première connexion. Tant qu'elle n'est pas faite, la base refuse tout accès aux données.
 - [ ] **Téléphone perdu** : un admin réinitialise la double vérification d'un autre membre. Il faut donc **toujours au moins deux admins**. Le dernier admin ne peut être ni retiré ni rétrogradé.
-- [ ] **E-mails** (invitation, code) envoyés par un service spécialisé, depuis une adresse de ton domaine, avec des textes en français.
+- [ ] **E-mails** (invitation, code) envoyés par **Brevo**, depuis `ne-pas-repondre@declikora.app` (domaine déjà authentifié dans Brevo : DKIM et DMARC), avec des textes en français.
 
 ## 3. Contenus et publication
 
@@ -100,7 +100,9 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Réglages GitHub** : une demande de fusion arrive sur `main` en un seul commit (titre et description de la demande), sa branche est supprimée ensuite, et les alertes de sécurité (Dependabot) sont actives.
 - [x] **Vercel ne reconstruit l'admin que si `web/` change** (`ignoreCommand` dans `web/vercel.json`).
 - [x] **Vercel attend les garde-fous** « Administration » et « Base de données » avant toute mise en production (Deployment Checks).
-- [ ] **Une adresse provisoire** pendant la construction (par exemple `declikora-admin.vercel.app`). Quand la nouvelle administration est prête, elle prend **`admin.declikora.app`**, à la place de l'ancienne.
+- [x] **Une adresse provisoire** pendant la construction : `declikora-admin.vercel.app`.
+- [ ] **Bascule sur `admin.declikora.app`** quand la nouvelle administration est prête, à la place de l'ancienne.
+- [x] **Domaine principal : `declikora.app`** (déjà à nous, chez Cloudflare, DNS chez Cloudflare, à renouveler avant le 23/05/2027). `declikora.fr` est aussi à nous (chez Scaleway, à renouveler avant le 02/07/2027) : il pourra rediriger vers `declikora.app`.
 - [x] **À chaque envoi sur GitHub** : mise en forme, relecture du code (lint), tests, vérification des types et construction de l'admin, et tests de la base (pgTAP).
 - [x] **En-têtes de sécurité** : le navigateur refuse d'afficher l'admin dans un autre site, et n'exécute que ses propres scripts (et ceux de Supabase et Sentry).
 - [ ] **Tests de parcours**, lancés automatiquement : un robot ouvre l'admin dans un navigateur et refait les parcours principaux (se connecter avec les deux codes, écrire, publier).
