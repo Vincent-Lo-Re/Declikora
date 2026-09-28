@@ -6,8 +6,8 @@
 //   - blocks/blocks.tokens.json : les mesures communes à l'aperçu de l'admin et à l'app ;
 //   - blocks/cases/*.json : les cas de test partagés ({ description, variant, valid, data }).
 // Produit :
-//   - blocks/generated/<variante>.schema.json : chaque variante, telle que la reçoivent Ajv et
-//     pg_jsonschema, et blocks/generated/schema.sha256 (son empreinte) ;
+//   - blocks/generated/<variante>.schema.json (draft, template, published) : chaque variante,
+//     telle que la reçoivent Ajv et pg_jsonschema, et blocks/generated/schema.sha256 ;
 //   - web/src/blocks/generated/blocks.ts : les types TypeScript ;
 //   - web/src/blocks/generated/validators.js (+ .d.ts) : les validateurs Ajv « standalone »,
 //     en ESM, AUTONOMES (les aides d'Ajv sont incluses par esbuild : ni ajv, ni require, ni
@@ -39,7 +39,7 @@ const webRoot = fileURLToPath(new URL("../", import.meta.url))
 
 const BANNER =
   "Généré par web/scripts/blocks-generate.mjs (npm run blocks:generate) depuis blocks/. Ne pas modifier."
-const VARIANTS = ["draft", "template"]
+const VARIANTS = ["draft", "template", "published"]
 const BASE_ID = "https://declikora.app/blocks/"
 const MIGRATIONS = repo("supabase/migrations")
 const HASH_MARKER = "-- blocks-schema-sha256: "
@@ -134,6 +134,8 @@ const rawValidators = standaloneCode(ajv, {
   validateDraft: "draft",
   validateTemplate: "template",
   validateBlock: `${BASE_ID}draft.schema.json#/definitions/topBlock`,
+  validatePublished: "published",
+  validatePublishedBlock: `${BASE_ID}published.schema.json#/definitions/publishedTopBlock`,
 })
 
 const outDir = fileURLToPath(
@@ -177,7 +179,13 @@ writeFileSync(`${outDir}validators.js`, validatorsJs)
 writeFileSync(
   `${outDir}validators.d.ts`,
   `// ${BANNER}
-import type { Draft, TemplateDraft, TopBlock } from "./blocks"
+import type {
+  Draft,
+  PublishedBody,
+  PublishedTopBlock,
+  TemplateDraft,
+  TopBlock,
+} from "./blocks"
 
 /** Une erreur d'Ajv : instancePath donne le chemin précis dans le document. */
 export interface BlocksValidationError {
@@ -200,6 +208,10 @@ export declare const validateDraft: BlocksValidator<Draft>
 export declare const validateTemplate: BlocksValidator<TemplateDraft>
 /** Un bloc de premier niveau d'un brouillon de contenu (l'app valide chaque bloc reçu). */
 export declare const validateBlock: BlocksValidator<TopBlock>
+/** Corps figé d'une version publiée (variante « published » : blocs liés résolus). */
+export declare const validatePublished: BlocksValidator<PublishedBody>
+/** Un bloc de premier niveau d'une version publiée : l'app valide chaque bloc reçu. */
+export declare const validatePublishedBlock: BlocksValidator<PublishedTopBlock>
 `
 )
 
@@ -304,6 +316,7 @@ const validators = await import(
 const byVariant = {
   draft: validators.validateDraft,
   template: validators.validateTemplate,
+  published: validators.validatePublished,
 }
 const mismatches = cases.filter((c) => byVariant[c.variant](c.data) !== c.valid)
 if (mismatches.length > 0) {

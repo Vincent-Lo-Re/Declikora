@@ -487,7 +487,8 @@ export const texts = {
       size: "Poids",
       createdAt: "Ajouté le",
       visibility: "Accès",
-      public: "Public (utilisé par un contenu gratuit en ligne)",
+      public:
+        "Public (utilisé par un contenu gratuit en ligne, ou image de présentation)",
       protected: "Protégé",
       uses: "Utilisé dans",
       usesLoading: "Recherche des contenus…",
@@ -497,6 +498,33 @@ export const texts = {
       inDraft: "Brouillon",
       untitled: "Sans titre",
       inApp: "Dans l'app",
+      usesLive: "En ligne dans l'app",
+      usesDrafts: "Dans les brouillons",
+      usesLiveHint:
+        "L'app montre la version publiée : ses textes ne changent qu'à la prochaine publication.",
+      // Textes figés à la publication ([D30], option B).
+      outdated: {
+        title: (count: number) =>
+          count === 1
+            ? "1 contenu en ligne montre encore l'ancien texte"
+            : `${count} contenus en ligne montrent encore l'ancien texte`,
+        description:
+          "Le texte alternatif ou la transcription a changé depuis leur publication. Seuls les textes de ce fichier seront remplacés dans l'app : le reste des brouillons ne part pas.",
+        version: (number: number, date: string) =>
+          `version n° ${number}, publiée le ${date}`,
+        push: (count: number) =>
+          count === 1
+            ? "Mettre à jour ce contenu dans l'app"
+            : `Mettre à jour ces ${count} contenus dans l'app`,
+        pushed: (count: number) =>
+          count === 0
+            ? "Rien à mettre à jour : l'app a déjà les bons textes."
+            : count === 1
+              ? "1 contenu mis à jour dans l'app."
+              : `${count} contenus mis à jour dans l'app.`,
+        failed:
+          "La liste des contenus à mettre à jour n'a pas pu être chargée.",
+      },
       trash: "Mettre à la corbeille",
       trashed: "Fichier mis à la corbeille.",
       undo: "Annuler",
@@ -536,11 +564,47 @@ export const texts = {
       label: "Type d'élément",
       all: "Tout",
       file: "Fichiers",
+      page: "Pages",
+      article: "Articles",
+      episode: "Épisodes",
+      method: "Méthodes",
+      template: "Modèles",
     },
     itemTypes: {
       file: "Fichier",
       content: "Contenu",
     },
+    // Sorte d'un contenu dans la corbeille.
+    contentKinds: {
+      article: "Article",
+      episode: "Épisode",
+      method: "Méthode",
+      chapter: "Chapitre",
+      lesson: "Leçon",
+      page: "Page",
+      template: "Modèle",
+    },
+    untitled: "Sans titre",
+    // Ce qui est parti avec une méthode (même lot) : restauré ou effacé avec elle.
+    batch: (count: number) =>
+      count === 1 ? "avec 1 élément" : `avec ${count} éléments`,
+    batchList: (names: string) => `Parti avec lui : ${names}.`,
+    select: (name: string) => `Sélectionner ${name}`,
+    selectAll: "Tout sélectionner",
+    eraseSelection: (count: number) => `Effacer la sélection (${count})`,
+    confirmSelection: {
+      title: "Effacer la sélection ?",
+      description: (count: number) =>
+        count === 1
+          ? "L'élément sélectionné sera effacé définitivement. Tu ne pourras pas revenir en arrière."
+          : `Les ${count} éléments sélectionnés seront effacés définitivement. Tu ne pourras pas revenir en arrière.`,
+      confirm: "Effacer définitivement",
+    },
+    // Seules les pages ont une adresse.
+    restoredWithoutAddress: (name: string) =>
+      `La page « ${name} » est restaurée, mais sans adresse : une autre page a pris la sienne entre-temps. Choisis-en une autre avant de la publier.`,
+    restoredDraft:
+      "Il revient en brouillon : il n'est pas republié dans l'app.",
     columns: {
       name: "Nom",
       type: "Type",
@@ -555,7 +619,8 @@ export const texts = {
       "Ce fichier a été inséré dans un contenu entre-temps. Restaure-le, ou retire-le du contenu avant de vider la corbeille.",
     restore: "Restaurer",
     restoreItem: (name: string) => `Restaurer ${name}`,
-    restored: (name: string) => `${name} est restauré.`,
+    // Sans accord : l'élément peut être un fichier, une page, une méthode…
+    restored: (name: string) => `« ${name} » est de retour.`,
     eraseItem: (name: string) => `Effacer définitivement ${name}`,
     erase: "Effacer définitivement",
     empty: "Vider la corbeille",
@@ -597,9 +662,23 @@ export const texts = {
     createFailed: "La page n'a pas pu être créée.",
     columns: {
       title: "Titre",
+      publication: "Publication",
       savedAt: "Dernière modification",
-      status: "État",
+      status: "En ce moment",
+      actions: "Actions",
     },
+    actions: (title: string) => `Actions pour ${title}`,
+    open: "Ouvrir",
+    trash: "Supprimer",
+    confirmTrash: {
+      title: "Supprimer cette page ?",
+      description: (title: string) =>
+        `${title} va dans la corbeille. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
+      confirm: "Mettre à la corbeille",
+    },
+    trashed: (title: string) => `${title} est dans la corbeille.`,
+    undo: "Annuler",
+    restored: (title: string) => `${title} est restaurée, en brouillon.`,
     untitled: "Sans titre",
     savedBy: (name: string) => `par ${name}`,
     beingEdited: (name: string) => `${name} écrit`,
@@ -899,6 +978,284 @@ export const texts = {
       fichier_indisponible:
         "Une image n'est plus disponible (supprimée ou pas prête). Choisis-en une autre.",
       modele_indisponible: "Un modèle utilisé n'est plus disponible.",
+      // Étape 5 : publication, programmation, historique, corbeille.
+      acces_a_choisir:
+        "Choisis d'abord le niveau d'accès : Gratuit ou une formule d'abonnement.",
+      verrou_tenu:
+        "Quelqu'un écrit ce brouillon en ce moment : reprends la main, ou attends qu'il ait fini.",
+      adresse_manquante: "Choisis l'adresse de la page avant de la publier.",
+      son_manquant: "Choisis le son de l'épisode avant de le publier.",
+      image_sans_fichier:
+        "Une image n'a pas de fichier : choisis-en un, ou supprime le bloc.",
+      fichier_inadapte:
+        "Un fichier n'est pas du bon type : une photo ou une image pour un bloc Image, un audio pour un épisode.",
+      niveau_invalide:
+        "Cette formule n'existe plus. Choisis un autre niveau d'accès.",
+      date_passee:
+        "Ce moment est déjà passé. Choisis un jour et une heure à venir.",
+      version_introuvable:
+        "Cette version n'existe plus. Recharge l'historique.",
+      version_immuable: "Une version publiée ne se modifie pas.",
+      modele_utilise:
+        "Ce modèle est encore utilisé dans des brouillons : détache-le d'abord.",
+      parent_dans_la_corbeille:
+        "Restaure d'abord le chapitre ou la méthode qui le contient.",
+    },
+  },
+
+  // Publication (étape 5) : barre de publication, programmation, historique, réglages.
+  publication: {
+    status: {
+      label: "État de la publication",
+      draft: "Brouillon",
+      withdrawn: "Retiré de l'app",
+      live: "En ligne",
+      modified: "Modifié depuis la publication",
+      scheduled: (date: string) => `Programmé le ${date}`,
+      // Juste après l'heure prévue : la tâche planifiée n'est peut-être pas encore passée.
+      due: "Publication en cours",
+      waiting: "Programmation en attente : quelqu'un écrit",
+      failed: "Programmation échouée",
+    },
+    liveSince: (number: number, date: string) =>
+      `Version n° ${number} en ligne depuis le ${date}.`,
+    // Bandeau de l'éditeur ([D16], [D31]).
+    banner: {
+      scheduled: (date: string) =>
+        `Programmé le ${date} : ce que tu écris partira à cette heure.`,
+      scheduledHint:
+        "C'est le dernier brouillon enregistré à cette heure-là qui sera publié. Si quelqu'un l'a modifié depuis la programmation et a encore l'éditeur ouvert à ce moment-là, la publication attend qu'il le quitte, une heure au plus.",
+      due: (date: string) =>
+        `Programmé le ${date} : la publication part dans un instant.`,
+      dueHint:
+        "Si quelqu'un a modifié ce brouillon depuis la programmation et a encore l'éditeur ouvert, elle attendra qu'il le quitte, une heure au plus.",
+      waiting: (date: string) =>
+        `Programmation en attente depuis le ${date} : quelqu'un écrit ce brouillon.`,
+      waitingHint:
+        "La publication partira dès qu'il aura quitté l'éditeur. Au bout d'une heure, elle échouera.",
+      // La personne devant l'écran tient elle-même le verrou ([D31]).
+      waitingMine: (date: string) =>
+        `Programmé le ${date} : la publication attend que tu quittes l'éditeur.`,
+      waitingMineHint:
+        "Tu as modifié le brouillon depuis la programmation : tant que ton éditeur reste ouvert, même sans écrire, elle ne part pas. Au bout d'une heure, elle échouera.",
+      leave: "Quitter l'éditeur",
+      failed: "La publication programmée a échoué",
+      failedReason: (reason: string) => `Raison : ${reason}`,
+      failedBy: (name: string) => `Elle avait été programmée par ${name}.`,
+    },
+    // Codes de contents.schedule_error propres à la tâche planifiée (les autres sont ceux de
+    // la publication, dans texts.editor.errors).
+    scheduleErrors: {
+      auteur_parti:
+        "la personne qui l'avait programmée ne fait plus partie de l'équipe.",
+      brouillon_en_cours_d_ecriture:
+        "quelqu'un écrivait encore le brouillon au bout d'une heure d'attente.",
+      erreur_inattendue: "une erreur inattendue est survenue.",
+    },
+    actions: {
+      publish: "Publier",
+      more: "Autres actions de publication",
+      schedule: "Programmer…",
+      reschedule: "Changer la programmation…",
+      unschedule: "Annuler la programmation",
+      dismissFailure: "Effacer l'échec",
+      unpublish: "Retirer de l'app",
+      history: "Historique",
+      settings: "Réglages",
+    },
+    publishDialog: {
+      title: "Publier dans l'app ?",
+      titleAgain: "Publier les modifications ?",
+      description:
+        "Les lecteurs verront ce brouillon tel qu'il est enregistré. Tu pourras ensuite le modifier sans toucher à l'app, jusqu'à la prochaine publication.",
+      access: "Niveau d'accès",
+      address: "Adresse",
+      confirm: "Publier",
+    },
+    levelRequired:
+      "Il n'y a pas de niveau d'accès par défaut : choisis Gratuit ou une formule.",
+    levelNeedsLock:
+      "Pour choisir le niveau d'accès, prends d'abord la main sur le brouillon.",
+    needsSaved:
+      "Le brouillon n'est pas encore enregistré. Attends la fin de l'enregistrement, puis réessaie.",
+    published: (number: number) => `Publié dans l'app (version n° ${number}).`,
+    upToDate: "Ce brouillon est déjà en ligne, tel quel.",
+    conflict:
+      "Le brouillon vient de changer : relis-le, puis publie de nouveau.",
+    lockHeld: {
+      title: "Quelqu'un écrit ce brouillon",
+      description: (name: string) =>
+        `${name} écrit ce brouillon en ce moment. Pour publier, reprends la main (${name} passera en lecture seule), ou attends qu'il ait fini.`,
+      take: "Reprendre la main",
+    },
+    unpublishDialog: {
+      title: "Retirer de l'app ?",
+      description:
+        "Les lecteurs ne le verront plus. Le brouillon et l'historique sont gardés, et tu pourras le publier de nouveau. Une publication programmée est annulée.",
+      confirm: "Retirer de l'app",
+      done: "Retiré de l'app.",
+    },
+    scheduleDialog: {
+      title: "Programmer la publication",
+      description:
+        "Choisis le jour et l'heure, à l'heure de Paris. À ce moment-là, le dernier brouillon enregistré partira dans l'app.",
+      date: "Jour",
+      time: "Heure (Paris)",
+      summary: (date: string) => `Publication le ${date}.`,
+      ambiguous:
+        "Cette heure existe deux fois cette nuit-là (retour à l'heure d'hiver) : la publication partira à la première, encore en heure d'été.",
+      confirm: "Programmer",
+      done: (date: string) => `Publication programmée le ${date}.`,
+      errors: {
+        required: "Choisis un jour et une heure.",
+        invalid: "Ce jour ou cette heure n'existe pas.",
+        nonexistent:
+          "Cette heure n'existe pas ce jour-là : à 2 h, on passe directement à 3 h (heure d'été). Choisis une autre heure.",
+        past: "Ce moment est déjà passé. Choisis un jour et une heure à venir.",
+      },
+    },
+    unscheduled: "Programmation annulée.",
+    failureDismissed: "Échec effacé.",
+    history: {
+      title: "Historique",
+      description:
+        "Les versions publiées, de la plus récente à la plus ancienne. Revenir à une version la recopie dans le brouillon, sans rien changer dans l'app.",
+      empty: "Aucune version publiée pour l'instant.",
+      version: (number: number) => `Version n° ${number}`,
+      by: (name: string) => `par ${name}`,
+      live: "En ligne",
+      origins: {
+        manual: "Publiée",
+        scheduled: "Publiée à l'heure programmée",
+        template: "Mise à jour d'un modèle",
+        outline: "Plan de la méthode",
+        files: "Textes de la médiathèque mis à jour",
+      },
+      revert: "Revenir à cette version",
+      revertItem: (number: number) => `Revenir à la version n° ${number}`,
+      confirm: {
+        title: (number: number) => `Revenir à la version n° ${number} ?`,
+        description:
+          "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et son adresse. Rien ne change dans l'app avant la prochaine publication.",
+        confirm: "Revenir à cette version",
+      },
+      needsLock:
+        "Pour revenir à une version, prends d'abord la main sur le brouillon.",
+      reverted: (number: number) =>
+        `Le brouillon reprend la version n° ${number}.`,
+      warnings: {
+        fichier_retire:
+          "Un fichier n'est plus disponible : choisis-en un autre avant de publier.",
+        modele_detache:
+          "Un modèle n'existe plus : son bloc est devenu une copie ordinaire.",
+        adresse_prise:
+          "Une autre page a pris cette adresse entre-temps : le brouillon garde son adresse actuelle.",
+      },
+      loadFailed: "L'historique n'a pas pu être chargé.",
+      retry: "Réessayer",
+    },
+    settings: {
+      title: "Réglages du contenu",
+      description:
+        "Ils sont enregistrés avec le brouillon et ne changent l'app qu'à la prochaine publication.",
+      readOnly:
+        "Lecture seule : prends la main sur le brouillon pour modifier les réglages.",
+      access: {
+        label: "Niveau d'accès",
+        description:
+          "Qui peut lire ce contenu dans l'app. Il n'y a pas de niveau par défaut.",
+        free: "Gratuit",
+        freeHint: "Tout le monde peut le lire.",
+        levelHint:
+          "Pour les abonnés de cette formule et des formules plus complètes.",
+        notChosen: "Pas encore choisi : « Publier » le demandera.",
+        noLevels:
+          "Aucune formule d'abonnement pour l'instant : un admin peut en créer dans les Paramètres.",
+        loadFailed: "Les formules d'abonnement n'ont pas pu être chargées.",
+        retry: "Réessayer",
+        live: (name: string) => `En ligne : ${name}`,
+        deleted: "formule supprimée",
+      },
+      slug: {
+        label: "Adresse de la page",
+        description:
+          "Ce que l'app demande pour ouvrir la page : des lettres minuscules sans accent, des chiffres et des tirets.",
+        placeholder: "mentions-legales",
+        invalid:
+          "Des lettres minuscules sans accent, des chiffres et des tirets seulement (pas de tiret au début, à la fin ni deux de suite).",
+        tooLong: "L'adresse ne doit pas dépasser 100 caractères.",
+        fromTitle: "Reprendre le titre",
+        live: (slug: string) => `En ligne : ${slug}`,
+        missing: "Choisis l'adresse de la page avant de la publier.",
+      },
+      // Un réglage refusé par la base : le brouillon s'enregistre quand même, sans lui.
+      refused:
+        "Ce réglage n'a pas été changé. Le reste du brouillon continue d'être enregistré.",
+    },
+  },
+
+  // Paramètres (admins) : les formules d'abonnement.
+  settings: {
+    accessLevels: {
+      title: "Formules d'abonnement",
+      description:
+        "Rangées de la moins complète (en haut) à la plus complète (en bas). Un abonné lit les contenus de sa formule et ceux des formules placées au-dessus. Changer l'ordre change tout de suite ce que chaque abonné peut lire.",
+      listLabel: "Formules, de la moins complète à la plus complète",
+      empty:
+        "Aucune formule pour l'instant. Sans formule, un contenu ne peut être que gratuit.",
+      name: "Nom de la nouvelle formule",
+      namePlaceholder: "Essentiel",
+      nameRequired: "Donne un nom à la formule.",
+      nameTooLong: "Le nom ne doit pas dépasser 100 caractères.",
+      add: "Ajouter",
+      added: (name: string) => `Formule « ${name} » ajoutée.`,
+      rank: (position: number) => `n° ${position}`,
+      rename: "Renommer",
+      renameItem: (name: string) => `Renommer ${name}`,
+      renameLabel: (name: string) => `Nouveau nom pour ${name}`,
+      save: "Enregistrer",
+      renamed: "Formule renommée.",
+      remove: "Supprimer",
+      removeItem: (name: string) => `Supprimer ${name}`,
+      confirmRemove: {
+        title: "Supprimer cette formule ?",
+        description: (name: string) =>
+          `La formule « ${name} » sera supprimée. C'est possible seulement si aucun contenu, aucune version publiée et aucun abonné ne s'en sert.`,
+        confirm: "Supprimer",
+      },
+      removed: (name: string) => `Formule « ${name} » supprimée.`,
+      handle: (name: string) => `Déplacer ${name}`,
+      moveUp: (name: string) => `Monter ${name}`,
+      moveDown: (name: string) => `Descendre ${name}`,
+      reordered: "Nouvel ordre enregistré.",
+      moved: (name: string, position: number, count: number) =>
+        `${name} est maintenant n° ${position} sur ${count}.`,
+      // Glisser-déposer : annonces lues par les lecteurs d'écran.
+      dnd: {
+        roleDescription: "formule déplaçable",
+        instructions:
+          "Pour déplacer une formule, appuie sur Espace ou Entrée sur sa poignée. Déplace-la avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour la déposer, ou sur Échap pour annuler.",
+        start: (name: string) => `Tu as pris ${name}.`,
+        over: (name: string, position: number, count: number) =>
+          `${name} est à la place n° ${position} sur ${count}.`,
+        end: (name: string, position: number, count: number) =>
+          `${name} déposée à la place n° ${position} sur ${count}.`,
+        cancel: (name: string) =>
+          `Déplacement annulé : ${name} reprend sa place.`,
+      },
+      loadFailed: "Les formules n'ont pas pu être chargées.",
+      retry: "Réessayer",
+      errors: {
+        formule_utilisee:
+          "Cette formule est utilisée par un contenu, une version publiée ou un abonné : renomme-la ou déplace-la plutôt.",
+        nom_en_double: "Une formule porte déjà ce nom.",
+        reserve_aux_admins: "Les formules sont réservées aux admins.",
+        reserve_a_l_equipe:
+          "Ta session ne donne plus accès aux paramètres. Reconnecte-toi.",
+        demande_invalide:
+          "La liste a changé entre-temps. Recharge la page, puis réessaie.",
+        introuvable: "Cette formule n'existe plus. Recharge la page.",
+      },
     },
   },
 

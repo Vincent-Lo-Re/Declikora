@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   validateBlock,
   validateDraft,
+  validatePublished,
   validateTemplate,
 } from "@/blocks/generated/validators"
 
@@ -10,7 +11,7 @@ import {
 // l'admin et la base donnent toujours le même verdict.
 type SharedCase = {
   description: string
-  variant: "draft" | "template"
+  variant: "draft" | "template" | "published"
   valid: boolean
   data: unknown
 }
@@ -35,7 +36,11 @@ describe("validateurs générés (blocks/cases)", () => {
   })
 
   it.each(cases)("$name : $description", ({ variant, valid, data }) => {
-    const validate = variant === "template" ? validateTemplate : validateDraft
+    const validate = {
+      draft: validateDraft,
+      template: validateTemplate,
+      published: validatePublished,
+    }[variant]
     expect(validate(data)).toBe(valid)
     if (!valid) expect(validate.errors?.length).toBeGreaterThan(0)
   })

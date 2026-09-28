@@ -556,7 +556,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select pg_temp.save('page', pg_temp.draft('[]', 'Aide'), '{"access_level_id": "30000000-0000-4000-8000-000000000001"}')$$,
-  'P0001', 'reglages_invalides', 'niveau d''accès refusé tant que les formules n''existent pas'
+  'P0001', 'niveau_invalide', 'niveau d''accès : une formule qui n''existe pas est refusée (étape 5)'
 );
 select lives_ok(
   $$select pg_temp.save('page', pg_temp.draft('[]', 'Aide'), '{"access_level_id": null}')$$,

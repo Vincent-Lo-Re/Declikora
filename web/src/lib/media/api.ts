@@ -11,6 +11,7 @@ import {
   type MediaKind,
 } from "@/lib/media/constants"
 import type { PreparedFile } from "@/lib/media/prepare"
+import { restoreContent } from "@/lib/contents/publication"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
 
@@ -65,6 +66,7 @@ export const mediaKeys = {
   audit: ["media", "audit"] as const,
   urls: (paths: string[]) => ["media", "urls", paths] as const,
   uses: (id: string) => ["media", "uses", id] as const,
+  outdated: (id: string) => ["media", "outdated", id] as const,
   verdicts: (ids: string[]) => ["media", "verdicts", ids] as const,
 }
 
@@ -211,7 +213,7 @@ export type MediaUse = {
   in_app: boolean
 }
 
-/** Contenus qui utilisent un fichier (vide jusqu'à l'étape 4). */
+/** Contenus qui utilisent un fichier : brouillons (in_draft) et versions en ligne (in_app). */
 export async function getMediaUses(mediaId: string): Promise<MediaUse[]> {
   const { data, error } = await supabase.rpc("media_uses", {
     media_id: mediaId,
@@ -220,12 +222,49 @@ export async function getMediaUses(mediaId: string): Promise<MediaUse[]> {
   return data
 }
 
+/** Un contenu en ligne dont la version garde un ancien texte de ce fichier ([D30]). */
+export type MediaOutdated = {
+  content_id: string
+  kind: string
+  title: string
+  version_id: string
+  version_number: number
+  published_at: string
+}
+
+/** Les contenus en ligne qui montrent encore un ancien texte alternatif ou transcription. */
+export async function getMediaOutdated(
+  mediaId: string
+): Promise<MediaOutdated[]> {
+  const { data, error } = await supabase.rpc("media_outdated", {
+    media_id: mediaId,
+  })
+  if (error) throw toMediaError(error)
+  return data
+}
+
+/**
+ * « Mettre à jour ces N contenus dans l'app » : une nouvelle version de chacun, égale à celle
+ * en ligne, avec les textes actuels de ce fichier. Renvoie le nombre de contenus mis à jour.
+ */
+export async function pushMediaTexts(mediaId: string): Promise<number> {
+  const { data, error } = await supabase.rpc("media_push", {
+    media_id: mediaId,
+  })
+  if (error) throw toMediaError(error)
+  return data.length
+}
+
 export type TrashItem = {
   item_type: "file" | "content"
   id: string
   kind: string
-  title: string
+  title: string | null
   parent_title: string | null
+  // Contenus : le lot (une méthode et ses chapitres et leçons partent et reviennent ensemble).
+  trash_batch: string | null
+  // Vrai pour l'élément qu'on a mis à la corbeille (et pour chaque fichier).
+  batch_root: boolean
   deleted_at: string
   deleted_by_name: string | null
   purge_at: string
@@ -237,7 +276,7 @@ export async function listTrash(): Promise<TrashItem[]> {
   const { data, error } = await supabase
     .from("trash_items")
     .select(
-      "item_type, id, kind, title, parent_title, deleted_at, deleted_by_name, purge_at, purge_error"
+      "item_type, id, kind, title, parent_title, trash_batch, batch_root, deleted_at, deleted_by_name, purge_at, purge_error"
     )
     .order("deleted_at", { ascending: false })
   if (error) throw toMediaError(error)
@@ -325,10 +364,19 @@ export async function restoreMedia(mediaId: string): Promise<Media> {
   return toMedia(data)
 }
 
-/** Sort un élément de la corbeille (des fichiers seulement à l'étape 3). */
-export async function restoreTrashItem(item: TrashItem): Promise<void> {
-  if (item.item_type !== "file") throw new MediaError(null)
+/**
+ * Sort un élément de la corbeille : un fichier, ou un contenu avec tout son lot, en brouillon
+ * ([D18]). addressRemoved : une page revient sans adresse (une autre l'a prise entre-temps).
+ */
+export async function restoreTrashItem(
+  item: TrashItem
+): Promise<{ addressRemoved: boolean }> {
+  if (item.item_type === "content") {
+    const { addressRemoved } = await restoreContent(item.id)
+    return { addressRemoved }
+  }
   await restoreMedia(item.id)
+  return { addressRemoved: false }
 }
 
 /**

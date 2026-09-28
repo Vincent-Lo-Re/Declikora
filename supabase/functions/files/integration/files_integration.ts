@@ -103,6 +103,8 @@ const email = `fichiers-${crypto.randomUUID().slice(0, 8)}@integration.test`
 const password = `${crypto.randomUUID()}Aa1!`
 let userId = ""
 const created: string[] = []
+const contentIds: string[] = []
+const levelIds: string[] = []
 
 // Un membre de l'équipe (éditeur) en aal2 : compte créé avec la clé secrète locale (rôle dans
 // app_metadata, comme une invitation), connexion, puis double vérification configurée.
@@ -353,6 +355,117 @@ Deno.test({
         assert(responses.length >= 1, "pg_net a reçu la réponse de la fonction")
       })
 
+      await t.step("publication : fichiers publics ou protégés (règle de l'étape 5)", async () => {
+        const reader = createClient(local.apiUrl, local.publishableKey, clientOptions)
+        const cover = await send(member, "image", "Couverture.png", "image/png", png)
+        const inside = await send(member, "image", "Dedans.png", "image/png", png)
+        const signed = async (path: string) =>
+          await reader.storage.from("files-protected").createSignedUrl(path, 60)
+        const locations = async (ids: string[]) => {
+          const { data, error } = await reader.rpc("app_file_locations", { media_ids: ids })
+          assertEquals(error, null)
+          return Object.fromEntries(
+            (data as { media_id: string; location: string }[]).map((r) => [r.media_id, r.location]),
+          )
+        }
+        const kick = async () => {
+          const { data, error } = await member.functions.invoke("files", { body: { mode: "kick" } })
+          assertEquals(error, null, JSON.stringify(data))
+        }
+
+        const { data: content, error: createError } = await member.rpc("content_create", {
+          kind: "article",
+          title: "Intégration",
+        })
+        assertEquals(createError, null)
+        contentIds.push(content.id)
+        const draft = {
+          v: 1,
+          title: "Intégration",
+          cover: { mediaId: cover.id },
+          blocks: [{
+            id: crypto.randomUUID(),
+            type: "image",
+            mediaId: inside.id,
+            caption: null,
+            alt: null,
+          }],
+        }
+        const save = async (settings: Record<string, unknown>) => {
+          const { data: rev } = await member.from("contents").select("draft_rev").eq(
+            "id",
+            content.id,
+          ).single()
+          const { data, error } = await member.rpc("save_draft", {
+            content_id: content.id,
+            base_rev: rev!.draft_rev,
+            draft,
+            settings,
+          }).single<{ draft_rev: number }>()
+          assertEquals(error, null)
+          return data!.draft_rev
+        }
+        const publish = async (rev: number) => {
+          const { data, error } = await member.rpc("publish", {
+            content_id: content.id,
+            expected_rev: rev,
+          }).single<{ needs_file_sync: boolean }>()
+          assertEquals(error, null)
+          return data!.needs_file_sync
+        }
+
+        // Gratuit : la minute d'attente (encore protégé, lisible par tous), puis public.
+        assert(await publish(await save({ access_level_id: null })), "needs_file_sync")
+        const waiting = await signed(inside.path)
+        assertEquals(waiting.error, null, "anonyme : lien temporaire pendant la minute d'attente")
+        const viaLink = await fetch(waiting.data!.signedUrl)
+        assertEquals(viaLink.status, 200)
+        await viaLink.body?.cancel()
+        assertEquals(await locations([cover.id, inside.id]), {
+          [cover.id]: "protected",
+          [inside.id]: "protected",
+        })
+        await kick()
+        assertEquals((await readRow(cover.id))?.is_public, true)
+        assertEquals((await readRow(inside.id))?.is_public, true)
+        const publicUrl =
+          reader.storage.from("files-public").getPublicUrl(inside.path).data.publicUrl
+        const direct = await fetch(publicUrl)
+        assertEquals(direct.status, 200, "adresse publique")
+        assertEquals(direct.headers.get("cache-control"), "max-age=60")
+        await direct.body?.cancel()
+        assertEquals(await locations([cover.id, inside.id]), {
+          [cover.id]: "public",
+          [inside.id]: "public",
+        })
+
+        // Réservé : l'image du contenu redevient protégée, la couverture reste publique.
+        const [level] = await sql<{ id: string }[]>`
+          insert into public.access_levels (name) values (${`Intégration ${userId.slice(0, 8)}`})
+          returning id`
+        levelIds.push(level.id)
+        assert(await publish(await save({ access_level_id: level.id })), "needs_file_sync")
+        await kick()
+        assertEquals((await readRow(inside.id))?.is_public, false)
+        assertEquals((await readRow(cover.id))?.is_public, true)
+        assert((await signed(inside.path)).error, "anonyme : plus de lien pour un contenu réservé")
+        assertEquals(await locations([cover.id, inside.id]), { [cover.id]: "public" })
+
+        // Retiré de l'app : la couverture redevient protégée.
+        const { data: sync, error: unpublishError } = await member.rpc("unpublish", {
+          content_id: content.id,
+        })
+        assertEquals(unpublishError, null)
+        assertEquals(sync, true)
+        await kick()
+        assertEquals((await readRow(cover.id))?.is_public, false)
+        assert((await signed(cover.path)).error, "anonyme : plus de lien pour la couverture")
+        assertEquals(await locations([cover.id, inside.id]), {})
+        const [object] = await sql<{ bucket_id: string }[]>`
+          select bucket_id from storage.objects where name = ${cover.path}`
+        assertEquals(object.bucket_id, "files-protected")
+      })
+
       await t.step("corbeille vidée : objet et ligne effacés", async () => {
         assertEquals((await member.rpc("media_trash", { media_id: image.id })).error, null)
         const { data: count } = await member.rpc("empty_trash", {
@@ -368,7 +481,10 @@ Deno.test({
     } finally {
       await member.auth.signOut()
       await aal1.auth.signOut()
-      // Nettoyage : objets (clé secrète), lignes, compte.
+      // Nettoyage : contenus (leurs versions partent avec eux), formules, objets (clé secrète),
+      // lignes, compte.
+      await sql`delete from public.contents where id = any(${contentIds})`
+      await sql`delete from public.access_levels where id = any(${levelIds})`
       const rows = await sql<{ path: string }[]>`
         select path from public.media where id = any(${created})`
       for (const bucket of ["files-protected", "files-public"]) {

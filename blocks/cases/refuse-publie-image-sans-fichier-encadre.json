@@ -1,0 +1,25 @@
+{
+  "description": "Version publiée : une image sans fichier dans un encadré",
+  "variant": "published",
+  "valid": false,
+  "data": {
+    "v": 1,
+    "title": "Publié",
+    "blocks": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "type": "box",
+        "look": "border",
+        "blocks": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "type": "image",
+            "mediaId": null,
+            "caption": null,
+            "alt": "Un texte"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -13,6 +13,7 @@ import { MediaPage } from "@/pages/media-page"
 import { MfaPage } from "@/pages/mfa-page"
 import { NotFoundPage } from "@/pages/not-found-page"
 import { SectionPage } from "@/pages/section-page"
+import { SettingsPage } from "@/pages/settings-page"
 import { SignInPage } from "@/pages/sign-in-page"
 import { SignOutPage } from "@/pages/sign-out-page"
 import { TeamPage } from "@/pages/team-page"
@@ -79,7 +80,10 @@ export const routes: RouteObject[] = [
                     element: <RequireAdmin />,
                     children: [
                       { path: sections.team.path, element: <TeamPage /> },
-                      sectionRoute("settings"),
+                      {
+                        path: sections.settings.path,
+                        element: <SettingsPage />,
+                      },
                     ],
                   },
                   { path: sections.account.path, element: <AccountPage /> },

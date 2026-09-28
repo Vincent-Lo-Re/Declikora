@@ -24,6 +24,12 @@ export type TopBlock = TextBlock | ImageBlock | BoxBlock | LinkedBlock
 export type TemplateBlock = TextBlock | ImageBlock | BoxBlock
 /**
  * This interface was referenced by `BlocksVariants`'s JSON-Schema
+ * via the `definition` "publishedTopBlock".
+ */
+export type PublishedTopBlock =
+  PublishedTextBlock | PublishedTopImageBlock | PublishedBoxBlock
+/**
+ * This interface was referenced by `BlocksVariants`'s JSON-Schema
  * via the `definition` "nullableUuid".
  */
 export type NullableUuid = string | null
@@ -67,10 +73,16 @@ export type DocChild = Paragraph | Heading | BulletList | OrderedList
  * via the `definition` "boxChild".
  */
 export type BoxChild = TextBlock | ImageBlock
+/**
+ * This interface was referenced by `BlocksVariants`'s JSON-Schema
+ * via the `definition` "publishedBoxChild".
+ */
+export type PublishedBoxChild = TextBlock | PublishedImageBlock
 
 export interface BlocksVariants {
   draft?: Draft
   template?: TemplateDraft
+  published?: PublishedBody
 }
 /**
  * This interface was referenced by `BlocksVariants`'s JSON-Schema
@@ -95,6 +107,18 @@ export interface TemplateDraft {
   cover?: MediaRef
   audio?: MediaRef
   blocks: TemplateBlock[]
+}
+/**
+ * This interface was referenced by `BlocksVariants`'s JSON-Schema
+ * via the `definition` "published".
+ */
+export interface PublishedBody {
+  v: 1
+  title: string
+  summary?: string | null
+  cover?: MediaRef
+  audio?: MediaRef
+  blocks: PublishedTopBlock[]
 }
 /**
  * This interface was referenced by `BlocksVariants`'s JSON-Schema
@@ -234,4 +258,50 @@ export interface LinkedBlock {
   id: Uuid
   type: "linked"
   templateId: Uuid
+}
+/**
+ * This interface was referenced by `BlocksVariants`'s JSON-Schema
+ * via the `definition` "publishedImageBlock".
+ */
+export interface PublishedImageBlock {
+  id: Uuid
+  type: "image"
+  mediaId: Uuid
+  caption: string | null
+  alt: string
+  altFromLibrary?: true
+}
+/**
+ * This interface was referenced by `BlocksVariants`'s JSON-Schema
+ * via the `definition` "publishedTextBlock".
+ */
+export interface PublishedTextBlock {
+  id: Uuid
+  type: "text"
+  doc: Doc
+  templateId?: Uuid
+}
+/**
+ * This interface was referenced by `BlocksVariants`'s JSON-Schema
+ * via the `definition` "publishedTopImageBlock".
+ */
+export interface PublishedTopImageBlock {
+  id: Uuid
+  type: "image"
+  mediaId: Uuid
+  caption: string | null
+  alt: string
+  altFromLibrary?: true
+  templateId?: Uuid
+}
+/**
+ * This interface was referenced by `BlocksVariants`'s JSON-Schema
+ * via the `definition` "publishedBoxBlock".
+ */
+export interface PublishedBoxBlock {
+  id: Uuid
+  type: "box"
+  look: "fill" | "border"
+  blocks: PublishedBoxChild[]
+  templateId?: Uuid
 }

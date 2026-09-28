@@ -22,11 +22,16 @@ const photo: api.TrashItem = {
   kind: "image",
   title: "photo.jpg",
   parent_title: null,
+  trash_batch: null,
+  batch_root: true,
   deleted_at: "2026-09-27T12:30:00Z",
   deleted_by_name: "Anne Admin",
   purge_at: "2026-10-27T13:30:00Z",
   purge_error: null,
 }
+
+const photoName = "photo.jpg"
+const usedName = "logo.svg"
 
 const stillUsed: api.TrashItem = {
   ...photo,
@@ -47,7 +52,7 @@ describe("Corbeille", () => {
   it("liste ce qui a été supprimé, avec la date d'effacement automatique", async () => {
     renderApp("/corbeille", fakeAuth({ role: "editor" }))
 
-    const row = (await screen.findByText(photo.title)).closest("tr")!
+    const row = (await screen.findByText(photoName)).closest("tr")!
     expect(within(row).getByText("Fichier · Image")).toBeVisible()
     expect(within(row).getByText("27 sept. 2026 à 14:30")).toBeVisible()
     expect(
@@ -61,32 +66,34 @@ describe("Corbeille", () => {
   it("signale un effacement refusé parce que le fichier est encore utilisé", async () => {
     renderApp("/corbeille")
 
-    const row = (await screen.findByText(stillUsed.title)).closest("tr")!
+    const row = (await screen.findByText(usedName)).closest("tr")!
     expect(within(row).getByText(texts.trash.purgeRefused)).toBeVisible()
   })
 
   it("filtre par type", async () => {
     renderApp("/corbeille")
-    await screen.findByText(photo.title)
+    await screen.findByText(photoName)
 
     fireEvent.click(
       screen.getByRole("button", { name: texts.trash.filters.file })
     )
-    expect(screen.getByText(photo.title)).toBeVisible()
+    expect(screen.getByText(photoName)).toBeVisible()
   })
 
   it("restaure un fichier", async () => {
-    vi.mocked(api.restoreTrashItem).mockResolvedValue()
+    vi.mocked(api.restoreTrashItem).mockResolvedValue({
+      addressRemoved: false,
+    })
     renderApp("/corbeille")
 
     fireEvent.click(
       await screen.findByRole("button", {
-        name: texts.trash.restoreItem(photo.title),
+        name: texts.trash.restoreItem(photoName),
       })
     )
 
     expect(
-      await screen.findByText(texts.trash.restored(photo.title))
+      await screen.findByText(texts.trash.restored(photoName))
     ).toBeVisible()
     expect(vi.mocked(api.restoreTrashItem).mock.calls[0][0]).toEqual(photo)
   })
@@ -94,7 +101,7 @@ describe("Corbeille", () => {
   it("vide la corbeille après confirmation, puis appelle la fonction « files »", async () => {
     vi.mocked(api.emptyTrash).mockResolvedValue(2)
     renderApp("/corbeille", fakeAuth({ role: "editor" }))
-    await screen.findByText(photo.title)
+    await screen.findByText(photoName)
 
     fireEvent.click(screen.getByRole("button", { name: texts.trash.empty }))
     const dialog = await screen.findByRole("alertdialog")
@@ -122,7 +129,7 @@ describe("Corbeille", () => {
     // La fonction « files » ne répond pas (démarrage à froid, vérifications en cours…).
     vi.mocked(api.kickFiles).mockReturnValue(new Promise(() => {}))
     renderApp("/corbeille")
-    await screen.findByText(photo.title)
+    await screen.findByText(photoName)
 
     fireEvent.click(screen.getByRole("button", { name: texts.trash.empty }))
     const dialog = await screen.findByRole("alertdialog")
@@ -138,7 +145,7 @@ describe("Corbeille", () => {
     expect(api.kickFiles).toHaveBeenCalled()
     expect(
       screen.getByRole("button", {
-        name: texts.trash.restoreItem(photo.title),
+        name: texts.trash.restoreItem(photoName),
       })
     ).toBeEnabled()
   })
@@ -149,7 +156,7 @@ describe("Corbeille", () => {
 
     fireEvent.click(
       await screen.findByRole("button", {
-        name: texts.trash.eraseItem(photo.title),
+        name: texts.trash.eraseItem(photoName),
       })
     )
     const dialog = await screen.findByRole("alertdialog")
@@ -174,5 +181,122 @@ describe("Corbeille", () => {
     expect(
       screen.getByRole("button", { name: texts.trash.empty })
     ).toBeDisabled()
+  })
+})
+
+describe("Corbeille : contenus", () => {
+  const page: api.TrashItem = {
+    ...photo,
+    item_type: "content",
+    id: "00000000-0000-4000-8000-00000000000c",
+    kind: "page",
+    title: "Mentions légales",
+    trash_batch: "00000000-0000-4000-8000-0000000000b1",
+  }
+  const method: api.TrashItem = {
+    ...page,
+    id: "00000000-0000-4000-8000-00000000000d",
+    kind: "method",
+    title: "Bien respirer",
+    trash_batch: "00000000-0000-4000-8000-0000000000b2",
+  }
+  const lesson: api.TrashItem = {
+    ...method,
+    id: "00000000-0000-4000-8000-00000000000e",
+    kind: "lesson",
+    title: "Leçon 1",
+    parent_title: "Bien respirer",
+    batch_root: false,
+  }
+
+  beforeEach(() => {
+    vi.mocked(api.listTrash).mockResolvedValue([page, photo, method, lesson])
+  })
+
+  it("filtre par type, avec les seuls types présents ; une méthode garde ses leçons", async () => {
+    renderApp("/corbeille")
+    await screen.findByText(page.title!)
+    const filters = screen.getByRole("group", {
+      name: texts.trash.filters.label,
+    })
+    expect(
+      within(filters)
+        .getAllByRole("button")
+        .map((button) => button.textContent)
+    ).toEqual(["Tout", "Pages", "Méthodes", "Fichiers"])
+    // La leçon partie avec sa méthode n'a pas sa propre ligne.
+    expect(screen.getAllByRole("row")).toHaveLength(4)
+    expect(screen.getByText(texts.trash.batch(1))).toBeVisible()
+
+    fireEvent.click(
+      within(filters).getByRole("button", { name: texts.trash.filters.method })
+    )
+    expect(screen.getByText(method.title!)).toBeVisible()
+    expect(screen.queryByText(page.title!)).toBeNull()
+    expect(screen.queryByText(photoName)).toBeNull()
+  })
+
+  it("restaure une page en brouillon, et prévient quand son adresse a été reprise", async () => {
+    vi.mocked(api.restoreTrashItem).mockResolvedValue({ addressRemoved: true })
+    renderApp("/corbeille")
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: texts.trash.restoreItem(page.title!),
+      })
+    )
+    expect(
+      await screen.findByText(texts.trash.restoredWithoutAddress(page.title!))
+    ).toBeVisible()
+    expect(vi.mocked(api.restoreTrashItem).mock.calls[0][0]).toEqual(page)
+  })
+
+  it("efface la sélection, et seulement elle (têtes de lot)", async () => {
+    vi.mocked(api.emptyTrash).mockResolvedValue(3)
+    renderApp("/corbeille")
+    await screen.findByText(page.title!)
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: texts.trash.select(page.title!) })
+    )
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: texts.trash.select(method.title!) })
+    )
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.trash.eraseSelection(2) })
+    )
+    const dialog = await screen.findByRole("alertdialog")
+    expect(dialog).toHaveTextContent(
+      texts.trash.confirmSelection.description(2)
+    )
+    fireEvent.click(
+      within(dialog).getByRole("button", {
+        name: texts.trash.confirmSelection.confirm,
+      })
+    )
+    await waitFor(() =>
+      expect(api.emptyTrash).toHaveBeenCalledWith([
+        { type: "content", id: page.id },
+        { type: "content", id: method.id },
+      ])
+    )
+  })
+
+  it("« Vider » envoie la liste explicite de tout ce qui est affiché", async () => {
+    vi.mocked(api.emptyTrash).mockResolvedValue(4)
+    renderApp("/corbeille")
+    await screen.findByText(page.title!)
+    fireEvent.click(screen.getByRole("button", { name: texts.trash.empty }))
+    const dialog = await screen.findByRole("alertdialog")
+    fireEvent.click(
+      within(dialog).getByRole("button", {
+        name: texts.trash.confirmEmpty.confirm,
+      })
+    )
+    await waitFor(() =>
+      expect(api.emptyTrash).toHaveBeenCalledWith([
+        { type: "content", id: page.id },
+        { type: "file", id: photo.id },
+        { type: "content", id: method.id },
+      ])
+    )
   })
 })

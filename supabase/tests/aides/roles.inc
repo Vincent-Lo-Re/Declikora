@@ -14,7 +14,8 @@
 --   select pg_temp.as_person('reader');       -- compte sans fiche d'équipe (lecteur), aal2
 --   select pg_temp.as_postgres();             -- retour à postgres (ignore les politiques)
 --   select pg_temp.empty_media_library();     -- médiathèque vide (fichiers, contrôles, objets)
---   select pg_temp.empty_contents();          -- aucun contenu, verrou ni catégorie
+--   select pg_temp.empty_contents();          -- aucun contenu, version, verrou, catégorie,
+--                                             -- formule ni abonnement de lecteur
 -- Chaque profil a un compte et une session ouverte, créés par pg_temp.create_people().
 -- Les identifiants sont fixes : pg_temp.person_id('editor')…
 
@@ -139,14 +140,20 @@ end;
 $$;
 
 -- Part de zéro contenu (la base de développement peut contenir des brouillons écrits depuis
--- l'admin locale ou par les tests de parcours) : contenus, verrous, catégories et leurs liens.
--- Tout est annulé par le rollback de fin de fichier. À appeler en postgres.
+-- l'admin locale ou par les tests de parcours) : contenus, versions, verrous, catégories et
+-- leurs liens, formules et abonnements de lecteurs. Tout est annulé par le rollback de fin de
+-- fichier. À appeler en postgres.
+-- Les versions refusent tout vidage (TRUNCATE) : les contenus sont SUPPRIMÉS, et leurs versions,
+-- verrous et catégories partent en cascade (une version ne disparaît qu'avec son contenu).
 create function pg_temp.empty_contents()
 returns void
 language plpgsql
 as $$
 begin
-  truncate public.contents, public.edit_locks, public.categories, public.content_categories;
+  delete from public.contents;
+  delete from public.categories;
+  delete from public.reader_access;
+  delete from public.access_levels;
 end;
 $$;
 

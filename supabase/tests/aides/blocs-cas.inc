@@ -12,6 +12,8 @@ create temporary table blocks_cases (
 ) on commit drop;
 
 insert into blocks_cases (name, variant, valid, description, data) values
+  ('refuse-alt-bibliotheque-brouillon', 'draft', false, 'Brouillon : le marqueur altFromLibrary n''existe que dans une version publiée',
+    $cas${"v":1,"title":"Publié","blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"image","mediaId":"00000000-0000-4000-8000-000000000090","caption":null,"alt":null,"altFromLibrary":true}]}$cas$),
   ('refuse-bloc-inconnu', 'draft', false, 'Bloc d''une sorte inconnue',
     $cas${"v":1,"title":"Bien respirer","summary":null,"cover":null,"audio":null,"blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"video","mediaId":"00000000-0000-4000-8000-000000000090"}]}$cas$),
   ('refuse-bloc-lie-dans-encadre', 'draft', false, 'Un bloc lié dans un encadré',
@@ -76,6 +78,18 @@ insert into blocks_cases (name, variant, valid, description, data) values
     $cas${"v":1,"title":"Bien respirer","summary":null,"cover":null,"audio":null,"blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"text","doc":{"type":"doc","content":[{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"a"}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"b"}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","foo":1}]}]}]}]}]}]}]}}]}$cas$),
   ('refuse-propriete-racine', 'draft', false, 'Propriété inconnue à la racine',
     $cas${"v":1,"title":"Bien respirer","summary":null,"cover":null,"audio":null,"blocks":[],"extra":1}$cas$),
+  ('refuse-publie-alt-bibliotheque-faux', 'published', false, 'Version publiée : altFromLibrary ne vaut que true',
+    $cas${"v":1,"title":"Publié","blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"image","mediaId":"00000000-0000-4000-8000-000000000090","caption":null,"alt":"x","altFromLibrary":false}]}$cas$),
+  ('refuse-publie-alt-null', 'published', false, 'Version publiée : le texte alternatif est résolu (jamais null)',
+    $cas${"v":1,"title":"Publié","blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"image","mediaId":"00000000-0000-4000-8000-000000000090","caption":null,"alt":null}]}$cas$),
+  ('refuse-publie-bloc-lie', 'published', false, 'Version publiée : un bloc lié doit être résolu en copie',
+    $cas${"v":1,"title":"Publié","blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"linked","templateId":"00000000-0000-4000-8000-000000000092"}]}$cas$),
+  ('refuse-publie-image-sans-fichier-encadre', 'published', false, 'Version publiée : une image sans fichier dans un encadré',
+    $cas${"v":1,"title":"Publié","blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"box","look":"border","blocks":[{"id":"00000000-0000-4000-8000-000000000002","type":"image","mediaId":null,"caption":null,"alt":"Un texte"}]}]}$cas$),
+  ('refuse-publie-image-sans-fichier', 'published', false, 'Version publiée : une image sans fichier',
+    $cas${"v":1,"title":"Publié","blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"image","mediaId":null,"caption":null,"alt":"Un texte"}]}$cas$),
+  ('refuse-publie-marqueur-dans-encadre', 'published', false, 'Version publiée : le marqueur templateId n''est qu''au premier niveau',
+    $cas${"v":1,"title":"Publié","blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"box","look":"fill","blocks":[{"id":"00000000-0000-4000-8000-000000000002","type":"text","doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Bonjour"}]}]},"templateId":"00000000-0000-4000-8000-000000000092"}]}]}$cas$),
   ('refuse-sans-titre', 'draft', false, 'Brouillon sans la clé title',
     $cas${"v":1,"blocks":[]}$cas$),
   ('refuse-texte-vide', 'draft', false, 'Nœud texte vide (ProseMirror ne le permet pas)',
@@ -108,6 +122,10 @@ insert into blocks_cases (name, variant, valid, description, data) values
     $cas${"v":1,"title":"","blocks":[]}$cas$),
   ('valide-modele-encadre', 'template', true, 'Modèle : un encadré avec du texte',
     $cas${"v":1,"title":"À retenir","blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"box","look":"fill","blocks":[{"id":"00000000-0000-4000-8000-000000000002","type":"text","doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"À retenir"}]}]}}]}]}$cas$),
+  ('valide-publie-complet', 'published', true, 'Version publiée : copie de modèle marquée templateId au premier niveau (texte, image, encadré), texte alternatif repris de la médiathèque, couverture et son',
+    $cas${"v":1,"title":"Publié","blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"text","doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Bonjour"}]}]},"templateId":"00000000-0000-4000-8000-000000000092"},{"id":"00000000-0000-4000-8000-000000000002","type":"image","mediaId":"00000000-0000-4000-8000-000000000090","caption":null,"alt":"","altFromLibrary":true},{"id":"00000000-0000-4000-8000-000000000003","type":"image","mediaId":"00000000-0000-4000-8000-000000000091","caption":null,"alt":"Propre","templateId":"00000000-0000-4000-8000-000000000093"},{"id":"00000000-0000-4000-8000-000000000004","type":"box","look":"fill","templateId":"00000000-0000-4000-8000-000000000094","blocks":[{"id":"00000000-0000-4000-8000-000000000005","type":"text","doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Bonjour"}]}]}},{"id":"00000000-0000-4000-8000-000000000006","type":"image","mediaId":"00000000-0000-4000-8000-000000000090","caption":null,"alt":"Repris","altFromLibrary":true}]}],"summary":"Résumé","cover":{"mediaId":"00000000-0000-4000-8000-000000000095"},"audio":{"mediaId":"00000000-0000-4000-8000-000000000096"}}$cas$),
+  ('valide-publie-minimal', 'published', true, 'Version publiée minimale : aucun bloc',
+    $cas${"v":1,"title":"Publié","blocks":[]}$cas$),
   ('valide-titre-vide', 'draft', true, 'Titre de niveau 2 sans texte, paragraphe vide',
     $cas${"v":1,"title":"Bien respirer","summary":null,"cover":null,"audio":null,"blocks":[{"id":"00000000-0000-4000-8000-000000000001","type":"text","doc":{"type":"doc","content":[{"type":"heading","attrs":{"level":2}},{"type":"paragraph"}]}}]}$cas$);
 

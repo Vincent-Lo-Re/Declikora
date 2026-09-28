@@ -1,0 +1,87 @@
+{
+  "description": "Version publiée : copie de modèle marquée templateId au premier niveau (texte, image, encadré), texte alternatif repris de la médiathèque, couverture et son",
+  "variant": "published",
+  "valid": true,
+  "data": {
+    "v": 1,
+    "title": "Publié",
+    "blocks": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "type": "text",
+        "doc": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Bonjour"
+                }
+              ]
+            }
+          ]
+        },
+        "templateId": "00000000-0000-4000-8000-000000000092"
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000002",
+        "type": "image",
+        "mediaId": "00000000-0000-4000-8000-000000000090",
+        "caption": null,
+        "alt": "",
+        "altFromLibrary": true
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000003",
+        "type": "image",
+        "mediaId": "00000000-0000-4000-8000-000000000091",
+        "caption": null,
+        "alt": "Propre",
+        "templateId": "00000000-0000-4000-8000-000000000093"
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000004",
+        "type": "box",
+        "look": "fill",
+        "templateId": "00000000-0000-4000-8000-000000000094",
+        "blocks": [
+          {
+            "id": "00000000-0000-4000-8000-000000000005",
+            "type": "text",
+            "doc": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Bonjour"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000006",
+            "type": "image",
+            "mediaId": "00000000-0000-4000-8000-000000000090",
+            "caption": null,
+            "alt": "Repris",
+            "altFromLibrary": true
+          }
+        ]
+      }
+    ],
+    "summary": "Résumé",
+    "cover": {
+      "mediaId": "00000000-0000-4000-8000-000000000095"
+    },
+    "audio": {
+      "mediaId": "00000000-0000-4000-8000-000000000096"
+    }
+  }
+}

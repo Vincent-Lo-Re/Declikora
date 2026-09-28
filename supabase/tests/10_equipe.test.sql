@@ -68,9 +68,13 @@ select function_privs_are(
 
 -- La base de développement peut déjà contenir des comptes : on vide les fiches pour que
 -- l'amorçage soit testé sur une équipe vide (tout est annulé à la fin par le rollback).
--- « cascade » : les fichiers de la médiathèque citent leurs auteurs.
+-- « cascade » : les fichiers de la médiathèque et les contenus citent leurs auteurs. Le vidage
+-- emporte aussi les versions publiées, qu'un déclencheur protège de tout vidage (étape 5) : il
+-- est levé le temps de cette commande (session_replication_role).
 set local client_min_messages = warning;
+set local session_replication_role = replica;
 truncate public.profiles cascade;
+set local session_replication_role = origin;
 reset client_min_messages;
 
 -- Équipe vide : un inconnu (inscription ouverte par erreur) ne devient pas admin.

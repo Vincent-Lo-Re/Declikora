@@ -34,6 +34,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_levels: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          rank: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          rank: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          rank?: number
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -90,6 +111,7 @@ export type Database = {
       }
       contents: {
         Row: {
+          access_chosen: boolean
           access_level_id: string | null
           created_at: string
           created_by: string | null
@@ -120,6 +142,7 @@ export type Database = {
           trash_batch: string | null
         }
         Insert: {
+          access_chosen?: boolean
           access_level_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -150,6 +173,7 @@ export type Database = {
           trash_batch?: string | null
         }
         Update: {
+          access_chosen?: boolean
           access_level_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -181,6 +205,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "contents_access_level_id_fkey"
+            columns: ["access_level_id"]
+            isOneToOne: false
+            referencedRelation: "access_levels"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contents_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -200,6 +231,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contents_live_version_fkey"
+            columns: ["live_version_id", "id"]
+            isOneToOne: false
+            referencedRelation: "versions"
+            referencedColumns: ["id", "content_id"]
           },
           {
             foreignKeyName: "contents_parent_id_fkey"
@@ -400,10 +438,127 @@ export type Database = {
         }
         Relationships: []
       }
+      reader_access: {
+        Row: {
+          access_level_id: string
+          created_at: string
+          source: string | null
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          access_level_id: string
+          created_at?: string
+          source?: string | null
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          access_level_id?: string
+          created_at?: string
+          source?: string | null
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reader_access_access_level_id_fkey"
+            columns: ["access_level_id"]
+            isOneToOne: false
+            referencedRelation: "access_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      versions: {
+        Row: {
+          access_level_id: string | null
+          block_types: string[]
+          body: NonNullable<Json>
+          body_hash: string
+          category_ids: string[]
+          content_id: string
+          cover_media_id: string | null
+          draft_rev: number
+          files: NonNullable<Json>
+          id: string
+          is_free: boolean
+          media_ids: string[]
+          number: number
+          origin: string
+          outline: Json | null
+          published_at: string
+          published_by: string | null
+          published_by_name: string | null
+          slug: string | null
+          template_ids: string[]
+        }
+        Insert: {
+          access_level_id?: string | null
+          block_types?: string[]
+          body: NonNullable<Json>
+          body_hash: string
+          category_ids?: string[]
+          content_id: string
+          cover_media_id?: string | null
+          draft_rev: number
+          files?: NonNullable<Json>
+          id?: string
+          is_free?: boolean
+          media_ids?: string[]
+          number: number
+          origin: string
+          outline?: Json | null
+          published_at?: string
+          published_by?: string | null
+          published_by_name?: string | null
+          slug?: string | null
+          template_ids?: string[]
+        }
+        Update: {
+          access_level_id?: string | null
+          block_types?: string[]
+          body?: NonNullable<Json>
+          body_hash?: string
+          category_ids?: string[]
+          content_id?: string
+          cover_media_id?: string | null
+          draft_rev?: number
+          files?: NonNullable<Json>
+          id?: string
+          is_free?: boolean
+          media_ids?: string[]
+          number?: number
+          origin?: string
+          outline?: Json | null
+          published_at?: string
+          published_by?: string | null
+          published_by_name?: string | null
+          slug?: string | null
+          template_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "versions_access_level_id_fkey"
+            columns: ["access_level_id"]
+            isOneToOne: false
+            referencedRelation: "access_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "versions_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "contents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       trash_items: {
         Row: {
+          batch_root: boolean | null
           deleted_at: string | null
           deleted_by: string | null
           deleted_by_name: string | null
@@ -416,18 +571,42 @@ export type Database = {
           title: string | null
           trash_batch: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "media_deleted_by_fkey"
-            columns: ["deleted_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
+      access_levels_reorder: {
+        Args: { ids: string[] }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          rank: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "access_levels"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      app_access_levels: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          rank: number
+        }[]
+      }
+      app_content: { Args: { content_id: string }; Returns: Json }
+      app_file_locations: {
+        Args: { media_ids: string[] }
+        Returns: {
+          location: string
+          media_id: string
+        }[]
+      }
+      app_page: { Args: { slug: string }; Returns: Json }
       content_create: {
         Args: {
           from_template_id?: string
@@ -437,6 +616,7 @@ export type Database = {
           title?: string
         }
         Returns: {
+          access_chosen: boolean
           access_level_id: string | null
           created_at: string
           created_by: string | null
@@ -637,6 +817,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      media_outdated: {
+        Args: { media_id: string }
+        Returns: {
+          content_id: string
+          kind: string
+          published_at: string
+          title: string
+          version_id: string
+          version_number: number
+        }[]
+      }
+      media_push: {
+        Args: { media_id: string }
+        Returns: {
+          content_id: string
+          version_id: string
+          version_number: number
+        }[]
+      }
       media_restore: {
         Args: { media_id: string }
         Returns: {
@@ -720,6 +919,30 @@ export type Database = {
         }[]
       }
       ping: { Args: Record<PropertyKey, never>; Returns: boolean }
+      publish: {
+        Args: { content_id: string; expected_rev: number }
+        Returns: {
+          needs_file_sync: boolean
+          published_at: string
+          version_id: string
+          version_number: number
+        }[]
+      }
+      restore: {
+        Args: { content_id: string }
+        Returns: {
+          restored: number
+          warnings: string[]
+        }[]
+      }
+      revert_to_version: {
+        Args: { editor_session?: string; version_id: string }
+        Returns: {
+          draft_rev: number
+          draft_saved_at: string
+          warnings: string[]
+        }[]
+      }
       save_draft: {
         Args: {
           base_rev: number
@@ -733,6 +956,7 @@ export type Database = {
           draft_saved_at: string
         }[]
       }
+      schedule: { Args: { at: string; content_id: string }; Returns: string }
       session_is_open: { Args: Record<PropertyKey, never>; Returns: boolean }
       team_members: {
         Args: Record<PropertyKey, never>
@@ -748,6 +972,16 @@ export type Database = {
           role: Database["public"]["Enums"]["team_role"]
         }[]
       }
+      trash: {
+        Args: { content_id: string }
+        Returns: {
+          needs_file_sync: boolean
+          trash_batch: string
+          trashed: number
+        }[]
+      }
+      unpublish: { Args: { content_id: string }; Returns: boolean }
+      unschedule: { Args: { content_id: string }; Returns: boolean }
     }
     Enums: {
       team_role: "admin" | "editor"

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://declikora.app/blocks/blocks.schema.json",
-  "$comment": "Forme des blocs, écrite à la main (docs/ARCHITECTURE-CONTENUS.md, § 2). Source unique, lue par Ajv (admin, app) et par pg_jsonschema 0.3.3 (base). Après toute modification : cd web && npm run blocks:generate. Chaque variante (draft, template) est un document à part : ses mots-clés sont ceux de definitions.<variante>, avec toutes les definitions à côté. RÈGLES : draft-07 seulement ; aucun oneOf, anyOf ni allOf (dans pg_jsonschema 0.3.3, des branches qui descendent dans le même sous-arbre rendent la validation exponentielle : avec oneOf, le temps double à chaque niveau de liste, mesuré à 1 s pour 12 niveaux) : une union choisit sa branche selon « type » par if/then/else, avec tsType pour les types TypeScript ; additionalProperties false partout ; pas de format (non vérifié par pg_jsonschema), des pattern ; on ne fait qu'ajouter, jamais durcir une règle en place.",
+  "$comment": "Forme des blocs, écrite à la main (docs/ARCHITECTURE-CONTENUS.md, § 2). Source unique, lue par Ajv (admin, app) et par pg_jsonschema 0.3.3 (base). Après toute modification : cd web && npm run blocks:generate. Chaque variante (draft, template, published) est un document à part : ses mots-clés sont ceux de definitions.<variante>, avec toutes les definitions à côté. RÈGLES : draft-07 seulement ; aucun oneOf, anyOf ni allOf (dans pg_jsonschema 0.3.3, des branches qui descendent dans le même sous-arbre rendent la validation exponentielle : avec oneOf, le temps double à chaque niveau de liste, mesuré à 1 s pour 12 niveaux) : une union choisit sa branche selon « type » par if/then/else, avec tsType pour les types TypeScript ; additionalProperties false partout ; pas de format (non vérifié par pg_jsonschema), des pattern ; on ne fait qu'ajouter, jamais durcir une règle en place.",
   "definitions": {
     "uuid": {
       "$comment": "UUID en minuscules, comme crypto.randomUUID() et uuid::text.",
@@ -412,6 +412,121 @@
       }
     },
 
+    "publishedImageBlock": {
+      "$comment": "Image d'une version publiée (dans un encadré) : fichier obligatoire, texte alternatif résolu (§ 2.4). altFromLibrary : ce texte vient de la médiathèque (alt null dans le brouillon) ; « Revenir à cette version » remet alt à null. L'app l'ignore.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "mediaId", "caption", "alt"],
+      "properties": {
+        "id": { "$ref": "#/definitions/uuid" },
+        "type": { "const": "image" },
+        "mediaId": { "$ref": "#/definitions/uuid" },
+        "caption": { "type": ["string", "null"], "maxLength": 300 },
+        "alt": { "type": "string", "maxLength": 1000 },
+        "altFromLibrary": { "const": true }
+      }
+    },
+    "publishedBoxChild": {
+      "tsType": "TextBlock | PublishedImageBlock",
+      "if": {
+        "type": "object",
+        "required": ["type"],
+        "properties": { "type": { "const": "text" } }
+      },
+      "then": { "$ref": "#/definitions/textBlock" },
+      "else": {
+        "if": {
+          "type": "object",
+          "required": ["type"],
+          "properties": { "type": { "const": "image" } }
+        },
+        "then": { "$ref": "#/definitions/publishedImageBlock" },
+        "else": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "enum": ["text", "image"] }
+          }
+        }
+      }
+    },
+    "publishedTextBlock": {
+      "$comment": "Texte au premier niveau d'une version publiée. templateId : copie d'un bloc identique partout (modèle « shared »), résolue à la publication (§ 2.4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "doc"],
+      "properties": {
+        "id": { "$ref": "#/definitions/uuid" },
+        "type": { "const": "text" },
+        "doc": { "$ref": "#/definitions/doc" },
+        "templateId": { "$ref": "#/definitions/uuid" }
+      }
+    },
+    "publishedTopImageBlock": {
+      "$comment": "Image au premier niveau d'une version publiée (comme publishedImageBlock), avec le marqueur templateId d'une copie de modèle.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "mediaId", "caption", "alt"],
+      "properties": {
+        "id": { "$ref": "#/definitions/uuid" },
+        "type": { "const": "image" },
+        "mediaId": { "$ref": "#/definitions/uuid" },
+        "caption": { "type": ["string", "null"], "maxLength": 300 },
+        "alt": { "type": "string", "maxLength": 1000 },
+        "altFromLibrary": { "const": true },
+        "templateId": { "$ref": "#/definitions/uuid" }
+      }
+    },
+    "publishedBoxBlock": {
+      "$comment": "Encadré d'une version publiée : Texte et Image (fichier obligatoire) seulement, avec le marqueur templateId d'une copie de modèle.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "look", "blocks"],
+      "properties": {
+        "id": { "$ref": "#/definitions/uuid" },
+        "type": { "const": "box" },
+        "look": { "enum": ["fill", "border"] },
+        "blocks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/publishedBoxChild" }
+        },
+        "templateId": { "$ref": "#/definitions/uuid" }
+      }
+    },
+    "publishedTopBlock": {
+      "$comment": "Un bloc au premier niveau d'une version publiée : jamais de bloc lié (il est résolu en copie).",
+      "tsType": "PublishedTextBlock | PublishedTopImageBlock | PublishedBoxBlock",
+      "if": {
+        "type": "object",
+        "required": ["type"],
+        "properties": { "type": { "const": "text" } }
+      },
+      "then": { "$ref": "#/definitions/publishedTextBlock" },
+      "else": {
+        "if": {
+          "type": "object",
+          "required": ["type"],
+          "properties": { "type": { "const": "image" } }
+        },
+        "then": { "$ref": "#/definitions/publishedTopImageBlock" },
+        "else": {
+          "if": {
+            "type": "object",
+            "required": ["type"],
+            "properties": { "type": { "const": "box" } }
+          },
+          "then": { "$ref": "#/definitions/publishedBoxBlock" },
+          "else": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": { "enum": ["text", "image", "box"] }
+            }
+          }
+        }
+      }
+    },
+
     "draft": {
       "title": "Draft",
       "$comment": "Variante « draft » : le brouillon d'un contenu (article, épisode, méthode, chapitre, leçon, page).",
@@ -445,6 +560,24 @@
         "blocks": {
           "type": "array",
           "items": { "$ref": "#/definitions/templateBlock" }
+        }
+      }
+    },
+    "published": {
+      "title": "PublishedBody",
+      "$comment": "Variante « published » : le corps figé d'une version publiée (§ 2.4), ce que lit l'app. Blocs liés résolus en copies, fichier obligatoire dans chaque image, texte alternatif résolu.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v", "title", "blocks"],
+      "properties": {
+        "v": { "const": 1 },
+        "title": { "type": "string", "maxLength": 200 },
+        "summary": { "type": ["string", "null"], "maxLength": 1000 },
+        "cover": { "$ref": "#/definitions/mediaRef" },
+        "audio": { "$ref": "#/definitions/mediaRef" },
+        "blocks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/publishedTopBlock" }
         }
       }
     }

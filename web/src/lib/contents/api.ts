@@ -1,5 +1,6 @@
 // Appels des contenus et de l'éditeur : table contents, RPC content_create, save_draft et
 // lock_*, Realtime sur edit_locks. Contrat : docs/ARCHITECTURE-CONTENUS.md (« Étape 4 »).
+// Publication, historique et corbeille des contenus : lib/contents/publication.ts (étape 5).
 
 import type { PostgrestError } from "@supabase/supabase-js"
 
@@ -26,19 +27,27 @@ function isContentErrorCode(code: unknown): code is ContentErrorCode {
 export class ContentError extends Error {
   readonly code: ContentErrorCode | null
   readonly detail: string | null
+  // Complément de la base : le nom de la personne qui écrit (verrou_tenu).
+  readonly hint: string | null
   readonly retryable: boolean
 
   constructor(
     code: ContentErrorCode | null,
     {
       detail = null,
+      hint = null,
       retryable = false,
-    }: { detail?: string | null; retryable?: boolean } = {}
+    }: {
+      detail?: string | null
+      hint?: string | null
+      retryable?: boolean
+    } = {}
   ) {
     super(code ? texts.editor.errors[code] : texts.common.unexpected)
     this.name = "ContentError"
     this.code = code
     this.detail = detail
+    this.hint = hint
     this.retryable = retryable
   }
 }
@@ -60,7 +69,11 @@ export function toContentError(
       status === 408 ||
       status === 429 ||
       status >= 500)
-  return new ContentError(code, { detail: error.details || null, retryable })
+  return new ContentError(code, {
+    detail: error.details || null,
+    hint: error.hint || null,
+    retryable,
+  })
 }
 
 /** Vrai si l'erreur montre que la personne n'a plus accès (fiche ou session à relire). */
@@ -74,9 +87,12 @@ export function isContentAccessLost(error: unknown): boolean {
 
 export const contentKeys = {
   all: ["contents"] as const,
+  lists: ["contents", "list"] as const,
   list: (kind: ContentKind) => ["contents", "list", kind] as const,
   detail: (id: string) => ["contents", "detail", id] as const,
   media: (ids: string[]) => ["contents", "media", ids] as const,
+  publication: (id: string) => ["contents", "publication", id] as const,
+  versions: (id: string) => ["contents", "versions", id] as const,
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -89,10 +105,16 @@ export type ContentKind =
 export type ContentListItem = {
   id: string
   title: string
+  draft_rev: number
   draft_saved_at: string
   saved_by_name: string | null
   // Le membre qui écrit en ce moment (verrou actif), s'il y en a un.
   editing_name: string | null
+  // Publication : la révision du brouillon publiée (version en ligne), la programmation.
+  live_draft_rev: number | null
+  first_published_at: string | null
+  scheduled_at: string | null
+  schedule_error: string | null
 }
 
 type ProfileName = { full_name: string | null; email: string } | null
@@ -112,7 +134,7 @@ export async function listContents(
   const { data, error, status } = await supabase
     .from("contents")
     .select(
-      "id, title, draft_saved_at, saved_by:profiles!contents_draft_saved_by_fkey(full_name, email), edit_locks(holder_id, heartbeat_at, holder:profiles(full_name, email))"
+      "id, title, draft_rev, draft_saved_at, first_published_at, scheduled_at, schedule_error, saved_by:profiles!contents_draft_saved_by_fkey(full_name, email), edit_locks(holder_id, heartbeat_at, holder:profiles(full_name, email)), live:versions!contents_live_version_fkey(draft_rev)"
     )
     .eq("kind", kind)
     .is("deleted_at", null)
@@ -129,21 +151,35 @@ export async function listContents(
     const active =
       lock?.holder_id != null &&
       now - new Date(lock.heartbeat_at).getTime() < LOCK_TTL_MS
+    const live = row.live as { draft_rev: number } | null
     return {
       id: row.id,
       title: row.title ?? "",
+      draft_rev: row.draft_rev,
       draft_saved_at: row.draft_saved_at,
       saved_by_name: nameOf(row.saved_by as ProfileName),
       editing_name: active
         ? (nameOf(lock.holder) ?? texts.editor.lock.someone)
         : null,
+      live_draft_rev: live?.draft_rev ?? null,
+      first_published_at: row.first_published_at,
+      scheduled_at: row.scheduled_at,
+      schedule_error: row.schedule_error,
     }
   })
 }
 
 export type Content = Pick<
   Tables<"contents">,
-  "id" | "kind" | "draft_rev" | "draft_saved_at" | "deleted_at" | "parent_id"
+  | "id"
+  | "kind"
+  | "draft_rev"
+  | "draft_saved_at"
+  | "deleted_at"
+  | "parent_id"
+  | "access_chosen"
+  | "access_level_id"
+  | "slug"
 > & { draft: Draft; title: string }
 
 /** Un contenu et son brouillon ; null s'il n'existe pas (ou plus). */
@@ -151,7 +187,7 @@ export async function getContent(id: string): Promise<Content | null> {
   const { data, error, status } = await supabase
     .from("contents")
     .select(
-      "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, parent_id"
+      "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, parent_id, access_chosen, access_level_id, slug"
     )
     .eq("id", id)
     .maybeSingle()
@@ -198,15 +234,65 @@ export async function createContent(
 
 export type SavedDraft = { rev: number; savedAt: string }
 
+// ---------------------------------------------------------------------------------------------
+// Réglages du contenu (enregistrés par save_draft, sous le verrou)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Les réglages d'un contenu tels que l'éditeur les montre. accessChosen : « Gratuit » ou une
+ * formule a été choisi ([D41] : pas de niveau par défaut). accessLevelId null = Gratuit.
+ */
+export type ContentSettings = {
+  accessChosen: boolean
+  accessLevelId: string | null
+  slug: string | null
+}
+
+/** Ce que save_draft reçoit dans settings (seulement les réglages changés). */
+export type SettingsPayload = {
+  access_level_id?: string | null
+  slug?: string | null
+}
+
+export function settingsOf(
+  content: Pick<Content, "access_chosen" | "access_level_id" | "slug">
+): ContentSettings {
+  return {
+    accessChosen: content.access_chosen,
+    accessLevelId: content.access_level_id,
+    slug: content.slug,
+  }
+}
+
+/**
+ * Les réglages à envoyer : ceux qui diffèrent de la base. Le niveau n'est envoyé qu'une fois
+ * choisi (l'envoyer, même null, le marque comme choisi dans la base).
+ */
+export function settingsDiff(
+  saved: ContentSettings,
+  wanted: ContentSettings
+): SettingsPayload | null {
+  const payload: SettingsPayload = {}
+  if (
+    wanted.accessChosen &&
+    (!saved.accessChosen || saved.accessLevelId !== wanted.accessLevelId)
+  ) {
+    payload.access_level_id = wanted.accessLevelId
+  }
+  if (wanted.slug !== saved.slug) payload.slug = wanted.slug
+  return Object.keys(payload).length > 0 ? payload : null
+}
+
 /**
  * Enregistre le brouillon (il faut tenir le verrou depuis cette ouverture de l'éditeur, et
- * partir de la dernière révision).
+ * partir de la dernière révision), avec les réglages changés s'il y en a.
  */
 export async function saveDraft(
   contentId: string,
   baseRev: number,
   draft: Draft,
-  session: string
+  session: string,
+  settings: SettingsPayload | null = null
 ): Promise<SavedDraft> {
   const { data, error, status } = await supabase
     .rpc("save_draft", {
@@ -214,6 +300,7 @@ export async function saveDraft(
       base_rev: baseRev,
       draft: draft as unknown as Json,
       editor_session: session,
+      ...(settings && { settings: settings as unknown as Json }),
     })
     .single()
   if (error) throw toContentError(error, status)

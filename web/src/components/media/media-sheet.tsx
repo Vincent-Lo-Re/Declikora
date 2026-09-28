@@ -1,7 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ExternalLink, Trash2, TriangleAlert } from "lucide-react"
-import { type ComponentProps, lazy, Suspense, useState } from "react"
+import { ExternalLink, RefreshCw, Trash2, TriangleAlert } from "lucide-react"
+import {
+  type ComponentProps,
+  lazy,
+  type ReactNode,
+  Suspense,
+  useState,
+} from "react"
 import { Controller, useForm } from "react-hook-form"
 import { Link } from "react-router"
 import { toast } from "sonner"
@@ -9,7 +15,7 @@ import { toast } from "sonner"
 import { kindIcons, rejectedText } from "@/components/media/media-kinds"
 import { MediaStatusBadge } from "@/components/media/media-visuals"
 import { useAccessCheck } from "@/components/team/use-access-check"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -30,12 +36,15 @@ import {
 } from "@/components/ui/sheet"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
+import { contentKeys } from "@/lib/contents/api"
 import { formatDateTime } from "@/lib/dates"
 import {
+  getMediaOutdated,
   getMediaUses,
   kickFiles,
   MediaError,
   mediaKeys,
+  pushMediaTexts,
   restoreMedia,
   trashKey,
   trashMedia,
@@ -376,13 +385,20 @@ function MediaInfo({ media }: { media: Media }) {
   )
 }
 
+/**
+ * « Utilisé dans » : les contenus en ligne (ce que montre l'app, avec ses textes figés) et
+ * les brouillons (qui suivent la médiathèque), puis « Mettre à jour ces N contenus dans
+ * l'app » quand un texte figé diffère ([D30], option B).
+ */
 function MediaUses({ media }: { media: Media }) {
   const uses = useQuery({
     queryKey: mediaKeys.uses(media.id),
     queryFn: () => getMediaUses(media.id),
   })
+  const live = uses.data?.filter((use) => use.in_app) ?? []
+  const drafts = uses.data?.filter((use) => use.in_draft) ?? []
   return (
-    <section className="space-y-2">
+    <section className="space-y-3">
       <h3 className="text-sm font-medium">{texts.media.detail.uses}</h3>
       {uses.isPending ? (
         <p className="text-sm text-muted-foreground">
@@ -397,32 +413,151 @@ function MediaUses({ media }: { media: Media }) {
           {texts.media.detail.notUsed}
         </p>
       ) : (
-        <ul className="space-y-1 text-sm">
-          {uses.data.map((use) => (
-            <li
-              key={use.content_id}
-              className="flex flex-wrap items-center gap-2"
-            >
-              <span>
-                <UseTitle use={use} />
-                {use.parent_title && (
-                  <span className="text-muted-foreground">
-                    {" "}
-                    ({use.parent_title})
-                  </span>
-                )}
-              </span>
-              {use.in_draft && (
-                <Badge variant="outline">{texts.media.detail.inDraft}</Badge>
-              )}
-              {use.in_app && (
+        <>
+          {live.length > 0 && (
+            <UseList
+              title={texts.media.detail.usesLive}
+              hint={texts.media.detail.usesLiveHint}
+              uses={live}
+              badge={
                 <Badge variant="secondary">{texts.media.detail.inApp}</Badge>
+              }
+            />
+          )}
+          {drafts.length > 0 && (
+            <UseList
+              title={texts.media.detail.usesDrafts}
+              uses={drafts}
+              badge={
+                <Badge variant="outline">{texts.media.detail.inDraft}</Badge>
+              }
+            />
+          )}
+        </>
+      )}
+      {live.length > 0 && <OutdatedTexts media={media} />}
+    </section>
+  )
+}
+
+function UseList({
+  title,
+  hint,
+  uses,
+  badge,
+}: {
+  title: string
+  hint?: string
+  uses: MediaUse[]
+  badge: ReactNode
+}) {
+  return (
+    <div className="space-y-1">
+      <h4 className="text-xs font-medium text-muted-foreground uppercase">
+        {title}
+      </h4>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      <ul className="space-y-1 text-sm">
+        {uses.map((use) => (
+          <li
+            key={use.content_id}
+            className="flex flex-wrap items-center gap-2"
+          >
+            <span>
+              <UseTitle use={use} />
+              {use.parent_title && (
+                <span className="text-muted-foreground">
+                  {" "}
+                  ({use.parent_title})
+                </span>
               )}
+            </span>
+            {badge}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** Contenus en ligne qui montrent encore un ancien texte de ce fichier, et leur mise à jour. */
+function OutdatedTexts({ media }: { media: Media }) {
+  const queryClient = useQueryClient()
+  const checkAccess = useAccessCheck()
+  const labels = texts.media.detail.outdated
+  const outdated = useQuery({
+    queryKey: mediaKeys.outdated(media.id),
+    queryFn: () => getMediaOutdated(media.id),
+  })
+  const push = useMutation({
+    mutationFn: () => pushMediaTexts(media.id),
+    onSuccess: (count) => {
+      toast.success(labels.pushed(count))
+      void kickFiles()
+    },
+    onError: (error) => {
+      toast.error(error.message)
+      checkAccess(error)
+    },
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: mediaKeys.outdated(media.id),
+        }),
+        queryClient.invalidateQueries({ queryKey: contentKeys.all }),
+      ]),
+  })
+
+  if (outdated.isError) {
+    return (
+      <p role="alert" className="text-sm text-destructive">
+        {labels.failed}
+      </p>
+    )
+  }
+  if (!outdated.data || outdated.data.length === 0) return null
+  const count = outdated.data.length
+  return (
+    <Alert data-outdated={count}>
+      <RefreshCw />
+      <AlertTitle>{labels.title(count)}</AlertTitle>
+      <AlertDescription className="space-y-3">
+        <p>{labels.description}</p>
+        <ul className="space-y-1">
+          {outdated.data.map((item) => (
+            <li key={item.content_id}>
+              <UseTitle
+                use={{
+                  content_id: item.content_id,
+                  kind: item.kind,
+                  title: item.title,
+                  parent_title: null,
+                  in_draft: false,
+                  in_app: true,
+                }}
+              />
+              <span className="text-muted-foreground">
+                {" "}
+                (
+                {labels.version(
+                  item.version_number,
+                  formatDateTime(item.published_at)
+                )}
+                )
+              </span>
             </li>
           ))}
         </ul>
-      )}
-    </section>
+        <Button
+          size="sm"
+          disabled={push.isPending}
+          onClick={() => push.mutate()}
+        >
+          {push.isPending ? <Spinner /> : <RefreshCw />}
+          {labels.push(count)}
+        </Button>
+      </AlertDescription>
+    </Alert>
   )
 }
 
