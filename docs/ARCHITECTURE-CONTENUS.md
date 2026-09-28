@@ -276,7 +276,8 @@ Les modèles sont des lignes `kind = 'template'` de `contents` : même éditeur,
 | `starter` (point de départ) | le nouveau contenu s'ouvre avec une copie | ne change rien ailleurs | libre (corbeille) |
 | `shared` (bloc identique partout) | un bloc `linked` | **tous les brouillons le voient aussitôt**, puisqu'ils n'ont qu'une référence | refusée tant qu'un brouillon le cite |
 
-- Un modèle `shared` contient **exactement un bloc** **[D11]** : pour en regrouper plusieurs, on les met dans un Encadré. C'est la lecture littérale de « le même bloc » (ADMIN § 5).
+- Un modèle `shared` contient **exactement un bloc** **[D11]**, validé le 27/09/2026 : pour en regrouper plusieurs, on les met dans un Encadré. C'est la lecture littérale de « le même bloc » (ADMIN § 5).
+- Un modèle `starter` appartient à une sorte de contenu (`template_for`), choisie à sa création **[D42]** : « Nouvelle page » ne propose que les points de départ des pages.
 - La sorte se choisit à la création et ne change plus (trigger).
 
 ### 2.6 Ajouter un bloc (SVG, animation Lottie, PDF…)
@@ -926,7 +927,7 @@ Les noms des jobs ne changent pas : les Deployment Checks de Vercel attendent «
 | D8 | Le générateur vit dans `web/` (`npm run blocks:generate`), la source dans `blocks/` à la racine ; les validateurs de l'app sont des fichiers autonomes | `web/` a déjà l'outillage ; la racine ne garde que le CLI Supabase ; `mobile/` n'a pas besoin d'`ajv` |
 | D9 | Toute référence de fichier s'appelle `mediaId` (couverture et son compris), toute référence de modèle `templateId` | Les blocs futurs sont suivis sans rien changer |
 | D10 | Titres de niveau 2 et 3 seulement ; liens `https:` et `mailto:` seulement, sans `target` ni `rel` | Le titre du contenu est le niveau 1 ; sécurité des liens |
-| D11 | Un modèle « bloc identique partout » contient exactement un bloc (on regroupe dans un Encadré) | Lecture littérale de « le même bloc » (ADMIN § 5) |
+| D11 | Un modèle « bloc identique partout » contient exactement un bloc (on regroupe dans un Encadré). **Validé le 27/09/2026** | Lecture littérale de « le même bloc » (ADMIN § 5) |
 | D12 | `blocks.tokens.json` partagé entre l'aperçu de l'admin et l'app | Un aperçu vraiment fidèle |
 | D13 | Verrou tenu en base (signe de vie 20 s et au retour sur l'onglet, expiration 90 s, relâché après 30 minutes d'onglet caché) ; libérer = vider `holder_id` ; suivi en direct par Realtime sur `edit_locks` seulement, avec repli toutes les 30 s ; pas de Presence | Réaction immédiate sans messages lourds ; résiste au ralentissement des onglets cachés ; Realtime ne filtre pas les suppressions |
 | D14 | Publier est refusé si un **autre** membre écrit le contenu (ou un élément de la méthode) ; si le verrou est libre ou à soi, on publie sans le prendre | Évite de publier un texte en cours d'écriture, sans obliger à « reprendre la main » quand personne n'écrit |
@@ -957,6 +958,7 @@ Les noms des jobs ne changent pas : les Deployment Checks de Vercel attendent «
 | **D39** | SVG et Lottie limités à 5 Mo ; trois vérifications ratées → fichier refusé | La fonction Edge doit pouvoir les vérifier (256 Mo, 2 s de processeur) |
 | **D40** | Admin de l'étape 3 : envoi standard par `XMLHttpRequest` (même requête que storage-js, avec progression et annulation) ; `<style>` d'un SVG gardé quand il n'a ni adresse extérieure ni échappement (le serveur l'accepte) ; aperçu Lottie par `lottie-web` « light » chargé à la demande ; aperçu PDF par une icône et un lien (pas de pdf.js) ; deux envois à la fois, et un envoi annulé ou abandonné est effacé aussitôt (corbeille puis effacement, invisible dans la Corbeille) | Progression et annulation demandées ; couleurs des exports Illustrator gardées ; pas d'évaluation de code ni de gros lecteur PDF dans l'admin |
 | **D41** | **Pas de niveau d'accès par défaut** (décidé le 27/09/2026) : un contenu racine neuf a `access_chosen = false` ; `publish` et `schedule` le refusent (`acces_a_choisir`) tant qu'on n'a pas choisi « Gratuit » ou une formule par `save_draft` (réglage `access_level_id`, `null` compris) | Aucun contenu ne part gratuitement par oubli |
+| **D42** | **Un point de départ appartient à une section** (décidé le 27/09/2026) : `contents.template_for` (`article`, `episode`, `chapter`, `lesson`, `page`), obligatoire pour un modèle `starter` et vide sinon, choisi à la création (`content_create(…, template_for)`) et fixe ensuite ; `content_create(from_template_id)` refuse un point de départ d'une autre sorte (`modele_indisponible`) | La liste des points de départ reste courte et pertinente |
 
 ### 8.2 Questions pour toi
 
