@@ -104,7 +104,18 @@ describe("réglages envoyés avec le brouillon", () => {
     accessChosen: false,
     accessLevelId: null,
     slug: null,
+    categoryIds: [],
   }
+
+  it("envoie les catégories quand elles changent, dans n'importe quel ordre ([D44])", () => {
+    const withTwo = { ...saved, categoryIds: ["b", "a"] }
+    expect(settingsDiff(saved, withTwo)).toEqual({ category_ids: ["a", "b"] })
+    expect(
+      settingsDiff({ ...saved, categoryIds: ["a", "b"] }, withTwo)
+    ).toBeNull()
+    // Aucune catégorie : la liste vide remplace celle de la base.
+    expect(settingsDiff(withTwo, saved)).toEqual({ category_ids: [] })
+  })
 
   it("n'envoie rien quand rien ne change", () => {
     expect(settingsDiff(saved, { ...saved })).toBeNull()

@@ -6,6 +6,7 @@ import {
   Trash2,
   Unlink,
 } from "lucide-react"
+import type { ReactNode } from "react"
 import { Link } from "react-router"
 
 import {
@@ -50,6 +51,13 @@ type Props = {
   removeBlocked?: string | null
   // « Enregistrer comme modèle… » pour un bloc de premier niveau (absent : pas proposé).
   onSaveAsTemplate?: (id: string) => void
+  // Au-dessus des réglages d'un bloc (par exemple « Voir la présentation »).
+  header?: ReactNode
+  // À la place du message « Choisis un bloc… » quand aucun bloc n'est choisi (la présentation
+  // d'un article ou d'un épisode).
+  empty?: ReactNode
+  // Le nom du panneau quand il montre `empty` (par défaut « Réglages du bloc »).
+  emptyLabel?: string
 }
 
 /** Panneau de droite : les réglages du bloc choisi dans l'aperçu. */
@@ -59,13 +67,19 @@ export function BlockSettings(props: Props) {
     : null
   return (
     <section
-      aria-label={labels.label}
+      aria-label={place ? labels.label : (props.emptyLabel ?? labels.label)}
+      data-side-panel
       className="flex h-full flex-col gap-4 overflow-y-auto p-4"
     >
       {place ? (
-        <SelectedBlock place={place} {...props} />
+        <>
+          {props.header}
+          <SelectedBlock place={place} {...props} />
+        </>
       ) : (
-        <p className="text-sm text-muted-foreground">{labels.none}</p>
+        (props.empty ?? (
+          <p className="text-sm text-muted-foreground">{labels.none}</p>
+        ))
       )}
     </section>
   )

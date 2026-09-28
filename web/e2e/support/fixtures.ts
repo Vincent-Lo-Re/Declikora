@@ -132,8 +132,12 @@ export function bottomMenu(page: Page) {
  * locale a des points de départ pour les Pages (étape 6), le bouton ouvre un menu : « Page vide ».
  */
 export async function createBlankPage(page: Page) {
-  await page.getByRole("button", { name: texts.contentList.create }).click()
-  const blank = page.getByRole("menuitem", { name: texts.contentList.blank })
+  await page
+    .getByRole("button", { name: texts.contentList.kinds.page.create })
+    .click()
+  const blank = page.getByRole("menuitem", {
+    name: texts.contentList.kinds.page.blank,
+  })
   await expect(
     blank.or(page.getByLabel(texts.editor.title.label))
   ).toBeVisible()

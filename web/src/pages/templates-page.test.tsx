@@ -107,6 +107,7 @@ const created: api.Content = {
   slug: null,
   template_sort: "shared",
   template_for: null,
+  category_ids: [],
 }
 
 beforeEach(() => {
@@ -354,14 +355,18 @@ describe("« Nouvelle page » et les points de départ ([D42])", () => {
     // Les points de départ lus, « Nouvelle page » devient un menu.
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: texts.contentList.create })
+        screen.getByRole("button", {
+          name: texts.contentList.kinds.page.create,
+        })
       ).toHaveAttribute("aria-haspopup", "menu")
     )
     fireEvent.click(
-      screen.getByRole("button", { name: texts.contentList.create })
+      screen.getByRole("button", { name: texts.contentList.kinds.page.create })
     )
     expect(
-      await screen.findByRole("menuitem", { name: texts.contentList.blank })
+      await screen.findByRole("menuitem", {
+        name: texts.contentList.kinds.page.blank,
+      })
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole("menuitem", { name: "Interview" }))
     await waitFor(() =>

@@ -59,6 +59,15 @@ export const accessLevelNameSchema = z.object({
     .max(MAX_NAME_LENGTH, texts.settings.accessLevels.nameTooLong),
 })
 
+// Catégorie du Blog ou des Podcasts : mêmes limites que la base (table categories).
+export const categoryNameSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, texts.categories.nameRequired)
+    .max(MAX_NAME_LENGTH, texts.categories.nameTooLong),
+})
+
 // Nouveau modèle (section Modèles, ou « Enregistrer comme modèle ») : mêmes règles que la base
 // (content_create, template_create_from) : nom de 1 à 200 caractères, section d'un point de
 // départ obligatoire ([D42]).

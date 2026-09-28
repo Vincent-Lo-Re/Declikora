@@ -65,6 +65,7 @@ export const mediaKeys = {
   storage: ["media", "storage"] as const,
   audit: ["media", "audit"] as const,
   urls: (paths: string[]) => ["media", "urls", paths] as const,
+  one: (id: string) => ["media", "one", id] as const,
   uses: (id: string) => ["media", "uses", id] as const,
   outdated: (id: string) => ["media", "outdated", id] as const,
   verdicts: (ids: string[]) => ["media", "verdicts", ids] as const,
@@ -102,6 +103,18 @@ export async function listMedia(filters: MediaFilters): Promise<Media[]> {
   const { data, error } = await query
   if (error) throw toMediaError(error)
   return data.map(toMedia)
+}
+
+/** Un fichier hors corbeille (null s'il n'existe pas ou plus). */
+export async function getMedia(id: string): Promise<Media | null> {
+  const { data, error } = await supabase
+    .from("media")
+    .select("*")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle()
+  if (error) throw toMediaError(error)
+  return data ? toMedia(data) : null
 }
 
 /** Statut actuel d'un fichier (relu après un envoi, le temps de sa vérification). */

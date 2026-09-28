@@ -172,3 +172,19 @@ describe("rôles", () => {
     )
   })
 })
+
+describe("éditeurs", () => {
+  it("chaque sorte de contenu s'ouvre dans l'éditeur de sa section", async () => {
+    const { contentEditorPath, categoriesPath, mediaFilePath } =
+      await import("@/navigation")
+    expect(contentEditorPath("article", "a")).toBe("/blog/a")
+    expect(contentEditorPath("episode", "e")).toBe("/podcasts/e")
+    expect(contentEditorPath("page", "p")).toBe("/pages/p")
+    expect(contentEditorPath("template", "t")).toBe("/modeles/t")
+    // Les méthodes, leurs chapitres et leurs leçons : partie 7b.
+    expect(contentEditorPath("method", "m")).toBeNull()
+    expect(contentEditorPath("lesson", "l")).toBeNull()
+    expect(categoriesPath("podcasts")).toBe("/podcasts/categories")
+    expect(mediaFilePath("f")).toBe("/mediatheque?fichier=f")
+  })
+})

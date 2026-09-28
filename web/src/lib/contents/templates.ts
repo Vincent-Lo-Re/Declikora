@@ -245,6 +245,8 @@ function contentOf(data: Record<string, unknown>): Content {
     ...(data as unknown as Content),
     title: (data.title as string | null) ?? "",
     draft: data.draft as unknown as Draft,
+    // Un modèle n'a pas de catégorie.
+    category_ids: [],
   }
 }
 

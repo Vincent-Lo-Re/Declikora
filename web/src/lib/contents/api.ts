@@ -105,6 +105,10 @@ export type ContentKind =
 export type ContentListItem = {
   id: string
   title: string
+  // Adresse de la page dans le brouillon (pages seulement).
+  slug: string | null
+  // Catégories du brouillon (articles et épisodes), dans aucun ordre particulier.
+  category_ids: string[]
   draft_rev: number
   draft_saved_at: string
   saved_by_name: string | null
@@ -124,6 +128,13 @@ function nameOf(profile: ProfileName): string | null {
   return profile.full_name?.trim() || profile.email
 }
 
+/** Les catégories d'un brouillon (content_categories), triées : l'ordre ne compte pas. */
+function categoryIdsOf(
+  rows: { category_id: string }[] | null | undefined
+): string[] {
+  return (rows ?? []).map((row) => row.category_id).sort()
+}
+
 // Un verrou sans signe de vie depuis 90 s est périmé ([D13]).
 const LOCK_TTL_MS = 90_000
 
@@ -134,7 +145,7 @@ export async function listContents(
   const { data, error, status } = await supabase
     .from("contents")
     .select(
-      "id, title, draft_rev, draft_saved_at, first_published_at, scheduled_at, schedule_error, saved_by:profiles!contents_draft_saved_by_fkey(full_name, email), edit_locks(holder_id, heartbeat_at, holder:profiles(full_name, email)), live:versions!contents_live_version_fkey(draft_rev)"
+      "id, title, slug, draft_rev, draft_saved_at, first_published_at, scheduled_at, schedule_error, saved_by:profiles!contents_draft_saved_by_fkey(full_name, email), edit_locks(holder_id, heartbeat_at, holder:profiles(full_name, email)), live:versions!contents_live_version_fkey(draft_rev), content_categories(category_id)"
     )
     .eq("kind", kind)
     .is("deleted_at", null)
@@ -155,6 +166,8 @@ export async function listContents(
     return {
       id: row.id,
       title: row.title ?? "",
+      slug: row.slug,
+      category_ids: categoryIdsOf(row.content_categories),
       draft_rev: row.draft_rev,
       draft_saved_at: row.draft_saved_at,
       saved_by_name: nameOf(row.saved_by as ProfileName),
@@ -182,23 +195,30 @@ export type Content = Pick<
   | "slug"
   | "template_sort"
   | "template_for"
-> & { draft: Draft; title: string }
+> & {
+  draft: Draft
+  title: string
+  // Catégories du brouillon (articles et épisodes), triées.
+  category_ids: string[]
+}
 
 /** Un contenu et son brouillon ; null s'il n'existe pas (ou plus). */
 export async function getContent(id: string): Promise<Content | null> {
   const { data, error, status } = await supabase
     .from("contents")
     .select(
-      "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, parent_id, access_chosen, access_level_id, slug, template_sort, template_for"
+      "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, parent_id, access_chosen, access_level_id, slug, template_sort, template_for, content_categories(category_id)"
     )
     .eq("id", id)
     .maybeSingle()
   if (error) throw toContentError(error, status)
   if (!data) return null
+  const { content_categories: categories, ...rest } = data
   return {
-    ...data,
+    ...rest,
     title: data.title ?? "",
     draft: data.draft as unknown as Draft,
+    category_ids: categoryIdsOf(categories),
   }
 }
 
@@ -236,6 +256,8 @@ export async function createContent(
     ...data,
     title: data.title ?? "",
     draft: data.draft as unknown as Draft,
+    // Un contenu neuf n'a pas de catégorie ([D44] : elles sont facultatives).
+    category_ids: [],
   }
 }
 
@@ -253,22 +275,39 @@ export type ContentSettings = {
   accessChosen: boolean
   accessLevelId: string | null
   slug: string | null
+  // Catégories (articles et épisodes), triées : l'ordre ne compte pas ([D44] : facultatives).
+  categoryIds: string[]
 }
 
 /** Ce que save_draft reçoit dans settings (seulement les réglages changés). */
 export type SettingsPayload = {
   access_level_id?: string | null
   slug?: string | null
+  category_ids?: string[]
 }
 
 export function settingsOf(
-  content: Pick<Content, "access_chosen" | "access_level_id" | "slug">
+  content: Pick<
+    Content,
+    "access_chosen" | "access_level_id" | "slug" | "category_ids"
+  >
 ): ContentSettings {
   return {
     accessChosen: content.access_chosen,
     accessLevelId: content.access_level_id,
     slug: content.slug,
+    categoryIds: [...content.category_ids].sort(),
   }
+}
+
+/** Vrai si les deux listes contiennent les mêmes catégories (dans n'importe quel ordre). */
+export function sameCategories(
+  a: readonly string[],
+  b: readonly string[]
+): boolean {
+  if (a.length !== b.length) return false
+  const set = new Set(a)
+  return b.every((id) => set.has(id))
 }
 
 /**
@@ -287,6 +326,10 @@ export function settingsDiff(
     payload.access_level_id = wanted.accessLevelId
   }
   if (wanted.slug !== saved.slug) payload.slug = wanted.slug
+  // La liste remplace celle de la base ([] : aucune catégorie).
+  if (!sameCategories(saved.categoryIds, wanted.categoryIds)) {
+    payload.category_ids = [...wanted.categoryIds].sort()
+  }
   return Object.keys(payload).length > 0 ? payload : null
 }
 

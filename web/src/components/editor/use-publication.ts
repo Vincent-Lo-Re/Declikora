@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import type { SettingsFocus } from "@/components/editor/content-settings-sheet"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import type { AccessLevel } from "@/lib/access-levels"
 import {
@@ -18,6 +19,7 @@ import {
   unpublishContent,
   unscheduleContent,
 } from "@/lib/contents/publication"
+import type { PublishChecks, Requirement } from "@/lib/contents/requirements"
 import { templateKeys } from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
 import { kickFiles, mediaKeys } from "@/lib/media/api"
@@ -53,7 +55,14 @@ export type PublicationBridge = {
   /** « Reprendre la main » (confirmé par la fenêtre du refus [D14]). */
   takeLock: () => void
   /** Ouvre les réglages du contenu (et met le focus sur l'adresse). */
-  openSettings: (focus: "slug" | null) => void
+  openSettings: (focus: SettingsFocus) => void
+  /**
+   * Ce qui manque pour publier (image de présentation, audio : [D45]) et les conseils
+   * (transcription : [D46]). Absent : rien n'est exigé (page).
+   */
+  checks?: PublishChecks
+  /** Ouvre le choix de ce qui manque (image de présentation, audio). */
+  onFix?: (key: Requirement["key"]) => void
 }
 
 type DialogState =
@@ -86,7 +95,10 @@ export function usePublication(bridge: PublicationBridge) {
   const query = useQuery({
     queryKey: contentKeys.publication(contentId),
     queryFn: () => getPublication(contentId),
-    // La tâche planifiée publie sans prévenir : l'état est relu régulièrement.
+    // La tâche planifiée publie (ou échoue) sans prévenir : l'état est relu régulièrement, et à
+    // chaque ouverture de l'éditeur (sinon, rouvert depuis l'Accueil, il montrerait encore une
+    // programmation qui a échoué entre-temps).
+    staleTime: 0,
     refetchInterval: 30_000,
     enabled: bridge.enabled ?? true,
   })
@@ -133,6 +145,15 @@ export function usePublication(bridge: PublicationBridge) {
         case "conflit_revision":
           toast.error(labels.conflict)
           return
+        // [D45] et l'audio d'un épisode : la base a refusé, on ouvre le choix du fichier.
+        case "image_de_presentation_manquante":
+          toast.error(error.message)
+          bridge.onFix?.("cover")
+          return
+        case "son_manquant":
+          toast.error(error.message)
+          bridge.onFix?.("audio")
+          return
       }
       toast.error(error.message, { description: error.detail ?? undefined })
     } else {
@@ -169,7 +190,9 @@ export function usePublication(bridge: PublicationBridge) {
 
   const schedule = useMutation({
     mutationFn: async ({ at, level }: { at: Date; level: LevelPick }) => {
-      if (level !== undefined && (await saveFirst(level)) === null) return null
+      // Toujours terminer l'enregistrement d'abord : schedule vérifie [D45] et
+      // le son sur le brouillon enregistré, pas sur celui qui est à l'écran.
+      if ((await saveFirst(level)) === null) return null
       return scheduleContent(contentId, at)
     },
     onSuccess: (at) => {

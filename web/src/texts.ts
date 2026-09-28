@@ -81,6 +81,35 @@ export const texts = {
     },
   },
 
+  // Accueil (étape 7) : ce qui attend l'équipe.
+  home: {
+    drafts: {
+      title: "Mes brouillons récents",
+      description: "Ce que tu as modifié en dernier.",
+      empty:
+        "Tu n'as encore rien écrit. Commence par un article, un épisode ou une page.",
+    },
+    scheduled: {
+      title: "Publications programmées",
+      description:
+        "Dans l'ordre où elles partiront dans l'app. Une programmation en attente attend que la personne qui écrit ait quitté l'éditeur.",
+      empty: "Aucune publication programmée.",
+      by: (name: string) => `programmée par ${name}`,
+    },
+    failed: {
+      title: "Programmations échouées",
+      description:
+        "Elles ne sont pas parties dans l'app. Ouvre le contenu pour le programmer de nouveau, ou pour effacer l'échec.",
+      empty: "Aucune programmation échouée.",
+      reason: (reason: string) => `Raison : ${reason}`,
+      by: (name: string) => `Programmée par ${name}.`,
+    },
+    savedAt: (date: string) => `Modifié le ${date}`,
+    loadFailed: "Cette liste n'a pas pu être chargée.",
+    retry: "Réessayer",
+    untitled: "Sans titre",
+  },
+
   comingSoon: {
     title: "Bientôt disponible",
     description: "Cette section sera construite dans une prochaine étape.",
@@ -656,44 +685,183 @@ export const texts = {
     retry: "Réessayer",
   },
 
-  // Liste des pages (étape 4 : minimale, pour essayer l'éditeur ; complétée à l'étape 7).
+  // Listes des contenus d'une section (Pages, Blog, Podcasts) : étape 7.
   contentList: {
-    create: "Nouvelle page",
-    createFailed: "La page n'a pas pu être créée.",
+    // Ce qui dépend de la sorte de contenu (genre, nombre).
+    kinds: {
+      page: {
+        create: "Nouvelle page",
+        createFailed: "La page n'a pas pu être créée.",
+        // « Nouvelle page » quand des points de départ existent pour les Pages ([D42]).
+        blank: "Page vide",
+        confirmTrashTitle: "Supprimer cette page ?",
+        confirmTrash: (title: string) =>
+          `${title} va dans la corbeille. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
+        restored: (title: string) => `${title} est restaurée, en brouillon.`,
+        emptyTitle: "Aucune page pour l'instant",
+        emptyDescription:
+          "Crée une page : elle s'ouvre aussitôt dans l'éditeur, et tout ce que tu écris est enregistré au fur et à mesure.",
+        search: "Rechercher une page",
+        noResults: "Aucune page ne correspond à ta recherche ou à tes filtres.",
+      },
+      article: {
+        create: "Nouvel article",
+        createFailed: "L'article n'a pas pu être créé.",
+        blank: "Article vide",
+        confirmTrashTitle: "Supprimer cet article ?",
+        confirmTrash: (title: string) =>
+          `${title} va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras le restaurer pendant 30 jours.`,
+        restored: (title: string) => `${title} est restauré, en brouillon.`,
+        emptyTitle: "Aucun article pour l'instant",
+        emptyDescription:
+          "Crée un article : il s'ouvre aussitôt dans l'éditeur, et tout ce que tu écris est enregistré au fur et à mesure.",
+        search: "Rechercher un article",
+        noResults:
+          "Aucun article ne correspond à ta recherche ou à tes filtres.",
+      },
+      episode: {
+        create: "Nouvel épisode",
+        createFailed: "L'épisode n'a pas pu être créé.",
+        blank: "Épisode vide",
+        confirmTrashTitle: "Supprimer cet épisode ?",
+        confirmTrash: (title: string) =>
+          `${title} va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras le restaurer pendant 30 jours.`,
+        restored: (title: string) => `${title} est restauré, en brouillon.`,
+        emptyTitle: "Aucun épisode pour l'instant",
+        emptyDescription:
+          "Crée un épisode : il s'ouvre aussitôt dans l'éditeur. Choisis ensuite son image de présentation et son audio.",
+        search: "Rechercher un épisode",
+        noResults:
+          "Aucun épisode ne correspond à ta recherche ou à tes filtres.",
+      },
+    },
     columns: {
       title: "Titre",
       publication: "Publication",
+      categories: "Catégories",
+      address: "Adresse",
       savedAt: "Dernière modification",
       status: "En ce moment",
       actions: "Actions",
     },
+    searchPlaceholder: "Rechercher par titre…",
+    filters: {
+      state: "État",
+      category: "Catégorie",
+      states: {
+        all: "Tous les états",
+        draft: "Brouillons",
+        live: "En ligne",
+        modified: "Modifiés depuis la publication",
+        withdrawn: "Retirés de l'app",
+        scheduled: "Programmés",
+        failed: "Programmation échouée",
+      },
+      allCategories: "Toutes les catégories",
+      noCategory: "Sans catégorie",
+      reset: "Effacer les filtres",
+    },
+    count: (shown: number, total: number) =>
+      shown === total
+        ? total === 1
+          ? "1 élément"
+          : `${total} éléments`
+        : `${shown} sur ${total}`,
+    noAddress: "Pas d'adresse",
+    noCategory: "Aucune",
+    manageCategories: "Catégories",
     actions: (title: string) => `Actions pour ${title}`,
     open: "Ouvrir",
     trash: "Supprimer",
     confirmTrash: {
-      title: "Supprimer cette page ?",
-      description: (title: string) =>
-        `${title} va dans la corbeille. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
       confirm: "Mettre à la corbeille",
     },
     trashed: (title: string) => `${title} est dans la corbeille.`,
     undo: "Annuler",
-    restored: (title: string) => `${title} est restaurée, en brouillon.`,
     untitled: "Sans titre",
     savedBy: (name: string) => `par ${name}`,
     beingEdited: (name: string) => `${name} écrit`,
-    empty: {
-      title: "Aucune page pour l'instant",
-      description:
-        "Crée une page : elle s'ouvre aussitôt dans l'éditeur, et tout ce que tu écris est enregistré au fur et à mesure.",
-    },
     loadFailed: "La liste n'a pas pu être chargée.",
     refreshFailed:
       "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
     retry: "Réessayer",
-    // « Nouvelle page » quand des points de départ existent pour les Pages ([D42]).
-    blank: "Page vide",
     starters: "Points de départ",
+  },
+
+  // Catégories du Blog et des Podcasts (étape 7) : ADMIN § 3, [D28], [D44].
+  categories: {
+    title: (section: string) => `Catégories : ${section}`,
+    description: {
+      blog: "Elles servent à filtrer les articles dans l'app. Un article peut en avoir une, plusieurs ou aucune.",
+      podcasts:
+        "Elles servent à filtrer les épisodes dans l'app. Un épisode peut en avoir une, plusieurs ou aucune.",
+    },
+    back: (section: string) => `Retour à ${section}`,
+    order:
+      "L'app les montre dans cet ordre. Range-les avec la poignée, à la souris ou au clavier.",
+    listLabel: (section: string) =>
+      `Catégories ${section}, dans l'ordre de l'app`,
+    empty:
+      "Aucune catégorie pour l'instant. Les catégories sont facultatives : ajoutes-en si tu veux que l'app puisse filtrer.",
+    name: "Nom de la nouvelle catégorie",
+    namePlaceholder: "Par exemple : Sommeil",
+    nameRequired: "Donne un nom à la catégorie.",
+    nameTooLong: "Le nom ne doit pas dépasser 100 caractères.",
+    add: "Ajouter",
+    added: (name: string) => `Catégorie « ${name} » ajoutée.`,
+    rename: "Renommer",
+    renameItem: (name: string) => `Renommer ${name}`,
+    renameLabel: (name: string) => `Nouveau nom pour ${name}`,
+    save: "Enregistrer",
+    renamed: "Catégorie renommée.",
+    remove: "Supprimer",
+    removeItem: (name: string) => `Supprimer ${name}`,
+    uses: (count: number) =>
+      count === 0
+        ? "Dans aucun brouillon"
+        : count === 1
+          ? "Dans 1 brouillon"
+          : `Dans ${count} brouillons`,
+    confirmRemove: {
+      title: "Supprimer cette catégorie ?",
+      description: (name: string) =>
+        `La catégorie « ${name} » sera supprimée définitivement : elle ne passe pas par la corbeille, et tu ne pourras pas la restaurer.`,
+      uses: (count: number) =>
+        count === 1
+          ? "1 brouillon la perd aussitôt. Dans l'app, elle disparaît des filtres tout de suite, même pour les contenus déjà publiés."
+          : count > 1
+            ? `${count} brouillons la perdent aussitôt. Dans l'app, elle disparaît des filtres tout de suite, même pour les contenus déjà publiés.`
+            : "Dans l'app, elle disparaît des filtres tout de suite, même pour les contenus déjà publiés.",
+      confirm: "Supprimer définitivement",
+    },
+    removed: (name: string) => `Catégorie « ${name} » supprimée.`,
+    handle: (name: string) => `Déplacer ${name}`,
+    reordered: "Nouvel ordre enregistré.",
+    // Glisser-déposer : annonces lues par les lecteurs d'écran.
+    dnd: {
+      roleDescription: "catégorie déplaçable",
+      instructions:
+        "Pour déplacer une catégorie, appuie sur Espace ou Entrée sur sa poignée. Déplace-la avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour la déposer, ou sur Échap pour annuler.",
+      start: (name: string) => `Tu as pris ${name}.`,
+      over: (name: string, position: number, count: number) =>
+        `${name} est à la place n° ${position} sur ${count}.`,
+      end: (name: string, position: number, count: number) =>
+        `${name} déposée à la place n° ${position} sur ${count}.`,
+      cancel: (name: string) =>
+        `Déplacement annulé : ${name} reprend sa place.`,
+    },
+    loadFailed: "Les catégories n'ont pas pu être chargées.",
+    retry: "Réessayer",
+    errors: {
+      nom_en_double: "Une catégorie de cette section porte déjà ce nom.",
+      nom_invalide: "Le nom doit faire entre 1 et 100 caractères.",
+      introuvable: "Cette catégorie n'existe plus. Recharge la page.",
+      demande_invalide:
+        "La liste a changé entre-temps. Recharge la page, puis réessaie.",
+      categorie_invalide: "La section d'une catégorie ne change pas.",
+      reserve_a_l_equipe:
+        "Ta session ne donne plus accès aux catégories. Reconnecte-toi.",
+    },
   },
 
   // Modèles de blocs (étape 6) : page Modèles, éditeur d'un modèle, insertion dans un contenu,
@@ -953,7 +1121,7 @@ export const texts = {
       inBox: "Ajouter dans l'encadré",
     },
     emptyPage: {
-      title: "Page vide",
+      title: "Aucun bloc pour l'instant",
       description:
         "Ajoute un premier bloc : un texte, une image ou un encadré.",
     },
@@ -1048,6 +1216,78 @@ export const texts = {
         `Échec de l'envoi de ${name}. ${error}`,
       notImage: (name: string) =>
         `${name} est dans la Médiathèque, mais le bloc Image n'accepte que les photos et les images (JPEG, PNG, WebP, GIF, HEIC).`,
+    },
+    // Le choix de l'audio d'un épisode : mêmes libellés que le choix d'une image, sauf ceux-ci.
+    audioPicker: {
+      title: "Choisir l'audio",
+      description:
+        "Les audios prêts de la médiathèque, ou un nouveau fichier à envoyer (MP3 ou M4A).",
+      search: "Rechercher un audio",
+      choose: (name: string) => `Choisir ${name}`,
+      empty:
+        "Aucun audio dans la médiathèque. Envoies-en un avec « Envoyer un audio ».",
+      noResults: "Aucun audio trouvé. Essaie un autre nom.",
+      loadFailed: "Les audios n'ont pas pu être chargés.",
+      upload: "Envoyer un audio",
+      uploadInput: "Audio à envoyer",
+      notImage: (name: string) =>
+        `${name} est dans la Médiathèque, mais un épisode n'accepte qu'un audio (MP3 ou M4A).`,
+      noTranscript: "Sans transcription",
+    },
+    // Présentation d'un article ou d'un épisode (étape 7) : image de présentation, résumé,
+    // audio, catégories. [D45], [D46].
+    presentation: {
+      panelTitle: {
+        article: "Présentation de l'article",
+        episode: "Présentation de l'épisode",
+      },
+      panelHint:
+        "Ce que l'app montre en tête du contenu et dans ses listes. Choisis un bloc dans l'aperçu pour voir ses réglages.",
+      show: "Voir la présentation",
+      cover: {
+        label: "Image de présentation",
+        hint: "Obligatoire pour publier : c'est la vignette des listes de l'app. Elle reste publique, même pour un contenu réservé.",
+        choose: "Choisir l'image de présentation",
+        replace: "Changer d'image",
+        remove: "Retirer l'image",
+        removed: "Image de présentation retirée.",
+        none: "Pas encore d'image de présentation",
+        missing: "Image supprimée : choisis-en une autre.",
+        notReady: "Cette image n'est pas prête : choisis-en une autre.",
+        alt: (alt: string) => `Texte alternatif (médiathèque) : « ${alt} »`,
+        noAlt:
+          "Pas de texte alternatif : ajoute-le dans la fiche de l'image, pour les personnes qui ne la voient pas.",
+      },
+      summary: {
+        label: "Résumé",
+        placeholder: "Résumé (facultatif)",
+        hint: "Facultatif. Affiché sous le titre et dans les listes de l'app.",
+        count: (count: string) => `${count} / 1 000 caractères`,
+      },
+      audio: {
+        label: "Audio de l'épisode",
+        hint: "Obligatoire pour publier : un fichier MP3 ou M4A de la médiathèque.",
+        choose: "Choisir l'audio",
+        replace: "Changer d'audio",
+        remove: "Retirer l'audio",
+        removed: "Audio retiré.",
+        none: "Pas encore d'audio",
+        missing: "Audio supprimé : choisis-en un autre.",
+        notReady: "Cet audio n'est pas prêt : choisis-en un autre.",
+        duration: (duration: string) => `Durée : ${duration}`,
+        noDuration: "Durée inconnue",
+        listen: (name: string) => `Écouter ${name}`,
+        transcriptOk: "Transcription renseignée dans la médiathèque.",
+        transcriptMissing:
+          "Pas de transcription : ajoute-la dans la fiche du fichier, pour les personnes qui ne peuvent pas écouter. Elle est conseillée, pas obligatoire.",
+        openFile: "Ouvrir sa fiche dans la Médiathèque",
+      },
+      categories: {
+        label: "Catégories",
+        none: "Aucune catégorie (facultatif).",
+        edit: "Choisir les catégories",
+      },
+      openFileHint: "(nouvel onglet)",
     },
     settings: {
       label: "Réglages du bloc",
@@ -1201,11 +1441,14 @@ export const texts = {
       verrou_tenu:
         "Quelqu'un écrit ce brouillon en ce moment : reprends la main, ou attends qu'il ait fini.",
       adresse_manquante: "Choisis l'adresse de la page avant de la publier.",
-      son_manquant: "Choisis le son de l'épisode avant de le publier.",
+      son_manquant: "Choisis l'audio de l'épisode avant de le publier.",
+      // Étape 7 : [D45].
+      image_de_presentation_manquante:
+        "Choisis l'image de présentation avant de publier : c'est la vignette des listes de l'app.",
       image_sans_fichier:
         "Une image n'a pas de fichier : choisis-en un, ou supprime le bloc.",
       fichier_inadapte:
-        "Un fichier n'est pas du bon type : une photo ou une image pour un bloc Image, un audio pour un épisode.",
+        "Un fichier n'est pas du bon type : une photo ou une image pour un bloc Image ou l'image de présentation, un audio pour un épisode.",
       niveau_invalide:
         "Cette formule n'existe plus. Choisis un autre niveau d'accès.",
       date_passee:
@@ -1298,6 +1541,21 @@ export const texts = {
       address: "Adresse",
       confirm: "Publier",
     },
+    // Ce qui manque pour publier ou programmer ([D45], audio d'un épisode), et le conseil [D46].
+    requirements: {
+      publishTitle: "Pour publier, il manque :",
+      scheduleTitle: "Pour programmer, il manque :",
+      cover: "L'image de présentation (la vignette des listes de l'app).",
+      coverUnavailable:
+        "Une image de présentation disponible : la sienne est supprimée ou pas prête.",
+      audio: "L'audio de l'épisode.",
+      audioUnavailable:
+        "Un audio disponible : le sien est supprimé ou pas prêt.",
+      chooseCover: "Choisir l'image",
+      chooseAudio: "Choisir l'audio",
+      transcript:
+        "Conseillé : l'audio n'a pas de transcription. Tu peux publier quand même, et l'ajouter ensuite dans sa fiche de la Médiathèque.",
+    },
     levelRequired:
       "Il n'y a pas de niveau d'accès par défaut : choisis Gratuit ou une formule.",
     levelNeedsLock:
@@ -1357,12 +1615,23 @@ export const texts = {
         outline: "Plan de la méthode",
         files: "Textes de la médiathèque mis à jour",
       },
+      // Les catégories d'une version (article, épisode), dans l'ordre de la section ([D28]).
+      categories: (names: string[]) => `Catégories : ${names.join(", ")}`,
+      noCategory: "Aucune catégorie",
+      deletedCategories: (count: number) =>
+        count === 1 ? "catégorie supprimée" : `${count} catégories supprimées`,
       revert: "Revenir à cette version",
       revertItem: (number: number) => `Revenir à la version n° ${number}`,
       confirm: {
         title: (number: number) => `Revenir à la version n° ${number} ?`,
-        description:
-          "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et son adresse. Rien ne change dans l'app avant la prochaine publication.",
+        // Ce que revert_to_version remplace dépend de la sorte : l'adresse d'une page, les
+        // catégories d'un article ou d'un épisode.
+        description: (kind: string) =>
+          kind === "page"
+            ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et son adresse. Rien ne change dans l'app avant la prochaine publication."
+            : kind === "article" || kind === "episode"
+              ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et ses catégories (une catégorie supprimée depuis ne revient pas). Rien ne change dans l'app avant la prochaine publication."
+              : "Le brouillon sera remplacé par cette version : son texte et son niveau d'accès. Rien ne change dans l'app avant la prochaine publication.",
         confirm: "Revenir à cette version",
       },
       needsLock:
@@ -1413,6 +1682,15 @@ export const texts = {
         fromTitle: "Reprendre le titre",
         live: (slug: string) => `En ligne : ${slug}`,
         missing: "Choisis l'adresse de la page avant de la publier.",
+      },
+      categories: {
+        label: "Catégories",
+        description:
+          "Facultatives : l'app s'en sert pour filtrer. Elles ne changent l'app qu'à la prochaine publication.",
+        none: "Aucune catégorie dans cette section pour l'instant.",
+        manage: "Gérer les catégories",
+        loadFailed: "Les catégories n'ont pas pu être chargées.",
+        retry: "Réessayer",
       },
       // Un réglage refusé par la base : le brouillon s'enregistre quand même, sans lui.
       refused:

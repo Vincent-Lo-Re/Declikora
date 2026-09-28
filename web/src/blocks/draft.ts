@@ -24,6 +24,8 @@ export const DRAFT_WARN_BYTES = 200_000
 
 export const TITLE_MAX = 200
 export const CAPTION_MAX = 300
+// Résumé d'un article ou d'un épisode (texte simple, facultatif) : même limite que le schéma.
+export const SUMMARY_MAX = 1000
 export const ALT_MAX = 1000
 
 export function newId(): string {
@@ -268,6 +270,7 @@ export function prepareDraft(draft: Draft): PreparedDraft {
 export function draftToPlainText(draft: Draft): string {
   const parts: string[] = []
   if (draft.title.trim()) parts.push(draft.title.trim())
+  if (draft.summary?.trim()) parts.push(draft.summary.trim())
   const add = (block: Block) => {
     if (block.type === "text") {
       const text = textDocToPlainText(block.doc).trim()

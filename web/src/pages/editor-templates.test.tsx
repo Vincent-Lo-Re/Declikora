@@ -117,6 +117,7 @@ function page(blocks: Draft["blocks"]): api.Content {
     slug: null,
     template_sort: null,
     template_for: null,
+    category_ids: [],
   }
 }
 

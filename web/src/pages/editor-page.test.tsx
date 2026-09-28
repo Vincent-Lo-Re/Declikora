@@ -110,6 +110,7 @@ const content: api.Content = {
   slug: null,
   template_sort: null,
   template_for: null,
+  category_ids: [],
 }
 
 const mineRow: api.LockRow = {
@@ -217,6 +218,8 @@ describe("liste des pages", () => {
       {
         id: PAGE_ID,
         title: "Mentions légales",
+        slug: "mentions-legales",
+        category_ids: [],
         draft_rev: 4,
         draft_saved_at: "2026-09-27T12:30:00Z",
         saved_by_name: "Anne Admin",
@@ -240,7 +243,7 @@ describe("liste des pages", () => {
     ).toBeInTheDocument()
 
     fireEvent.click(
-      screen.getByRole("button", { name: texts.contentList.create })
+      screen.getByRole("button", { name: texts.contentList.kinds.page.create })
     )
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/pages/${PAGE_ID}`)
@@ -260,6 +263,8 @@ describe("liste des pages : publication et corbeille", () => {
   const row = (changes: Partial<api.ContentListItem>): api.ContentListItem => ({
     id: PAGE_ID,
     title: "Mentions légales",
+    slug: null,
+    category_ids: [],
     draft_rev: 4,
     draft_saved_at: "2026-09-27T12:30:00Z",
     saved_by_name: null,

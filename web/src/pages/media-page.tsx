@@ -14,6 +14,8 @@ import {
   useState,
   type ChangeEvent,
 } from "react"
+import { useSearchParams } from "react-router"
+import { toast } from "sonner"
 
 import { kindIcons } from "@/components/media/media-kinds"
 import { MediaGrid, MediaTable } from "@/components/media/media-collection"
@@ -39,6 +41,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import {
+  getMedia,
   listMedia,
   MEDIA_LIST_LIMIT,
   mediaKeys,
@@ -54,6 +57,11 @@ import { texts } from "@/texts"
 type View = "grid" | "list"
 
 const viewStorageKey = "declikora:mediatheque:affichage"
+
+// « /mediatheque?fichier=<id> » ouvre la fiche de ce fichier (lien depuis l'éditeur : la
+// transcription d'un audio, le texte alternatif d'une image de présentation).
+const FILE_PARAM = "fichier"
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // Ce que le sélecteur de fichiers propose (le navigateur en fait un filtre, pas une règle).
 const acceptedFiles = [
@@ -138,10 +146,48 @@ export function MediaPage() {
     if (media.error) checkAccess(media.error)
   }, [media.error, checkAccess])
 
-  const urlFor = usePreviewUrls(media.data)
-  const selected = opened
-    ? (media.data?.find((item) => item.id === opened.id) ?? opened)
+  // La fiche demandée par l'adresse, tant qu'aucune autre n'a été ouverte.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const askedParam = searchParams.get(FILE_PARAM)
+  const askedId = askedParam && UUID.test(askedParam) ? askedParam : null
+  const asked = useQuery({
+    queryKey: mediaKeys.one(askedId ?? ""),
+    queryFn: () => getMedia(askedId ?? ""),
+    enabled: askedId !== null,
+  })
+  const forgetAsked = useCallback(() => {
+    if (!searchParams.has(FILE_PARAM)) return
+    setSearchParams(
+      (params) => {
+        params.delete(FILE_PARAM)
+        return params
+      },
+      { replace: true }
+    )
+  }, [searchParams, setSearchParams])
+  // Un fichier introuvable (supprimé entre-temps, ou adresse abîmée) : on le dit.
+  const askedMissing =
+    askedParam !== null &&
+    (askedId === null || (asked.isSuccess && asked.data === null))
+  useEffect(() => {
+    if (!askedMissing) return
+    toast.error(texts.media.errors.fichier_introuvable)
+    forgetAsked()
+  }, [askedMissing, forgetAsked])
+  const shown = opened ?? (askedId ? (asked.data ?? null) : null)
+
+  const urlFor = usePreviewUrls(
+    shown && !media.data?.some((item) => item.id === shown.id)
+      ? [...(media.data ?? []), shown]
+      : media.data
+  )
+  const selected = shown
+    ? (media.data?.find((item) => item.id === shown.id) ?? shown)
     : null
+  const closeSheet = () => {
+    setOpened(null)
+    forgetAsked()
+  }
 
   const addFiles = useCallback(
     (files: FileList | File[] | null) => {
@@ -202,7 +248,7 @@ export function MediaPage() {
     const neighbor =
       index === -1 ? null : (items[index + 1] ?? items[index - 1])
     focusAfterTrash.current = neighbor?.id ?? ""
-    setOpened(null)
+    closeSheet()
   }
 
   // Où va le focus quand la fiche se ferme : par défaut, le bouton qui l'a ouverte ; après une
@@ -393,7 +439,7 @@ export function MediaPage() {
         media={selected}
         url={selected ? urlFor(selected) : undefined}
         now={media.dataUpdatedAt}
-        onClose={() => setOpened(null)}
+        onClose={closeSheet}
         onTrashed={onTrashed}
         finalFocus={sheetFinalFocus}
       />

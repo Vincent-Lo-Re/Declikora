@@ -116,9 +116,13 @@
 }
 
 /* Image */
+.blocks-image img {
+  display: block;
+}
+
+/* Le texte de remplacement est centré (classes flex de l'élément) : pas de display ici. */
 .blocks-image img,
 .blocks-image-placeholder {
-  display: block;
   width: 100%;
   border-radius: var(--blocks-radius-image);
 }
@@ -164,6 +168,46 @@
    des blocs). */
 .blocks-title:focus-visible,
 .blocks-caption:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* Présentation d'un article ou d'un épisode (étape 7) : image de présentation, résumé, audio,
+   en tête du contenu comme dans l'app. */
+.blocks-cover {
+  margin-bottom: var(--blocks-space-block-gap);
+  cursor: pointer;
+}
+
+.blocks-summary {
+  display: block;
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--blocks-color-text-muted);
+  font: inherit;
+  margin-top: calc(var(--blocks-space-block-gap) * -0.5);
+  margin-bottom: var(--blocks-space-block-gap);
+}
+
+.blocks-summary::placeholder {
+  color: var(--blocks-color-text-muted);
+  opacity: 0.7;
+}
+
+.blocks-audio {
+  margin-bottom: var(--blocks-space-block-gap);
+  border-radius: var(--blocks-radius-box);
+  padding: var(--blocks-space-box-padding);
+  background: var(--blocks-color-box-fill);
+  cursor: pointer;
+}
+
+.blocks-summary:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent);
   outline-offset: 4px;
   border-radius: 4px;

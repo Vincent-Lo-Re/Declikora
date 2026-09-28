@@ -30,6 +30,7 @@ vi.mock("@/lib/media/api", async (importOriginal) => {
     confirmMedia: vi.fn(),
     discardUpload: vi.fn(),
     getMediaVerdicts: vi.fn(),
+    getMedia: vi.fn(),
   }
 })
 vi.mock("@/lib/media/transfer", async (importOriginal) => ({
@@ -319,6 +320,66 @@ describe("Médiathèque", () => {
       within(sheet).getByLabelText(texts.media.detail.transcript)
     ).toBeVisible()
     expect(within(sheet).queryByLabelText(texts.media.detail.alt)).toBeNull()
+  })
+
+  it("« Utilisé dans » ouvre l'éditeur d'un article ou d'un épisode (étape 7)", async () => {
+    const ARTICLE = "00000000-0000-4000-8000-0000000000a1"
+    const EPISODE = "00000000-0000-4000-8000-0000000000e1"
+    vi.mocked(api.getMediaUses).mockResolvedValue([
+      {
+        content_id: ARTICLE,
+        kind: "article",
+        title: "Bien dormir",
+        parent_title: null,
+        in_draft: true,
+        in_app: false,
+      },
+      {
+        content_id: EPISODE,
+        kind: "episode",
+        title: "Entretien",
+        parent_title: null,
+        in_draft: true,
+        in_app: false,
+      },
+    ])
+    renderApp("/mediatheque")
+    fireEvent.click(
+      await screen.findByRole("button", { name: texts.media.open(photo.name) })
+    )
+    const sheet = await screen.findByRole("dialog")
+    expect(
+      await within(sheet).findByRole("link", { name: "Bien dormir" })
+    ).toHaveAttribute("href", `/blog/${ARTICLE}`)
+    expect(
+      within(sheet).getByRole("link", { name: "Entretien" })
+    ).toHaveAttribute("href", `/podcasts/${EPISODE}`)
+  })
+
+  it("« /mediatheque?fichier=<id> » ouvre la fiche de ce fichier (lien de l'éditeur, [D46])", async () => {
+    vi.mocked(api.getMedia).mockResolvedValue(voice)
+    const { router } = renderApp(`/mediatheque?fichier=${voice.id}`)
+    const sheet = await screen.findByRole("dialog")
+    expect(within(sheet).getByText(voice.name)).toBeVisible()
+    expect(
+      within(sheet).getByLabelText(texts.media.detail.transcript)
+    ).toBeVisible()
+    expect(api.getMedia).toHaveBeenCalledWith(voice.id)
+    // Fermer la fiche retire le fichier de l'adresse.
+    fireEvent.keyDown(sheet, { key: "Escape" })
+    await waitFor(() => expect(router.state.location.search).toBe(""))
+  })
+
+  it("un fichier introuvable dans l'adresse est signalé", async () => {
+    vi.mocked(api.getMedia).mockResolvedValue(null)
+    const { router } = renderApp(
+      "/mediatheque?fichier=00000000-0000-4000-8000-0000000000ff"
+    )
+    expect(
+      await screen.findByText(texts.media.errors.fichier_introuvable)
+    ).toBeVisible()
+    await waitFor(() => expect(router.state.location.search).toBe(""))
+    expect(screen.queryByRole("dialog")).toBeNull()
   })
 
   it("met un fichier à la corbeille, puis appelle la fonction « files »", async () => {

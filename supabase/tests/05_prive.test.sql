@@ -3,7 +3,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(19);
+select plan(21);
 
 select has_schema('private', 'le schéma private existe');
 select ok(
@@ -70,8 +70,11 @@ select is(
       and has_function_privilege('anon', p.oid, 'execute')
     order by 1
   ),
-  array['app_access_levels()', 'app_content(uuid)', 'app_file_locations(uuid[])', 'app_page(text)', 'ping()'],
-  'public : seules ping et les lectures de l''app (app_*, étape 5) sont exécutables par anon'
+  array[
+    'app_access_levels()', 'app_categories(text)', 'app_content(uuid)',
+    'app_feed(text,uuid,text,integer)', 'app_file_locations(uuid[])', 'app_page(text)', 'ping()'
+  ],
+  'public : seules ping et les lectures de l''app (app_*, étapes 5 et 7) sont exécutables par anon'
 );
 select is(
   array(
@@ -119,6 +122,32 @@ select is(
     'template_push(uuid):false:true:true'
   ],
   'template_* (étape 6) : authenticated seulement, security definer'
+);
+
+-- Le rangement des catégories (étape 7) : l'équipe seulement (la fonction vérifie ensuite
+-- is_staff).
+select is(
+  array(
+    select p.oid::regprocedure::text || ':' || has_function_privilege('anon', p.oid, 'execute')::text
+      || ':' || has_function_privilege('authenticated', p.oid, 'execute')::text
+      || ':' || p.prosecdef::text
+    from pg_proc p
+    where p.pronamespace = 'public'::regnamespace
+      and p.proname like 'categories\_%'
+    order by 1
+  ),
+  array['categories_reorder(text,uuid[]):false:true:true'],
+  'categories_* (étape 7) : authenticated seulement, security definer'
+);
+
+-- Les fonctions internes de l'étape 7 ne sont appelables ni par anon ni par authenticated (déjà
+-- couvert par la liste fermée ci-dessus ; rappel explicite pour les nouvelles).
+select ok(
+  not has_function_privilege('anon', 'private.check_publish_requirements(text,jsonb)', 'execute')
+    and not has_function_privilege('authenticated', 'private.check_publish_requirements(text,jsonb)', 'execute')
+    and not has_function_privilege('authenticated', 'private.cover_required(text)', 'execute')
+    and not has_function_privilege('authenticated', 'private.feed_cursor(timestamptz,uuid)', 'execute'),
+  'private : check_publish_requirements, cover_required et feed_cursor ne sont pas exécutables par l''API'
 );
 
 -- Les fonctions de déclencheur et les fonctions files_* ne sont pas appelables par l'API.

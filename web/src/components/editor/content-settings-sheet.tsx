@@ -1,7 +1,10 @@
+import { Tags } from "lucide-react"
 import { useRef, useState, type KeyboardEvent } from "react"
+import { Link } from "react-router"
 
 import { AccessLevelChoice } from "@/components/editor/access-level-choice"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Field,
   FieldDescription,
@@ -19,12 +22,26 @@ import {
 } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { AccessLevel } from "@/lib/access-levels"
+import type { Category, CategorySection } from "@/lib/categories"
 import type { ContentKind, ContentSettings } from "@/lib/contents/api"
 import type { LiveVersion } from "@/lib/contents/publication"
 import { checkSlug, slugFromTitle } from "@/lib/contents/slug"
+import { categoriesPath } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.publication.settings
+
+/** Les catégories de la section d'un article ou d'un épisode, telles que l'éditeur les lit. */
+export type SectionCategories = {
+  section: CategorySection
+  // undefined tant qu'elles ne sont pas lues.
+  list: Category[] | undefined
+  failed: boolean
+  retry: () => void
+}
+
+/** Le champ à mettre en avant à l'ouverture des réglages. */
+export type SettingsFocus = "slug" | "categories" | null
 
 /**
  * Une adresse refusée par la base (prise ou invalide) : le brouillon garde son adresse
@@ -33,9 +50,10 @@ const labels = texts.publication.settings
 export type RefusedSlug = { slug: string | null; message: string }
 
 /**
- * « Réglages du contenu » : le niveau d'accès (obligatoire avant la publication, [D41]) et,
- * pour une page, son adresse. Ils partent avec le brouillon (save_draft, sous le verrou) et ne
- * changent l'app qu'à la prochaine publication.
+ * « Réglages du contenu » : le niveau d'accès (obligatoire avant la publication, [D41]), pour
+ * une page son adresse, pour un article ou un épisode ses catégories (facultatives, [D44]). Ils
+ * partent avec le brouillon (save_draft, sous le verrou) et ne changent l'app qu'à la prochaine
+ * publication.
  */
 export function ContentSettingsSheet({
   open,
@@ -49,12 +67,13 @@ export function ContentSettingsSheet({
   levelsFailed,
   live,
   refusedSlug,
+  categories,
   onChange,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  // Le champ à mettre en avant à l'ouverture (adresse manquante ou déjà prise).
-  focus: "slug" | null
+  // Le champ à mettre en avant à l'ouverture (adresse manquante ou déjà prise, catégories).
+  focus: SettingsFocus
   kind: ContentKind
   title: string
   settings: ContentSettings
@@ -64,14 +83,23 @@ export function ContentSettingsSheet({
   live: LiveVersion | null
   // La dernière adresse refusée par l'enregistrement (prise ou invalide).
   refusedSlug: RefusedSlug | null
+  // Article ou épisode : les catégories de sa section.
+  categories?: SectionCategories
   onChange: (next: ContentSettings) => void
 }) {
   const slugRef = useRef<HTMLInputElement>(null)
+  const categoriesRef = useRef<HTMLHeadingElement>(null)
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         className="w-full gap-0 overflow-y-auto sm:max-w-md"
-        initialFocus={focus === "slug" ? slugRef : undefined}
+        initialFocus={
+          focus === "slug"
+            ? slugRef
+            : focus === "categories"
+              ? categoriesRef
+              : undefined
+        }
       >
         <SheetHeader className="pr-12">
           <SheetTitle>{labels.title}</SheetTitle>
@@ -91,6 +119,20 @@ export function ContentSettingsSheet({
               onChange({ ...settings, accessChosen: true, accessLevelId })
             }
           />
+          {categories && (
+            <>
+              <Separator />
+              <CategoriesSection
+                headingRef={categoriesRef}
+                categories={categories}
+                chosen={settings.categoryIds}
+                editable={editable}
+                onChange={(categoryIds) =>
+                  onChange({ ...settings, categoryIds })
+                }
+              />
+            </>
+          )}
           {kind === "page" && (
             <>
               <Separator />
@@ -109,6 +151,101 @@ export function ContentSettingsSheet({
         </div>
       </SheetContent>
     </Sheet>
+  )
+}
+
+/**
+ * Les catégories du contenu (cases à cocher, dans l'ordre de la section). Une catégorie
+ * supprimée entre-temps n'est plus montrée, et elle part de la liste envoyée au prochain
+ * changement ([D28]).
+ */
+function CategoriesSection({
+  headingRef,
+  categories,
+  chosen,
+  editable,
+  onChange,
+}: {
+  headingRef: React.RefObject<HTMLHeadingElement | null>
+  categories: SectionCategories
+  chosen: string[]
+  editable: boolean
+  onChange: (categoryIds: string[]) => void
+}) {
+  const words = labels.categories
+  const list = categories.list
+  const toggle = (id: string, checked: boolean) => {
+    if (!list) return
+    const known = new Set(list.map((category) => category.id))
+    const next = new Set(chosen.filter((other) => known.has(other)))
+    if (checked) next.add(id)
+    else next.delete(id)
+    onChange([...next].sort())
+  }
+  return (
+    <section className="space-y-3" data-settings="categories">
+      <div className="space-y-1">
+        <h3
+          ref={headingRef}
+          id="reglages-categories"
+          tabIndex={-1}
+          className="text-sm font-medium outline-none"
+        >
+          {words.label}
+        </h3>
+        <p className="text-sm text-muted-foreground">{words.description}</p>
+      </div>
+      {list === undefined ? (
+        categories.failed ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <p role="alert" className="text-sm text-destructive">
+              {words.loadFailed}
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={categories.retry}
+            >
+              {words.retry}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-5 w-32" />
+          </div>
+        )
+      ) : list.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{words.none}</p>
+      ) : (
+        <ul
+          aria-labelledby="reglages-categories"
+          className="grid gap-2"
+          data-category-choice
+        >
+          {list.map((category) => (
+            <li key={category.id}>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={chosen.includes(category.id)}
+                  disabled={!editable}
+                  onCheckedChange={(checked) => toggle(category.id, checked)}
+                />
+                {category.name}
+              </label>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Link
+        to={categoriesPath(categories.section)}
+        className={buttonVariants({ variant: "outline", size: "sm" })}
+      >
+        <Tags />
+        {words.manage}
+      </Link>
+    </section>
   )
 }
 
