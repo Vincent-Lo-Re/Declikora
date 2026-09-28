@@ -89,3 +89,16 @@ export const templateSchema = z
   })
 
 export type TemplateValues = z.infer<typeof templateSchema>
+
+/** Un nouveau chapitre ou une nouvelle leçon : son titre et son point de départ ([D42]). */
+export const outlineElementSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, texts.methods.create.nameRequired)
+    .max(200, texts.methods.create.nameTooLong),
+  // L'identifiant d'un point de départ, ou "" pour un élément vide.
+  starter: z.string(),
+})
+
+export type OutlineElementValues = z.infer<typeof outlineElementSchema>

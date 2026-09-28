@@ -32,6 +32,8 @@ function item(
     first_published_at: null,
     scheduled_at: null,
     schedule_error: null,
+    access_chosen: false,
+    access_level_id: null,
     ...changes,
   }
 }
@@ -111,6 +113,33 @@ describe("filtre par état", () => {
   it("programmés (en attente compris, [D31]) et échecs", () => {
     expect(by("scheduled")).toEqual(["programme", "en-attente"])
     expect(by("failed")).toEqual(["echec"])
+  })
+})
+
+describe("méthodes ([D29])", () => {
+  it("« modifié » vient de la liste des changements, pas de la seule fiche", () => {
+    const live = {
+      live_draft_rev: 3,
+      first_published_at: "2026-09-20T08:00:00Z",
+    }
+    const methods = [
+      // La fiche n'a pas changé, mais une leçon oui.
+      item("lecon", "Leçon modifiée", { ...live, pending_changes: true }),
+      // La fiche a changé puis est revenue à l'identique : rien à publier.
+      item("identique", "Rien à publier", {
+        ...live,
+        draft_rev: 5,
+        pending_changes: false,
+      }),
+      // Pas encore lu : la révision de la fiche.
+      item("inconnu", "Pas encore lu", { ...live }),
+    ]
+    const titles = (state: "live" | "modified") =>
+      filterContents(methods, { ...noFilters, state }, NOW).map(
+        (entry) => entry.title
+      )
+    expect(titles("modified")).toEqual(["Leçon modifiée"])
+    expect(titles("live")).toEqual(["Rien à publier", "Pas encore lu"])
   })
 })
 

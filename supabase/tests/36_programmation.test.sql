@@ -94,8 +94,8 @@ select throws_ok(
 );
 select lives_ok($$select pg_temp.create_content('m', 'method')$$, 'une méthode');
 select throws_ok(
-  $$select public.schedule(pg_temp.cid('m'), now() + interval '1 day')$$, 'P0001', 'sorte_invalide',
-  'une méthode ne se programme pas encore (étape 7)'
+  $$select public.schedule(pg_temp.cid('m'), now() + interval '1 day')$$, 'P0001', 'acces_a_choisir',
+  'une méthode se programme (étape 7b), après le choix du niveau d''accès'
 );
 select is(
   public.schedule(pg_temp.cid('a1'), '2030-10-03 08:00+02'), '2030-10-03 08:00+02'::timestamptz,

@@ -109,16 +109,25 @@ export function ContentSettingsSheet({
           {!editable && (
             <p className="text-sm text-muted-foreground">{labels.readOnly}</p>
           )}
-          <AccessSection
-            settings={settings}
-            editable={editable}
-            levels={levels}
-            levelsFailed={levelsFailed}
-            live={live}
-            onChange={(accessLevelId) =>
-              onChange({ ...settings, accessChosen: true, accessLevelId })
-            }
-          />
+          {kind === "chapter" || kind === "lesson" ? (
+            <ElementSection
+              kind={kind}
+              settings={settings}
+              editable={editable}
+              onChange={onChange}
+            />
+          ) : (
+            <AccessSection
+              settings={settings}
+              editable={editable}
+              levels={levels}
+              levelsFailed={levelsFailed}
+              live={live}
+              onChange={(accessLevelId) =>
+                onChange({ ...settings, accessChosen: true, accessLevelId })
+              }
+            />
+          )}
           {categories && (
             <>
               <Separator />
@@ -245,6 +254,61 @@ function CategoriesSection({
         <Tags />
         {words.manage}
       </Link>
+    </section>
+  )
+}
+
+/**
+ * Chapitre ou leçon : « Montrer dans l'app » et « Leçon gratuite » ([D29], [D43]). Pas de niveau
+ * d'accès : c'est celui de la méthode.
+ */
+function ElementSection({
+  kind,
+  settings,
+  editable,
+  onChange,
+}: {
+  kind: "chapter" | "lesson"
+  settings: ContentSettings
+  editable: boolean
+  onChange: (next: ContentSettings) => void
+}) {
+  const words = labels.element
+  return (
+    <section className="space-y-3" data-element-settings>
+      <div className="space-y-1">
+        <h3 className="text-sm font-medium">{words.label}</h3>
+        <p className="text-sm text-muted-foreground">{words.description}</p>
+      </div>
+      <Field orientation="horizontal">
+        <Checkbox
+          id="reglages-dans-app"
+          checked={settings.inApp}
+          disabled={!editable}
+          onCheckedChange={(inApp) => onChange({ ...settings, inApp })}
+        />
+        <div className="space-y-1">
+          <FieldLabel htmlFor="reglages-dans-app">{words.inApp}</FieldLabel>
+          <FieldDescription>
+            {words.inAppHint}
+            {kind === "chapter" && ` ${words.chapterInAppHint}`}
+          </FieldDescription>
+        </div>
+      </Field>
+      {kind === "lesson" && (
+        <Field orientation="horizontal">
+          <Checkbox
+            id="reglages-gratuite"
+            checked={settings.isFree}
+            disabled={!editable}
+            onCheckedChange={(isFree) => onChange({ ...settings, isFree })}
+          />
+          <div className="space-y-1">
+            <FieldLabel htmlFor="reglages-gratuite">{words.isFree}</FieldLabel>
+            <FieldDescription>{words.isFreeHint}</FieldDescription>
+          </div>
+        </Field>
+      )}
     </section>
   )
 }

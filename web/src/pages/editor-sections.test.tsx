@@ -142,6 +142,8 @@ function contentOf(
     slug: null,
     template_sort: null,
     template_for: null,
+    in_app: false,
+    is_free: false,
     category_ids: [],
     ...changes,
   }

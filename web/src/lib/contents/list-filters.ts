@@ -43,11 +43,16 @@ export const noFilters: ListFilters = {
   category: ALL_CATEGORIES,
 }
 
-/** L'état de publication d'une ligne de la liste, à l'heure de la lecture (now). */
+/**
+ * L'état de publication d'une ligne de la liste, à l'heure de la lecture (now). Une méthode en
+ * ligne : « Modifié depuis la publication » vient de pending_changes (publish_preview) quand on
+ * le connaît, et non de la seule révision de sa fiche ([D29]).
+ */
 export function itemStatus(
   item: ContentListItem,
   now: number
 ): PublicationStatus {
+  const pending = item.pending_changes
   return publicationStatus(
     {
       live:
@@ -58,8 +63,11 @@ export function itemStatus(
       scheduled_at: item.scheduled_at,
       schedule_error: item.schedule_error,
     },
-    item.draft_rev,
-    now
+    pending === false && item.live_draft_rev !== null
+      ? item.live_draft_rev
+      : item.draft_rev,
+    now,
+    pending === true
   )
 }
 

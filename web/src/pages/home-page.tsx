@@ -5,6 +5,7 @@ import { Link } from "react-router"
 
 import { useAuth } from "@/auth/auth-context"
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
+import { useMethodPending } from "@/components/methods/use-method-pending"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Badge } from "@/components/ui/badge"
@@ -38,7 +39,15 @@ const labels = texts.home
 // La tâche « publications » passe chaque minute : l'Accueil suit à peu près au même rythme.
 const REFRESH_MS = 30_000
 
-function statusOf(item: HomeItem, now: number): PublicationStatus {
+/**
+ * L'état de publication d'un contenu. Une méthode en ligne : « Modifié depuis la publication »
+ * vient de la liste de ses changements (pending), quand on la connaît.
+ */
+function statusOf(
+  item: HomeItem,
+  now: number,
+  pending?: boolean
+): PublicationStatus {
   return publicationStatus(
     {
       live:
@@ -49,8 +58,11 @@ function statusOf(item: HomeItem, now: number): PublicationStatus {
       scheduled_at: item.scheduled_at,
       schedule_error: item.schedule_error,
     },
-    item.draft_rev,
-    now
+    pending === false && item.live_draft_rev !== null
+      ? item.live_draft_rev
+      : item.draft_rev,
+    now,
+    pending === true
   )
 }
 
@@ -86,6 +98,8 @@ export function HomePage() {
   }, [error, checkAccess])
 
   const hasFailures = (failed.data?.length ?? 0) > 0
+  // Les méthodes en ligne de « Mes brouillons récents » : y a-t-il quelque chose à publier ?
+  const pending = useMethodPending(drafts.data)
 
   return (
     <>
@@ -111,7 +125,12 @@ export function HomePage() {
           empty={labels.drafts.empty}
           dataAttribute="drafts"
           render={(item) => (
-            <DraftRow key={item.id} item={item} now={drafts.dataUpdatedAt} />
+            <DraftRow
+              key={item.id}
+              item={item}
+              now={drafts.dataUpdatedAt}
+              pending={pending.get(item.id)}
+            />
           )}
         />
         <HomeCard
@@ -212,7 +231,7 @@ function HomeCard({
   )
 }
 
-/** Le titre d'un contenu, avec un lien vers son éditeur s'il existe déjà (7b : méthodes). */
+/** Le titre d'un contenu, avec un lien vers son éditeur (chapitre et leçon compris). */
 function ItemTitle({ item }: { item: HomeItem }) {
   const name = item.title.trim() || labels.untitled
   const path = contentEditorPath(item.kind, item.id)
@@ -235,20 +254,38 @@ function ItemTitle({ item }: { item: HomeItem }) {
   )
 }
 
-function DraftRow({ item, now }: { item: HomeItem; now: number }) {
-  const status = statusOf(item, now)
+function DraftRow({
+  item,
+  now,
+  pending,
+}: {
+  item: HomeItem
+  now: number
+  pending?: boolean
+}) {
+  const status = statusOf(item, now, pending)
+  // Un chapitre ou une leçon part avec sa méthode : pas d'état de publication propre.
+  const element = item.kind === "chapter" || item.kind === "lesson"
   return (
     <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
       <div className="min-w-0 space-y-0.5">
         <ItemTitle item={item} />
         <p className="text-xs text-muted-foreground">
+          {element && item.method_title !== null && (
+            <>
+              {labels.inMethod(item.method_title.trim() || labels.untitled)}{" "}
+              ·{" "}
+            </>
+          )}
           {labels.savedAt(formatDateTime(item.draft_saved_at))}
         </p>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        <LiveBadge live={status.live} />
-        <ScheduleBadge schedule={status.schedule} />
-      </div>
+      {!element && (
+        <div className="flex flex-wrap gap-1.5">
+          <LiveBadge live={status.live} />
+          <ScheduleBadge schedule={status.schedule} />
+        </div>
+      )}
     </li>
   )
 }

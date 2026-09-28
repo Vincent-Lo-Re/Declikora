@@ -236,6 +236,23 @@ describe("Corbeille : contenus", () => {
     expect(screen.queryByText(photoName)).toBeNull()
   })
 
+  it("restaure une méthode, et « Ouvrir » dans le message mène à son écran", async () => {
+    vi.mocked(api.restoreTrashItem).mockResolvedValue({ addressRemoved: false })
+    const { router } = renderApp("/corbeille")
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: texts.trash.restoreItem(method.title!),
+      })
+    )
+    expect(
+      await screen.findByText(texts.trash.restored(method.title!))
+    ).toBeVisible()
+    fireEvent.click(screen.getByRole("button", { name: texts.trash.open }))
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/methodes/${method.id}`)
+    )
+  })
+
   it("restaure une page en brouillon, et prévient quand son adresse a été reprise", async () => {
     vi.mocked(api.restoreTrashItem).mockResolvedValue({ addressRemoved: true })
     renderApp("/corbeille")

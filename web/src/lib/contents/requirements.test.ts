@@ -5,6 +5,7 @@ import type { Media } from "@/lib/media/constants"
 import {
   coverRequired,
   hasAudio,
+  hasCategories,
   hasPresentation,
   publishChecks,
 } from "@/lib/contents/requirements"
@@ -53,6 +54,13 @@ describe("sortes", () => {
     expect(hasAudio("article")).toBe(false)
     expect(hasPresentation("article")).toBe(true)
     expect(hasPresentation("page")).toBe(false)
+    // Une méthode, un chapitre, une leçon : image et résumé ; exigée pour la méthode seule.
+    expect(hasPresentation("method")).toBe(true)
+    expect(hasPresentation("lesson")).toBe(true)
+    expect(coverRequired("chapter")).toBe(false)
+    expect(coverRequired("lesson")).toBe(false)
+    expect(hasCategories("article")).toBe(true)
+    expect(hasCategories("method")).toBe(false)
   })
 })
 

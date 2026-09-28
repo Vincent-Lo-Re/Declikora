@@ -20,6 +20,8 @@ import {
   unscheduleContent,
 } from "@/lib/contents/publication"
 import type { PublishChecks, Requirement } from "@/lib/contents/requirements"
+import { methodKeys } from "@/lib/contents/methods"
+import type { PreviewRow } from "@/lib/contents/outline"
 import { templateKeys } from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
 import { kickFiles, mediaKeys } from "@/lib/media/api"
@@ -63,6 +65,22 @@ export type PublicationBridge = {
   checks?: PublishChecks
   /** Ouvre le choix de ce qui manque (image de présentation, audio). */
   onFix?: (key: Requirement["key"]) => void
+  /** Une méthode : ce qui changera dans l'app si on la publie ([D29], publish_preview). */
+  method?: MethodPublication
+}
+
+/** La liste des changements d'une méthode, lue par l'éditeur (publish_preview). */
+export type MethodPublication = {
+  // undefined tant qu'elle n'est pas lue.
+  preview: PreviewRow[] | undefined
+  // Vrai si publier changerait quelque chose dans l'app (la liste, ou la fiche enregistrée
+  // depuis sa dernière lecture) ; undefined tant qu'on ne le sait pas.
+  pending: boolean | undefined
+  // Une lecture est en cours (la liste peut dater un peu).
+  fetching: boolean
+  failed: boolean
+  /** Relit la liste (après l'enregistrement en attente). */
+  refresh: () => Promise<unknown>
 }
 
 type DialogState =
@@ -103,11 +121,17 @@ export function usePublication(bridge: PublicationBridge) {
     enabled: bridge.enabled ?? true,
   })
   const publication = query.data ?? null
+  // Une méthode : « Modifié depuis la publication » vient de la liste des changements, pas de
+  // la révision de la fiche (une leçon modifiée ne change pas la fiche, [D29]).
+  const pendingChanges = bridge.method?.pending
+  const draftRev = Math.max(bridge.draftRev, publication?.draft_rev ?? 0)
   const status = publicationStatus(
     publication ?? NO_PUBLICATION,
-    Math.max(bridge.draftRev, publication?.draft_rev ?? 0),
+    pendingChanges === false && publication?.live
+      ? publication.live.draft_rev
+      : draftRev,
     query.dataUpdatedAt,
-    bridge.unsaved
+    bridge.unsaved || pendingChanges === true
   )
 
   const refresh = () =>
@@ -125,6 +149,8 @@ export function usePublication(bridge: PublicationBridge) {
       }),
       // Un contenu publié ou retiré de l'app : ses blocs identiques partout à mettre à jour.
       queryClient.invalidateQueries({ queryKey: templateKeys.allOutdated }),
+      // Une méthode : son plan et la liste de ses changements.
+      queryClient.invalidateQueries({ queryKey: methodKeys.all }),
     ])
 
   const onError = (error: Error) => {
@@ -234,6 +260,13 @@ export function usePublication(bridge: PublicationBridge) {
     return true
   }
 
+  /** Une méthode : la liste des changements est relue à l'ouverture de la fenêtre. */
+  const refreshChanges = async () => {
+    if (!bridge.method) return
+    await bridge.prepare()
+    await bridge.method.refresh()
+  }
+
   const busy =
     publish.isPending ||
     schedule.isPending ||
@@ -254,10 +287,14 @@ export function usePublication(bridge: PublicationBridge) {
     unschedule,
     unpublish,
     startPublish: () => {
-      if (!needsAddress()) setDialog({ type: "publish" })
+      if (needsAddress()) return
+      setDialog({ type: "publish" })
+      void refreshChanges()
     },
     startSchedule: () => {
-      if (!needsAddress()) setDialog({ type: "schedule" })
+      if (needsAddress()) return
+      setDialog({ type: "schedule" })
+      void refreshChanges()
     },
   }
 }

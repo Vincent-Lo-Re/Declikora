@@ -371,7 +371,10 @@ select is(
   'épisode : la transcription est figée'
 );
 
-select throws_ok($$select pg_temp.publish('method')$$, 'P0001', 'sorte_invalide', 'une méthode ne se publie pas encore (étape 7)');
+select throws_ok(
+  $$select pg_temp.publish('method')$$, 'P0001', 'acces_a_choisir',
+  'une méthode se publie (étape 7b), après le choix du niveau d''accès'
+);
 select throws_ok($$select pg_temp.publish('ch')$$, 'P0001', 'sorte_invalide', 'un chapitre ne se publie pas seul');
 select throws_ok($$select pg_temp.publish('tpl')$$, 'P0001', 'sorte_invalide', 'un modèle ne se publie pas');
 select throws_ok(
@@ -538,7 +541,8 @@ select is(
     'blocks', null, 'audio', null,
     'files', jsonb_build_object(pg_temp.mid('photo')::text,
       (pg_temp.live('reserve')).files -> pg_temp.mid('photo')::text),
-    'categoryIds', jsonb_build_array(pg_temp.catid('sommeil'), pg_temp.catid('cuisine'))
+    'categoryIds', jsonb_build_array(pg_temp.catid('sommeil'), pg_temp.catid('cuisine')),
+    'methodId', null, 'isFree', false
   ),
   'anonyme : contenu réservé verrouillé, sans blocs ni son ; seule l''image de présentation dans files'
 );
@@ -705,9 +709,9 @@ select is(
 select ok(public.app_page('aide') is null, 'retrait : l''app ne trouve plus la page');
 select lives_ok($$select public.unpublish(pg_temp.cid('p1'))$$, 'retrait rejouable');
 select lives_ok($$select pg_temp.publish('p2')$$, 'l''adresse « aide » est libre : la seconde page se publie');
-select throws_ok(
-  $$select public.unpublish(pg_temp.cid('ch'))$$, 'P0001', 'sorte_invalide',
-  'un chapitre ne se retire pas ainsi (étape 7)'
+select lives_ok(
+  $$select public.unpublish(pg_temp.cid('ch'))$$,
+  'un chapitre se retire de l''app (étape 7b, [D26]) : rien à faire s''il n''y est pas'
 );
 select throws_ok(
   $$select public.unpublish('20000000-0000-4000-8000-0000000000ff')$$, 'P0001', 'contenu_introuvable',

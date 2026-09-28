@@ -92,7 +92,12 @@ import {
   ScheduleBanner,
 } from "@/components/editor/publication"
 import { SaveStatus } from "@/components/editor/save-status"
-import { usePublication } from "@/components/editor/use-publication"
+import {
+  usePublication,
+  type MethodPublication,
+} from "@/components/editor/use-publication"
+import { ElementBanner } from "@/components/methods/element-banner"
+import { MethodOutline } from "@/components/methods/method-outline"
 import { usePreviewUrls } from "@/components/media/use-preview-urls"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TemplateDialog } from "@/components/templates/template-dialog"
@@ -149,6 +154,7 @@ import {
 import {
   ContentError,
   contentKeys,
+  contentProblemText,
   getContent,
   getMediaByIds,
   sameCategories,
@@ -159,10 +165,29 @@ import {
   type ContentSettings,
   type SettingsPayload,
 } from "@/lib/contents/api"
-import { revertToVersion, type VersionItem } from "@/lib/contents/publication"
+import {
+  getElementContext,
+  getMethodPreview,
+  getMethodTree,
+  methodKeys,
+} from "@/lib/contents/methods"
+import {
+  elementState,
+  liveIds,
+  parseLiveOutline,
+  previewByElement,
+} from "@/lib/contents/outline"
+import {
+  getPublication,
+  publicationStatus,
+  revertToVersion,
+  type ScheduleState,
+  type VersionItem,
+} from "@/lib/contents/publication"
 import {
   coverRequired,
   hasAudio,
+  hasPresentation,
   publishChecks,
   type Requirement,
 } from "@/lib/contents/requirements"
@@ -201,7 +226,37 @@ export function EditorPage({
   kind: ContentKind
 }) {
   const { contentId = "" } = useParams()
+  // Un autre contenu ouvert par la même adresse : tout repart de zéro.
+  return (
+    <EditorLoader
+      key={contentId}
+      contentId={contentId}
+      section={section}
+      kind={kind}
+    />
+  )
+}
+
+function EditorLoader({
+  contentId,
+  section,
+  kind,
+}: {
+  contentId: string
+  section: SectionKey
+  kind: ContentKind
+}) {
   const checkAccess = useAccessCheck()
+  const queryClient = useQueryClient()
+  // Un contenu changé ailleurs sans que son brouillon change (« Retirer de l'app » ou
+  // « Supprimer » un chapitre ou une leçon depuis le plan, « Restaurer » de la Corbeille) : sa
+  // lecture en mémoire est marquée périmée. L'éditeur ne lit son état de départ qu'une fois, à
+  // son ouverture : il attend alors la relecture au lieu de partir de l'ancienne.
+  const [mustWaitFresh] = useState(
+    () =>
+      queryClient.getQueryState(contentKeys.detail(contentId))?.isInvalidated ??
+      false
+  )
   const content = useQuery({
     queryKey: contentKeys.detail(contentId),
     queryFn: () => getContent(contentId),
@@ -213,7 +268,9 @@ export function EditorPage({
     if (content.error) checkAccess(content.error)
   }, [content.error, checkAccess])
 
-  if (content.isPending) {
+  const waitingFresh =
+    mustWaitFresh && !content.isFetchedAfterMount && !content.isError
+  if (content.isPending || waitingFresh) {
     return (
       <EditorFrame section={section}>
         <div className="flex flex-1 justify-center p-10">
@@ -286,7 +343,30 @@ function EditorFrame({
   )
 }
 
-function BackLink({ section }: { section: SectionKey }) {
+function BackLink({
+  section,
+  method,
+}: {
+  section: SectionKey
+  // Un chapitre ou une leçon : « ← nom de la méthode ».
+  method?: { id: string; title: string } | null
+}) {
+  if (method) {
+    const title = method.title.trim() || texts.editor.untitled
+    return (
+      <Link
+        to={editorPath("methods", method.id)}
+        aria-label={texts.methods.element.back(title)}
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "sm" }),
+          "max-w-64"
+        )}
+      >
+        <ArrowLeft />
+        <span className="truncate">{title}</span>
+      </Link>
+    )
+  }
   const title = texts.sections[section].title
   return (
     <Link
@@ -366,9 +446,14 @@ function ContentEditor({
       ? initial.template_sort
       : null
   const isShared = templateSort === "shared"
-  // Un article ou un épisode : image de présentation, résumé, catégories (et audio d'un épisode).
-  const presentationKind =
-    kind === "article" || kind === "episode" ? kind : null
+  // Une méthode : sa fiche et son plan, sans blocs ([D4]). Un chapitre ou une leçon : l'éditeur
+  // de blocs, sans barre de publication (tout part avec la méthode, [D29]).
+  const isMethod = kind === "method"
+  const elementKind = kind === "chapter" || kind === "lesson" ? kind : null
+  const isElement = elementKind !== null
+  // Image de présentation et résumé (article, épisode, méthode, chapitre, leçon) ; catégories
+  // pour un article ou un épisode, audio pour un épisode.
+  const presentationKind = hasPresentation(kind) ? kind : null
   const categorySection = categorySectionOf(kind)
   // Cette ouverture de l'éditeur : le verrou est tenu par elle, pas seulement par le membre.
   const [editorSession] = useState(() => crypto.randomUUID())
@@ -412,6 +497,9 @@ function ContentEditor({
   // Annonce pour les lecteurs d'écran (bloc monté ou descendu).
   const [announcement, setAnnouncement] = useState("")
 
+  // Méthode : le moment (dans ce navigateur) où sa fiche a été enregistrée pour la dernière fois.
+  const [ficheSavedAt, setFicheSavedAt] = useState(0)
+
   const autosave = useAutosave(
     { rev: initial.draft_rev, savedAt: initial.draft_saved_at },
     {
@@ -431,12 +519,27 @@ function ContentEditor({
               access_level_id: saved.settings.accessLevelId,
               slug: saved.settings.slug,
               category_ids: saved.settings.categoryIds,
+              // Un chapitre ou une leçon : rouvert plus tard, il montre les cases enregistrées.
+              in_app: saved.settings.inApp,
+              is_free: saved.settings.isFree,
             }
         )
         // « Utilisé dans » de la médiathèque et liste des pages.
         void queryClient.invalidateQueries({
           queryKey: [...mediaKeys.all, "uses"],
         })
+        // Une méthode, un chapitre ou une leçon : le plan (titres, dernières modifications) et ce
+        // qui changera dans l'app (état de l'élément, ce qui ferait refuser la publication).
+        if (isMethod || isElement) {
+          void queryClient.invalidateQueries({
+            queryKey: [...methodKeys.all, "tree"],
+          })
+          void queryClient.invalidateQueries({
+            queryKey: [...methodKeys.all, "preview"],
+          })
+        }
+        // La fiche d'une méthode vient de changer : « Modifié depuis la publication ».
+        if (isMethod) setFicheSavedAt(Date.now())
         void queryClient.invalidateQueries({
           queryKey: contentKeys.list(kind),
         })
@@ -1142,10 +1245,105 @@ function ContentEditor({
     [kind, draft, mediaFor]
   )
 
+  // --- Méthodes : le plan, ce qui changera dans l'app, la méthode d'un élément ----------------
+
+  // Un chapitre ou une leçon : sa méthode (et son chapitre), pour « ← méthode » et le rappel.
+  const elementContext = useQuery({
+    queryKey: methodKeys.context(contentId),
+    queryFn: () => getElementContext(contentId),
+    enabled: isElement,
+  })
+  const methodId = isMethod
+    ? contentId
+    : (elementContext.data?.method.id ?? null)
+  const methodInTrash = elementContext.data?.method.deleted ?? false
+  // Ce qui changera dans l'app si l'on publie la méthode ([D29]) : relu régulièrement (les
+  // autres écrivent ses leçons), après chaque geste du plan, et à l'ouverture de « Publier ».
+  const preview = useQuery({
+    queryKey: methodKeys.preview(methodId ?? ""),
+    queryFn: () => getMethodPreview(methodId ?? ""),
+    enabled: methodId !== null && !methodInTrash,
+    // Relue à chaque ouverture d'un éditeur (on revient souvent d'une leçon modifiée).
+    staleTime: 0,
+    refetchInterval: 30_000,
+  })
+  // Un chapitre ou une leçon : la publication de sa méthode (plan en ligne, programmation) et
+  // son plan (le chapitre d'une leçon est-il montré ?).
+  const methodPublication = useQuery({
+    queryKey: contentKeys.publication(methodId ?? ""),
+    queryFn: () => getPublication(methodId ?? ""),
+    enabled: isElement && methodId !== null,
+    refetchInterval: 30_000,
+  })
+  const methodTree = useQuery({
+    queryKey: methodKeys.tree(methodId ?? ""),
+    queryFn: () => getMethodTree(methodId ?? ""),
+    enabled: isElement && methodId !== null,
+  })
+  const ownState = useMemo(() => {
+    if (!isElement || !methodPublication.data || !methodTree.data) {
+      return undefined
+    }
+    const place = methodTree.data
+      .flatMap((chapter) => [
+        { element: chapter, chapterInApp: true },
+        ...chapter.lessons.map((lesson) => ({
+          element: lesson,
+          chapterInApp: chapter.inApp,
+        })),
+      ])
+      .find((entry) => entry.element.id === contentId)
+    if (!place) return undefined
+    return elementState(
+      { ...place.element, inApp: settings.inApp },
+      place.chapterInApp,
+      liveIds(parseLiveOutline(methodPublication.data.live?.outline)),
+      preview.data ? previewByElement(preview.data) : undefined
+    )
+  }, [
+    isElement,
+    methodPublication.data,
+    methodTree.data,
+    contentId,
+    settings.inApp,
+    preview.data,
+  ])
+
+  // La programmation de la méthode, vue depuis cet élément ([D31]).
+  const methodSchedule: ScheduleState = methodPublication.data
+    ? publicationStatus(
+        methodPublication.data,
+        methodPublication.data.draft_rev,
+        methodPublication.dataUpdatedAt
+      ).schedule
+    : { kind: "none" }
+
+  // Ce qui ferait refuser la publication de la méthode à cause de cet élément.
+  const ownProblem = isElement
+    ? (preview.data?.find(
+        (row) => row.elementId === contentId && row.problem !== null
+      ) ?? null)
+    : null
+
+  const methodBridge: MethodPublication | undefined = isMethod
+    ? {
+        preview: preview.data,
+        // La fiche enregistrée après la dernière lecture de la liste compte aussi.
+        pending:
+          preview.data === undefined
+            ? undefined
+            : preview.data.length > 0 || ficheSavedAt > preview.dataUpdatedAt,
+        fetching: preview.isFetching,
+        failed: preview.isError,
+        refresh: () => preview.refetch(),
+      }
+    : undefined
+
   const pub = usePublication({
     contentId,
     kind,
-    enabled: !isTemplate,
+    enabled: !isTemplate && !isElement,
+    method: methodBridge,
     draftRev: Math.max(autosave.state.rev, serverRev ?? 0, loadedRev),
     unsaved: autosave.state.unsaved,
     editable,
@@ -1270,6 +1468,82 @@ function ContentEditor({
   }
 
   const nearLimit = useMemo(() => draftBytes(draft) > DRAFT_WARN_BYTES, [draft])
+
+  // En tête de l'aperçu : l'image de présentation, le titre, le résumé et l'audio, comme dans
+  // l'app (et, pour une méthode, toute sa fiche).
+  const phoneTop = (
+    <>
+      {/* Un chapitre ou une leçon : l'image est facultative, montrée seulement une fois choisie
+          (le panneau propose de la choisir). */}
+      {presentationKind && (coverRequired(kind) || draft.cover) && (
+        <CoverPreview
+          media={mediaFor(draft.cover?.mediaId ?? null)}
+          editable={editable}
+          onChoose={() => openPresentationPicker("cover")}
+          onSelect={() => setSelectedId(null)}
+        />
+      )}
+      <textarea
+        ref={titleRef}
+        rows={1}
+        className="blocks-title"
+        value={title}
+        maxLength={TITLE_MAX}
+        readOnly={!editable}
+        placeholder={
+          isTemplate
+            ? texts.templates.editor.namePlaceholder
+            : texts.editor.title.placeholder
+        }
+        aria-label={
+          isTemplate
+            ? texts.templates.editor.nameLabel
+            : texts.editor.title.label
+        }
+        onChange={onTitle}
+        onFocus={presentationKind ? () => setSelectedId(null) : undefined}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.preventDefault()
+        }}
+      />
+      {presentationKind && (
+        <SummaryPreview
+          summary={draft.summary ?? ""}
+          editable={editable}
+          onChange={(summary) =>
+            setDraft((current) => ({ ...current, summary }))
+          }
+          onFocus={() => setSelectedId(null)}
+        />
+      )}
+      {presentationKind === "episode" && (
+        <AudioPreview
+          media={mediaFor(draft.audio?.mediaId ?? null)}
+          editable={editable}
+          onChoose={() => openPresentationPicker("audio")}
+          onSelect={() => setSelectedId(null)}
+        />
+      )}
+    </>
+  )
+
+  // La présentation dans un panneau : image (changer, retirer, texte alternatif), résumé,
+  // catégories, audio.
+  const presentationPanel = presentationKind ? (
+    <PresentationPanel
+      kind={presentationKind}
+      draft={draft}
+      editable={editable}
+      mediaFor={mediaFor}
+      urlFor={(media) => (media.state === "ready" ? media.url : undefined)}
+      categoryNames={chosenCategoryNames}
+      onChooseCover={() => openPresentationPicker("cover")}
+      onRemoveCover={() => removePresentationFile("cover")}
+      onChooseAudio={() => openPresentationPicker("audio")}
+      onRemoveAudio={() => removePresentationFile("audio")}
+      onEditCategories={() => openSettings("categories")}
+    />
+  ) : undefined
   const sectionTitle = texts.sections[section].title
   const untitled = isTemplate
     ? texts.templates.list.untitled
@@ -1279,26 +1553,35 @@ function ContentEditor({
     <div className="flex h-svh flex-col bg-muted/40">
       <title>{`${title.trim() || untitled} — ${texts.app.name}`}</title>
       <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
-        <BackLink section={section} />
-        <Separator orientation="vertical" className="h-6" />
-        <Button
-          variant={outlineOpen ? "secondary" : "ghost"}
-          size="sm"
-          aria-expanded={outlineOpen}
-          aria-controls="editeur-plan"
-          aria-label={
-            outlineOpen ? texts.editor.outline.hide : texts.editor.outline.show
-          }
-          onClick={() => setOutlineOpen((open) => !open)}
-        >
-          <ListTree />
-          {texts.editor.outline.toggle}
-        </Button>
+        <BackLink
+          section={section}
+          method={isElement ? (elementContext.data?.method ?? null) : null}
+        />
+        {!isMethod && (
+          <>
+            <Separator orientation="vertical" className="h-6" />
+            <Button
+              variant={outlineOpen ? "secondary" : "ghost"}
+              size="sm"
+              aria-expanded={outlineOpen}
+              aria-controls="editeur-plan"
+              aria-label={
+                outlineOpen
+                  ? texts.editor.outline.hide
+                  : texts.editor.outline.show
+              }
+              onClick={() => setOutlineOpen((open) => !open)}
+            >
+              <ListTree />
+              {texts.editor.outline.toggle}
+            </Button>
+          </>
+        )}
         <p className="min-w-0 flex-1 truncate text-sm font-medium" aria-hidden>
           {title.trim() || untitled}
           <span className="font-normal text-muted-foreground">
             {" "}
-            · {sectionTitle}
+            · {elementKind ? texts.methods.kinds[elementKind] : sectionTitle}
           </span>
         </p>
         {templateSort && (
@@ -1333,22 +1616,29 @@ function ContentEditor({
             </HeaderIconButton>
           </>
         )}
-        <AddBlockMenu
-          id={ADD_BLOCK_ID}
-          variant="outline"
-          disabled={!editable || !canAddRoot}
-          onAdd={(type) => addBlock(type)}
-          onTemplate={
-            isTemplate ? undefined : () => setTemplatePickerOpen(true)
-          }
-        />
-        {!isTemplate && (
+        {!isMethod && (
+          <AddBlockMenu
+            id={ADD_BLOCK_ID}
+            variant="outline"
+            disabled={!editable || !canAddRoot}
+            onAdd={(type) => addBlock(type)}
+            onTemplate={
+              isTemplate ? undefined : () => setTemplatePickerOpen(true)
+            }
+          />
+        )}
+        {!isTemplate && !isElement && (
           <>
             <Separator orientation="vertical" className="h-6" />
             <PublishBar
               pub={pub}
               disabled={phase === "taking" || phase === "error"}
-              alwaysPublishable={linkedIds.length > 0}
+              // Une méthode dont on ne sait pas encore ce qui a changé : « Publier » reste
+              // possible (la fenêtre le montrera).
+              alwaysPublishable={
+                linkedIds.length > 0 ||
+                (isMethod && methodBridge?.pending === undefined)
+              }
             />
           </>
         )}
@@ -1368,7 +1658,23 @@ function ContentEditor({
         onReload={reload}
         onDismissCopy={() => setStash(null)}
       />
-      {!isTemplate && (
+      {elementKind && (
+        <ElementBanner
+          kind={elementKind}
+          context={elementContext.data}
+          state={ownState}
+          isFree={settings.isFree}
+          problem={
+            ownProblem?.problem
+              ? contentProblemText(ownProblem.problem, ownProblem.problemDetail)
+              : null
+          }
+          schedule={methodSchedule}
+          holding={editable}
+          onOpenSettings={() => openSettings(null)}
+        />
+      )}
+      {!isTemplate && !isElement && (
         <ScheduleBanner
           pub={pub}
           leave={
@@ -1382,248 +1688,217 @@ function ContentEditor({
         />
       )}
 
-      <div className="flex min-h-0 flex-1">
-        {outlineOpen && (
-          <aside
-            id="editeur-plan"
-            className="w-60 shrink-0 border-r bg-background"
-          >
-            <OutlinePanel
+      {isMethod ? (
+        // Une méthode : sa fiche (dans l'aperçu du téléphone, puis son panneau) et son plan.
+        <div className="flex min-h-0 flex-1">
+          <main className="w-[27rem] shrink-0 overflow-y-auto xl:w-[30rem]">
+            <div className="flex flex-col items-center gap-6 px-4 py-6">
+              <div
+                className={cn(
+                  "blocks-phone rounded-[2rem] border shadow-sm",
+                  !editable && "cursor-default"
+                )}
+                style={{ minHeight: 0 }}
+                data-editable={editable || undefined}
+              >
+                {phoneTop}
+              </div>
+              <div className="w-full max-w-[390px] rounded-xl border bg-background p-4">
+                {presentationPanel}
+              </div>
+            </div>
+          </main>
+          <aside className="min-w-0 flex-1 overflow-y-auto border-l bg-background">
+            <MethodOutline
+              methodId={contentId}
+              editable={editable}
+              session={editorSession}
+              myId={lock.myId ?? ""}
+              live={parseLiveOutline(pub.publication?.live?.outline)}
+              preview={preview.data}
+            />
+          </aside>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1">
+          {outlineOpen && (
+            <aside
+              id="editeur-plan"
+              className="w-60 shrink-0 border-r bg-background"
+            >
+              <OutlinePanel
+                draft={draft}
+                selectedId={selectedId}
+                onSelect={selectAndShow}
+                templateName={templateName}
+                selection={
+                  !isTemplate && editable
+                    ? {
+                        active: choosing,
+                        chosen,
+                        onToggleActive: () => {
+                          setChoosing((active) => !active)
+                          setChosen(new Set())
+                        },
+                        onChoose: (id, checked) =>
+                          setChosen((current) => {
+                            const next = new Set(current)
+                            if (checked) next.add(id)
+                            else next.delete(id)
+                            return next
+                          }),
+                        onSave: () => {
+                          const ids = selectedRootIds(draft, new Set(chosen))
+                          if (ids.length > 0) openSaveAs(ids)
+                        },
+                      }
+                    : undefined
+                }
+              />
+            </aside>
+          )}
+
+          <main className="min-w-0 flex-1 overflow-y-auto">
+            <div className="sticky top-0 z-10 flex justify-center bg-muted/40 px-6 py-3 backdrop-blur">
+              <FormatToolbar editor={activeText} editable={editable} />
+            </div>
+            {nearLimit && (
+              <p
+                role="status"
+                className="mx-auto mb-3 max-w-[390px] text-sm text-amber-700 dark:text-amber-400"
+              >
+                {texts.editor.save.nearLimit}
+              </p>
+            )}
+            {autosave.state.status === "failed" && autosave.state.error && (
+              <p
+                role="alert"
+                className="mx-auto mb-3 max-w-[390px] text-sm text-destructive"
+              >
+                {autosave.state.error.message} {autosave.state.error.detail}
+              </p>
+            )}
+            <div className="flex justify-center px-6 pb-16">
+              <div
+                className={cn(
+                  "blocks-phone rounded-[2rem] border shadow-sm",
+                  !editable && "cursor-default"
+                )}
+                data-editable={editable || undefined}
+              >
+                {phoneTop}
+                <BlocksEditorContext value={blocksValue}>
+                  <BlockCanvas
+                    key={viewKey}
+                    draft={draft}
+                    onChange={setDraft}
+                    rootLimit={isShared ? SHARED_ROOT_LIMIT : undefined}
+                  />
+                </BlocksEditorContext>
+                {draft.blocks.length === 0 && (
+                  <Empty className="border border-dashed font-sans">
+                    <EmptyHeader>
+                      <EmptyTitle>
+                        {isTemplate
+                          ? texts.templates.editor.empty.title
+                          : texts.editor.emptyPage.title}
+                      </EmptyTitle>
+                      <EmptyDescription>
+                        {isShared
+                          ? texts.templates.editor.empty.sharedDescription
+                          : isTemplate
+                            ? texts.templates.editor.empty.description
+                            : texts.editor.emptyPage.description}
+                      </EmptyDescription>
+                    </EmptyHeader>
+                    {editable && (
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {insertableBlocks.map((definition) => (
+                          <Button
+                            key={definition.type}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addBlock(definition.type)}
+                          >
+                            <definition.icon />
+                            {definition.label}
+                          </Button>
+                        ))}
+                        {!isTemplate && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setTemplatePickerOpen(true)}
+                          >
+                            <LayoutTemplate />
+                            {texts.templates.insert.menu}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </Empty>
+                )}
+                {editable && draft.blocks.length > 0 && canAddRoot && (
+                  <div className="mt-6 flex justify-center font-sans">
+                    <AddBlockMenu
+                      variant="ghost"
+                      onAdd={(type) => addBlock(type, undefined)}
+                      onTemplate={
+                        isTemplate
+                          ? undefined
+                          : () => setTemplatePickerOpen(true)
+                      }
+                    />
+                  </div>
+                )}
+                {editable && isShared && !canAddRoot && (
+                  <p className="mt-6 text-center font-sans text-xs text-muted-foreground">
+                    {texts.templates.editor.sharedLimit}
+                  </p>
+                )}
+              </div>
+            </div>
+          </main>
+
+          <aside className="w-72 shrink-0 border-l bg-background">
+            <BlockSettings
+              header={
+                presentationKind && selectedId ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="self-start"
+                    onClick={showPresentation}
+                  >
+                    <PanelTop />
+                    {texts.editor.presentation.show}
+                  </Button>
+                ) : null
+              }
+              emptyLabel={
+                presentationKind
+                  ? texts.editor.presentation.panelTitle[presentationKind]
+                  : undefined
+              }
+              empty={presentationPanel}
               draft={draft}
               selectedId={selectedId}
-              onSelect={selectAndShow}
-              templateName={templateName}
-              selection={
-                !isTemplate && editable
-                  ? {
-                      active: choosing,
-                      chosen,
-                      onToggleActive: () => {
-                        setChoosing((active) => !active)
-                        setChosen(new Set())
-                      },
-                      onChoose: (id, checked) =>
-                        setChosen((current) => {
-                          const next = new Set(current)
-                          if (checked) next.add(id)
-                          else next.delete(id)
-                          return next
-                        }),
-                      onSave: () => {
-                        const ids = selectedRootIds(draft, new Set(chosen))
-                        if (ids.length > 0) openSaveAs(ids)
-                      },
-                    }
-                  : undefined
+              editable={editable}
+              mediaFor={mediaFor}
+              onUpdate={onUpdateBlock}
+              onShift={onShift}
+              onRemove={onRemove}
+              onChooseImage={openPicker}
+              templateFor={templateFor}
+              onDetach={detachBlock}
+              removeBlocked={removeBlocked}
+              onSaveAsTemplate={
+                isTemplate ? undefined : (id) => openSaveAs([id])
               }
             />
           </aside>
-        )}
-
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="sticky top-0 z-10 flex justify-center bg-muted/40 px-6 py-3 backdrop-blur">
-            <FormatToolbar editor={activeText} editable={editable} />
-          </div>
-          {nearLimit && (
-            <p
-              role="status"
-              className="mx-auto mb-3 max-w-[390px] text-sm text-amber-700 dark:text-amber-400"
-            >
-              {texts.editor.save.nearLimit}
-            </p>
-          )}
-          {autosave.state.status === "failed" && autosave.state.error && (
-            <p
-              role="alert"
-              className="mx-auto mb-3 max-w-[390px] text-sm text-destructive"
-            >
-              {autosave.state.error.message} {autosave.state.error.detail}
-            </p>
-          )}
-          <div className="flex justify-center px-6 pb-16">
-            <div
-              className={cn(
-                "blocks-phone rounded-[2rem] border shadow-sm",
-                !editable && "cursor-default"
-              )}
-              data-editable={editable || undefined}
-            >
-              {presentationKind && (
-                <CoverPreview
-                  media={mediaFor(draft.cover?.mediaId ?? null)}
-                  editable={editable}
-                  onChoose={() => openPresentationPicker("cover")}
-                  onSelect={() => setSelectedId(null)}
-                />
-              )}
-              <textarea
-                ref={titleRef}
-                rows={1}
-                className="blocks-title"
-                value={title}
-                maxLength={TITLE_MAX}
-                readOnly={!editable}
-                placeholder={
-                  isTemplate
-                    ? texts.templates.editor.namePlaceholder
-                    : texts.editor.title.placeholder
-                }
-                aria-label={
-                  isTemplate
-                    ? texts.templates.editor.nameLabel
-                    : texts.editor.title.label
-                }
-                onChange={onTitle}
-                onFocus={
-                  presentationKind ? () => setSelectedId(null) : undefined
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") event.preventDefault()
-                }}
-              />
-              {presentationKind && (
-                <SummaryPreview
-                  summary={draft.summary ?? ""}
-                  editable={editable}
-                  onChange={(summary) =>
-                    setDraft((current) => ({ ...current, summary }))
-                  }
-                  onFocus={() => setSelectedId(null)}
-                />
-              )}
-              {presentationKind === "episode" && (
-                <AudioPreview
-                  media={mediaFor(draft.audio?.mediaId ?? null)}
-                  editable={editable}
-                  onChoose={() => openPresentationPicker("audio")}
-                  onSelect={() => setSelectedId(null)}
-                />
-              )}
-              <BlocksEditorContext value={blocksValue}>
-                <BlockCanvas
-                  key={viewKey}
-                  draft={draft}
-                  onChange={setDraft}
-                  rootLimit={isShared ? SHARED_ROOT_LIMIT : undefined}
-                />
-              </BlocksEditorContext>
-              {draft.blocks.length === 0 && (
-                <Empty className="border border-dashed font-sans">
-                  <EmptyHeader>
-                    <EmptyTitle>
-                      {isTemplate
-                        ? texts.templates.editor.empty.title
-                        : texts.editor.emptyPage.title}
-                    </EmptyTitle>
-                    <EmptyDescription>
-                      {isShared
-                        ? texts.templates.editor.empty.sharedDescription
-                        : isTemplate
-                          ? texts.templates.editor.empty.description
-                          : texts.editor.emptyPage.description}
-                    </EmptyDescription>
-                  </EmptyHeader>
-                  {editable && (
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {insertableBlocks.map((definition) => (
-                        <Button
-                          key={definition.type}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => addBlock(definition.type)}
-                        >
-                          <definition.icon />
-                          {definition.label}
-                        </Button>
-                      ))}
-                      {!isTemplate && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setTemplatePickerOpen(true)}
-                        >
-                          <LayoutTemplate />
-                          {texts.templates.insert.menu}
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </Empty>
-              )}
-              {editable && draft.blocks.length > 0 && canAddRoot && (
-                <div className="mt-6 flex justify-center font-sans">
-                  <AddBlockMenu
-                    variant="ghost"
-                    onAdd={(type) => addBlock(type, undefined)}
-                    onTemplate={
-                      isTemplate ? undefined : () => setTemplatePickerOpen(true)
-                    }
-                  />
-                </div>
-              )}
-              {editable && isShared && !canAddRoot && (
-                <p className="mt-6 text-center font-sans text-xs text-muted-foreground">
-                  {texts.templates.editor.sharedLimit}
-                </p>
-              )}
-            </div>
-          </div>
-        </main>
-
-        <aside className="w-72 shrink-0 border-l bg-background">
-          <BlockSettings
-            header={
-              presentationKind && selectedId ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="self-start"
-                  onClick={showPresentation}
-                >
-                  <PanelTop />
-                  {texts.editor.presentation.show}
-                </Button>
-              ) : null
-            }
-            emptyLabel={
-              presentationKind
-                ? texts.editor.presentation.panelTitle[presentationKind]
-                : undefined
-            }
-            empty={
-              presentationKind ? (
-                <PresentationPanel
-                  kind={presentationKind}
-                  draft={draft}
-                  editable={editable}
-                  mediaFor={mediaFor}
-                  urlFor={(media) =>
-                    media.state === "ready" ? media.url : undefined
-                  }
-                  categoryNames={chosenCategoryNames}
-                  onChooseCover={() => openPresentationPicker("cover")}
-                  onRemoveCover={() => removePresentationFile("cover")}
-                  onChooseAudio={() => openPresentationPicker("audio")}
-                  onRemoveAudio={() => removePresentationFile("audio")}
-                  onEditCategories={() => openSettings("categories")}
-                />
-              ) : undefined
-            }
-            draft={draft}
-            selectedId={selectedId}
-            editable={editable}
-            mediaFor={mediaFor}
-            onUpdate={onUpdateBlock}
-            onShift={onShift}
-            onRemove={onRemove}
-            onChooseImage={openPicker}
-            templateFor={templateFor}
-            onDetach={detachBlock}
-            removeBlocked={removeBlocked}
-            onSaveAsTemplate={isTemplate ? undefined : (id) => openSaveAs([id])}
-          />
-        </aside>
-      </div>
+        </div>
+      )}
 
       {!isTemplate && (
         <>

@@ -105,6 +105,8 @@ describe("réglages envoyés avec le brouillon", () => {
     accessLevelId: null,
     slug: null,
     categoryIds: [],
+    inApp: false,
+    isFree: false,
   }
 
   it("envoie les catégories quand elles changent, dans n'importe quel ordre ([D44])", () => {
@@ -134,6 +136,19 @@ describe("réglages envoyés avec le brouillon", () => {
     expect(
       settingsDiff(chosen, { ...chosen, accessLevelId: "formule-1" })
     ).toEqual({ access_level_id: "formule-1" })
+  })
+
+  it("envoie « Montrer dans l'app » et « Leçon gratuite » quand ils changent", () => {
+    expect(settingsDiff(saved, { ...saved, inApp: true })).toEqual({
+      in_app: true,
+    })
+    expect(
+      settingsDiff(
+        { ...saved, inApp: true, isFree: true },
+        { ...saved, inApp: true, isFree: false }
+      )
+    ).toEqual({ is_free: false })
+    expect(settingsDiff(saved, { ...saved })).toBeNull()
   })
 
   it("envoie l'adresse retirée (null)", () => {
