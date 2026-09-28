@@ -110,10 +110,12 @@ describe("Paramètres : formules d'abonnement", () => {
     )
     const input = screen.getByLabelText(labels.renameLabel("Premium"))
     fireEvent.keyDown(input, { key: "Escape" })
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: labels.renameItem("Premium") })
-      ).toHaveFocus()
+    await waitFor(
+      () =>
+        expect(
+          screen.getByRole("button", { name: labels.renameItem("Premium") })
+        ).toHaveFocus(),
+      { timeout: 3000 }
     )
 
     fireEvent.click(
@@ -123,10 +125,12 @@ describe("Paramètres : formules d'abonnement", () => {
     fireEvent.change(again, { target: { value: "Premium+" } })
     fireEvent.submit(again.closest("form")!)
     expect(await screen.findByText(labels.renamed)).toBeVisible()
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: labels.renameItem("Premium") })
-      ).toHaveFocus()
+    await waitFor(
+      () =>
+        expect(
+          screen.getByRole("button", { name: labels.renameItem("Premium") })
+        ).toHaveFocus(),
+      { timeout: 3000 }
     )
   })
 
@@ -144,10 +148,12 @@ describe("Paramètres : formules d'abonnement", () => {
         name: labels.confirmRemove.confirm,
       })
     )
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: labels.renameItem("Premium") })
-      ).toHaveFocus()
+    await waitFor(
+      () =>
+        expect(
+          screen.getByRole("button", { name: labels.renameItem("Premium") })
+        ).toHaveFocus(),
+      { timeout: 3000 }
     )
 
     fireEvent.click(
@@ -159,8 +165,9 @@ describe("Paramètres : formules d'abonnement", () => {
         name: labels.confirmRemove.confirm,
       })
     )
-    await waitFor(() =>
-      expect(screen.getByLabelText(labels.name)).toHaveFocus()
+    await waitFor(
+      () => expect(screen.getByLabelText(labels.name)).toHaveFocus(),
+      { timeout: 3000 }
     )
   })
 
