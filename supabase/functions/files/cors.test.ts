@@ -12,6 +12,7 @@ Deno.test("mêmes règles CORS que la fonction equipe", async () => {
 })
 
 Deno.test("l'admin est acceptée, une autre origine non", () => {
+  assertEquals(isAllowedOrigin("https://admin.declikora.app"), true)
   assertEquals(isAllowedOrigin("https://declikora-admin.vercel.app"), true)
   assertEquals(isAllowedOrigin("https://pirate.fr"), false)
   assertEquals(

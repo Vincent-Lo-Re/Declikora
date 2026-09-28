@@ -470,9 +470,12 @@ enabled = true
 project_id = "kajocxepxgaquculhrky"
 
 [remotes.production.auth]
-site_url = "https://declikora-admin.vercel.app"
-# L'admin en ligne et ses adresses de test Vercel.
+# L'admin en ligne (étape 8) : les liens des e-mails (invitation) y mènent.
+site_url = "https://admin.declikora.app"
+# L'admin en ligne, sa première adresse (qui redirige vers admin.declikora.app) et les adresses de
+# test Vercel.
 additional_redirect_urls = [
+  "https://admin.declikora.app/**",
   "https://declikora-admin.vercel.app/**",
   "https://declikora-admin-*-vincent-lo-re.vercel.app/**",
 ]
