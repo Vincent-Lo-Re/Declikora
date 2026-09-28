@@ -34,7 +34,8 @@ create function pg_temp.create_content(
   parent_name text default null,
   content_title text default '',
   sort text default null,
-  starter_name text default null
+  starter_name text default null,
+  for_kind text default null
 )
 returns uuid
 language plpgsql
@@ -47,7 +48,8 @@ begin
     parent_id => pg_temp.cid(parent_name),
     title => content_title,
     template_sort => sort,
-    from_template_id => pg_temp.cid(starter_name)
+    from_template_id => pg_temp.cid(starter_name),
+    template_for => for_kind
   )).id into created;
   insert into ids (name, id) values (content_name, created);
   return created;
@@ -125,7 +127,7 @@ $$;
 
 grant execute on function
   pg_temp.cid(text),
-  pg_temp.create_content(text, text, text, text, text, text),
+  pg_temp.create_content(text, text, text, text, text, text, text),
   pg_temp.rev(text),
   pg_temp.save(text, jsonb, jsonb),
   pg_temp.draft(jsonb, text, jsonb),
@@ -251,8 +253,8 @@ select lives_ok(
   'un modèle « bloc identique partout » est créé'
 );
 select lives_ok(
-  $$select pg_temp.create_content('starter', 'template', content_title => 'Interview', sort => 'starter')$$,
-  'un modèle « point de départ » est créé'
+  $$select pg_temp.create_content('starter', 'template', content_title => 'Interview', sort => 'starter', for_kind => 'article')$$,
+  'un modèle « point de départ » (des articles, [D42]) est créé'
 );
 
 -- Point de départ : ses blocs sont recopiés avec de nouveaux identifiants, encadrés compris.

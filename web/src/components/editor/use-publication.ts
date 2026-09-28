@@ -18,6 +18,7 @@ import {
   unpublishContent,
   unscheduleContent,
 } from "@/lib/contents/publication"
+import { templateKeys } from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
 import { kickFiles, mediaKeys } from "@/lib/media/api"
 import { texts } from "@/texts"
@@ -28,6 +29,8 @@ const labels = texts.publication
 export type PublicationBridge = {
   contentId: string
   kind: ContentKind
+  // Faux pour un modèle : il ne se publie pas (pas de lecture de l'état de publication).
+  enabled?: boolean
   // La révision la plus récente connue du brouillon (enregistrée ici ou vue dans la base).
   draftRev: number
   // Une modification attend d'être enregistrée.
@@ -85,6 +88,7 @@ export function usePublication(bridge: PublicationBridge) {
     queryFn: () => getPublication(contentId),
     // La tâche planifiée publie sans prévenir : l'état est relu régulièrement.
     refetchInterval: 30_000,
+    enabled: bridge.enabled ?? true,
   })
   const publication = query.data ?? null
   const status = publicationStatus(
@@ -107,6 +111,8 @@ export function usePublication(bridge: PublicationBridge) {
       queryClient.invalidateQueries({
         queryKey: [...mediaKeys.all, "outdated"],
       }),
+      // Un contenu publié ou retiré de l'app : ses blocs identiques partout à mettre à jour.
+      queryClient.invalidateQueries({ queryKey: templateKeys.allOutdated }),
     ])
 
   const onError = (error: Error) => {

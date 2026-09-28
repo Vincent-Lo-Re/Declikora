@@ -69,7 +69,10 @@ export function editorPath(section: SectionKey, contentId: string): string {
 }
 
 // Section de l'éditeur de chaque sorte de contenu (les autres sections arrivent à l'étape 7).
-const editorSections: Partial<Record<string, SectionKey>> = { page: "pages" }
+const editorSections: Partial<Record<string, SectionKey>> = {
+  page: "pages",
+  template: "templates",
+}
 
 /** Adresse de l'éditeur d'un contenu d'après sa sorte, ou null si son éditeur n'existe pas encore. */
 export function contentEditorPath(

@@ -3,7 +3,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(17);
+select plan(19);
 
 select has_schema('private', 'le schéma private existe');
 select ok(
@@ -85,6 +85,40 @@ select is(
   ),
   array[]::text[],
   'app_* : security definer, stable, search_path vide (elles ne lisent que ce qui est en ligne)'
+);
+
+-- Toute fonction appelable par l'API a un search_path vide (noms qualifiés, § 1.1).
+select is(
+  array(
+    select p.oid::regprocedure::text
+    from pg_proc p
+    where p.pronamespace = 'public'::regnamespace
+      and has_function_privilege('authenticated', p.oid, 'execute')
+      and not ('search_path=""' = any (coalesce(p.proconfig, '{}')))
+    order by 1
+  ),
+  array[]::text[],
+  'public : toute fonction exécutable par authenticated a un search_path vide'
+);
+
+-- Les RPC des modèles (étape 6) : l'équipe seulement (la fonction vérifie ensuite is_staff).
+select is(
+  array(
+    select p.oid::regprocedure::text || ':' || has_function_privilege('anon', p.oid, 'execute')::text
+      || ':' || has_function_privilege('authenticated', p.oid, 'execute')::text
+      || ':' || p.prosecdef::text
+    from pg_proc p
+    where p.pronamespace = 'public'::regnamespace
+      and p.proname like 'template\_%'
+    order by 1
+  ),
+  array[
+    'template_create_from(uuid,uuid[],text,text,text):false:true:true',
+    'template_detach_all(uuid):false:true:true',
+    'template_outdated(uuid):false:true:true',
+    'template_push(uuid):false:true:true'
+  ],
+  'template_* (étape 6) : authenticated seulement, security definer'
 );
 
 -- Les fonctions de déclencheur et les fonctions files_* ne sont pas appelables par l'API.

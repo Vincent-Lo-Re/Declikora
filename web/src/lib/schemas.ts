@@ -58,3 +58,25 @@ export const accessLevelNameSchema = z.object({
     .min(1, texts.settings.accessLevels.nameRequired)
     .max(MAX_NAME_LENGTH, texts.settings.accessLevels.nameTooLong),
 })
+
+// Nouveau modèle (section Modèles, ou « Enregistrer comme modèle ») : mêmes règles que la base
+// (content_create, template_create_from) : nom de 1 à 200 caractères, section d'un point de
+// départ obligatoire ([D42]).
+export const templateSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, texts.templates.create.nameRequired)
+      .max(200, texts.templates.create.nameTooLong),
+    sort: z.enum(["style", "shared", "starter"]),
+    templateFor: z
+      .enum(["article", "episode", "chapter", "lesson", "page"])
+      .nullable(),
+  })
+  .refine((value) => value.sort !== "starter" || value.templateFor !== null, {
+    path: ["templateFor"],
+    message: texts.templates.create.sectionRequired,
+  })
+
+export type TemplateValues = z.infer<typeof templateSchema>

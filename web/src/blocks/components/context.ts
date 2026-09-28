@@ -15,6 +15,23 @@ export type BlockMedia =
   | { state: "ready"; media: Media; url: string | undefined }
 
 /**
+ * Ce que l'éditeur sait du modèle d'un bloc lié (bloc identique partout) : son nom et son bloc,
+ * que l'aperçu montre tel quel ; missing : il n'existe plus, est dans la corbeille ou n'est pas
+ * un bloc identique partout.
+ */
+export type LinkedTemplateState =
+  | { state: "loading" }
+  | { state: "error"; retry: () => void }
+  | { state: "missing" }
+  | { state: "empty"; name: string }
+  | { state: "ready"; name: string; block: Block }
+
+/** Le nom du modèle d'un bloc lié, s'il est connu. */
+export function templateNameOf(state: LinkedTemplateState): string | null {
+  return state.state === "ready" || state.state === "empty" ? state.name : null
+}
+
+/**
  * Ce que l'éditeur donne aux blocs de l'aperçu. Les fonctions restent les mêmes d'un rendu à
  * l'autre : taper dans un bloc ne redessine pas les autres.
  */
@@ -29,6 +46,9 @@ export type BlocksEditorValue = {
   mediaFor: (mediaId: string | null) => BlockMedia
   openPicker: (blockId: string) => void
   addToBox: (boxId: string, type: "text" | "image") => void
+  // Blocs liés : le modèle cité, et « Détacher » (copie ordinaire, à la même place).
+  templateFor: (templateId: string) => LinkedTemplateState
+  detachBlock: (blockId: string) => void
 }
 
 export const BlocksEditorContext = createContext<BlocksEditorValue | null>(null)

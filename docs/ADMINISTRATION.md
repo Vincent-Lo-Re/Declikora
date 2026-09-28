@@ -62,15 +62,15 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 
 ## 5. Modèles de blocs
 
-- [ ] **Trois sortes de modèles.** On choisit la sorte en créant le modèle, et il n'y a rien à choisir à l'insertion.
+- [x] **Trois sortes de modèles.** On choisit la sorte en créant le modèle, et il n'y a rien à choisir à l'insertion.
   - **Mise en forme réutilisable** : on insère une copie déjà mise en forme, puis on y écrit son propre texte. Modifier le modèle ne change pas les contenus déjà écrits. Exemple : un encadré « À retenir ».
-  - **Bloc identique partout** : le même bloc, avec le même texte, dans plusieurs contenus. On le corrige une seule fois dans le modèle, et il est corrigé dans tous les brouillons qui l'utilisent. Exemple : un encadré « Contact ».
-  - **Point de départ** : un nouveau contenu s'ouvre avec une structure déjà en place, au lieu d'une page vide. Exemple : « Interview ».
-- [ ] **Quand un bloc identique est modifié**, l'admin liste les contenus publiés qui l'utilisent et propose « Mettre à jour ces N contenus dans l'app ». Rien ne change dans l'app avant ce clic.
-- [ ] **Détacher** : dans un contenu, un bloc identique peut devenir une copie ordinaire, modifiable, qui ne suit plus le modèle. Les autres contenus restent liés.
-- [ ] **Supprimer** : un modèle identique partout ne peut pas être supprimé tant qu'il est utilisé. L'admin montre les contenus concernés, et « Détacher partout » en fait des copies ordinaires. On peut ensuite supprimer le modèle. Les deux autres sortes se suppriment librement, puisque les contenus n'en gardent que des copies.
-- [ ] **Création** : dans la section Modèles, ou depuis un contenu (on sélectionne des blocs, puis « Enregistrer comme modèle »).
-- [ ] **Droits** : admin et éditeur.
+  - **Bloc identique partout** : le même bloc, avec le même texte, dans plusieurs contenus. On le corrige une seule fois dans le modèle, et il est corrigé dans tous les brouillons qui l'utilisent. Exemple : un encadré « Contact ». Il contient **un seul bloc** : pour en regrouper plusieurs, on les met dans un Encadré.
+  - **Point de départ** : un nouveau contenu s'ouvre avec une structure déjà en place, au lieu d'une page vide. Exemple : « Interview ». Il appartient à **une section**, choisie en le créant (Blog, Podcasts, leçon ou chapitre d'une Méthode, Pages) : « Nouvel épisode » ne propose que les points de départ des Podcasts.
+- [x] **Quand un bloc identique est modifié**, l'admin liste les contenus publiés qui l'utilisent et propose « Mettre à jour ces N contenus dans l'app ». Rien ne change dans l'app avant ce clic.
+- [x] **Détacher** : dans un contenu, un bloc identique peut devenir une copie ordinaire, modifiable, qui ne suit plus le modèle. Les autres contenus restent liés.
+- [x] **Supprimer** : un modèle identique partout ne peut pas être supprimé tant qu'il est utilisé. L'admin montre les contenus concernés, et « Détacher partout » en fait des copies ordinaires. On peut ensuite supprimer le modèle. Les deux autres sortes se suppriment librement, puisque les contenus n'en gardent que des copies.
+- [x] **Création** : dans la section Modèles, ou depuis un contenu (on sélectionne des blocs, puis « Enregistrer comme modèle »).
+- [x] **Droits** : admin et éditeur.
 
 ## 6. Médiathèque
 

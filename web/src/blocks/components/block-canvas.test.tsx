@@ -41,6 +41,8 @@ function renderCanvas(onChange = vi.fn()) {
     mediaFor: () => ({ state: "none" }),
     openPicker: () => {},
     addToBox: () => {},
+    templateFor: () => ({ state: "missing" }),
+    detachBlock: () => {},
   }
   function Harness() {
     const [current, setCurrent] = useState(draft)

@@ -1,5 +1,6 @@
 import {
   keepPreviousData,
+  useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
@@ -9,6 +10,7 @@ import {
   ArrowLeft,
   FileQuestion,
   History,
+  LayoutTemplate,
   ListTree,
   Plus,
   Settings2,
@@ -22,7 +24,7 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from "react"
-import { Link, useBlocker, useParams } from "react-router"
+import { Link, useBlocker, useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
 
 import "@/blocks/components/preview.css"
@@ -32,6 +34,7 @@ import {
   BlocksEditorContext,
   type BlockMedia,
   type BlocksEditorValue,
+  type LinkedTemplateState,
 } from "@/blocks/components/context"
 import { singleLine, useAutoHeight } from "@/blocks/components/fields"
 import {
@@ -54,6 +57,16 @@ import {
   insertableBlocks,
   type InsertableType,
 } from "@/blocks/registry"
+import {
+  canAddRootBlock,
+  detachLinked,
+  insertTemplate,
+  linkedBlock,
+  linkedTemplateIds,
+  selectedRootIds,
+  SHARED_ROOT_LIMIT,
+  singleBlock,
+} from "@/blocks/templates"
 import { ROOT, type Block, type Draft, type ImageBlock } from "@/blocks/types"
 import { BlockSettings } from "@/components/editor/block-settings"
 import {
@@ -74,6 +87,13 @@ import { SaveStatus } from "@/components/editor/save-status"
 import { usePublication } from "@/components/editor/use-publication"
 import { usePreviewUrls } from "@/components/media/use-preview-urls"
 import { useAccessCheck } from "@/components/team/use-access-check"
+import { TemplateDialog } from "@/components/templates/template-dialog"
+import {
+  SharedTemplateBar,
+  TemplateSortBadge,
+} from "@/components/templates/template-editor-bar"
+import { useTemplateUses } from "@/components/templates/use-template-uses"
+import { TemplatePicker } from "@/components/templates/template-picker"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -88,6 +108,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -124,9 +145,19 @@ import {
   type SettingsPayload,
 } from "@/lib/contents/api"
 import { revertToVersion, type VersionItem } from "@/lib/contents/publication"
+import {
+  createTemplateFrom,
+  getTemplatesByIds,
+  isTemplateFor,
+  isTemplateSort,
+  templateKeys,
+  type LinkedTemplate,
+  type TemplateItem,
+} from "@/lib/contents/templates"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
-import { sections, type SectionKey } from "@/navigation"
+import type { TemplateValues } from "@/lib/schemas"
+import { editorPath, sections, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
 
 // Nouvel essai de relecture du brouillon après un échec (réseau).
@@ -295,6 +326,14 @@ function ContentEditor({
   const contentId = initial.id
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
+  const navigate = useNavigate()
+  // Un modèle : le même éditeur, sans publication ni réglages d'accès (ADMIN § 5).
+  const isTemplate = kind === "template"
+  const templateSort =
+    isTemplate && isTemplateSort(initial.template_sort)
+      ? initial.template_sort
+      : null
+  const isShared = templateSort === "shared"
   // Cette ouverture de l'éditeur : le verrou est tenu par elle, pas seulement par le membre.
   const [editorSession] = useState(() => crypto.randomUUID())
 
@@ -355,8 +394,19 @@ function ContentEditor({
           queryKey: [...mediaKeys.all, "uses"],
         })
         void queryClient.invalidateQueries({
-          queryKey: contentKeys.list("page"),
+          queryKey: contentKeys.list(kind),
         })
+        // Un modèle : sa liste, les contenus à mettre à jour dans l'app, les brouillons qui le
+        // montrent (bloc lié). Un contenu : les brouillons qui utilisent chaque modèle, et ce qui
+        // est à mettre à jour dans l'app (un bloc lié ajouté, retiré ou détaché).
+        if (isTemplate) {
+          void queryClient.invalidateQueries({ queryKey: templateKeys.all })
+        } else {
+          void queryClient.invalidateQueries({ queryKey: templateKeys.uses })
+          void queryClient.invalidateQueries({
+            queryKey: templateKeys.allOutdated,
+          })
+        }
       },
       onStopped: (error) => checkAccess(error),
     },
@@ -550,18 +600,91 @@ function ContentEditor({
     void lock.take(force)
   }
 
+  // --- Blocs liés (blocs identiques partout) -----------------------------------------------
+
+  const linkedIds = useMemo(() => linkedTemplateIds(draft), [draft])
+  // Modèles insérés ou créés à l'instant : montrés sans attendre la relecture de la base.
+  const [pickedTemplates, setPickedTemplates] = useState<
+    Record<string, LinkedTemplate>
+  >({})
+  const linkedQuery = useQuery({
+    queryKey: templateKeys.byIds(linkedIds),
+    queryFn: () => getTemplatesByIds(linkedIds),
+    enabled: linkedIds.length > 0,
+    placeholderData: keepPreviousData,
+    // Un autre membre peut corriger le modèle pendant qu'on écrit : relu régulièrement.
+    refetchInterval: 30_000,
+  })
+  const templatesById = useMemo(() => {
+    const map = new Map<string, LinkedTemplate>(Object.entries(pickedTemplates))
+    for (const template of linkedQuery.data ?? [])
+      map.set(template.id, template)
+    return map
+  }, [linkedQuery.data, pickedTemplates])
+  const linkedLoading =
+    (linkedQuery.isPending || linkedQuery.isPlaceholderData) &&
+    linkedIds.length > 0
+  const linkedFailed = linkedQuery.isError
+  const { refetch: refetchLinked } = linkedQuery
+
+  const templateFor = useCallback(
+    (templateId: string): LinkedTemplateState => {
+      const template = templatesById.get(templateId)
+      if (!template) {
+        if (linkedLoading) return { state: "loading" }
+        if (linkedFailed) {
+          return { state: "error", retry: () => void refetchLinked() }
+        }
+        return { state: "missing" }
+      }
+      if (template.inTrash || template.sort !== "shared") {
+        return { state: "missing" }
+      }
+      const block = singleBlock(template.draft)
+      return block
+        ? { state: "ready", name: template.title, block }
+        : { state: "empty", name: template.title }
+    },
+    [templatesById, linkedLoading, linkedFailed, refetchLinked]
+  )
+  const templateName = useCallback(
+    (block: Block) => {
+      if (block.type !== "linked") return null
+      const state = templateFor(block.templateId)
+      return state.state === "ready" || state.state === "empty"
+        ? state.name
+        : null
+    },
+    [templateFor]
+  )
+
+  // Les blocs des modèles cités (et ceux de leurs encadrés), pour leurs images.
+  const linkedBlocks = useMemo(
+    () =>
+      linkedIds.flatMap((id): Block[] => {
+        const template = templatesById.get(id)
+        const block = template ? singleBlock(template.draft) : null
+        if (!block) return []
+        return block.type === "box" ? [block, ...block.blocks] : [block]
+      }),
+    [linkedIds, templatesById]
+  )
+
   // --- Fichiers des blocs Image -----------------------------------------------------------
 
   const mediaIds = useMemo(
     () =>
       [
         ...new Set(
-          flattenBlocks(draft).flatMap(({ block }) =>
+          [
+            ...flattenBlocks(draft).map(({ block }) => block),
+            ...linkedBlocks,
+          ].flatMap((block) =>
             block.type === "image" && block.mediaId ? [block.mediaId] : []
           )
         ),
       ].sort(),
-    [draft]
+    [draft, linkedBlocks]
   )
   const mediaQuery = useQuery({
     queryKey: contentKeys.media(mediaIds),
@@ -710,6 +833,67 @@ function ContentEditor({
 
   const openPicker = useCallback((blockId: string) => setPickerFor(blockId), [])
 
+  // « Détacher » : le bloc lié devient une copie ordinaire du bloc de son modèle, à la même
+  // place (même id ; nouveaux id dans un encadré), enregistrée comme toute modification.
+  const detachRef = useRef<(blockId: string) => void>(() => {})
+  useEffect(() => {
+    detachRef.current = (blockId: string) => {
+      const linked = draft.blocks.find((block) => block.id === blockId)
+      if (!linked || linked.type !== "linked") return
+      const state = templateFor(linked.templateId)
+      if (state.state !== "ready") return
+      const name = state.name.trim() || texts.templates.list.untitled
+      setDraft((current) => detachLinked(current, blockId, state.block))
+      setSelectedId(blockId)
+      focusSoon(() => blockHandle(blockId))
+      toast(texts.templates.linked.detached(name), {
+        action: {
+          label: texts.editor.settings.undo,
+          onClick: () =>
+            setDraft((current) => ({
+              ...current,
+              blocks: current.blocks.map((block) =>
+                block.id === blockId ? linked : block
+              ),
+            })),
+        },
+      })
+    }
+  })
+  const detachBlock = useCallback(
+    (blockId: string) => detachRef.current(blockId),
+    []
+  )
+
+  // « Ajouter un bloc » › « Un modèle… » : une mise en forme devient une copie (nouveaux id),
+  // un bloc identique partout un bloc lié, au premier niveau, après le bloc choisi.
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
+  const onInsertTemplate = (template: TemplateItem) => {
+    setTemplatePickerOpen(false)
+    const result = insertTemplate(draft, template, selectedId)
+    if (!result) return
+    if (template.sort === "shared") {
+      setPickedTemplates((current) => ({
+        ...current,
+        [template.id]: {
+          id: template.id,
+          title: template.title,
+          sort: "shared",
+          inTrash: false,
+          draft: template.draft,
+        },
+      }))
+    }
+    setDraft(result.draft)
+    setSelectedId(result.firstId)
+    requestAnimationFrame(() => focusSoon(() => blockHandle(result.firstId)))
+    toast.success(
+      texts.templates.insert.inserted(
+        template.title.trim() || texts.templates.list.untitled
+      )
+    )
+  }
+
   const blocksValue = useMemo<BlocksEditorValue>(
     () => ({
       editable,
@@ -720,6 +904,8 @@ function ContentEditor({
       mediaFor,
       openPicker,
       addToBox,
+      templateFor,
+      detachBlock,
     }),
     [
       editable,
@@ -729,6 +915,8 @@ function ContentEditor({
       mediaFor,
       openPicker,
       addToBox,
+      templateFor,
+      detachBlock,
     ]
   )
 
@@ -814,6 +1002,7 @@ function ContentEditor({
   const pub = usePublication({
     contentId,
     kind,
+    enabled: !isTemplate,
     draftRev: Math.max(autosave.state.rev, serverRev ?? 0, loadedRev),
     unsaved: autosave.state.unsaved,
     editable,
@@ -826,6 +1015,79 @@ function ContentEditor({
     takeLock: () => take(true),
     openSettings,
   })
+
+  // --- « Enregistrer comme modèle » (contenus) ----------------------------------------------
+
+  // Les blocs cochés dans le plan (ou le bloc choisi), puis la fenêtre du nouveau modèle.
+  const [choosing, setChoosing] = useState(false)
+  const [chosen, setChosen] = useState<ReadonlySet<string>>(() => new Set())
+  const [saveAsIds, setSaveAsIds] = useState<string[] | null>(null)
+  const saveAs = useMutation({
+    mutationFn: async ({
+      ids,
+      values,
+    }: {
+      ids: string[]
+      values: TemplateValues
+    }) => {
+      // Le modèle est fait du brouillon ENREGISTRÉ : l'enregistrement en attente part d'abord.
+      if ((await prepare()) === null) return null
+      return createTemplateFrom(contentId, ids, values)
+    },
+    onSuccess: (created, { ids, values }) => {
+      if (!created) return
+      setSaveAsIds(null)
+      setChoosing(false)
+      setChosen(new Set())
+      void queryClient.invalidateQueries({ queryKey: templateKeys.all })
+      const name = created.title.trim() || texts.templates.list.untitled
+      const open = {
+        label: texts.templates.saveAs.open,
+        onClick: () => void navigate(editorPath("templates", created.id)),
+      }
+      if (values.sort === "shared" && ids.length === 1 && editable) {
+        // Le bloc devient lié à son modèle : on le corrige désormais dans le modèle.
+        setPickedTemplates((current) => ({
+          ...current,
+          [created.id]: {
+            id: created.id,
+            title: created.title,
+            sort: "shared",
+            inTrash: false,
+            draft: created.draft,
+          },
+        }))
+        setDraft((current) => ({
+          ...current,
+          blocks: current.blocks.map((block) =>
+            block.id === ids[0] ? linkedBlock(created.id, ids[0]) : block
+          ),
+        }))
+        toast.success(texts.templates.saveAs.saved(name), {
+          description: texts.templates.saveAs.sharedReplaced,
+          action: open,
+        })
+      } else {
+        toast.success(texts.templates.saveAs.saved(name), { action: open })
+      }
+    },
+    onError: (error) => checkAccess(error),
+  })
+  const openSaveAs = (ids: string[]) => {
+    saveAs.reset()
+    setSaveAsIds(ids)
+  }
+
+  // Un bloc identique partout garde son bloc tant qu'un brouillon l'utilise ([D11]).
+  const templateUses = useTemplateUses(contentId, isShared)
+  const removeBlocked =
+    isShared &&
+    (templateUses.data?.length ?? 0) > 0 &&
+    draft.blocks.length === 1 &&
+    selectedId === draft.blocks[0].id
+      ? texts.templates.editor.keepBlock
+      : null
+  const canAddRoot = canAddRootBlock(draft, templateSort)
 
   // --- Copier mon texte, quitter -----------------------------------------------------------
 
@@ -864,10 +1126,13 @@ function ContentEditor({
 
   const nearLimit = useMemo(() => draftBytes(draft) > DRAFT_WARN_BYTES, [draft])
   const sectionTitle = texts.sections[section].title
+  const untitled = isTemplate
+    ? texts.templates.list.untitled
+    : texts.editor.untitled
 
   return (
     <div className="flex h-svh flex-col bg-muted/40">
-      <title>{`${title.trim() || texts.editor.untitled} — ${texts.app.name}`}</title>
+      <title>{`${title.trim() || untitled} — ${texts.app.name}`}</title>
       <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
         <BackLink section={section} />
         <Separator orientation="vertical" className="h-6" />
@@ -885,41 +1150,63 @@ function ContentEditor({
           {texts.editor.outline.toggle}
         </Button>
         <p className="min-w-0 flex-1 truncate text-sm font-medium" aria-hidden>
-          {title.trim() || texts.editor.untitled}
+          {title.trim() || untitled}
           <span className="font-normal text-muted-foreground">
             {" "}
             · {sectionTitle}
           </span>
         </p>
+        {templateSort && (
+          <TemplateSortBadge
+            sort={templateSort}
+            templateFor={
+              isTemplateFor(initial.template_for) ? initial.template_for : null
+            }
+          />
+        )}
         <SaveStatus
           state={autosave.state}
           visible={phase === "mine" || autosave.state.unsaved}
         />
-        <HeaderIconButton
-          label={texts.publication.actions.settings}
-          expanded={settingsOpen}
-          onClick={() => openSettings(null)}
-        >
-          <Settings2 />
-        </HeaderIconButton>
-        <HeaderIconButton
-          label={texts.publication.actions.history}
-          expanded={historyOpen}
-          onClick={() => setHistoryOpen(true)}
-        >
-          <History />
-        </HeaderIconButton>
+        {isTemplate ? (
+          isShared && <SharedTemplateBar templateId={contentId} />
+        ) : (
+          <>
+            <HeaderIconButton
+              label={texts.publication.actions.settings}
+              expanded={settingsOpen}
+              onClick={() => openSettings(null)}
+            >
+              <Settings2 />
+            </HeaderIconButton>
+            <HeaderIconButton
+              label={texts.publication.actions.history}
+              expanded={historyOpen}
+              onClick={() => setHistoryOpen(true)}
+            >
+              <History />
+            </HeaderIconButton>
+          </>
+        )}
         <AddBlockMenu
           id={ADD_BLOCK_ID}
           variant="outline"
-          disabled={!editable}
+          disabled={!editable || !canAddRoot}
           onAdd={(type) => addBlock(type)}
+          onTemplate={
+            isTemplate ? undefined : () => setTemplatePickerOpen(true)
+          }
         />
-        <Separator orientation="vertical" className="h-6" />
-        <PublishBar
-          pub={pub}
-          disabled={phase === "taking" || phase === "error"}
-        />
+        {!isTemplate && (
+          <>
+            <Separator orientation="vertical" className="h-6" />
+            <PublishBar
+              pub={pub}
+              disabled={phase === "taking" || phase === "error"}
+              alwaysPublishable={linkedIds.length > 0}
+            />
+          </>
+        )}
       </header>
 
       <p role="status" className="sr-only">
@@ -936,17 +1223,19 @@ function ContentEditor({
         onReload={reload}
         onDismissCopy={() => setStash(null)}
       />
-      <ScheduleBanner
-        pub={pub}
-        leave={
-          <Link
-            to={sections[section].path}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            {texts.publication.banner.leave}
-          </Link>
-        }
-      />
+      {!isTemplate && (
+        <ScheduleBanner
+          pub={pub}
+          leave={
+            <Link
+              to={sections[section].path}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {texts.publication.banner.leave}
+            </Link>
+          }
+        />
+      )}
 
       <div className="flex min-h-0 flex-1">
         {outlineOpen && (
@@ -958,6 +1247,30 @@ function ContentEditor({
               draft={draft}
               selectedId={selectedId}
               onSelect={selectAndShow}
+              templateName={templateName}
+              selection={
+                !isTemplate && editable
+                  ? {
+                      active: choosing,
+                      chosen,
+                      onToggleActive: () => {
+                        setChoosing((active) => !active)
+                        setChosen(new Set())
+                      },
+                      onChoose: (id, checked) =>
+                        setChosen((current) => {
+                          const next = new Set(current)
+                          if (checked) next.add(id)
+                          else next.delete(id)
+                          return next
+                        }),
+                      onSave: () => {
+                        const ids = selectedRootIds(draft, new Set(chosen))
+                        if (ids.length > 0) openSaveAs(ids)
+                      },
+                    }
+                  : undefined
+              }
             />
           </aside>
         )}
@@ -997,26 +1310,47 @@ function ContentEditor({
                 value={title}
                 maxLength={TITLE_MAX}
                 readOnly={!editable}
-                placeholder={texts.editor.title.placeholder}
-                aria-label={texts.editor.title.label}
+                placeholder={
+                  isTemplate
+                    ? texts.templates.editor.namePlaceholder
+                    : texts.editor.title.placeholder
+                }
+                aria-label={
+                  isTemplate
+                    ? texts.templates.editor.nameLabel
+                    : texts.editor.title.label
+                }
                 onChange={onTitle}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") event.preventDefault()
                 }}
               />
               <BlocksEditorContext value={blocksValue}>
-                <BlockCanvas key={viewKey} draft={draft} onChange={setDraft} />
+                <BlockCanvas
+                  key={viewKey}
+                  draft={draft}
+                  onChange={setDraft}
+                  rootLimit={isShared ? SHARED_ROOT_LIMIT : undefined}
+                />
               </BlocksEditorContext>
               {draft.blocks.length === 0 && (
                 <Empty className="border border-dashed font-sans">
                   <EmptyHeader>
-                    <EmptyTitle>{texts.editor.emptyPage.title}</EmptyTitle>
+                    <EmptyTitle>
+                      {isTemplate
+                        ? texts.templates.editor.empty.title
+                        : texts.editor.emptyPage.title}
+                    </EmptyTitle>
                     <EmptyDescription>
-                      {texts.editor.emptyPage.description}
+                      {isShared
+                        ? texts.templates.editor.empty.sharedDescription
+                        : isTemplate
+                          ? texts.templates.editor.empty.description
+                          : texts.editor.emptyPage.description}
                     </EmptyDescription>
                   </EmptyHeader>
                   {editable && (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap justify-center gap-2">
                       {insertableBlocks.map((definition) => (
                         <Button
                           key={definition.type}
@@ -1028,17 +1362,35 @@ function ContentEditor({
                           {definition.label}
                         </Button>
                       ))}
+                      {!isTemplate && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTemplatePickerOpen(true)}
+                        >
+                          <LayoutTemplate />
+                          {texts.templates.insert.menu}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </Empty>
               )}
-              {editable && draft.blocks.length > 0 && (
+              {editable && draft.blocks.length > 0 && canAddRoot && (
                 <div className="mt-6 flex justify-center font-sans">
                   <AddBlockMenu
                     variant="ghost"
                     onAdd={(type) => addBlock(type, undefined)}
+                    onTemplate={
+                      isTemplate ? undefined : () => setTemplatePickerOpen(true)
+                    }
                   />
                 </div>
+              )}
+              {editable && isShared && !canAddRoot && (
+                <p className="mt-6 text-center font-sans text-xs text-muted-foreground">
+                  {texts.templates.editor.sharedLimit}
+                </p>
               )}
             </div>
           </div>
@@ -1054,36 +1406,71 @@ function ContentEditor({
             onShift={onShift}
             onRemove={onRemove}
             onChooseImage={openPicker}
+            templateFor={templateFor}
+            onDetach={detachBlock}
+            removeBlocked={removeBlocked}
+            onSaveAsTemplate={isTemplate ? undefined : (id) => openSaveAs([id])}
           />
         </aside>
       </div>
 
-      <ContentSettingsSheet
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        focus={settingsFocus}
-        kind={kind}
-        title={title}
-        settings={settings}
-        editable={editable}
-        levels={levels.data}
-        levelsFailed={levels.isError}
-        live={pub.publication?.live ?? null}
-        refusedSlug={refusedSlug}
-        onChange={(next) => {
-          if (next.slug !== settings.slug) setRefusedSlug(null)
-          setSettings(next)
-        }}
-      />
-      <HistorySheet
-        open={historyOpen}
-        onOpenChange={setHistoryOpen}
-        contentId={contentId}
-        liveVersionId={pub.publication?.live?.id ?? null}
-        canRevert={editable}
-        onRevert={onRevert}
-      />
-      <PublicationDialogs pub={pub} />
+      {!isTemplate && (
+        <>
+          <ContentSettingsSheet
+            open={settingsOpen}
+            onOpenChange={setSettingsOpen}
+            focus={settingsFocus}
+            kind={kind}
+            title={title}
+            settings={settings}
+            editable={editable}
+            levels={levels.data}
+            levelsFailed={levels.isError}
+            live={pub.publication?.live ?? null}
+            refusedSlug={refusedSlug}
+            onChange={(next) => {
+              if (next.slug !== settings.slug) setRefusedSlug(null)
+              setSettings(next)
+            }}
+          />
+          <HistorySheet
+            open={historyOpen}
+            onOpenChange={setHistoryOpen}
+            contentId={contentId}
+            liveVersionId={pub.publication?.live?.id ?? null}
+            canRevert={editable}
+            onRevert={onRevert}
+          />
+          <PublicationDialogs pub={pub} />
+          <TemplatePicker
+            open={templatePickerOpen}
+            onOpenChange={setTemplatePickerOpen}
+            onChoose={onInsertTemplate}
+          />
+          <TemplateDialog
+            open={saveAsIds !== null}
+            onOpenChange={(open) => {
+              if (!open) setSaveAsIds(null)
+            }}
+            title={texts.templates.saveAs.title}
+            description={texts.templates.saveAs.description(
+              saveAsIds?.length ?? 1
+            )}
+            submitLabel={texts.templates.saveAs.submit}
+            defaultSection={isTemplateFor(kind) ? kind : null}
+            sharedDisabled={
+              (saveAsIds?.length ?? 0) > 1
+                ? texts.templates.saveAs.sharedOne
+                : null
+            }
+            pending={saveAs.isPending}
+            error={saveAs.error ? saveAs.error.message : null}
+            onSubmit={(values) => {
+              if (saveAsIds) saveAs.mutate({ ids: saveAsIds, values })
+            }}
+          />
+        </>
+      )}
 
       <MediaPicker
         open={pickerFor !== null}
@@ -1156,14 +1543,19 @@ function HeaderIconButton({
   )
 }
 
-/** « Ajouter un bloc » : Texte, Image, Encadré (après le bloc choisi, ou à la fin). */
+/**
+ * « Ajouter un bloc » : Texte, Image, Encadré (après le bloc choisi, ou à la fin), et, dans un
+ * contenu, « Un modèle… » (mise en forme ou bloc identique partout).
+ */
 function AddBlockMenu({
   onAdd,
+  onTemplate,
   id,
   disabled = false,
   variant = "default",
 }: {
   onAdd: (type: InsertableType) => void
+  onTemplate?: () => void
   id?: string
   disabled?: boolean
   variant?: "default" | "ghost" | "outline"
@@ -1188,6 +1580,15 @@ function AddBlockMenu({
             {definition.label}
           </DropdownMenuItem>
         ))}
+        {onTemplate && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onTemplate}>
+              <LayoutTemplate />
+              {texts.templates.insert.menu}
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )
