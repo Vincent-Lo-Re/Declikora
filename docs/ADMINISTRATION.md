@@ -110,6 +110,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **En-têtes de sécurité** : le navigateur refuse d'afficher l'admin dans un autre site, et n'exécute que ses propres scripts (et ceux de Supabase et Sentry).
 - [x] **Tests de parcours**, lancés automatiquement : un robot ouvre l'admin dans un navigateur et refait les parcours principaux (se connecter avec les deux codes, écrire, publier).
 - [x] **Alerte en cas d'erreur** dans l'admin en ligne (Sentry), sans données personnelles. Organisation « Declikora » (`declikora-zc`, données en Europe), projet `declikora-admin` (surveillance des erreurs seulement, alerte par e-mail sur les erreurs importantes). L'organisation ne stocke pas les adresses IP, impose le nettoyage des données sensibles, et ne partage rien publiquement. L'identifiant (`VITE_SENTRY_DSN`) et le nom de l'environnement sont dans Vercel.
+- [x] **Sauvegarde de la base chaque semaine**, tant que l'offre gratuite n'en fait pas (décidé le 28/09/2026) : les données et la structure partent dans un fichier du dépôt GitHub (privé), gardé 90 jours. Les photos et les audios n'y sont pas : ils restent dans le stockage de Supabase.
 - [ ] **Offre Pro de Supabase avant le lancement de l'app.** L'offre gratuite ne suffit pas pour les podcasts (vérifié le 27/09/2026) : 50 Mo au plus par fichier, 1 Go de stockage en tout, 5 Go téléchargés par mois, et un projet mis en pause après une semaine sans activité. L'offre Pro commence à 25 $ par mois, avec 100 Go de stockage.
 
 ## 9. Choix techniques
