@@ -18,11 +18,11 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Podcasts** : les épisodes (le son fait partie de l'épisode) et leurs catégories.
 - [x] **Méthodes** : une méthode contient des chapitres, et chaque chapitre contient des leçons. Le chapitre a sa propre introduction en blocs, affichée avant ses leçons. Chaque leçon a son contenu en blocs.
 - [x] **Pages** : les pages simples de l'app (aide, mentions légales…).
-- [ ] **Modèles** : les modèles de blocs (voir § 5).
+- [x] **Modèles** : les modèles de blocs (voir § 5).
 - [x] **Médiathèque** : tous les fichiers (voir § 6).
 - [x] **Corbeille** : une seule, pour tout ce qui a été supprimé (voir § 3).
 - [x] **Équipe** et **Paramètres**, réservés aux admins. Les Paramètres contiennent les formules d'abonnement.
-- [ ] **Mon compte** : double vérification, déconnexion.
+- [x] **Mon compte** : double vérification, déconnexion.
 
 ## 2. Équipe, connexion et sécurité
 
@@ -33,8 +33,8 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Connexion sans mot de passe** : on tape son e-mail, puis le code à 6 chiffres reçu par e-mail (valable 10 minutes). La page affiche le même message que l'adresse fasse partie de l'équipe ou non. Limite connue : l'API de Supabase, elle, laisse deviner si une adresse a un compte.
 - [x] **Double vérification obligatoire pour tous.** Après le code reçu par e-mail, on saisit le code d'une app du téléphone (Google Authenticator, 1Password…). Elle se configure à la première connexion. Tant qu'elle n'est pas faite, la base refuse tout accès aux données.
 - [x] **Téléphone perdu** : un admin réinitialise la double vérification d'un autre membre (ses sessions sont aussitôt fermées). Il faut donc **toujours au moins deux admins** : la page Équipe le rappelle tant qu'il n'y en a qu'un. La base garantit qu'il reste toujours un admin **capable d'agir** (invitation acceptée et double vérification configurée). On ne change pas son propre rôle, et on ne se retire pas soi-même.
-- [ ] **Premier admin (une seule fois, en production)** : l'inviter depuis le tableau de bord Supabase (Authentication › Users › Invite user), puis, dans l'éditeur SQL, poser son rôle avant qu'il accepte : `update auth.users set raw_app_meta_data = coalesce(raw_app_meta_data, '{}') || '{"role":"admin"}' where email = '<son adresse>';`. Aucune adresse n'est écrite dans le dépôt.
-- [ ] **E-mails** (invitation, code) envoyés par **Brevo**, depuis `ne-pas-repondre@declikora.app` (domaine déjà authentifié dans Brevo : DKIM et DMARC), avec des textes en français.
+- [x] **Premier admin (une seule fois, en production)** : l'inviter depuis le tableau de bord Supabase (Authentication › Users › Invite user), puis, dans l'éditeur SQL, poser son rôle avant qu'il accepte : `update auth.users set raw_app_meta_data = coalesce(raw_app_meta_data, '{}') || '{"role":"admin"}' where email = '<son adresse>';`. Aucune adresse n'est écrite dans le dépôt.
+- [x] **E-mails** (invitation, code) envoyés par **Brevo**, depuis `ne-pas-repondre@declikora.app` (domaine déjà authentifié dans Brevo : DKIM et DMARC), avec des textes en français.
 
 ## 3. Contenus et publication
 
@@ -98,7 +98,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 
 ## 8. Mise en ligne et garde-fous
 
-- [ ] **Vercel**, qui met l'admin en ligne à chaque envoi sur GitHub. Le projet se crée en ligne de commande (`npx vercel login`, puis je configure).
+- [x] **Vercel**, qui met l'admin en ligne à chaque envoi sur GitHub. Le projet se crée en ligne de commande (`npx vercel login`, puis je configure).
 - [x] **Demandes de fusion.** Chaque changement passe par une branche et une demande de fusion (pull request). Les garde-fous tournent, Vercel crée une adresse de test, et on ne fusionne dans `main` qu'avec le feu vert de l'utilisateur et des garde-fous au vert.
 - [x] **Réglages GitHub** : une demande de fusion arrive sur `main` en un seul commit (titre et description de la demande), sa branche est supprimée ensuite, et les alertes de sécurité (Dependabot) sont actives.
 - [x] **Vercel ne reconstruit l'admin que si `web/` change** (`ignoreCommand` dans `web/vercel.json`).
