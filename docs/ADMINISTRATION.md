@@ -103,8 +103,8 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Réglages GitHub** : une demande de fusion arrive sur `main` en un seul commit (titre et description de la demande), sa branche est supprimée ensuite, et les alertes de sécurité (Dependabot) sont actives.
 - [x] **Vercel ne reconstruit l'admin que si `web/` change** (`ignoreCommand` dans `web/vercel.json`).
 - [x] **Vercel attend les garde-fous** « Administration » et « Base de données » avant toute mise en production (Deployment Checks).
-- [x] **Une adresse provisoire** pendant la construction : `declikora-admin.vercel.app`.
-- [ ] **Bascule sur `admin.declikora.app`** quand la nouvelle administration est prête, à la place de l'ancienne.
+- [x] **Une adresse provisoire** pendant la construction : `declikora-admin.vercel.app`. Depuis la bascule, elle redirige vers `admin.declikora.app`.
+- [x] **Bascule sur `admin.declikora.app`** quand la nouvelle administration est prête, à la place de l'ancienne (faite le 28/09/2026 : domaine ajouté au projet Vercel, enregistrement DNS `admin` chez Cloudflare sans proxy, adresse des e-mails et fonctions serveur mises à jour).
 - [x] **Domaine principal : `declikora.app`** (déjà à nous, chez Cloudflare, DNS chez Cloudflare, à renouveler avant le 23/05/2027). `declikora.fr` est aussi à nous (chez Scaleway, à renouveler avant le 02/07/2027) : il pourra rediriger vers `declikora.app`.
 - [x] **À chaque envoi sur GitHub** : mise en forme, relecture du code (lint), tests, vérification des types et construction de l'admin, et tests de la base (pgTAP).
 - [x] **En-têtes de sécurité** : le navigateur refuse d'afficher l'admin dans un autre site, et n'exécute que ses propres scripts (et ceux de Supabase et Sentry).

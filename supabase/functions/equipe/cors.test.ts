@@ -4,6 +4,7 @@ import { corsHeaders, isAllowedOrigin } from "./cors.ts"
 Deno.test("origines autorisées", () => {
   for (
     const origin of [
+      "https://admin.declikora.app",
       "https://declikora-admin.vercel.app",
       "https://declikora-admin-git-etape-2-connexion-vincent-lo-re.vercel.app",
       "https://declikora-admin-a1b2c3d4e-vincent-lo-re.vercel.app",
@@ -21,6 +22,11 @@ Deno.test("origines refusées", () => {
       null,
       "",
       "null",
+      "http://admin.declikora.app",
+      "https://admin.declikora.app.pirate.fr",
+      "https://admin.declikora.app:8443",
+      "https://autre.declikora.app",
+      "https://declikora.app",
       "http://declikora-admin.vercel.app",
       "https://declikora-admin.vercel.app.pirate.fr",
       "https://pirate.fr/https://declikora-admin.vercel.app",

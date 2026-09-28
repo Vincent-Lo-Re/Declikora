@@ -3,6 +3,8 @@
 
 const allowedOrigins = [
   // Production
+  /^https:\/\/admin\.declikora\.app$/,
+  // Première adresse de production, qui redirige maintenant vers admin.declikora.app
   /^https:\/\/declikora-admin\.vercel\.app$/,
   // Adresses de test créées par Vercel pour chaque demande de fusion
   /^https:\/\/declikora-admin-[a-z0-9-]+-vincent-lo-re\.vercel\.app$/,
