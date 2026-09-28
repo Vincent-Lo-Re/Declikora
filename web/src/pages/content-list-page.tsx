@@ -18,6 +18,7 @@ import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
+import { useMethodPending } from "@/components/methods/use-method-pending"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -68,6 +69,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  accessLevelsKey,
+  listAccessLevels,
+  type AccessLevel,
+} from "@/lib/access-levels"
+import {
   categoryNames,
   categorySectionOf,
   type Category,
@@ -89,6 +95,11 @@ import {
   stateFilters,
   type ListFilters,
 } from "@/lib/contents/list-filters"
+import {
+  listMethodCounts,
+  methodKeys,
+  type MethodCounts,
+} from "@/lib/contents/methods"
 import { restoreContent, trashContent } from "@/lib/contents/publication"
 import { listStarters, templateKeys } from "@/lib/contents/templates"
 import { useCategories } from "@/hooks/use-categories"
@@ -100,14 +111,14 @@ import { texts } from "@/texts"
 
 const labels = texts.contentList
 
-/** Les sortes de contenu qui ont une liste (les méthodes arrivent à la partie 7b). */
-export type ListKind = "page" | "article" | "episode"
+/** Les sortes de contenu qui ont une liste. */
+export type ListKind = "page" | "article" | "episode" | "method"
 
 /**
- * Liste des contenus d'une section (Pages, Blog, Podcasts) : recherche, filtres par état de
- * publication et par catégorie, créer (vide ou depuis un point de départ, [D42]), ouvrir dans
- * l'éditeur, mettre à la corbeille. Pour une page, son adresse ; pour un article ou un épisode,
- * ses catégories.
+ * Liste des contenus d'une section (Pages, Blog, Podcasts, Méthodes) : recherche, filtres par
+ * état de publication et par catégorie, créer (vide ou depuis un point de départ, [D42]), ouvrir
+ * dans l'éditeur, mettre à la corbeille. Pour une page, son adresse ; pour un article ou un
+ * épisode, ses catégories ; pour une méthode, son niveau d'accès et la taille de son plan.
  */
 export function ContentListPage({
   section,
@@ -130,6 +141,30 @@ export function ContentListPage({
     refetchInterval: 30_000,
   })
   const categories = useCategories(categorySection)
+  const isMethod = kind === "method"
+  // Méthodes : les formules (niveau d'accès), le nombre de chapitres et de leçons, et, pour
+  // celles qui sont en ligne, s'il y a quelque chose à publier (la fiche ne suffit pas : une
+  // leçon modifiée ne change pas la fiche, [D29]).
+  const levels = useQuery({
+    queryKey: accessLevelsKey,
+    queryFn: listAccessLevels,
+    enabled: isMethod,
+  })
+  const counts = useQuery({
+    queryKey: methodKeys.counts,
+    queryFn: listMethodCounts,
+    enabled: isMethod,
+    refetchInterval: 30_000,
+  })
+  const pendingById = useMethodPending(isMethod ? list.data : undefined, true)
+  const items =
+    isMethod && list.data
+      ? list.data.map((item) =>
+          pendingById.has(item.id)
+            ? { ...item, pending_changes: pendingById.get(item.id) }
+            : item
+        )
+      : list.data
   const [toTrash, setToTrash] = useState<ContentListItem | null>(null)
   const [filters, setFilters] = useState<ListFilters>(noFilters)
   const search = useDebouncedValue(filters.search, 150)
@@ -151,15 +186,15 @@ export function ContentListPage({
       : ALL_CATEGORIES
   const shown = useMemo(
     () =>
-      list.data
+      items
         ? filterContents(
-            list.data,
+            items,
             { ...filters, search, category },
             list.dataUpdatedAt,
             known
           )
         : [],
-    [list.data, list.dataUpdatedAt, filters, search, category, known]
+    [items, list.dataUpdatedAt, filters, search, category, known]
   )
   const filtering =
     filters.search.trim() !== "" ||
@@ -221,6 +256,8 @@ export function ContentListPage({
   const starters = useQuery({
     queryKey: templateKeys.starters(kind),
     queryFn: () => listStarters(kind),
+    // Il n'y a pas de point de départ pour une méthode ([D42] : chapitres et leçons seulement).
+    enabled: !isMethod,
   })
 
   const create = useMutation({
@@ -351,6 +388,8 @@ export function ContentListPage({
                   items={shown}
                   now={list.dataUpdatedAt}
                   categories={categories.data}
+                  levels={levels.data}
+                  counts={counts.data}
                   trashing={trash.isPending}
                   onTrash={setToTrash}
                 />
@@ -520,6 +559,8 @@ function ContentTable({
   items,
   now,
   categories,
+  levels,
+  counts,
   trashing,
   onTrash,
 }: {
@@ -528,20 +569,31 @@ function ContentTable({
   items: ContentListItem[]
   now: number
   categories: Category[] | undefined
+  // Méthodes : les formules, et la taille du plan de chacune (undefined : pas encore lus).
+  levels: AccessLevel[] | undefined
+  counts: MethodCounts | undefined
   trashing: boolean
   onTrash: (item: ContentListItem) => void
 }) {
-  const withCategories = kind !== "page"
+  const withCategories = kind === "article" || kind === "episode"
+  const isMethod = kind === "method"
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>{labels.columns.title}</TableHead>
-          <TableHead>
-            {withCategories
-              ? labels.columns.categories
-              : labels.columns.address}
-          </TableHead>
+          {isMethod ? (
+            <>
+              <TableHead>{labels.columns.level}</TableHead>
+              <TableHead>{labels.columns.outline}</TableHead>
+            </>
+          ) : (
+            <TableHead>
+              {withCategories
+                ? labels.columns.categories
+                : labels.columns.address}
+            </TableHead>
+          )}
           <TableHead>{labels.columns.publication}</TableHead>
           <TableHead>{labels.columns.savedAt}</TableHead>
           <TableHead>{labels.columns.status}</TableHead>
@@ -564,17 +616,25 @@ function ContentTable({
                   {name}
                 </Link>
               </TableCell>
-              <TableCell className="max-w-64 text-muted-foreground">
-                {withCategories ? (
-                  <CategoriesCell ids={item.category_ids} all={categories} />
-                ) : item.slug ? (
-                  <code className="font-mono text-xs break-all">
-                    {item.slug}
-                  </code>
-                ) : (
-                  <span className="text-xs">{labels.noAddress}</span>
-                )}
-              </TableCell>
+              {isMethod ? (
+                <MethodCells
+                  item={item}
+                  levels={levels}
+                  count={counts?.get(item.id) ?? (counts ? EMPTY_COUNT : null)}
+                />
+              ) : (
+                <TableCell className="max-w-64 text-muted-foreground">
+                  {withCategories ? (
+                    <CategoriesCell ids={item.category_ids} all={categories} />
+                  ) : item.slug ? (
+                    <code className="font-mono text-xs break-all">
+                      {item.slug}
+                    </code>
+                  ) : (
+                    <span className="text-xs">{labels.noAddress}</span>
+                  )}
+                </TableCell>
+              )}
               <TableCell>
                 <div className="flex flex-wrap gap-1.5">
                   <LiveBadge live={status.live} />
@@ -607,6 +667,49 @@ function ContentTable({
         })}
       </TableBody>
     </Table>
+  )
+}
+
+const EMPTY_COUNT = { chapters: 0, lessons: 0 }
+
+/** Une méthode : son niveau d'accès ([D41] : « Pas encore choisi ») et la taille de son plan. */
+function MethodCells({
+  item,
+  levels,
+  count,
+}: {
+  item: ContentListItem
+  levels: AccessLevel[] | undefined
+  // null tant que les nombres ne sont pas lus.
+  count: { chapters: number; lessons: number } | null
+}) {
+  const level = !item.access_chosen
+    ? labels.levelNotChosen
+    : item.access_level_id === null
+      ? texts.publication.settings.access.free
+      : levels
+        ? (levels.find((entry) => entry.id === item.access_level_id)?.name ??
+          texts.publication.settings.access.deleted)
+        : null
+  return (
+    <>
+      <TableCell className="text-muted-foreground">
+        {level === null ? (
+          <Skeleton className="h-4 w-20" />
+        ) : item.access_chosen ? (
+          <Badge variant="outline">{level}</Badge>
+        ) : (
+          <span className="text-xs">{level}</span>
+        )}
+      </TableCell>
+      <TableCell className="text-muted-foreground tabular-nums">
+        {count ? (
+          labels.outlineCount(count.chapters, count.lessons)
+        ) : (
+          <Skeleton className="h-4 w-28" />
+        )}
+      </TableCell>
+    </>
   )
 }
 

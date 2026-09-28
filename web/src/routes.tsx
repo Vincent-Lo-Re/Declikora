@@ -8,6 +8,7 @@ import type { ContentKind } from "@/lib/contents/api"
 import {
   authPaths,
   categoriesPath,
+  methodElementSegments,
   sections,
   type SectionKey,
 } from "@/navigation"
@@ -20,7 +21,6 @@ import { InvitationPage } from "@/pages/invitation-page"
 import { MediaPage } from "@/pages/media-page"
 import { MfaPage } from "@/pages/mfa-page"
 import { NotFoundPage } from "@/pages/not-found-page"
-import { SectionPage } from "@/pages/section-page"
 import { SettingsPage } from "@/pages/settings-page"
 import { SignInPage } from "@/pages/sign-in-page"
 import { SignOutPage } from "@/pages/sign-out-page"
@@ -28,21 +28,35 @@ import { TeamPage } from "@/pages/team-page"
 import { TemplatesPage } from "@/pages/templates-page"
 import { TrashPage } from "@/pages/trash-page"
 
-// Sections pas encore construites : elles affichent « Bientôt disponible » (partie 7b).
-const upcomingSections: SectionKey[] = ["methods"]
+// Les éditeurs plein écran : la section (pour « ← Blog »), la sorte de contenu et l'adresse.
+type EditorRoute = { section: SectionKey; kind: ContentKind; path: string }
 
-const sectionRoute = (section: SectionKey) => ({
-  path: sections[section].path,
-  element: <SectionPage section={section} />,
+const sectionEditor = (
+  section: SectionKey,
+  kind: ContentKind
+): EditorRoute => ({
+  section,
+  kind,
+  path: `${sections[section].path}/:contentId`,
 })
 
-// Les sections qui ont un éditeur plein écran : la sorte de contenu de chacune.
-const editorRoutes: { section: SectionKey; kind: ContentKind }[] = [
-  { section: "blog", kind: "article" },
-  { section: "podcasts", kind: "episode" },
-  { section: "pages", kind: "page" },
+const methodElementEditor = (kind: "chapter" | "lesson"): EditorRoute => ({
+  section: "methods",
+  kind,
+  path: `${sections.methods.path}/${methodElementSegments[kind]}/:contentId`,
+})
+
+const editorRoutes: EditorRoute[] = [
+  sectionEditor("blog", "article"),
+  sectionEditor("podcasts", "episode"),
+  // Une méthode : sa fiche et son plan (« ← Méthodes »).
+  sectionEditor("methods", "method"),
+  // Un chapitre et une leçon : l'éditeur de blocs, « ← nom de la méthode ».
+  methodElementEditor("chapter"),
+  methodElementEditor("lesson"),
+  sectionEditor("pages", "page"),
   // L'éditeur d'un modèle : le même éditeur plein écran, « ← Modèles ».
-  { section: "templates", kind: "template" },
+  sectionEditor("templates", "template"),
 ]
 
 export const routes: RouteObject[] = [
@@ -65,8 +79,8 @@ export const routes: RouteObject[] = [
         element: <RequireTeamMember />,
         children: [
           // L'éditeur prend tout l'écran : le menu se cache, « ← Blog » ramène à la liste.
-          ...editorRoutes.map(({ section, kind }) => ({
-            path: `${sections[section].path}/:contentId`,
+          ...editorRoutes.map(({ section, kind, path }) => ({
+            path,
             // Chargé à part : Tiptap et le glisser-déposer ne pèsent que sur l'éditeur.
             lazy: async () => {
               const { EditorPage } = await import("@/pages/editor-page")
@@ -82,7 +96,12 @@ export const routes: RouteObject[] = [
                 errorElement: <ErrorPage />,
                 children: [
                   { path: sections.home.path, element: <HomePage /> },
-                  ...upcomingSections.map(sectionRoute),
+                  {
+                    path: sections.methods.path,
+                    element: (
+                      <ContentListPage section="methods" kind="method" />
+                    ),
+                  },
                   {
                     path: sections.blog.path,
                     element: <ContentListPage section="blog" kind="article" />,

@@ -117,6 +117,8 @@ function page(blocks: Draft["blocks"]): api.Content {
     slug: null,
     template_sort: null,
     template_for: null,
+    in_app: false,
+    is_free: false,
     category_ids: [],
   }
 }
@@ -303,6 +305,7 @@ describe("bloc lié dans un contenu", () => {
         published_by_name: null,
         slug: "accueil",
         access_level_id: null,
+        outline: null,
       },
     })
     renderApp(`/pages/${PAGE_ID}`)

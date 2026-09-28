@@ -181,9 +181,11 @@ describe("éditeurs", () => {
     expect(contentEditorPath("episode", "e")).toBe("/podcasts/e")
     expect(contentEditorPath("page", "p")).toBe("/pages/p")
     expect(contentEditorPath("template", "t")).toBe("/modeles/t")
-    // Les méthodes, leurs chapitres et leurs leçons : partie 7b.
-    expect(contentEditorPath("method", "m")).toBeNull()
-    expect(contentEditorPath("lesson", "l")).toBeNull()
+    // Une méthode, et ses chapitres et ses leçons (partie 7b).
+    expect(contentEditorPath("method", "m")).toBe("/methodes/m")
+    expect(contentEditorPath("chapter", "c")).toBe("/methodes/chapitres/c")
+    expect(contentEditorPath("lesson", "l")).toBe("/methodes/lecons/l")
+    expect(contentEditorPath("inconnu", "x")).toBeNull()
     expect(categoriesPath("podcasts")).toBe("/podcasts/categories")
     expect(mediaFilePath("f")).toBe("/mediatheque?fichier=f")
   })

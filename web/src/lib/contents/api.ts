@@ -76,6 +76,24 @@ export function toContentError(
   })
 }
 
+/** Le message d'un code d'erreur de la base (texts.editor.errors), ou le message générique. */
+export function contentErrorText(code: string): string {
+  return isContentErrorCode(code)
+    ? texts.editor.errors[code]
+    : texts.common.unexpected
+}
+
+/**
+ * Ce qui ferait refuser la publication d'un élément (publish_preview) : la précision de la base
+ * (en français, et plus précise : « bloc n° 2 »), sinon le message du code.
+ */
+export function contentProblemText(
+  code: string,
+  detail: string | null
+): string {
+  return detail?.trim() || contentErrorText(code)
+}
+
 /** Vrai si l'erreur montre que la personne n'a plus accès (fiche ou session à relire). */
 export function isContentAccessLost(error: unknown): boolean {
   return error instanceof ContentError && error.code === "reserve_a_l_equipe"
@@ -119,6 +137,12 @@ export type ContentListItem = {
   first_published_at: string | null
   scheduled_at: string | null
   schedule_error: string | null
+  // Niveau d'accès du brouillon (liste des méthodes) : choisi ou non ([D41]), null = Gratuit.
+  access_chosen: boolean
+  access_level_id: string | null
+  // Méthodes : vrai si publier changerait quelque chose dans l'app (publish_preview), faux si
+  // rien, absent tant qu'on ne le sait pas (la révision de la fiche ne suffit pas : [D29]).
+  pending_changes?: boolean
 }
 
 type ProfileName = { full_name: string | null; email: string } | null
@@ -145,7 +169,7 @@ export async function listContents(
   const { data, error, status } = await supabase
     .from("contents")
     .select(
-      "id, title, slug, draft_rev, draft_saved_at, first_published_at, scheduled_at, schedule_error, saved_by:profiles!contents_draft_saved_by_fkey(full_name, email), edit_locks(holder_id, heartbeat_at, holder:profiles(full_name, email)), live:versions!contents_live_version_fkey(draft_rev), content_categories(category_id)"
+      "id, title, slug, draft_rev, draft_saved_at, first_published_at, scheduled_at, schedule_error, access_chosen, access_level_id, saved_by:profiles!contents_draft_saved_by_fkey(full_name, email), edit_locks(holder_id, heartbeat_at, holder:profiles(full_name, email)), live:versions!contents_live_version_fkey(draft_rev), content_categories(category_id)"
     )
     .eq("kind", kind)
     .is("deleted_at", null)
@@ -178,6 +202,8 @@ export async function listContents(
       first_published_at: row.first_published_at,
       scheduled_at: row.scheduled_at,
       schedule_error: row.schedule_error,
+      access_chosen: row.access_chosen,
+      access_level_id: row.access_level_id,
     }
   })
 }
@@ -195,6 +221,8 @@ export type Content = Pick<
   | "slug"
   | "template_sort"
   | "template_for"
+  | "in_app"
+  | "is_free"
 > & {
   draft: Draft
   title: string
@@ -207,7 +235,7 @@ export async function getContent(id: string): Promise<Content | null> {
   const { data, error, status } = await supabase
     .from("contents")
     .select(
-      "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, parent_id, access_chosen, access_level_id, slug, template_sort, template_for, content_categories(category_id)"
+      "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, parent_id, access_chosen, access_level_id, slug, template_sort, template_for, in_app, is_free, content_categories(category_id)"
     )
     .eq("id", id)
     .maybeSingle()
@@ -239,17 +267,21 @@ export async function getMediaByIds(ids: string[]): Promise<Media[]> {
 
 /**
  * Crée un contenu ; l'appelant tient aussitôt son verrou. fromTemplateId : un point de départ de
- * cette sorte de contenu, dont les blocs sont recopiés ([D42]).
+ * cette sorte de contenu, dont les blocs sont recopiés ([D42]). parentId : la méthode d'un
+ * chapitre, le chapitre d'une leçon (l'élément naît en fin de liste, « Montrer dans l'app »
+ * décoché).
  */
 export async function createContent(
   kind: ContentKind,
   title = "",
-  fromTemplateId: string | null = null
+  fromTemplateId: string | null = null,
+  parentId: string | null = null
 ): Promise<Content> {
   const { data, error, status } = await supabase.rpc("content_create", {
     kind,
     title,
     ...(fromTemplateId && { from_template_id: fromTemplateId }),
+    ...(parentId && { parent_id: parentId }),
   })
   if (error) throw toContentError(error, status)
   return {
@@ -277,6 +309,10 @@ export type ContentSettings = {
   slug: string | null
   // Catégories (articles et épisodes), triées : l'ordre ne compte pas ([D44] : facultatives).
   categoryIds: string[]
+  // Chapitre ou leçon : « Montrer dans l'app » (à la prochaine publication de la méthode, [D29]).
+  inApp: boolean
+  // Leçon : « Leçon gratuite » dans une méthode réservée.
+  isFree: boolean
 }
 
 /** Ce que save_draft reçoit dans settings (seulement les réglages changés). */
@@ -284,12 +320,19 @@ export type SettingsPayload = {
   access_level_id?: string | null
   slug?: string | null
   category_ids?: string[]
+  in_app?: boolean
+  is_free?: boolean
 }
 
 export function settingsOf(
   content: Pick<
     Content,
-    "access_chosen" | "access_level_id" | "slug" | "category_ids"
+    | "access_chosen"
+    | "access_level_id"
+    | "slug"
+    | "category_ids"
+    | "in_app"
+    | "is_free"
   >
 ): ContentSettings {
   return {
@@ -297,6 +340,8 @@ export function settingsOf(
     accessLevelId: content.access_level_id,
     slug: content.slug,
     categoryIds: [...content.category_ids].sort(),
+    inApp: content.in_app,
+    isFree: content.is_free,
   }
 }
 
@@ -330,6 +375,8 @@ export function settingsDiff(
   if (!sameCategories(saved.categoryIds, wanted.categoryIds)) {
     payload.category_ids = [...wanted.categoryIds].sort()
   }
+  if (wanted.inApp !== saved.inApp) payload.in_app = wanted.inApp
+  if (wanted.isFree !== saved.isFree) payload.is_free = wanted.isFree
   return Object.keys(payload).length > 0 ? payload : null
 }
 
@@ -410,6 +457,18 @@ export async function lockHeartbeat(
   const { data, error, status } = await supabase.rpc("lock_heartbeat", {
     content_id: contentId,
     editor_session: session,
+  })
+  if (error) throw toContentError(error, status)
+  return data
+}
+
+/**
+ * Relâche le verrou que content_create donne à son auteur (sans ouverture de l'éditeur) : un
+ * chapitre ou une leçon créé depuis le plan de la méthode, qu'on n'ouvre pas tout de suite.
+ */
+export async function lockReleaseCreated(contentId: string): Promise<boolean> {
+  const { data, error, status } = await supabase.rpc("lock_release", {
+    content_id: contentId,
   })
   if (error) throw toContentError(error, status)
   return data

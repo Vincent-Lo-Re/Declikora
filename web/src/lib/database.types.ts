@@ -625,6 +625,7 @@ export type Database = {
           media_id: string
         }[]
       }
+      app_method: { Args: { content_id: string }; Returns: Json }
       app_page: { Args: { slug: string }; Returns: Json }
       categories_reorder: {
         Args: { ids: string[]; section: string }
@@ -955,6 +956,15 @@ export type Database = {
           title: string
         }[]
       }
+      outline_reorder: {
+        Args: { editor_session?: string; method_id: string; outline: Json }
+        Returns: {
+          content_id: string
+          kind: string
+          parent_id: string
+          position: number
+        }[]
+      }
       ping: { Args: Record<PropertyKey, never>; Returns: boolean }
       publish: {
         Args: { content_id: string; expected_rev: number }
@@ -963,6 +973,22 @@ export type Database = {
           published_at: string
           version_id: string
           version_number: number
+        }[]
+      }
+      publish_preview: {
+        Args: { content_id: string }
+        Returns: {
+          change: string
+          chapter_id: string
+          chapter_title: string
+          draft_saved_at: string
+          draft_saved_by: string
+          draft_saved_by_name: string
+          element_id: string
+          kind: string
+          problem: string
+          problem_detail: string
+          title: string
         }[]
       }
       restore: {

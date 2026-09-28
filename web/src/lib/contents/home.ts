@@ -32,10 +32,12 @@ export type HomeItem = {
   schedule_error: string | null
   scheduled_set_at: string | null
   scheduled_by_name: string | null
+  // Un chapitre ou une leçon : le titre de sa méthode (ils n'ont pas d'état propre dans l'app).
+  method_title: string | null
 }
 
 const COLUMNS =
-  "id, kind, title, draft_rev, draft_saved_at, first_published_at, scheduled_at, scheduled_set_at, schedule_error, scheduler:profiles!contents_scheduled_by_fkey(full_name, email), live:versions!contents_live_version_fkey(draft_rev)"
+  "id, kind, title, draft_rev, draft_saved_at, first_published_at, scheduled_at, scheduled_set_at, schedule_error, scheduler:profiles!contents_scheduled_by_fkey(full_name, email), live:versions!contents_live_version_fkey(draft_rev), parent_id"
 
 type Row = {
   id: string
@@ -49,6 +51,7 @@ type Row = {
   schedule_error: string | null
   scheduler: unknown
   live: unknown
+  parent_id: string | null
 }
 
 function toItem(row: Row): HomeItem {
@@ -65,7 +68,59 @@ function toItem(row: Row): HomeItem {
     scheduled_set_at: row.scheduled_set_at,
     schedule_error: row.schedule_error,
     scheduled_by_name: nameOf(row.scheduler as ProfileName),
+    method_title: null,
   }
+}
+
+/**
+ * Le titre de la méthode de chaque chapitre et de chaque leçon (l'API ne sait pas remonter
+ * d'une ligne de contents à son parent : deux petites lectures, par identifiants).
+ */
+async function withMethodTitles(rows: Row[]): Promise<HomeItem[]> {
+  const items = rows.map(toItem)
+  const parentIds = new Set(
+    rows.flatMap((row) =>
+      (row.kind === "chapter" || row.kind === "lesson") && row.parent_id
+        ? [row.parent_id]
+        : []
+    )
+  )
+  if (parentIds.size === 0) return items
+  const parents = new Map<string, { title: string; parent_id: string | null }>()
+  const read = async (ids: string[]) => {
+    const { data, error, status } = await supabase
+      .from("contents")
+      .select("id, title, parent_id")
+      .in("id", ids)
+    if (error) throw toContentError(error, status)
+    for (const row of data) {
+      parents.set(row.id, { title: row.title ?? "", parent_id: row.parent_id })
+    }
+  }
+  await read([...parentIds])
+  // Une leçon : son parent est un chapitre, la méthode est un cran plus haut.
+  const methodIds = rows.flatMap((row) =>
+    row.kind === "lesson" && row.parent_id
+      ? [parents.get(row.parent_id)?.parent_id ?? null].filter(
+          (id): id is string => id !== null && !parents.has(id)
+        )
+      : []
+  )
+  if (methodIds.length > 0) await read([...new Set(methodIds)])
+  return items.map((item, index) => {
+    const parentId = rows[index].parent_id
+    const parent = parentId ? parents.get(parentId) : undefined
+    if (item.kind === "chapter") {
+      return { ...item, method_title: parent?.title ?? null }
+    }
+    if (item.kind === "lesson") {
+      const method = parent?.parent_id
+        ? parents.get(parent.parent_id)
+        : undefined
+      return { ...item, method_title: method?.title ?? null }
+    }
+    return item
+  })
 }
 
 // Combien de brouillons récents l'Accueil montre.
@@ -88,7 +143,7 @@ export async function listMyRecentDrafts(
     .order("draft_saved_at", { ascending: false })
     .limit(limit)
   if (error) throw toContentError(error, status)
-  return (data as Row[]).map(toItem)
+  return withMethodTitles(data as Row[])
 }
 
 /**

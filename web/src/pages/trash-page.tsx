@@ -7,6 +7,7 @@ import {
   TriangleAlert,
 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router"
 import { toast } from "sonner"
 
 import { kindIcons } from "@/components/media/media-kinds"
@@ -60,6 +61,7 @@ import {
   type TrashItem,
 } from "@/lib/media/api"
 import { isMediaKind } from "@/lib/media/constants"
+import { contentEditorPath } from "@/navigation"
 import {
   filterTrash,
   groupTrash,
@@ -88,6 +90,7 @@ export function TrashPage() {
   const { title, description } = texts.sections.trash
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
+  const navigate = useNavigate()
   const [filter, setFilter] = useState<TrashFilter>("all")
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
@@ -108,14 +111,23 @@ export function TrashPage() {
     mutationFn: restoreTrashItem,
     onSuccess: ({ addressRemoved }, item) => {
       const name = trashTitle(item)
+      // Un contenu restauré s'ouvre depuis le message (méthode, chapitre, leçon compris).
+      const path =
+        item.item_type === "content"
+          ? contentEditorPath(item.kind, item.id)
+          : null
+      const action = path
+        ? { label: texts.trash.open, onClick: () => void navigate(path) }
+        : undefined
       if (addressRemoved) {
-        toast.warning(texts.trash.restoredWithoutAddress(name))
+        toast.warning(texts.trash.restoredWithoutAddress(name), { action })
       } else {
         toast.success(texts.trash.restored(name), {
           description:
             item.item_type === "content"
               ? texts.trash.restoredDraft
               : undefined,
+          action,
         })
       }
     },

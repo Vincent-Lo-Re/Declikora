@@ -68,20 +68,38 @@ export function editorPath(section: SectionKey, contentId: string): string {
   return `${sections[section].path}/${contentId}`
 }
 
-// Section de l'éditeur de chaque sorte de contenu (les méthodes, leurs chapitres et leurs
-// leçons arrivent à la partie 7b).
+// Section de l'éditeur de chaque sorte de contenu.
 const editorSections: Partial<Record<string, SectionKey>> = {
   article: "blog",
   episode: "podcasts",
+  method: "methods",
   page: "pages",
   template: "templates",
 }
 
-/** Adresse de l'éditeur d'un contenu d'après sa sorte, ou null si son éditeur n'existe pas encore. */
+// Les éditeurs d'un chapitre et d'une leçon, sous la section Méthodes : « /methodes/lecons/<id> ».
+// L'adresse ne porte pas la méthode : l'éditeur la retrouve par le parent.
+export const methodElementSegments = {
+  chapter: "chapitres",
+  lesson: "lecons",
+} as const
+
+/** Adresse de l'éditeur d'un chapitre ou d'une leçon. */
+export function methodElementPath(
+  kind: "chapter" | "lesson",
+  contentId: string
+): string {
+  return `${sections.methods.path}/${methodElementSegments[kind]}/${contentId}`
+}
+
+/** Adresse de l'éditeur d'un contenu d'après sa sorte, ou null si elle n'a pas d'éditeur. */
 export function contentEditorPath(
   kind: string,
   contentId: string
 ): string | null {
+  if (kind === "chapter" || kind === "lesson") {
+    return methodElementPath(kind, contentId)
+  }
   const section = editorSections[kind]
   return section ? editorPath(section, contentId) : null
 }

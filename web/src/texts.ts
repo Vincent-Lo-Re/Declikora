@@ -1,5 +1,9 @@
 // Tous les textes de l'interface, en français, au même endroit.
 
+/** « la leçon… » → « La leçon… » (en début de phrase). */
+const upperFirst = (text: string) =>
+  text.charAt(0).toUpperCase() + text.slice(1)
+
 export const texts = {
   app: {
     name: "Declikora",
@@ -87,7 +91,7 @@ export const texts = {
       title: "Mes brouillons récents",
       description: "Ce que tu as modifié en dernier.",
       empty:
-        "Tu n'as encore rien écrit. Commence par un article, un épisode ou une page.",
+        "Tu n'as encore rien écrit. Commence par un article, un épisode, une méthode ou une page.",
     },
     scheduled: {
       title: "Publications programmées",
@@ -105,14 +109,10 @@ export const texts = {
       by: (name: string) => `Programmée par ${name}.`,
     },
     savedAt: (date: string) => `Modifié le ${date}`,
+    inMethod: (title: string) => `Méthode « ${title} »`,
     loadFailed: "Cette liste n'a pas pu être chargée.",
     retry: "Réessayer",
     untitled: "Sans titre",
-  },
-
-  comingSoon: {
-    title: "Bientôt disponible",
-    description: "Cette section sera construite dans une prochaine étape.",
   },
 
   // Connexion : e-mail, puis code reçu par e-mail, puis double vérification.
@@ -634,6 +634,7 @@ export const texts = {
       `La page « ${name} » est restaurée, mais sans adresse : une autre page a pris la sienne entre-temps. Choisis-en une autre avant de la publier.`,
     restoredDraft:
       "Il revient en brouillon : il n'est pas republié dans l'app.",
+    open: "Ouvrir",
     columns: {
       name: "Nom",
       type: "Type",
@@ -734,12 +735,30 @@ export const texts = {
         noResults:
           "Aucun épisode ne correspond à ta recherche ou à tes filtres.",
       },
+      method: {
+        create: "Nouvelle méthode",
+        createFailed: "La méthode n'a pas pu être créée.",
+        blank: "Méthode vide",
+        confirmTrashTitle: "Supprimer cette méthode ?",
+        confirmTrash: (title: string) =>
+          `${title} va dans la corbeille, avec ses chapitres et ses leçons. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
+        restored: (title: string) =>
+          `${title} est restaurée, en brouillon, avec ses chapitres et ses leçons.`,
+        emptyTitle: "Aucune méthode pour l'instant",
+        emptyDescription:
+          "Crée une méthode : elle s'ouvre aussitôt, avec sa fiche et son plan. Ajoute-lui ensuite ses chapitres et ses leçons.",
+        search: "Rechercher une méthode",
+        noResults:
+          "Aucune méthode ne correspond à ta recherche ou à tes filtres.",
+      },
     },
     columns: {
       title: "Titre",
       publication: "Publication",
       categories: "Catégories",
       address: "Adresse",
+      level: "Niveau d'accès",
+      outline: "Plan",
       savedAt: "Dernière modification",
       status: "En ce moment",
       actions: "Actions",
@@ -768,6 +787,10 @@ export const texts = {
           : `${total} éléments`
         : `${shown} sur ${total}`,
     noAddress: "Pas d'adresse",
+    // Méthodes : le niveau de la fiche et la taille du plan.
+    levelNotChosen: "Pas encore choisi",
+    outlineCount: (chapters: number, lessons: number) =>
+      `${chapters === 1 ? "1 chapitre" : `${chapters} chapitres`}, ${lessons === 1 ? "1 leçon" : `${lessons} leçons`}`,
     noCategory: "Aucune",
     manageCategories: "Catégories",
     actions: (title: string) => `Actions pour ${title}`,
@@ -786,6 +809,238 @@ export const texts = {
       "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
     retry: "Réessayer",
     starters: "Points de départ",
+  },
+
+  // Méthodes (étape 7, partie 7b) : ADMIN § 1 et § 3, [D29], [D26], [D36], [D42], [D43].
+  methods: {
+    kinds: {
+      chapter: "Chapitre",
+      lesson: "Leçon",
+    },
+    outline: {
+      title: "Plan de la méthode",
+      description:
+        "Les chapitres et leurs leçons, dans l'ordre de l'app. Range-les par leur poignée : rien ne change dans l'app avant la publication de la méthode.",
+      readOnly:
+        "Lecture seule : prends la main sur la méthode pour ranger le plan et y ajouter des chapitres ou des leçons.",
+      label: "Chapitres et leçons",
+      newChapter: "Nouveau chapitre",
+      newLesson: "Nouvelle leçon",
+      newLessonIn: (chapter: string) => `Nouvelle leçon dans ${chapter}`,
+      emptyTitle: "Aucun chapitre pour l'instant",
+      emptyDescription:
+        "Commence par un chapitre : il a sa propre introduction en blocs, affichée avant ses leçons.",
+      noLessons:
+        "Aucune leçon dans ce chapitre. Dépose une leçon ici, ou crée-la.",
+      chapterNumber: (position: number) => `Chapitre ${position}`,
+      lessonNumber: (position: number) => `Leçon ${position}`,
+      // Nom complet d'un élément (boutons, annonces, cases à cocher).
+      chapterLabel: (position: number, title: string) =>
+        `le chapitre ${position} « ${title} »`,
+      lessonLabel: (position: number, title: string) =>
+        `la leçon ${position} « ${title} »`,
+      untitled: "Sans titre",
+      handle: (label: string) => `Déplacer : ${label}`,
+      inApp: "Montrer dans l'app",
+      inAppFor: (label: string) => `Montrer dans l'app : ${label}`,
+      isFree: "Leçon gratuite",
+      isFreeFor: (label: string) => `Leçon gratuite : ${label}`,
+      free: "Gratuite",
+      savedAt: (date: string) => `Modifié le ${date}`,
+      savedBy: (name: string) => `par ${name}`,
+      editing: (name: string) => `${name} écrit`,
+      openElsewhere: "Ouvert dans un autre de tes onglets",
+      actions: (label: string) => `Actions pour ${label}`,
+      open: "Ouvrir",
+      moveUp: "Monter",
+      moveDown: "Descendre",
+      unpublish: "Retirer de l'app",
+      trash: "Supprimer",
+      states: {
+        live: "En ligne",
+        modified: "Modifié depuis la publication",
+        new: "Neuf",
+        removing: "Sera retiré de l'app",
+        withdrawn: "Retiré de l'app",
+        hidden: "Caché de l'app",
+        blocked: "Caché avec son chapitre",
+      },
+      stateHints: {
+        live: "Dans l'app, tel quel.",
+        modified:
+          "Ses modifications partiront à la prochaine publication de la méthode.",
+        new: "Il partira dans l'app à la prochaine publication de la méthode.",
+        removing:
+          "Décoché : il sortira de l'app à la prochaine publication de la méthode.",
+        withdrawn:
+          "Il n'est plus dans l'app. Coche « Montrer dans l'app » puis publie la méthode pour le remettre.",
+        hidden:
+          "Coche « Montrer dans l'app » quand il est prêt : il partira à la prochaine publication de la méthode.",
+        blocked:
+          "Son chapitre n'est pas montré dans l'app : cette leçon ne part pas avec la méthode.",
+      },
+      problem: "À corriger avant de publier",
+      // Cases cochées depuis le plan : le réglage appartient à l'élément, sous son verrou.
+      heldBy: (name: string) =>
+        `${name} écrit cet élément en ce moment : attends qu'il ait fini, ou ouvre-le pour reprendre la main.`,
+      heldSelf:
+        "Tu écris cet élément dans un autre onglet : change ce réglage dans cet onglet-là.",
+      yourselfElsewhere: "Toi (dans un autre onglet)",
+      flagsFailed: "Ce réglage n'a pas été changé.",
+      reorderFailed: "Le plan n'a pas pu être rangé : il reprend son ordre.",
+      stale:
+        "Le plan a changé entre-temps (un élément ajouté, supprimé ou restauré) : il vient d'être relu. Range-le de nouveau.",
+      moved: (label: string, place: string) =>
+        `${upperFirst(label)} : ${place}.`,
+      chapterPlace: (position: number, total: number) =>
+        `chapitre ${position} sur ${total}`,
+      lessonPlace: (position: number, total: number, chapter: string) =>
+        `leçon ${position} sur ${total}, dans ${chapter}`,
+      confirmUnpublish: {
+        title: (label: string) => `Retirer de l'app ${label} ?`,
+        chapter:
+          "Le chapitre et ses leçons disparaissent de l'app tout de suite (une nouvelle version de la méthode est écrite). « Montrer dans l'app » est décoché : coche-le, puis publie la méthode, pour le remettre.",
+        lesson:
+          "La leçon disparaît de l'app tout de suite (une nouvelle version de la méthode est écrite). « Montrer dans l'app » est décoché : coche-le, puis publie la méthode, pour la remettre.",
+        confirm: "Retirer de l'app",
+      },
+      unpublished: (label: string) => `Retiré de l'app : ${label}.`,
+      confirmTrash: {
+        title: (label: string) => `Supprimer ${label} ?`,
+        chapter:
+          "Le chapitre et ses leçons vont dans la corbeille. S'ils sont en ligne, ils disparaissent aussi de l'app. Tu pourras les restaurer pendant 30 jours.",
+        lesson:
+          "La leçon va dans la corbeille. Si elle est en ligne, elle disparaît aussi de l'app. Tu pourras la restaurer pendant 30 jours.",
+        confirm: "Mettre à la corbeille",
+      },
+      trashed: (label: string) => `Dans la corbeille : ${label}.`,
+      undo: "Annuler",
+      restored: (label: string) =>
+        `De retour en fin de liste, caché de l'app : ${label}.`,
+      loadFailed: "Le plan n'a pas pu être chargé.",
+      refreshFailed:
+        "Le plan n'a pas pu être mis à jour : il date peut-être un peu.",
+      retry: "Réessayer",
+    },
+    // Glisser-déposer du plan : annonces lues par les lecteurs d'écran.
+    dnd: {
+      roleDescription: "élément déplaçable",
+      instructions:
+        "Pour déplacer un chapitre ou une leçon, appuie sur Espace ou Entrée sur sa poignée. Déplace-le avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour le déposer, ou sur Échap pour annuler. Une leçon peut changer de chapitre.",
+      start: (label: string) => `Tu as pris ${label}.`,
+      over: (label: string, target: string) =>
+        `${upperFirst(label)} est sur ${target}.`,
+      overChapter: (label: string, chapter: string) =>
+        `${upperFirst(label)} est dans ${chapter}.`,
+      outside: (label: string) =>
+        `${upperFirst(label)} n'est au-dessus d'aucune place.`,
+      end: (label: string, place: string) => `Déposé : ${label}, ${place}.`,
+      endOutside: (label: string) =>
+        `Lâché hors du plan : ${label} reprend sa place.`,
+      cancel: (label: string) =>
+        `Déplacement annulé : ${label} reprend sa place.`,
+    },
+    create: {
+      chapterTitle: "Nouveau chapitre",
+      lessonTitle: "Nouvelle leçon",
+      chapterDescription:
+        "Il arrive en fin de plan, caché de l'app : coche « Montrer dans l'app » quand il est prêt.",
+      lessonDescription: (chapter: string) =>
+        `Elle arrive en fin de liste, dans ${chapter}, cachée de l'app : coche « Montrer dans l'app » quand elle est prête.`,
+      name: "Titre",
+      nameRequired: "Donne-lui un titre.",
+      nameTooLong: "Le titre ne doit pas dépasser 200 caractères.",
+      start: "Point de départ",
+      blank: {
+        chapter: "Chapitre vide",
+        lesson: "Leçon vide",
+      },
+      submit: "Créer",
+      openAfter: "Créer et ouvrir",
+      created: {
+        chapter: (title: string) => `Chapitre créé : ${title}.`,
+        lesson: (title: string) => `Leçon créée : ${title}.`,
+      },
+      open: "Ouvrir",
+      failed: "L'élément n'a pas pu être créé.",
+      startersFailed:
+        "Les points de départ n'ont pas pu être chargés : l'élément sera vide.",
+    },
+    // L'éditeur d'un chapitre ou d'une leçon : il n'a pas de bouton Publier ([D29]).
+    element: {
+      back: (method: string) => `Retour à la méthode ${method}`,
+      reminder: {
+        chapter:
+          "Ce chapitre part dans l'app avec sa méthode : il n'a pas de bouton Publier. Son introduction est affichée avant ses leçons.",
+        lesson:
+          "Cette leçon part dans l'app avec sa méthode : elle n'a pas de bouton Publier.",
+      },
+      publishFromMethod: "Publie la méthode depuis sa page.",
+      openMethod: "Ouvrir la méthode",
+      inChapter: (chapter: string) => `Dans le chapitre « ${chapter} »`,
+      // La programmation de la méthode, vue depuis un chapitre ou une leçon ([D31]).
+      schedule: {
+        scheduled: (date: string) => `La méthode est programmée le ${date}.`,
+        scheduledHint:
+          "Si « Montrer dans l'app » est coché, c'est le dernier brouillon enregistré à cette heure-là qui partira. Si tu as modifié cet élément depuis la programmation et que ton éditeur est encore ouvert à ce moment-là, la publication attend que tu le quittes, une heure au plus.",
+        due: (date: string) =>
+          `La méthode est programmée le ${date} : sa publication part dans un instant.`,
+        dueHint:
+          "Si quelqu'un a modifié la méthode, un chapitre ou une leçon depuis la programmation et a encore son éditeur ouvert, elle attendra qu'il le quitte, une heure au plus.",
+        waiting: (date: string) =>
+          `La publication de la méthode, programmée le ${date}, attend : quelqu'un écrit la méthode, un chapitre ou une leçon.`,
+        waitingHint:
+          "Elle partira dès que cette personne aura quitté son éditeur. Au bout d'une heure, elle échouera.",
+        // La personne devant l'écran tient le verrou de cet élément.
+        waitingMine: (date: string) =>
+          `La méthode est programmée le ${date} : sa publication attend peut-être que tu quittes l'éditeur.`,
+        waitingMineHint:
+          "Si tu as modifié cet élément depuis la programmation, elle ne part pas tant que ton éditeur reste ouvert, même sans écrire. Au bout d'une heure, elle échouera.",
+        failed: "La publication programmée de la méthode a échoué.",
+        failedHint: (reason: string) =>
+          `Raison : ${reason} Tu peux la programmer de nouveau depuis la méthode.`,
+        leave: "Quitter l'éditeur",
+      },
+      methodInTrash:
+        "Sa méthode est dans la corbeille : restaure-la pour publier cet élément.",
+      problem: (text: string) =>
+        `À corriger avant de publier la méthode : ${text}`,
+      settings: "Réglages",
+    },
+    // Avant de publier ou de programmer une méthode : la liste de ce qui va changer ([D29]).
+    changes: {
+      title: "Ce qui va changer dans l'app",
+      loading: "Recherche de ce qui a changé…",
+      failed: "La liste des changements n'a pas pu être lue.",
+      retry: "Réessayer",
+      nothing:
+        "Rien à publier : l'app montre déjà cette méthode telle qu'elle est.",
+      method: {
+        new: "La méthode entre dans l'app",
+        modified: "Fiche de la méthode modifiée",
+        reordered: "Chapitres ou leçons rangés autrement",
+      },
+      kinds: {
+        chapter: "Chapitre",
+        lesson: "Leçon",
+      },
+      changes: {
+        new: "Neuf",
+        modified: "Modifié",
+        removed: "Retiré",
+        reordered: "Rangé",
+      },
+      inChapter: (title: string) => `dans « ${title} »`,
+      savedAt: (date: string) => `modifié le ${date}`,
+      savedBy: (name: string) => `par ${name}`,
+      open: (label: string) => `Ouvrir ${label}`,
+      blocked:
+        "Corrige d'abord ce qui est signalé : la publication serait refusée.",
+      scheduleNote:
+        "C'est ce qui partirait maintenant. À l'heure programmée, c'est l'état de ce moment-là qui partira : la fiche, le plan et les éléments cochés.",
+      count: (count: number) =>
+        count === 1 ? "1 changement" : `${count} changements`,
+    },
   },
 
   // Catégories du Blog et des Podcasts (étape 7) : ADMIN § 3, [D28], [D44].
@@ -1240,13 +1495,21 @@ export const texts = {
       panelTitle: {
         article: "Présentation de l'article",
         episode: "Présentation de l'épisode",
+        method: "Fiche de la méthode",
+        chapter: "Présentation du chapitre",
+        lesson: "Présentation de la leçon",
       },
       panelHint:
         "Ce que l'app montre en tête du contenu et dans ses listes. Choisis un bloc dans l'aperçu pour voir ses réglages.",
+      methodPanelHint:
+        "Ce que l'app montre en tête de la méthode et dans ses listes. Son plan est à droite : chaque chapitre et chaque leçon s'écrit dans son propre éditeur.",
       show: "Voir la présentation",
       cover: {
         label: "Image de présentation",
         hint: "Obligatoire pour publier : c'est la vignette des listes de l'app. Elle reste publique, même pour un contenu réservé.",
+        // Chapitre ou leçon : elle n'est pas exigée ([D45] ne vise que les contenus des listes).
+        optionalHint:
+          "Facultative : la vignette de cet élément dans le plan de la méthode, dans l'app. Elle reste publique.",
         choose: "Choisir l'image de présentation",
         replace: "Changer d'image",
         remove: "Retirer l'image",
@@ -1469,6 +1732,11 @@ export const texts = {
         "Un des blocs choisis n'est pas encore enregistré. Attends la fin de l'enregistrement, puis réessaie.",
       modele_introuvable:
         "Ce modèle n'existe plus, ou ce n'est pas un bloc identique partout. Recharge la page.",
+      // Étape 7, partie 7b : méthodes.
+      plan_perime:
+        "Le plan a changé entre-temps : relis-le, puis range-le de nouveau.",
+      plan_invalide:
+        "Le plan de la méthode n'est pas valide. Recharge la page.",
     },
   },
 
@@ -1508,6 +1776,21 @@ export const texts = {
       waitingMineHint:
         "Tu as modifié le brouillon depuis la programmation : tant que ton éditeur reste ouvert, même sans écrire, elle ne part pas. Au bout d'une heure, elle échouera.",
       leave: "Quitter l'éditeur",
+      // Une méthode : l'attente peut venir de sa fiche, d'un chapitre ou d'une leçon ([D31]).
+      method: {
+        scheduledHint:
+          "C'est le dernier brouillon enregistré à cette heure-là de la fiche, des chapitres et des leçons qui sera publié. Si quelqu'un a modifié l'un d'eux depuis la programmation et a encore son éditeur ouvert à ce moment-là, la publication attend qu'il le quitte, une heure au plus.",
+        dueHint:
+          "Si quelqu'un a modifié la fiche, un chapitre ou une leçon depuis la programmation et a encore son éditeur ouvert, elle attendra qu'il le quitte, une heure au plus.",
+        waiting: (date: string) =>
+          `Programmation en attente depuis le ${date} : quelqu'un écrit la méthode, un chapitre ou une leçon.`,
+        waitingHint:
+          "La publication partira dès que cette personne aura quitté son éditeur. Au bout d'une heure, elle échouera.",
+        waitingMine: (date: string) =>
+          `Programmé le ${date} : la publication attend que la personne qui écrit quitte son éditeur, peut-être toi.`,
+        waitingMineHint:
+          "Si tu as modifié la fiche depuis la programmation, elle ne part pas tant que ton éditeur reste ouvert, même sans écrire. Si c'est un chapitre ou une leçon, elle attend que la personne qui l'écrit le quitte. Au bout d'une heure, elle échouera.",
+      },
       failed: "La publication programmée a échoué",
       failedReason: (reason: string) => `Raison : ${reason}`,
       failedBy: (name: string) => `Elle avait été programmée par ${name}.`,
@@ -1540,6 +1823,9 @@ export const texts = {
       access: "Niveau d'accès",
       address: "Adresse",
       confirm: "Publier",
+      // Une méthode : tout part d'un seul geste ([D29]).
+      methodDescription:
+        "La fiche, le plan et les chapitres et leçons cochés « Montrer dans l'app » partent ensemble, tels qu'ils sont enregistrés. Rien d'autre ne change dans l'app.",
     },
     // Ce qui manque pour publier ou programmer ([D45], audio d'un épisode), et le conseil [D46].
     requirements: {
@@ -1571,6 +1857,10 @@ export const texts = {
       description: (name: string) =>
         `${name} écrit ce brouillon en ce moment. Pour publier, reprends la main (${name} passera en lecture seule), ou attends qu'il ait fini.`,
       take: "Reprendre la main",
+      // Méthode : quelqu'un écrit un de ses chapitres ou une de ses leçons ([D14]).
+      elementTitle: "Quelqu'un écrit un élément de la méthode",
+      elementDescription: (name: string) =>
+        `${name} écrit un chapitre ou une leçon de cette méthode en ce moment : le plan montre lequel. Attends qu'il ait fini, ou ouvre cet élément pour reprendre la main, puis publie.`,
     },
     unpublishDialog: {
       title: "Retirer de l'app ?",
@@ -1578,6 +1868,9 @@ export const texts = {
         "Les lecteurs ne le verront plus. Le brouillon et l'historique sont gardés, et tu pourras le publier de nouveau. Une publication programmée est annulée.",
       confirm: "Retirer de l'app",
       done: "Retiré de l'app.",
+      // Une méthode : ses chapitres et ses leçons partent avec elle.
+      methodDescription:
+        "Les lecteurs ne verront plus la méthode, ni ses chapitres et ses leçons. Les brouillons et l'historique sont gardés, et tu pourras la publier de nouveau. Une publication programmée est annulée.",
     },
     scheduleDialog: {
       title: "Programmer la publication",
@@ -1627,11 +1920,17 @@ export const texts = {
         // Ce que revert_to_version remplace dépend de la sorte : l'adresse d'une page, les
         // catégories d'un article ou d'un épisode.
         description: (kind: string) =>
-          kind === "page"
-            ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et son adresse. Rien ne change dans l'app avant la prochaine publication."
-            : kind === "article" || kind === "episode"
-              ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et ses catégories (une catégorie supprimée depuis ne revient pas). Rien ne change dans l'app avant la prochaine publication."
-              : "Le brouillon sera remplacé par cette version : son texte et son niveau d'accès. Rien ne change dans l'app avant la prochaine publication.",
+          kind === "method"
+            ? "Seule la fiche revient : le titre, le résumé, l'image de présentation et le niveau d'accès. Le plan, les chapitres et les leçons ne changent pas : chacun a son propre historique. Rien ne change dans l'app avant la prochaine publication."
+            : kind === "chapter"
+              ? "L'introduction du chapitre sera remplacée par cette version. Rien ne change dans l'app avant la prochaine publication de la méthode."
+              : kind === "lesson"
+                ? "La leçon sera remplacée par cette version : son texte et « Leçon gratuite ». Rien ne change dans l'app avant la prochaine publication de la méthode."
+                : kind === "page"
+                  ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et son adresse. Rien ne change dans l'app avant la prochaine publication."
+                  : kind === "article" || kind === "episode"
+                    ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et ses catégories (une catégorie supprimée depuis ne revient pas). Rien ne change dans l'app avant la prochaine publication."
+                    : "Le brouillon sera remplacé par cette version : son texte et son niveau d'accès. Rien ne change dans l'app avant la prochaine publication.",
         confirm: "Revenir à cette version",
       },
       needsLock:
@@ -1691,6 +1990,20 @@ export const texts = {
         manage: "Gérer les catégories",
         loadFailed: "Les catégories n'ont pas pu être chargées.",
         retry: "Réessayer",
+      },
+      // Chapitre ou leçon : « Montrer dans l'app » et « Leçon gratuite » ([D29], [D43]).
+      element: {
+        label: "Dans l'app",
+        description:
+          "Ils ne changent l'app qu'à la prochaine publication de la méthode.",
+        inApp: "Montrer dans l'app",
+        inAppHint:
+          "Décoché à la création : coche-le quand l'élément est prêt. Il partira avec la prochaine publication de la méthode.",
+        chapterInAppHint:
+          "Ses leçons ne partent que si leur chapitre est montré.",
+        isFree: "Leçon gratuite",
+        isFreeHint:
+          "Lisible par tout le monde, même si la méthode est réservée. L'introduction de son chapitre devient gratuite elle aussi.",
       },
       // Un réglage refusé par la base : le brouillon s'enregistre quand même, sans lui.
       refused:

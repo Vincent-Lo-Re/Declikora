@@ -76,6 +76,8 @@ function row(
     first_published_at: null,
     scheduled_at: null,
     schedule_error: null,
+    access_chosen: false,
+    access_level_id: null,
     ...changes,
   }
 }
@@ -209,6 +211,8 @@ describe("Blog", () => {
       slug: null,
       template_sort: null,
       template_for: null,
+      in_app: false,
+      is_free: false,
       category_ids: [],
     })
     const { router } = renderApp("/blog")

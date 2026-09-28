@@ -16,7 +16,12 @@ import type { Draft } from "@/blocks/types"
 import { MediaThumbnail } from "@/components/media/media-visuals"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { hasAudio } from "@/lib/contents/requirements"
+import {
+  coverRequired,
+  hasAudio,
+  hasCategories,
+  type PresentationKind,
+} from "@/lib/contents/requirements"
 import { formatDuration } from "@/lib/media/format"
 import { mediaFilePath } from "@/navigation"
 import { texts } from "@/texts"
@@ -302,7 +307,7 @@ export function PresentationPanel({
   onRemoveAudio,
   onEditCategories,
 }: {
-  kind: "article" | "episode"
+  kind: PresentationKind
   draft: Draft
   editable: boolean
   mediaFor: (mediaId: string | null) => BlockMedia
@@ -330,7 +335,9 @@ export function PresentationPanel({
         >
           {labels.panelTitle[kind]}
         </h2>
-        <p className="text-sm text-muted-foreground">{labels.panelHint}</p>
+        <p className="text-sm text-muted-foreground">
+          {kind === "method" ? labels.methodPanelHint : labels.panelHint}
+        </p>
       </div>
       {!editable && (
         <p className="text-sm text-muted-foreground">
@@ -338,7 +345,12 @@ export function PresentationPanel({
         </p>
       )}
 
-      <PanelSection title={labels.cover.label} hint={labels.cover.hint}>
+      <PanelSection
+        title={labels.cover.label}
+        hint={
+          coverRequired(kind) ? labels.cover.hint : labels.cover.optionalHint
+        }
+      >
         <FileChoice
           media={cover}
           url={urlFor(cover)}
@@ -399,26 +411,30 @@ export function PresentationPanel({
         </>
       )}
 
-      <Separator />
-      <PanelSection title={labels.categories.label}>
-        {categoryNames === undefined ? null : categoryNames.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {labels.categories.none}
-          </p>
-        ) : (
-          <p className="text-sm">{categoryNames.join(", ")}</p>
-        )}
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          aria-haspopup="dialog"
-          onClick={onEditCategories}
-        >
-          <Tags />
-          {labels.categories.edit}
-        </Button>
-      </PanelSection>
+      {hasCategories(kind) && (
+        <>
+          <Separator />
+          <PanelSection title={labels.categories.label}>
+            {categoryNames === undefined ? null : categoryNames.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {labels.categories.none}
+              </p>
+            ) : (
+              <p className="text-sm">{categoryNames.join(", ")}</p>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              aria-haspopup="dialog"
+              onClick={onEditCategories}
+            >
+              <Tags />
+              {labels.categories.edit}
+            </Button>
+          </PanelSection>
+        </>
+      )}
     </div>
   )
 }

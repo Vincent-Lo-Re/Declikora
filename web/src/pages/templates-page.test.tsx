@@ -107,6 +107,8 @@ const created: api.Content = {
   slug: null,
   template_sort: "shared",
   template_for: null,
+  in_app: false,
+  is_free: false,
   category_ids: [],
 }
 

@@ -3,7 +3,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(21);
+select plan(23);
 
 select has_schema('private', 'le schéma private existe');
 select ok(
@@ -72,7 +72,8 @@ select is(
   ),
   array[
     'app_access_levels()', 'app_categories(text)', 'app_content(uuid)',
-    'app_feed(text,uuid,text,integer)', 'app_file_locations(uuid[])', 'app_page(text)', 'ping()'
+    'app_feed(text,uuid,text,integer)', 'app_file_locations(uuid[])', 'app_method(uuid)',
+    'app_page(text)', 'ping()'
   ],
   'public : seules ping et les lectures de l''app (app_*, étapes 5 et 7) sont exécutables par anon'
 );
@@ -148,6 +149,33 @@ select ok(
     and not has_function_privilege('authenticated', 'private.cover_required(text)', 'execute')
     and not has_function_privilege('authenticated', 'private.feed_cursor(timestamptz,uuid)', 'execute'),
   'private : check_publish_requirements, cover_required et feed_cursor ne sont pas exécutables par l''API'
+);
+
+-- Les RPC des méthodes (étape 7b) : l'équipe seulement (la fonction vérifie ensuite is_staff).
+select is(
+  array(
+    select p.oid::regprocedure::text || ':' || has_function_privilege('anon', p.oid, 'execute')::text
+      || ':' || has_function_privilege('authenticated', p.oid, 'execute')::text
+      || ':' || p.prosecdef::text
+    from pg_proc p
+    where p.pronamespace = 'public'::regnamespace
+      and p.proname in ('publish_preview', 'outline_reorder')
+    order by 1
+  ),
+  array[
+    'outline_reorder(uuid,jsonb,uuid):false:true:true',
+    'publish_preview(uuid):false:true:true'
+  ],
+  'publish_preview et outline_reorder (étape 7b) : authenticated seulement, security definer'
+);
+select ok(
+  not has_function_privilege('anon', 'private.chapter_intro_level(uuid,jsonb)', 'execute')
+    and not has_function_privilege('authenticated', 'private.chapter_intro_level(uuid,jsonb)', 'execute')
+    and not has_function_privilege('authenticated', 'private.do_publish_method(public.contents,uuid,text)', 'execute')
+    and not has_function_privilege('authenticated', 'private.prepare_version(public.contents,jsonb)', 'execute')
+    and not has_function_privilege('authenticated', 'private.write_method_outline(uuid,jsonb,uuid,text)', 'execute')
+    and not has_function_privilege('authenticated', 'private.try_prepare(public.contents)', 'execute'),
+  'private : les fonctions internes des méthodes ne sont pas exécutables par l''API'
 );
 
 -- Les fonctions de déclencheur et les fonctions files_* ne sont pas appelables par l'API.

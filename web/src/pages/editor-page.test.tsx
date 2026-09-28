@@ -110,6 +110,8 @@ const content: api.Content = {
   slug: null,
   template_sort: null,
   template_for: null,
+  in_app: false,
+  is_free: false,
   category_ids: [],
 }
 
@@ -228,6 +230,8 @@ describe("liste des pages", () => {
         first_published_at: null,
         scheduled_at: null,
         schedule_error: null,
+        access_chosen: false,
+        access_level_id: null,
       },
     ])
     vi.mocked(api.createContent).mockResolvedValue(content)
@@ -273,6 +277,8 @@ describe("liste des pages : publication et corbeille", () => {
     first_published_at: null,
     scheduled_at: null,
     schedule_error: null,
+    access_chosen: false,
+    access_level_id: null,
     ...changes,
   })
 

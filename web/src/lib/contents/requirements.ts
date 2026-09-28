@@ -17,7 +17,26 @@ export function hasAudio(kind: string): boolean {
 }
 
 /** Sortes qui montrent une présentation (image, résumé) en tête de l'éditeur. */
-export function hasPresentation(kind: string): boolean {
+export type PresentationKind =
+  "article" | "episode" | "method" | "chapter" | "lesson"
+
+/**
+ * Sortes qui montrent une présentation (image, résumé) en tête de l'éditeur : l'image n'est
+ * exigée que pour un article, un épisode ou une méthode ([D45]) ; un chapitre et une leçon
+ * peuvent en avoir une (app_method la donne), sans obligation.
+ */
+export function hasPresentation(kind: string): kind is PresentationKind {
+  return (
+    kind === "article" ||
+    kind === "episode" ||
+    kind === "method" ||
+    kind === "chapter" ||
+    kind === "lesson"
+  )
+}
+
+/** Sortes qui ont des catégories (Blog, Podcasts). */
+export function hasCategories(kind: string): boolean {
   return kind === "article" || kind === "episode"
 }
 
