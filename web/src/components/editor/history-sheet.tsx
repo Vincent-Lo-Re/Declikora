@@ -28,7 +28,13 @@ import {
 } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
-import { contentKeys } from "@/lib/contents/api"
+import { useCategories } from "@/hooks/use-categories"
+import {
+  categorySectionOf,
+  versionCategoryNames,
+  type Category,
+} from "@/lib/categories"
+import { contentKeys, type ContentKind } from "@/lib/contents/api"
 import {
   listVersions,
   versionOriginLabel,
@@ -39,14 +45,34 @@ import { texts } from "@/texts"
 
 const labels = texts.publication.history
 
+/** Les catégories d'une version : noms dans l'ordre de la section, puis celles supprimées. */
+function VersionCategories({
+  ids,
+  categories,
+}: {
+  ids: readonly string[]
+  categories: readonly Category[]
+}) {
+  const { names, deleted } = versionCategoryNames(ids, categories)
+  const shown =
+    deleted > 0 ? [...names, labels.deletedCategories(deleted)] : names
+  return (
+    <p className="text-muted-foreground" data-version-categories>
+      {shown.length === 0 ? labels.noCategory : labels.categories(shown)}
+    </p>
+  )
+}
+
 /**
- * Historique : les versions publiées (numéro, origine, auteur, date), et « Revenir à cette
- * version », qui la recopie dans le brouillon sans rien publier. Il faut tenir le verrou.
+ * Historique : les versions publiées (numéro, origine, auteur, date ; catégories d'un article
+ * ou d'un épisode, [D28]), et « Revenir à cette version », qui la recopie dans le brouillon sans
+ * rien publier. Il faut tenir le verrou.
  */
 export function HistorySheet({
   open,
   onOpenChange,
   contentId,
+  kind,
   liveVersionId,
   canRevert,
   onRevert,
@@ -54,6 +80,7 @@ export function HistorySheet({
   open: boolean
   onOpenChange: (open: boolean) => void
   contentId: string
+  kind: ContentKind
   liveVersionId: string | null
   canRevert: boolean
   onRevert: (version: VersionItem) => Promise<void>
@@ -64,6 +91,9 @@ export function HistorySheet({
     queryFn: () => listVersions(contentId),
     enabled: open,
   })
+  // Les catégories de la section (déjà en cache dans l'éditeur). Tant qu'elles ne sont pas
+  // lues, rien n'est affiché : un identifiant inconnu passerait à tort pour supprimé.
+  const categories = useCategories(categorySectionOf(kind))
   const revert = useMutation({
     mutationFn: onRevert,
     onSettled: () => setConfirming(null),
@@ -140,6 +170,12 @@ export function HistorySheet({
                       {version.published_by_name &&
                         ` ${labels.by(version.published_by_name)}`}
                     </p>
+                    {categories.data && (
+                      <VersionCategories
+                        ids={version.category_ids}
+                        categories={categories.data}
+                      />
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -171,7 +207,7 @@ export function HistorySheet({
                 {labels.confirm.title(confirming.number)}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {labels.confirm.description}
+                {labels.confirm.description(kind)}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

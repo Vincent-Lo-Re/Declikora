@@ -13,7 +13,8 @@ select pg_temp.empty_media_library();
 select pg_temp.empty_contents();
 \ir aides/publication.inc
 
--- Un article gratuit, prêt à publier, créé et réglé par l'éditeur (qui garde le verrou).
+-- Un article gratuit, prêt à publier (avec son image de présentation, [D45]), créé et réglé par
+-- l'éditeur (qui garde le verrou).
 create function pg_temp.ready_article(content_name text, title text default 'Titre')
 returns void
 language plpgsql
@@ -22,7 +23,9 @@ begin
   perform pg_temp.create_content(content_name, 'article', content_title => title);
   perform pg_temp.save(
     content_name,
-    pg_temp.draft(jsonb_build_array(pg_temp.text_block('00000000-0000-4000-8000-000000000001')), title),
+    pg_temp.draft(
+      jsonb_build_array(pg_temp.text_block('00000000-0000-4000-8000-000000000001')), title, pg_temp.cover()
+    ),
     '{"access_level_id": null}'
   );
 end;
@@ -128,7 +131,7 @@ select is(pg_temp.schedule_state('a1'), array['aucune', 'aucun'], 'publier effac
 select lives_ok($$select pg_temp.ready_article('a2', 'Avant')$$, 'un deuxième article');
 select lives_ok($$select public.schedule(pg_temp.cid('a2'), now() + interval '1 hour')$$, 'programmé');
 select lives_ok(
-  $$select pg_temp.save('a2', pg_temp.draft('[]', 'Corrigé après la programmation'))$$,
+  $$select pg_temp.save('a2', pg_temp.draft('[]', 'Corrigé après la programmation', pg_temp.cover()))$$,
   'le brouillon est corrigé après la programmation'
 );
 select ok(public.lock_release(pg_temp.cid('a2')), 'puis l''éditeur quitte le brouillon (verrou libre)');
@@ -154,7 +157,7 @@ select is(private.run_due_publications(), 0, 'passage suivant : plus rien à pub
 select pg_temp.as_person('editor');
 select lives_ok($$select pg_temp.ready_article('a3')$$, 'un troisième article');
 select lives_ok($$select public.schedule(pg_temp.cid('a3'), now() + interval '1 hour')$$, 'programmé');
-select lives_ok($$select pg_temp.save('a3', pg_temp.draft('[]', 'En cours'))$$, 'écrit après la programmation');
+select lives_ok($$select pg_temp.save('a3', pg_temp.draft('[]', 'En cours', pg_temp.cover()))$$, 'écrit après la programmation');
 -- a4 : quelqu'un tient le verrou, mais le brouillon n'a pas changé depuis la programmation.
 select lives_ok($$select pg_temp.ready_article('a4')$$, 'un quatrième article');
 select lives_ok($$select public.schedule(pg_temp.cid('a4'), now() + interval '1 hour')$$, 'programmé, sans changement ensuite');
@@ -185,7 +188,7 @@ select is((pg_temp.live('a3')).body ->> 'title', 'En cours', 'a3 : le dernier br
 select pg_temp.as_person('editor');
 select lives_ok($$select pg_temp.ready_article('a5')$$, 'un cinquième article');
 select lives_ok($$select public.schedule(pg_temp.cid('a5'), now() + interval '1 hour')$$, 'programmé');
-select lives_ok($$select pg_temp.save('a5', pg_temp.draft('[]', 'Oublié'))$$, 'écrit, puis l''onglet est abandonné');
+select lives_ok($$select pg_temp.save('a5', pg_temp.draft('[]', 'Oublié', pg_temp.cover()))$$, 'écrit, puis l''onglet est abandonné');
 select pg_temp.as_postgres();
 update public.edit_locks set heartbeat_at = now() - interval '91 seconds' where content_id = pg_temp.cid('a5');
 select pg_temp.make_due('a5');
@@ -195,7 +198,7 @@ select is(private.run_due_publications(), 1, 'verrou périmé : a5 part');
 select pg_temp.as_person('editor');
 select lives_ok($$select pg_temp.ready_article('a6')$$, 'un sixième article');
 select lives_ok($$select public.schedule(pg_temp.cid('a6'), now() + interval '1 hour')$$, 'programmé');
-select lives_ok($$select pg_temp.save('a6', pg_temp.draft('[]', 'Toujours en cours'))$$, 'écrit sans fin');
+select lives_ok($$select pg_temp.save('a6', pg_temp.draft('[]', 'Toujours en cours', pg_temp.cover()))$$, 'écrit sans fin');
 select pg_temp.as_postgres();
 select pg_temp.make_due('a6', interval '61 minutes');
 select is(private.run_due_publications(), 0, 'plus d''une heure d''attente : rien ne part');
@@ -215,7 +218,8 @@ select lives_ok($$select public.schedule(pg_temp.cid('a7'), now() + interval '1 
 select lives_ok($$select pg_temp.create_content('a8', 'article')$$, 'un article avec une image vide');
 select lives_ok(
   $$select pg_temp.save('a8', pg_temp.draft(jsonb_build_array(
-    pg_temp.image_block('00000000-0000-4000-8000-000000000002', null))), '{"access_level_id": null}')$$,
+    pg_temp.image_block('00000000-0000-4000-8000-000000000002', null)), extra => pg_temp.cover()),
+    '{"access_level_id": null}')$$,
   'réglé, mais l''image n''a pas de fichier'
 );
 select lives_ok($$select public.schedule(pg_temp.cid('a8'), now() + interval '1 hour')$$, 'programmé quand même');

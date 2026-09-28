@@ -1,0 +1,288 @@
+import { useQuery, type UseQueryResult } from "@tanstack/react-query"
+import { CalendarClock, FilePen, TriangleAlert } from "lucide-react"
+import { useEffect, type ReactNode } from "react"
+import { Link } from "react-router"
+
+import { useAuth } from "@/auth/auth-context"
+import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
+import { PageHeader } from "@/components/page-header"
+import { useAccessCheck } from "@/components/team/use-access-check"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  homeKeys,
+  listFailedSchedules,
+  listMyRecentDrafts,
+  listScheduled,
+  type HomeItem,
+} from "@/lib/contents/home"
+import {
+  publicationStatus,
+  scheduleErrorText,
+  type PublicationStatus,
+} from "@/lib/contents/publication"
+import { formatDateTime } from "@/lib/dates"
+import { contentEditorPath } from "@/navigation"
+import { texts } from "@/texts"
+
+const labels = texts.home
+
+// La tâche « publications » passe chaque minute : l'Accueil suit à peu près au même rythme.
+const REFRESH_MS = 30_000
+
+function statusOf(item: HomeItem, now: number): PublicationStatus {
+  return publicationStatus(
+    {
+      live:
+        item.live_draft_rev === null
+          ? null
+          : { draft_rev: item.live_draft_rev },
+      first_published_at: item.first_published_at,
+      scheduled_at: item.scheduled_at,
+      schedule_error: item.schedule_error,
+    },
+    item.draft_rev,
+    now
+  )
+}
+
+/**
+ * Accueil : mes brouillons récents, les publications programmées (celles en attente
+ * comprises, [D31]) et les programmations échouées, avec un lien vers l'éditeur de chacun.
+ */
+export function HomePage() {
+  const { title, description } = texts.sections.home
+  const { profile } = useAuth()
+  const userId = profile?.id ?? ""
+  const checkAccess = useAccessCheck()
+
+  const drafts = useQuery({
+    queryKey: homeKeys.drafts(userId),
+    queryFn: () => listMyRecentDrafts(userId),
+    enabled: userId !== "",
+    refetchInterval: REFRESH_MS,
+  })
+  const scheduled = useQuery({
+    queryKey: homeKeys.scheduled,
+    queryFn: listScheduled,
+    refetchInterval: REFRESH_MS,
+  })
+  const failed = useQuery({
+    queryKey: homeKeys.failed,
+    queryFn: listFailedSchedules,
+    refetchInterval: REFRESH_MS,
+  })
+  const error = drafts.error ?? scheduled.error ?? failed.error
+  useEffect(() => {
+    if (error) checkAccess(error)
+  }, [error, checkAccess])
+
+  const hasFailures = (failed.data?.length ?? 0) > 0
+
+  return (
+    <>
+      <PageHeader title={title} description={description} />
+      <div className="grid gap-6 xl:grid-cols-2">
+        {hasFailures && (
+          <HomeCard
+            className="ring-destructive/40 xl:col-span-2"
+            icon={<TriangleAlert className="text-destructive" />}
+            title={labels.failed.title}
+            description={labels.failed.description}
+            query={failed}
+            empty={labels.failed.empty}
+            dataAttribute="failed"
+            render={(item) => <FailedRow key={item.id} item={item} />}
+          />
+        )}
+        <HomeCard
+          icon={<FilePen />}
+          title={labels.drafts.title}
+          description={labels.drafts.description}
+          query={drafts}
+          empty={labels.drafts.empty}
+          dataAttribute="drafts"
+          render={(item) => (
+            <DraftRow key={item.id} item={item} now={drafts.dataUpdatedAt} />
+          )}
+        />
+        <HomeCard
+          icon={<CalendarClock />}
+          title={labels.scheduled.title}
+          description={labels.scheduled.description}
+          query={scheduled}
+          empty={labels.scheduled.empty}
+          dataAttribute="scheduled"
+          render={(item) => (
+            <ScheduledRow
+              key={item.id}
+              item={item}
+              now={scheduled.dataUpdatedAt}
+            />
+          )}
+        />
+        {!hasFailures && (
+          <HomeCard
+            icon={<TriangleAlert />}
+            title={labels.failed.title}
+            description={labels.failed.description}
+            query={failed}
+            empty={labels.failed.empty}
+            dataAttribute="failed"
+            render={(item) => <FailedRow key={item.id} item={item} />}
+          />
+        )}
+      </div>
+    </>
+  )
+}
+
+function HomeCard({
+  icon,
+  title,
+  description,
+  query,
+  empty,
+  render,
+  dataAttribute,
+  className,
+}: {
+  icon: ReactNode
+  title: string
+  description: string
+  query: UseQueryResult<HomeItem[]>
+  empty: string
+  render: (item: HomeItem) => ReactNode
+  dataAttribute: string
+  className?: string
+}) {
+  const headingId = `accueil-${dataAttribute}`
+  return (
+    <Card className={className} data-home={dataAttribute}>
+      <CardHeader>
+        <CardTitle>
+          <h2
+            id={headingId}
+            className="flex items-center gap-2 text-base font-medium [&_svg]:size-4"
+          >
+            {icon}
+            {title}
+          </h2>
+        </CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {query.data === undefined ? (
+          query.isError ? (
+            <div className="space-y-3">
+              <p role="alert" className="text-sm text-destructive">
+                {labels.loadFailed} {query.error.message}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => query.refetch()}
+              >
+                {labels.retry}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2" aria-label={texts.common.loading}>
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          )
+        ) : query.data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{empty}</p>
+        ) : (
+          <ul aria-labelledby={headingId} className="divide-y">
+            {query.data.map(render)}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Le titre d'un contenu, avec un lien vers son éditeur s'il existe déjà (7b : méthodes). */
+function ItemTitle({ item }: { item: HomeItem }) {
+  const name = item.title.trim() || labels.untitled
+  const path = contentEditorPath(item.kind, item.id)
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      {path ? (
+        <Link
+          to={path}
+          className="truncate font-medium underline-offset-4 hover:underline"
+        >
+          {name}
+        </Link>
+      ) : (
+        <span className="truncate font-medium">{name}</span>
+      )}
+      <Badge variant="outline" className="shrink-0">
+        {texts.trash.contentKinds[item.kind]}
+      </Badge>
+    </span>
+  )
+}
+
+function DraftRow({ item, now }: { item: HomeItem; now: number }) {
+  const status = statusOf(item, now)
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
+      <div className="min-w-0 space-y-0.5">
+        <ItemTitle item={item} />
+        <p className="text-xs text-muted-foreground">
+          {labels.savedAt(formatDateTime(item.draft_saved_at))}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        <LiveBadge live={status.live} />
+        <ScheduleBadge schedule={status.schedule} />
+      </div>
+    </li>
+  )
+}
+
+function ScheduledRow({ item, now }: { item: HomeItem; now: number }) {
+  const status = statusOf(item, now)
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
+      <div className="min-w-0 space-y-0.5">
+        <ItemTitle item={item} />
+        {item.scheduled_by_name && (
+          <p className="text-xs text-muted-foreground">
+            {labels.scheduled.by(item.scheduled_by_name)}
+          </p>
+        )}
+      </div>
+      <ScheduleBadge schedule={status.schedule} />
+    </li>
+  )
+}
+
+function FailedRow({ item }: { item: HomeItem }) {
+  return (
+    <li className="space-y-1 py-2.5">
+      <ItemTitle item={item} />
+      <p className="text-sm">
+        {labels.failed.reason(scheduleErrorText(item.schedule_error ?? ""))}
+        {item.scheduled_by_name && (
+          <span className="text-muted-foreground">
+            {" "}
+            {labels.failed.by(item.scheduled_by_name)}
+          </span>
+        )}
+      </p>
+    </li>
+  )
+}

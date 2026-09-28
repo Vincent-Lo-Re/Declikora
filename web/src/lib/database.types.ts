@@ -601,7 +601,23 @@ export type Database = {
           rank: number
         }[]
       }
+      app_categories: {
+        Args: { section: string }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
       app_content: { Args: { content_id: string }; Returns: Json }
+      app_feed: {
+        Args: {
+          before?: string
+          category_id?: string
+          lim?: number
+          section: string
+        }
+        Returns: Json
+      }
       app_file_locations: {
         Args: { media_ids: string[] }
         Returns: {
@@ -610,6 +626,22 @@ export type Database = {
         }[]
       }
       app_page: { Args: { slug: string }; Returns: Json }
+      categories_reorder: {
+        Args: { ids: string[]; section: string }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+          section: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "categories"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       content_create: {
         Args: {
           from_template_id?: string

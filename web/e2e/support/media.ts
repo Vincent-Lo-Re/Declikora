@@ -57,6 +57,20 @@ export function fakeMp3(bytes: number): Buffer {
   return file
 }
 
+/**
+ * Un vrai MP3 de silence, que le navigateur sait lire (sa durée apparaît dans l'admin) : des
+ * trames MPEG-1 couche III, mono, 48 kHz, 32 kb/s, de 96 octets chacune (1 152 échantillons,
+ * soit 24 ms). Débit constant : le navigateur en déduit la durée sans ambiguïté.
+ */
+export function silentMp3(seconds: number): Buffer {
+  const frameBytes = 96
+  const frames = Math.ceil((seconds * 48_000) / 1152)
+  const frame = Buffer.alloc(frameBytes)
+  // Synchronisation, MPEG-1 couche III sans CRC ; 32 kb/s, 48 kHz ; mono.
+  frame.set([0xff, 0xfb, 0x14, 0xc0], 0)
+  return Buffer.concat(Array.from({ length: frames }, () => frame))
+}
+
 /** Une animation Lottie minimale, valide. */
 export function lottieJson(): Buffer {
   return Buffer.from(

@@ -12,6 +12,7 @@ import {
   History,
   LayoutTemplate,
   ListTree,
+  PanelTop,
   Plus,
   Settings2,
 } from "lucide-react"
@@ -72,12 +73,19 @@ import { BlockSettings } from "@/components/editor/block-settings"
 import {
   ContentSettingsSheet,
   type RefusedSlug,
+  type SettingsFocus,
 } from "@/components/editor/content-settings-sheet"
 import { FormatToolbar } from "@/components/editor/format-toolbar"
 import { HistorySheet } from "@/components/editor/history-sheet"
 import { LockBanner } from "@/components/editor/lock-banner"
 import { MediaPicker } from "@/components/editor/media-picker"
 import { OutlinePanel } from "@/components/editor/outline-panel"
+import {
+  AudioPreview,
+  CoverPreview,
+  PresentationPanel,
+  SummaryPreview,
+} from "@/components/editor/presentation"
 import {
   PublicationDialogs,
   PublishBar,
@@ -130,13 +138,20 @@ import {
   useAutosave,
   type EditorValue,
 } from "@/hooks/use-autosave"
+import { useCategories } from "@/hooks/use-categories"
 import { useEditLock } from "@/hooks/use-edit-lock"
 import { accessLevelsKey, listAccessLevels } from "@/lib/access-levels"
+import {
+  categoryKeys,
+  categoryNames,
+  categorySectionOf,
+} from "@/lib/categories"
 import {
   ContentError,
   contentKeys,
   getContent,
   getMediaByIds,
+  sameCategories,
   settingsDiff,
   settingsOf,
   type Content,
@@ -145,6 +160,12 @@ import {
   type SettingsPayload,
 } from "@/lib/contents/api"
 import { revertToVersion, type VersionItem } from "@/lib/contents/publication"
+import {
+  coverRequired,
+  hasAudio,
+  publishChecks,
+  type Requirement,
+} from "@/lib/contents/requirements"
 import {
   createTemplateFrom,
   getTemplatesByIds,
@@ -165,6 +186,10 @@ const RELOAD_RETRY_MS = 3000
 
 // Refus de save_draft qui viennent d'un réglage (et non du brouillon).
 const SLUG_REFUSALS = new Set(["adresse_prise", "adresse_invalide"])
+
+// Le choix d'un fichier pour la présentation (et non pour un bloc Image, dont l'id est un uuid).
+const COVER_PICKER = "presentation:cover"
+const AUDIO_PICKER = "presentation:audio"
 
 /** L'éditeur plein écran d'un contenu : /pages/<id>. Le menu de l'admin se cache. */
 export function EditorPage({
@@ -296,6 +321,13 @@ function blockHandle(id: string): HTMLElement | null {
   )
 }
 
+/** « Choisir… » ou « Changer… » de l'image de présentation ou de l'audio, dans le panneau. */
+function presentationChooseButton(key: "cover" | "audio"): HTMLElement | null {
+  return document.querySelector<HTMLElement>(
+    `[data-presentation-choose="${key}"]`
+  )
+}
+
 const ADD_BLOCK_ID = "editeur-ajouter"
 
 /** Met le curseur dans un bloc qui vient d'apparaître (l'éditeur Tiptap se crée juste après). */
@@ -334,6 +366,10 @@ function ContentEditor({
       ? initial.template_sort
       : null
   const isShared = templateSort === "shared"
+  // Un article ou un épisode : image de présentation, résumé, catégories (et audio d'un épisode).
+  const presentationKind =
+    kind === "article" || kind === "episode" ? kind : null
+  const categorySection = categorySectionOf(kind)
   // Cette ouverture de l'éditeur : le verrou est tenu par elle, pas seulement par le membre.
   const [editorSession] = useState(() => crypto.randomUUID())
 
@@ -354,6 +390,13 @@ function ContentEditor({
   const [outlineOpen, setOutlineOpen] = useState(false)
   const [activeText, setActiveText] = useState<Editor | null>(null)
   const [pickerFor, setPickerFor] = useState<string | null>(null)
+  // Le choix de l'image de présentation ou de l'audio : ce qui avait le focus à l'ouverture. Si
+  // ce bouton a disparu à la fermeture (« Choisir… » de l'aperçu, remplacé par l'image, ou la
+  // fenêtre Publier, refermée), le focus va au bouton du panneau.
+  const presentationPicker = useRef<{
+    key: Requirement["key"]
+    returnTo: Element | null
+  } | null>(null)
   // Ce qui n'était pas enregistré quand on a perdu la main (« Copier mon texte »).
   const [stash, setStash] = useState<Draft | null>(null)
   // Fichiers choisis à l'instant : affichés sans attendre la relecture de la base.
@@ -387,6 +430,7 @@ function ContentEditor({
               access_chosen: saved.settings.accessChosen,
               access_level_id: saved.settings.accessLevelId,
               slug: saved.settings.slug,
+              category_ids: saved.settings.categoryIds,
             }
         )
         // « Utilisé dans » de la médiathèque et liste des pages.
@@ -460,6 +504,16 @@ function ContentEditor({
     if (SLUG_REFUSALS.has(code) && sent.slug !== undefined) {
       setRefusedSlug({ slug: sent.slug, message: failedError.message })
       if (latest.slug === sent.slug) next = { ...latest, slug: saved.slug }
+    } else if (
+      code === "categorie_invalide" &&
+      sent.category_ids !== undefined
+    ) {
+      // Une catégorie a été supprimée entre-temps ([D28]) : la liste est relue, et le choix
+      // revient à celui de la base (qui l'a déjà perdue).
+      void queryClient.invalidateQueries({ queryKey: categoryKeys.all })
+      if (sameCategories(latest.categoryIds, sent.category_ids)) {
+        next = { ...latest, categoryIds: saved.categoryIds }
+      }
     } else if (
       code === "niveau_invalide" &&
       sent.access_level_id !== undefined
@@ -675,14 +729,17 @@ function ContentEditor({
   const mediaIds = useMemo(
     () =>
       [
-        ...new Set(
-          [
+        ...new Set([
+          ...[
             ...flattenBlocks(draft).map(({ block }) => block),
             ...linkedBlocks,
           ].flatMap((block) =>
             block.type === "image" && block.mediaId ? [block.mediaId] : []
-          )
-        ),
+          ),
+          // L'image de présentation et l'audio d'un épisode.
+          ...(draft.cover?.mediaId ? [draft.cover.mediaId] : []),
+          ...(draft.audio?.mediaId ? [draft.audio.mediaId] : []),
+        ]),
       ].sort(),
     [draft, linkedBlocks]
   )
@@ -691,6 +748,9 @@ function ContentEditor({
     queryFn: () => getMediaByIds(mediaIds),
     enabled: mediaIds.length > 0,
     placeholderData: keepPreviousData,
+    // Un texte alternatif ou une transcription ajoutés dans la Médiathèque (autre onglet) :
+    // relus au retour dans l'éditeur.
+    refetchOnWindowFocus: "always",
   })
   const mediaById = useMemo(() => {
     const map = new Map<string, Media>(Object.entries(picked))
@@ -825,13 +885,77 @@ function ContentEditor({
     setPickerFor(null)
     if (!blockId) return
     setPicked((current) => ({ ...current, [media.id]: media }))
+    if (blockId === COVER_PICKER) {
+      setDraft((current) => ({ ...current, cover: { mediaId: media.id } }))
+      return
+    }
+    if (blockId === AUDIO_PICKER) {
+      setDraft((current) => ({ ...current, audio: { mediaId: media.id } }))
+      return
+    }
     onUpdateBlock<ImageBlock>(blockId, (block) => ({
       ...block,
       mediaId: media.id,
     }))
   }
 
-  const openPicker = useCallback((blockId: string) => setPickerFor(blockId), [])
+  /** Retire l'image de présentation ou l'audio, avec « Annuler » dans le message. */
+  const removePresentationFile = (key: "cover" | "audio") => {
+    const previous = draft[key] ?? null
+    if (!previous) return
+    setDraft((current) => ({ ...current, [key]: null }))
+    toast(
+      key === "cover"
+        ? texts.editor.presentation.cover.removed
+        : texts.editor.presentation.audio.removed,
+      {
+        action: {
+          label: texts.editor.settings.undo,
+          onClick: () =>
+            setDraft((current) => ({ ...current, [key]: previous })),
+        },
+      }
+    )
+  }
+
+  /** Ouvre le choix de l'image de présentation ou de l'audio (s'il manque pour publier). */
+  const openPresentationPicker = useCallback(
+    (key: Requirement["key"]) => {
+      if (!editable) return
+      presentationPicker.current = { key, returnTo: document.activeElement }
+      setSelectedId(null)
+      setPickerFor(key === "cover" ? COVER_PICKER : AUDIO_PICKER)
+    },
+    [editable]
+  )
+
+  const openPicker = useCallback((blockId: string) => {
+    presentationPicker.current = null
+    setPickerFor(blockId)
+  }, [])
+
+  /** Où va le focus quand le choix d'un fichier se ferme (règle de Base UI : true = habituel). */
+  const pickerFinalFocus = useCallback((): HTMLElement | true => {
+    const picker = presentationPicker.current
+    if (!picker) return true
+    const { returnTo } = picker
+    if (
+      returnTo instanceof HTMLElement &&
+      returnTo.isConnected &&
+      returnTo !== document.body
+    ) {
+      return returnTo
+    }
+    return presentationChooseButton(picker.key) ?? true
+  }, [])
+
+  /** « Voir la présentation » disparaît au clic : le focus va au titre du panneau. */
+  const showPresentation = () => {
+    setSelectedId(null)
+    focusSoon(() =>
+      document.querySelector<HTMLElement>("[data-presentation-title]")
+    )
+  }
 
   // « Détacher » : le bloc lié devient une copie ordinaire du bloc de son modèle, à la même
   // place (même id ; nouveaux id dans un encadré), enregistrée comme toute modification.
@@ -927,9 +1051,9 @@ function ContentEditor({
     queryFn: listAccessLevels,
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsFocus, setSettingsFocus] = useState<"slug" | null>(null)
+  const [settingsFocus, setSettingsFocus] = useState<SettingsFocus>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
-  const openSettings = useCallback((focus: "slug" | null) => {
+  const openSettings = useCallback((focus: SettingsFocus) => {
     setSettingsFocus(focus)
     setSettingsOpen(true)
   }, [])
@@ -999,6 +1123,25 @@ function ContentEditor({
     }
   }
 
+  // Les catégories de la section (article ou épisode) : réglages et présentation.
+  const categories = useCategories(categorySection)
+  const chosenCategoryNames = useMemo(
+    () =>
+      categories.data
+        ? categoryNames(settings.categoryIds, categories.data)
+        : undefined,
+    [categories.data, settings.categoryIds]
+  )
+
+  // Ce qui manque pour publier ([D45], audio) et le conseil [D46] : expliqués avant l'envoi.
+  const checks = useMemo(
+    () =>
+      coverRequired(kind) || hasAudio(kind)
+        ? publishChecks(kind, draft, mediaFor)
+        : undefined,
+    [kind, draft, mediaFor]
+  )
+
   const pub = usePublication({
     contentId,
     kind,
@@ -1014,6 +1157,8 @@ function ContentEditor({
     applySettings,
     takeLock: () => take(true),
     openSettings,
+    checks,
+    onFix: openPresentationPicker,
   })
 
   // --- « Enregistrer comme modèle » (contenus) ----------------------------------------------
@@ -1303,6 +1448,14 @@ function ContentEditor({
               )}
               data-editable={editable || undefined}
             >
+              {presentationKind && (
+                <CoverPreview
+                  media={mediaFor(draft.cover?.mediaId ?? null)}
+                  editable={editable}
+                  onChoose={() => openPresentationPicker("cover")}
+                  onSelect={() => setSelectedId(null)}
+                />
+              )}
               <textarea
                 ref={titleRef}
                 rows={1}
@@ -1321,10 +1474,31 @@ function ContentEditor({
                     : texts.editor.title.label
                 }
                 onChange={onTitle}
+                onFocus={
+                  presentationKind ? () => setSelectedId(null) : undefined
+                }
                 onKeyDown={(event) => {
                   if (event.key === "Enter") event.preventDefault()
                 }}
               />
+              {presentationKind && (
+                <SummaryPreview
+                  summary={draft.summary ?? ""}
+                  editable={editable}
+                  onChange={(summary) =>
+                    setDraft((current) => ({ ...current, summary }))
+                  }
+                  onFocus={() => setSelectedId(null)}
+                />
+              )}
+              {presentationKind === "episode" && (
+                <AudioPreview
+                  media={mediaFor(draft.audio?.mediaId ?? null)}
+                  editable={editable}
+                  onChoose={() => openPresentationPicker("audio")}
+                  onSelect={() => setSelectedId(null)}
+                />
+              )}
               <BlocksEditorContext value={blocksValue}>
                 <BlockCanvas
                   key={viewKey}
@@ -1398,6 +1572,43 @@ function ContentEditor({
 
         <aside className="w-72 shrink-0 border-l bg-background">
           <BlockSettings
+            header={
+              presentationKind && selectedId ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="self-start"
+                  onClick={showPresentation}
+                >
+                  <PanelTop />
+                  {texts.editor.presentation.show}
+                </Button>
+              ) : null
+            }
+            emptyLabel={
+              presentationKind
+                ? texts.editor.presentation.panelTitle[presentationKind]
+                : undefined
+            }
+            empty={
+              presentationKind ? (
+                <PresentationPanel
+                  kind={presentationKind}
+                  draft={draft}
+                  editable={editable}
+                  mediaFor={mediaFor}
+                  urlFor={(media) =>
+                    media.state === "ready" ? media.url : undefined
+                  }
+                  categoryNames={chosenCategoryNames}
+                  onChooseCover={() => openPresentationPicker("cover")}
+                  onRemoveCover={() => removePresentationFile("cover")}
+                  onChooseAudio={() => openPresentationPicker("audio")}
+                  onRemoveAudio={() => removePresentationFile("audio")}
+                  onEditCategories={() => openSettings("categories")}
+                />
+              ) : undefined
+            }
             draft={draft}
             selectedId={selectedId}
             editable={editable}
@@ -1428,6 +1639,16 @@ function ContentEditor({
             levelsFailed={levels.isError}
             live={pub.publication?.live ?? null}
             refusedSlug={refusedSlug}
+            categories={
+              categorySection
+                ? {
+                    section: categorySection,
+                    list: categories.data,
+                    failed: categories.isError,
+                    retry: () => void categories.refetch(),
+                  }
+                : undefined
+            }
             onChange={(next) => {
               if (next.slug !== settings.slug) setRefusedSlug(null)
               setSettings(next)
@@ -1437,6 +1658,7 @@ function ContentEditor({
             open={historyOpen}
             onOpenChange={setHistoryOpen}
             contentId={contentId}
+            kind={kind}
             liveVersionId={pub.publication?.live?.id ?? null}
             canRevert={editable}
             onRevert={onRevert}
@@ -1473,11 +1695,13 @@ function ContentEditor({
       )}
 
       <MediaPicker
+        kind={pickerFor === AUDIO_PICKER ? "audio" : "image"}
         open={pickerFor !== null}
         onOpenChange={(open) => {
           if (!open) setPickerFor(null)
         }}
         onChoose={onChooseImage}
+        finalFocus={pickerFinalFocus}
       />
 
       <AlertDialog

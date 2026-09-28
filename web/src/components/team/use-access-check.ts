@@ -3,6 +3,7 @@ import { useCallback } from "react"
 
 import { profileQueryKey, useAuth } from "@/auth/auth-context"
 import { isAccessLevelAccessLost } from "@/lib/access-levels"
+import { isCategoryAccessLost } from "@/lib/categories"
 import { isContentAccessLost } from "@/lib/contents/api"
 import { isMediaAccessLost } from "@/lib/media/api"
 import { isAccessLost } from "@/lib/team"
@@ -24,7 +25,8 @@ export function useAccessCheck() {
         (isAccessLost(error) ||
           isMediaAccessLost(error) ||
           isContentAccessLost(error) ||
-          isAccessLevelAccessLost(error))
+          isAccessLevelAccessLost(error) ||
+          isCategoryAccessLost(error))
       ) {
         void queryClient.invalidateQueries({
           queryKey: profileQueryKey(userId),

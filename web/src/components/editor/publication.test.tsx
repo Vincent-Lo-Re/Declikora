@@ -78,6 +78,7 @@ const content: api.Content = {
   slug: "aide",
   template_sort: null,
   template_for: null,
+  category_ids: [],
 }
 
 const publication: publicationApi.Publication = {
@@ -508,6 +509,40 @@ describe("programmer (heure de Paris)", () => {
         PAGE_ID,
         new Date("2099-10-25T00:30:00Z")
       )
+    )
+  })
+
+  it("termine l'enregistrement avant de programmer, même quand le niveau est déjà choisi", async () => {
+    // schedule vérifie [D45] et le son sur le brouillon ENREGISTRÉ : ce qui est à l'écran
+    // doit être parti avant, sans attendre la fin du délai de l'enregistrement automatique.
+    vi.mocked(api.saveDraft).mockResolvedValue({
+      rev: 5,
+      savedAt: "2026-09-27T12:31:00Z",
+    })
+    vi.mocked(publicationApi.scheduleContent).mockImplementation(
+      async (_id, at) => at.toISOString()
+    )
+    const dialog = await openScheduleDialog()
+    // Un changement encore en attente d'enregistrement (délai de 1,5 s).
+    fireEvent.change(screen.getByLabelText(texts.editor.title.label), {
+      target: { value: "Aide et contact" },
+    })
+    expect(api.saveDraft).not.toHaveBeenCalled()
+    fill(dialog, "2099-10-03", "08:00")
+    fireEvent.click(
+      within(dialog).getByRole("button", {
+        name: labels.scheduleDialog.confirm,
+      })
+    )
+    await waitFor(() =>
+      expect(publicationApi.scheduleContent).toHaveBeenCalled()
+    )
+    expect(api.saveDraft).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(api.saveDraft).mock.calls[0][2]).toMatchObject({
+      title: "Aide et contact",
+    })
+    expect(vi.mocked(api.saveDraft).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(publicationApi.scheduleContent).mock.invocationCallOrder[0]
     )
   })
 

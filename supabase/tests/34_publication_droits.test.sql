@@ -14,7 +14,12 @@ select pg_temp.empty_media_library();
 select pg_temp.empty_contents();
 
 -- Deux formules, une page gratuite en ligne (adresse « aide »), un article réservé en ligne
--- (formule « Complet »), un article jamais publié. Le lecteur a la formule « Complet ».
+-- (formule « Complet »), un article jamais publié (les deux avec leur image de présentation,
+-- [D45]). Le lecteur a la formule « Complet ».
+insert into public.media (id, kind, name, path, mime, size_bytes, status, created_by) values
+  ('10000000-0000-4000-8000-000000000001', 'image', 'couverture.webp',
+    '10000000-0000-4000-8000-000000000001/couverture.webp', 'image/webp', 1000, 'ready',
+    pg_temp.person_id('editor'));
 insert into public.access_levels (id, name) values
   ('40000000-0000-4000-8000-000000000001', 'Essentiel'),
   ('40000000-0000-4000-8000-000000000002', 'Complet');
@@ -22,9 +27,9 @@ insert into public.contents (id, kind, draft, slug, access_chosen, created_by, d
   ('20000000-0000-4000-8000-000000000001', 'page', '{"v":1,"title":"Aide","blocks":[]}', 'aide',
     true, pg_temp.person_id('editor'), pg_temp.person_id('editor'));
 insert into public.contents (id, kind, draft, access_level_id, access_chosen, created_by) values
-  ('20000000-0000-4000-8000-000000000002', 'article', '{"v":1,"title":"Réservé","blocks":[]}',
+  ('20000000-0000-4000-8000-000000000002', 'article', '{"v":1,"title":"Réservé","blocks":[],"cover":{"mediaId":"10000000-0000-4000-8000-000000000001"}}',
     '40000000-0000-4000-8000-000000000002', true, pg_temp.person_id('editor')),
-  ('20000000-0000-4000-8000-000000000003', 'article', '{"v":1,"title":"Brouillon","blocks":[]}',
+  ('20000000-0000-4000-8000-000000000003', 'article', '{"v":1,"title":"Brouillon","blocks":[],"cover":{"mediaId":"10000000-0000-4000-8000-000000000001"}}',
     null, true, pg_temp.person_id('editor'));
 select private.do_publish('20000000-0000-4000-8000-000000000001', pg_temp.person_id('editor'), 'manual');
 select private.do_publish('20000000-0000-4000-8000-000000000002', pg_temp.person_id('editor'), 'manual');

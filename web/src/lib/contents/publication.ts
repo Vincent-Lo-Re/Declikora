@@ -72,6 +72,8 @@ export type VersionItem = {
   published_at: string
   published_by_name: string | null
   draft_rev: number
+  /** Les catégories de la version (article, épisode) ; un identifiant peut ne plus exister. */
+  category_ids: string[]
 }
 
 /** Le libellé de l'origine d'une version (« Publiée », « Publiée à l'heure programmée »…). */
@@ -86,7 +88,9 @@ export function versionOriginLabel(origin: string): string {
 export async function listVersions(contentId: string): Promise<VersionItem[]> {
   const { data, error, status } = await supabase
     .from("versions")
-    .select("id, number, origin, published_at, published_by_name, draft_rev")
+    .select(
+      "id, number, origin, published_at, published_by_name, draft_rev, category_ids"
+    )
     .eq("content_id", contentId)
     .order("number", { ascending: false })
     .limit(500)

@@ -5,12 +5,15 @@ import {
   File,
   FilePlus2,
   FileText,
+  FilterX,
   LayoutTemplate,
+  Search,
   SquarePen,
+  Tags,
   Trash2,
   TriangleAlert,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
@@ -28,7 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +48,15 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import {
@@ -56,39 +68,57 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  categoryNames,
+  categorySectionOf,
+  type Category,
+} from "@/lib/categories"
+import {
   ContentError,
   contentKeys,
   createContent,
   listContents,
-  type ContentKind,
   type ContentListItem,
 } from "@/lib/contents/api"
 import {
-  publicationStatus,
-  restoreContent,
-  trashContent,
-} from "@/lib/contents/publication"
+  ALL_CATEGORIES,
+  filterContents,
+  isStateFilter,
+  itemStatus,
+  NO_CATEGORY,
+  noFilters,
+  stateFilters,
+  type ListFilters,
+} from "@/lib/contents/list-filters"
+import { restoreContent, trashContent } from "@/lib/contents/publication"
 import { listStarters, templateKeys } from "@/lib/contents/templates"
+import { useCategories } from "@/hooks/use-categories"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { formatDateTime } from "@/lib/dates"
 import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
-import { editorPath, type SectionKey } from "@/navigation"
+import { categoriesPath, editorPath, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.contentList
 
+/** Les sortes de contenu qui ont une liste (les méthodes arrivent à la partie 7b). */
+export type ListKind = "page" | "article" | "episode"
+
 /**
- * Liste des contenus d'une section : créer, ouvrir dans l'éditeur, état de publication de
- * chacun (brouillon, en ligne, modifié, programmé, échec), mettre à la corbeille. L'étape 7 la
- * complétera (catégories, filtres…).
+ * Liste des contenus d'une section (Pages, Blog, Podcasts) : recherche, filtres par état de
+ * publication et par catégorie, créer (vide ou depuis un point de départ, [D42]), ouvrir dans
+ * l'éditeur, mettre à la corbeille. Pour une page, son adresse ; pour un article ou un épisode,
+ * ses catégories.
  */
 export function ContentListPage({
   section,
   kind,
 }: {
   section: SectionKey
-  kind: ContentKind
+  kind: ListKind
 }) {
   const { title, description } = texts.sections[section]
+  const kindLabels = labels.kinds[kind]
+  const categorySection = categorySectionOf(kind)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
@@ -99,7 +129,42 @@ export function ContentListPage({
     // Qui écrit quoi, et les publications programmées : relu toutes les 30 secondes.
     refetchInterval: 30_000,
   })
+  const categories = useCategories(categorySection)
   const [toTrash, setToTrash] = useState<ContentListItem | null>(null)
+  const [filters, setFilters] = useState<ListFilters>(noFilters)
+  const search = useDebouncedValue(filters.search, 150)
+
+  const known = useMemo(
+    () =>
+      categories.data
+        ? new Set(categories.data.map((category) => category.id))
+        : undefined,
+    [categories.data]
+  )
+  // Une catégorie choisie dans le filtre, puis supprimée : le filtre revient à « Toutes ».
+  const category =
+    filters.category === ALL_CATEGORIES ||
+    filters.category === NO_CATEGORY ||
+    !known ||
+    known.has(filters.category)
+      ? filters.category
+      : ALL_CATEGORIES
+  const shown = useMemo(
+    () =>
+      list.data
+        ? filterContents(
+            list.data,
+            { ...filters, search, category },
+            list.dataUpdatedAt,
+            known
+          )
+        : [],
+    [list.data, list.dataUpdatedAt, filters, search, category, known]
+  )
+  const filtering =
+    filters.search.trim() !== "" ||
+    filters.state !== "all" ||
+    category !== ALL_CATEGORIES
 
   const refresh = () =>
     Promise.all([
@@ -108,14 +173,14 @@ export function ContentListPage({
       queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "uses"] }),
     ])
 
-  // « Annuler » dans le message : la page revient en brouillon, sans être republiée.
+  // « Annuler » dans le message : le contenu revient en brouillon, sans être republié.
   const undo = async (item: ContentListItem) => {
     const name = item.title.trim() || labels.untitled
     try {
       const { addressRemoved } = await restoreContent(item.id)
       if (addressRemoved)
         toast.warning(texts.trash.restoredWithoutAddress(name))
-      else toast.success(labels.restored(name))
+      else toast.success(kindLabels.restored(name))
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : texts.common.unexpected
@@ -151,8 +216,8 @@ export function ContentListPage({
     if (list.error) checkAccess(list.error)
   }, [list.error, checkAccess])
 
-  // Les points de départ de cette section ([D42]) : « Nouvelle page » propose « Page vide » ou
-  // l'un d'eux. Sans point de départ (ou si la liste ne se lit pas), une page vide.
+  // Les points de départ de cette sorte ([D42]) : « Nouvel article » propose « Article vide »
+  // ou l'un d'eux. Sans point de départ (ou si la liste ne se lit pas), un contenu vide.
   const starters = useQuery({
     queryKey: templateKeys.starters(kind),
     queryFn: () => listStarters(kind),
@@ -168,9 +233,44 @@ export function ContentListPage({
     },
     onError: (error) => {
       checkAccess(error)
-      toast.error(`${labels.createFailed} ${error.message}`)
+      toast.error(`${kindLabels.createFailed} ${error.message}`)
     },
   })
+
+  const createButton =
+    starters.data && starters.data.length > 0 ? (
+      <DropdownMenu>
+        <DropdownMenuTrigger disabled={create.isPending} render={<Button />}>
+          {create.isPending ? <Spinner /> : <FilePlus2 />}
+          {kindLabels.create}
+          <ChevronDown />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuItem onClick={() => create.mutate(null)}>
+            <File />
+            {kindLabels.blank}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{labels.starters}</DropdownMenuLabel>
+            {starters.data.map((starter) => (
+              <DropdownMenuItem
+                key={starter.id}
+                onClick={() => create.mutate(starter.id)}
+              >
+                <LayoutTemplate />
+                {starter.title.trim() || texts.templates.list.untitled}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ) : (
+      <Button onClick={() => create.mutate(null)} disabled={create.isPending}>
+        {create.isPending ? <Spinner /> : <FilePlus2 />}
+        {kindLabels.create}
+      </Button>
+    )
 
   return (
     <>
@@ -178,45 +278,18 @@ export function ContentListPage({
         title={title}
         description={description}
         actions={
-          starters.data && starters.data.length > 0 ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                disabled={create.isPending}
-                render={<Button />}
+          <>
+            {categorySection && (
+              <Link
+                to={categoriesPath(categorySection)}
+                className={buttonVariants({ variant: "outline" })}
               >
-                {create.isPending ? <Spinner /> : <FilePlus2 />}
-                {labels.create}
-                <ChevronDown />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuItem onClick={() => create.mutate(null)}>
-                  <File />
-                  {labels.blank}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>{labels.starters}</DropdownMenuLabel>
-                  {starters.data.map((starter) => (
-                    <DropdownMenuItem
-                      key={starter.id}
-                      onClick={() => create.mutate(starter.id)}
-                    >
-                      <LayoutTemplate />
-                      {starter.title.trim() || texts.templates.list.untitled}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button
-              onClick={() => create.mutate(null)}
-              disabled={create.isPending}
-            >
-              {create.isPending ? <Spinner /> : <FilePlus2 />}
-              {labels.create}
-            </Button>
-          )
+                <Tags />
+                {labels.manageCategories}
+              </Link>
+            )}
+            {createButton}
+          </>
         }
       />
 
@@ -251,62 +324,38 @@ export function ContentListPage({
                 <EmptyMedia variant="icon">
                   <FileText />
                 </EmptyMedia>
-                <EmptyTitle>{labels.empty.title}</EmptyTitle>
-                <EmptyDescription>{labels.empty.description}</EmptyDescription>
+                <EmptyTitle>{kindLabels.emptyTitle}</EmptyTitle>
+                <EmptyDescription>
+                  {kindLabels.emptyDescription}
+                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{labels.columns.title}</TableHead>
-                  <TableHead>{labels.columns.publication}</TableHead>
-                  <TableHead>{labels.columns.savedAt}</TableHead>
-                  <TableHead>{labels.columns.status}</TableHead>
-                  <TableHead className="w-0">
-                    <span className="sr-only">{labels.columns.actions}</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {list.data.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">
-                      <Link
-                        to={editorPath(section, item.id)}
-                        className="underline-offset-4 hover:underline"
-                      >
-                        {item.title.trim() || labels.untitled}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <PublicationCell item={item} now={list.dataUpdatedAt} />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatDateTime(item.draft_saved_at)}
-                      {item.saved_by_name && (
-                        <> {labels.savedBy(item.saved_by_name)}</>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {item.editing_name && (
-                        <Badge variant="secondary">
-                          {labels.beingEdited(item.editing_name)}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <RowActions
-                        title={item.title.trim() || labels.untitled}
-                        editPath={editorPath(section, item.id)}
-                        disabled={trash.isPending}
-                        onTrash={() => setToTrash(item)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <>
+              <ListFiltersBar
+                kind={kind}
+                filters={{ ...filters, category }}
+                categories={categorySection ? categories.data : undefined}
+                filtering={filtering}
+                count={labels.count(shown.length, list.data.length)}
+                onChange={setFilters}
+              />
+              {shown.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  {kindLabels.noResults}
+                </p>
+              ) : (
+                <ContentTable
+                  kind={kind}
+                  section={section}
+                  items={shown}
+                  now={list.dataUpdatedAt}
+                  categories={categories.data}
+                  trashing={trash.isPending}
+                  onTrash={setToTrash}
+                />
+              )}
+            </>
           )}
         </div>
       )}
@@ -320,9 +369,11 @@ export function ContentListPage({
         {toTrash && (
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{labels.confirmTrash.title}</AlertDialogTitle>
+              <AlertDialogTitle>
+                {kindLabels.confirmTrashTitle}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                {labels.confirmTrash.description(
+                {kindLabels.confirmTrash(
                   toTrash.title.trim() || labels.untitled
                 )}
               </AlertDialogDescription>
@@ -347,31 +398,244 @@ export function ContentListPage({
   )
 }
 
-/** État de publication d'une ligne : en ligne ou non, modifié, programmation. */
-function PublicationCell({
-  item,
-  now,
+/** Recherche, filtre par état et, pour le Blog et les Podcasts, par catégorie. */
+function ListFiltersBar({
+  kind,
+  filters,
+  categories,
+  filtering,
+  count,
+  onChange,
 }: {
-  item: ContentListItem
-  now: number
+  kind: ListKind
+  filters: ListFilters
+  // Les catégories de la section (undefined : pas de filtre par catégorie, ou pas encore lues).
+  categories: Category[] | undefined
+  filtering: boolean
+  count: string
+  onChange: (next: ListFilters) => void
 }) {
-  const status = publicationStatus(
-    {
-      live:
-        item.live_draft_rev === null
-          ? null
-          : { draft_rev: item.live_draft_rev },
-      first_published_at: item.first_published_at,
-      scheduled_at: item.scheduled_at,
-      schedule_error: item.schedule_error,
-    },
-    item.draft_rev,
-    now
-  )
+  const filterLabels = labels.filters
+  const stateItems = stateFilters.map((value) => ({
+    value,
+    label: filterLabels.states[value],
+  }))
+  const categoryItems = [
+    { value: ALL_CATEGORIES, label: filterLabels.allCategories },
+    { value: NO_CATEGORY, label: filterLabels.noCategory },
+    ...(categories ?? []).map((category) => ({
+      value: category.id,
+      label: category.name,
+    })),
+  ]
   return (
-    <div className="flex flex-wrap gap-1.5">
-      <LiveBadge live={status.live} />
-      <ScheduleBadge schedule={status.schedule} />
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="relative w-72">
+        <Search
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          type="search"
+          value={filters.search}
+          onChange={(event) =>
+            onChange({ ...filters, search: event.target.value })
+          }
+          placeholder={labels.searchPlaceholder}
+          aria-label={labels.kinds[kind].search}
+          className="pl-8"
+        />
+      </div>
+      <Select
+        items={stateItems}
+        value={filters.state}
+        onValueChange={(value) => {
+          if (isStateFilter(value)) onChange({ ...filters, state: value })
+        }}
+      >
+        <SelectTrigger aria-label={filterLabels.state} className="w-64">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {stateItems.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {categories && (
+        <Select
+          items={categoryItems}
+          value={filters.category}
+          onValueChange={(value) => {
+            if (typeof value === "string")
+              onChange({ ...filters, category: value })
+          }}
+        >
+          <SelectTrigger
+            aria-label={filterLabels.category}
+            className="min-w-48"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {categoryItems.slice(0, 2).map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+            {categoryItems.length > 2 && <SelectSeparator />}
+            {categoryItems.slice(2).map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      {filtering && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onChange({ ...noFilters })}
+        >
+          <FilterX />
+          {filterLabels.reset}
+        </Button>
+      )}
+      <p
+        role="status"
+        className="ml-auto text-sm text-muted-foreground tabular-nums"
+      >
+        {count}
+      </p>
+    </div>
+  )
+}
+
+function ContentTable({
+  kind,
+  section,
+  items,
+  now,
+  categories,
+  trashing,
+  onTrash,
+}: {
+  kind: ListKind
+  section: SectionKey
+  items: ContentListItem[]
+  now: number
+  categories: Category[] | undefined
+  trashing: boolean
+  onTrash: (item: ContentListItem) => void
+}) {
+  const withCategories = kind !== "page"
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>{labels.columns.title}</TableHead>
+          <TableHead>
+            {withCategories
+              ? labels.columns.categories
+              : labels.columns.address}
+          </TableHead>
+          <TableHead>{labels.columns.publication}</TableHead>
+          <TableHead>{labels.columns.savedAt}</TableHead>
+          <TableHead>{labels.columns.status}</TableHead>
+          <TableHead className="w-0">
+            <span className="sr-only">{labels.columns.actions}</span>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => {
+          const status = itemStatus(item, now)
+          const name = item.title.trim() || labels.untitled
+          return (
+            <TableRow key={item.id}>
+              <TableCell className="max-w-80 font-medium">
+                <Link
+                  to={editorPath(section, item.id)}
+                  className="line-clamp-2 underline-offset-4 hover:underline"
+                >
+                  {name}
+                </Link>
+              </TableCell>
+              <TableCell className="max-w-64 text-muted-foreground">
+                {withCategories ? (
+                  <CategoriesCell ids={item.category_ids} all={categories} />
+                ) : item.slug ? (
+                  <code className="font-mono text-xs break-all">
+                    {item.slug}
+                  </code>
+                ) : (
+                  <span className="text-xs">{labels.noAddress}</span>
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1.5">
+                  <LiveBadge live={status.live} />
+                  <ScheduleBadge schedule={status.schedule} />
+                </div>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatDateTime(item.draft_saved_at)}
+                {item.saved_by_name && (
+                  <> {labels.savedBy(item.saved_by_name)}</>
+                )}
+              </TableCell>
+              <TableCell>
+                {item.editing_name && (
+                  <Badge variant="secondary">
+                    {labels.beingEdited(item.editing_name)}
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                <RowActions
+                  title={name}
+                  editPath={editorPath(section, item.id)}
+                  disabled={trashing}
+                  onTrash={() => onTrash(item)}
+                />
+              </TableCell>
+            </TableRow>
+          )
+        })}
+      </TableBody>
+    </Table>
+  )
+}
+
+/** Les catégories d'une ligne, dans l'ordre de la section ; les supprimées sont ignorées. */
+function CategoriesCell({
+  ids,
+  all,
+}: {
+  ids: string[]
+  all: Category[] | undefined
+}) {
+  if (ids.length === 0 || !all) {
+    return (
+      <span className="text-xs">
+        {ids.length === 0 ? labels.noCategory : ""}
+      </span>
+    )
+  }
+  const names = categoryNames(ids, all)
+  if (names.length === 0) {
+    return <span className="text-xs">{labels.noCategory}</span>
+  }
+  return (
+    <div className="flex flex-wrap gap-1">
+      {names.map((name) => (
+        <Badge key={name} variant="outline">
+          {name}
+        </Badge>
+      ))}
     </div>
   )
 }

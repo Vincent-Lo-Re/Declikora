@@ -281,17 +281,17 @@ select is(
 );
 select pg_temp.as_person('editor');
 select is(
-  (select count(*)::int from storage.objects where bucket_id = 'files-protected'), 4,
+  (select count(*)::int from storage.objects where bucket_id = 'files-protected'), 5,
   'éditeur aal2 : tous les objets protégés'
 );
 select pg_temp.as_person('admin');
 select is(
-  (select count(*)::int from storage.objects where bucket_id = 'files-protected'), 4,
+  (select count(*)::int from storage.objects where bucket_id = 'files-protected'), 5,
   'admin : tous les objets protégés'
 );
 select pg_temp.as_service();
 select is(
-  (select count(*)::int from storage.objects where bucket_id = 'files-protected'), 4,
+  (select count(*)::int from storage.objects where bucket_id = 'files-protected'), 5,
   'clé secrète : tous les objets (ignore les politiques)'
 );
 select pg_temp.as_postgres();

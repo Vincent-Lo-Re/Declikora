@@ -10,7 +10,9 @@
 -- le retrouve.
 --
 -- Fichiers prêts (pg_temp.mid) : photo (image, alt « Un chat »), fond (image, sans alt),
--- son (audio), vieux (image, qu'un test met à la corbeille). Formules : essentiel (rang 1),
+-- son (audio), vieux (image, qu'un test met à la corbeille), couverture (image, qui ne sert
+-- que d'image de présentation : pg_temp.cover(), à passer en « extra » de pg_temp.draft pour
+-- publier un article ou un épisode, [D45]). Formules : essentiel (rang 1),
 -- complet (rang 2) (pg_temp.lid). Catégories du Blog : sommeil, cuisine (pg_temp.catid).
 
 create temporary table ids (name text primary key, id uuid not null);
@@ -157,7 +159,18 @@ as $$
     when 'fond' then '10000000-0000-4000-8000-000000000002'::uuid
     when 'son' then '10000000-0000-4000-8000-000000000003'::uuid
     when 'vieux' then '10000000-0000-4000-8000-000000000004'::uuid
+    when 'couverture' then '10000000-0000-4000-8000-000000000005'::uuid
   end
+$$;
+
+-- L'image de présentation d'un brouillon (à passer en « extra » de pg_temp.draft) : un article
+-- ou un épisode ne se publie pas sans elle ([D45]).
+create function pg_temp.cover(media_name text default 'couverture')
+returns jsonb
+language sql
+immutable
+as $$
+  select jsonb_build_object('cover', jsonb_build_object('mediaId', pg_temp.mid(media_name)))
 $$;
 
 create function pg_temp.lid(level_name text)
@@ -195,6 +208,7 @@ grant execute on function
   pg_temp.box_block(text, jsonb),
   pg_temp.error_of(text),
   pg_temp.mid(text),
+  pg_temp.cover(text),
   pg_temp.lid(text),
   pg_temp.catid(text)
 to public;
@@ -208,7 +222,10 @@ values
   (pg_temp.mid('son'), 'audio', 'son.mp3', pg_temp.mid('son') || '/son.mp3',
     'audio/mpeg', 1000, 'ready', null, 'Bonjour à tous', pg_temp.person_id('editor')),
   (pg_temp.mid('vieux'), 'image', 'vieux.webp', pg_temp.mid('vieux') || '/vieux.webp',
-    'image/webp', 1000, 'ready', null, null, pg_temp.person_id('editor'));
+    'image/webp', 1000, 'ready', null, null, pg_temp.person_id('editor')),
+  (pg_temp.mid('couverture'), 'image', 'couverture.webp',
+    pg_temp.mid('couverture') || '/couverture.webp', 'image/webp', 1000, 'ready', 'Une vignette',
+    null, pg_temp.person_id('editor'));
 
 insert into public.access_levels (id, name) values
   (pg_temp.lid('essentiel'), 'Essentiel'),

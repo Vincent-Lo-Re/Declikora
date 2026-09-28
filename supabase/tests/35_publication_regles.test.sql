@@ -310,7 +310,7 @@ select lives_ok(
     pg_temp.image_block('00000000-0000-4000-8000-000000000012', null),
     pg_temp.box_block('00000000-0000-4000-8000-000000000013', jsonb_build_array(
       pg_temp.image_block('00000000-0000-4000-8000-000000000014', null)))
-  )), '{"access_level_id": null}')$$,
+  ), extra => pg_temp.cover()), '{"access_level_id": null}')$$,
   'un brouillon peut avoir des images sans fichier'
 );
 select throws_ok(
@@ -325,7 +325,8 @@ select matches(
 select lives_ok($$select pg_temp.create_content('mauvais', 'article')$$, 'un article qui cite un son comme image');
 select lives_ok(
   $$select pg_temp.save('mauvais', pg_temp.draft(jsonb_build_array(
-    pg_temp.image_block('00000000-0000-4000-8000-000000000021', pg_temp.mid('son')))),
+    pg_temp.image_block('00000000-0000-4000-8000-000000000021', pg_temp.mid('son'))),
+    extra => pg_temp.cover()),
     '{"access_level_id": null}')$$,
   'le brouillon l''accepte (le déclencheur ne regarde que la disponibilité)'
 );
@@ -337,7 +338,8 @@ select throws_ok(
 select lives_ok($$select pg_temp.create_content('indispo', 'article')$$, 'un article qui cite un fichier');
 select lives_ok(
   $$select pg_temp.save('indispo', pg_temp.draft(jsonb_build_array(
-    pg_temp.image_block('00000000-0000-4000-8000-000000000031', pg_temp.mid('vieux')))),
+    pg_temp.image_block('00000000-0000-4000-8000-000000000031', pg_temp.mid('vieux'))),
+    extra => pg_temp.cover()),
     '{"access_level_id": null}')$$,
   'brouillon avec « vieux »'
 );
@@ -353,10 +355,13 @@ update public.media set status = 'ready' where id = pg_temp.mid('vieux');
 select pg_temp.as_person('editor');
 
 select lives_ok($$select pg_temp.create_content('ep', 'episode')$$, 'un épisode');
-select lives_ok($$select pg_temp.save('ep', pg_temp.draft('[]'), '{"access_level_id": null}')$$, 'épisode gratuit, sans son');
+select lives_ok(
+  $$select pg_temp.save('ep', pg_temp.draft('[]', extra => pg_temp.cover()), '{"access_level_id": null}')$$,
+  'épisode gratuit, avec son image de présentation, sans son'
+);
 select throws_ok($$select pg_temp.publish('ep')$$, 'P0001', 'son_manquant', 'un épisode sans son ne se publie pas');
 select lives_ok(
-  $$select pg_temp.save('ep', pg_temp.draft('[]', 'Épisode', jsonb_build_object('audio',
+  $$select pg_temp.save('ep', pg_temp.draft('[]', 'Épisode', pg_temp.cover() || jsonb_build_object('audio',
     jsonb_build_object('mediaId', pg_temp.mid('son')))))$$,
   'épisode : son choisi'
 );
@@ -417,7 +422,8 @@ select lives_ok(
 select lives_ok($$select pg_temp.create_content('lie', 'article')$$, 'un article qui utilise le modèle');
 select lives_ok(
   $$select pg_temp.save('lie', pg_temp.draft(jsonb_build_array(jsonb_build_object(
-    'id', '00000000-0000-4000-8000-000000000051', 'type', 'linked', 'templateId', pg_temp.cid('tpl')))),
+    'id', '00000000-0000-4000-8000-000000000051', 'type', 'linked', 'templateId', pg_temp.cid('tpl'))),
+    extra => pg_temp.cover()),
     '{"access_level_id": null}')$$,
   'brouillon avec un bloc lié'
 );
@@ -654,7 +660,8 @@ select pg_temp.as_person('editor');
 select lives_ok($$select pg_temp.create_content('solo', 'article')$$, 'un article qui seul cite « seul »');
 select lives_ok(
   $$select pg_temp.save('solo', pg_temp.draft(jsonb_build_array(
-    pg_temp.image_block('00000000-0000-4000-8000-000000000081', '10000000-0000-4000-8000-000000000009'))),
+    pg_temp.image_block('00000000-0000-4000-8000-000000000081', '10000000-0000-4000-8000-000000000009')),
+    extra => pg_temp.cover()),
     '{"access_level_id": null}')$$,
   'brouillon avec « seul »'
 );
@@ -719,7 +726,7 @@ select lives_ok(
     pg_temp.image_block('00000000-0000-4000-8000-000000000073', pg_temp.mid('vieux'), 'Ancien'),
     pg_temp.box_block('00000000-0000-4000-8000-000000000074', jsonb_build_array(
       pg_temp.image_block('00000000-0000-4000-8000-000000000075', pg_temp.mid('vieux'))))),
-    'Retour'),
+    'Retour', pg_temp.cover('fond')),
     jsonb_build_object('access_level_id', pg_temp.lid('essentiel'),
       'category_ids', jsonb_build_array(pg_temp.catid('sommeil'))))$$,
   'bloc lié, image qui suit la médiathèque, fichier « vieux », Essentiel, Sommeil'
@@ -829,7 +836,8 @@ select lives_ok(
 select lives_ok($$select pg_temp.create_content('rvi', 'article', content_title => 'Retour image')$$, 'un article qui utilise ce modèle');
 select lives_ok(
   $$select pg_temp.save('rvi', pg_temp.draft(jsonb_build_array(jsonb_build_object(
-    'id', '00000000-0000-4000-8000-000000000082', 'type', 'linked', 'templateId', pg_temp.cid('tpl_img')))),
+    'id', '00000000-0000-4000-8000-000000000082', 'type', 'linked', 'templateId', pg_temp.cid('tpl_img'))),
+    extra => pg_temp.cover('fond')),
     '{"access_level_id": null}')$$,
   'brouillon avec le bloc lié'
 );

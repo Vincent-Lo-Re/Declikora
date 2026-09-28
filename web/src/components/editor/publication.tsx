@@ -518,10 +518,90 @@ function Summary({ pub }: { pub: PublicationControls }) {
   )
 }
 
+/** Vrai s'il manque quelque chose pour publier ([D45], audio d'un épisode). */
+function hasMissing(pub: PublicationControls): boolean {
+  return (pub.bridge.checks?.missing.length ?? 0) > 0
+}
+
+/**
+ * Ce qui manque pour publier ou programmer (image de présentation, audio), avec de quoi le
+ * choisir, puis le conseil [D46] (transcription), qui n'empêche rien.
+ */
+function RequirementsNotice({
+  pub,
+  action,
+}: {
+  pub: PublicationControls
+  action: "publish" | "schedule"
+}) {
+  const checks = pub.bridge.checks
+  if (!checks) return null
+  const words = labels.requirements
+  const fix = (key: "cover" | "audio") => {
+    pub.setDialog(null)
+    pub.bridge.onFix?.(key)
+  }
+  return (
+    <>
+      {checks.missing.length > 0 && (
+        <Alert variant="destructive" data-requirements>
+          <TriangleAlert />
+          <AlertDescription className="space-y-2 text-foreground">
+            <p className="font-medium">
+              {action === "publish" ? words.publishTitle : words.scheduleTitle}
+            </p>
+            <ul className="space-y-2">
+              {checks.missing.map((item) => (
+                <li
+                  key={item.key}
+                  className="flex flex-wrap items-center justify-between gap-2"
+                >
+                  <span>
+                    {item.key === "cover"
+                      ? item.state === "missing"
+                        ? words.cover
+                        : words.coverUnavailable
+                      : item.state === "missing"
+                        ? words.audio
+                        : words.audioUnavailable}
+                  </span>
+                  {pub.bridge.editable && pub.bridge.onFix && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => fix(item.key)}
+                    >
+                      {item.key === "cover"
+                        ? words.chooseCover
+                        : words.chooseAudio}
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+      {checks.advice.map((item) => (
+        <p
+          key={item.key}
+          className="flex items-start gap-1.5 text-sm text-amber-700 dark:text-amber-400"
+          data-advice={item.key}
+        >
+          <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+          {words.transcript}
+        </p>
+      ))}
+    </>
+  )
+}
+
 function PublishDialog({ pub }: { pub: PublicationControls }) {
   const chosen = pub.bridge.settings.accessChosen
   const [pick, setPick] = useState<LevelPick>(undefined)
-  const waiting = (!chosen && pick === undefined) || levelsMissing(pub)
+  const waiting =
+    (!chosen && pick === undefined) || levelsMissing(pub) || hasMissing(pub)
   return (
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
@@ -534,6 +614,7 @@ function PublishDialog({ pub }: { pub: PublicationControls }) {
           {labels.publishDialog.description}
         </DialogDescription>
       </DialogHeader>
+      <RequirementsNotice pub={pub} action="publish" />
       {chosen ? (
         <Summary pub={pub} />
       ) : (
@@ -698,6 +779,7 @@ function ScheduleDialog({ pub }: { pub: PublicationControls }) {
             </FieldDescription>
           )}
         </div>
+        <RequirementsNotice pub={pub} action="schedule" />
         {chosen ? (
           <Summary pub={pub} />
         ) : (
@@ -722,6 +804,7 @@ function ScheduleDialog({ pub }: { pub: PublicationControls }) {
             disabled={
               (!chosen && pick === undefined) ||
               levelsMissing(pub) ||
+              hasMissing(pub) ||
               pub.schedule.isPending
             }
           >

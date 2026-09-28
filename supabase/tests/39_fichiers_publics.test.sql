@@ -218,7 +218,7 @@ select pg_temp.as_person('editor');
 select pg_temp.create_content('f', 'article', content_title => 'Article F');
 select pg_temp.save(
   'f',
-  pg_temp.draft(jsonb_build_array(pg_temp.image_block('00000000-0000-4000-8000-0000000000f1', pg_temp.mid('photo'))), 'Article F'),
+  pg_temp.draft(jsonb_build_array(pg_temp.image_block('00000000-0000-4000-8000-0000000000f1', pg_temp.mid('photo'))), 'Article F', pg_temp.cover('photo')),
   '{"access_level_id": null}'
 );
 select pg_temp.publish('f');
@@ -343,7 +343,7 @@ select pg_temp.as_person('editor');
 select pg_temp.create_content('e2', 'episode', content_title => 'Épisode gratuit');
 select pg_temp.save(
   'e2',
-  pg_temp.draft('[]', 'Épisode gratuit', jsonb_build_object('audio', jsonb_build_object('mediaId', pg_temp.mid('son')))),
+  pg_temp.draft('[]', 'Épisode gratuit', pg_temp.cover('fond') || jsonb_build_object('audio', jsonb_build_object('mediaId', pg_temp.mid('son')))),
   '{"access_level_id": null}'
 );
 select pg_temp.publish('e2');

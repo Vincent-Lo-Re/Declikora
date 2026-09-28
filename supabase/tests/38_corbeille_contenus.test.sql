@@ -23,7 +23,8 @@ select pg_temp.save(
   'article',
   pg_temp.draft(
     jsonb_build_array(pg_temp.image_block('00000000-0000-4000-8000-0000000000b1', pg_temp.mid('photo'))),
-    'Café'
+    'Café',
+    pg_temp.cover('photo')
   ),
   '{"access_level_id": null}'
 );
@@ -318,7 +319,7 @@ select is(
 -- ---------------------------------------------------------------------------------------------
 
 select pg_temp.create_content('publie', 'article', content_title => 'Publié');
-select pg_temp.save('publie', pg_temp.draft('[]', 'Publié'), '{"access_level_id": null, "category_ids": ["30000000-0000-4000-8000-000000000001"]}');
+select pg_temp.save('publie', pg_temp.draft('[]', 'Publié', pg_temp.cover()), '{"access_level_id": null, "category_ids": ["30000000-0000-4000-8000-000000000001"]}');
 select pg_temp.publish('publie');
 select public.trash(pg_temp.cid('publie'));
 select is(

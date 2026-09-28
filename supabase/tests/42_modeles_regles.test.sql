@@ -771,7 +771,8 @@ select lives_ok(
 select lives_ok($$select pg_temp.create_content('r1', 'article', content_title => 'Retour')$$, 'un article');
 select lives_ok(
   $$select pg_temp.save('r1', pg_temp.draft(jsonb_build_array(
-    pg_temp.linked('00000000-0000-4000-8000-000000000b61', 'bandeau')), 'Retour'), '{"access_level_id": null}')$$,
+    pg_temp.linked('00000000-0000-4000-8000-000000000b61', 'bandeau')), 'Retour', pg_temp.cover()),
+    '{"access_level_id": null}')$$,
   'il utilise « Bandeau »'
 );
 select lives_ok($$select pg_temp.publish('r1')$$, 'version n° 1');

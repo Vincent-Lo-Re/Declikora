@@ -68,8 +68,11 @@ export function editorPath(section: SectionKey, contentId: string): string {
   return `${sections[section].path}/${contentId}`
 }
 
-// Section de l'éditeur de chaque sorte de contenu (les autres sections arrivent à l'étape 7).
+// Section de l'éditeur de chaque sorte de contenu (les méthodes, leurs chapitres et leurs
+// leçons arrivent à la partie 7b).
 const editorSections: Partial<Record<string, SectionKey>> = {
+  article: "blog",
+  episode: "podcasts",
   page: "pages",
   template: "templates",
 }
@@ -81,6 +84,16 @@ export function contentEditorPath(
 ): string | null {
   const section = editorSections[kind]
   return section ? editorPath(section, contentId) : null
+}
+
+/** Les catégories d'une section (Blog, Podcasts) : « /blog/categories ». */
+export function categoriesPath(section: "blog" | "podcasts"): string {
+  return `${sections[section].path}/categories`
+}
+
+/** La fiche d'un fichier dans la Médiathèque : « /mediatheque?fichier=<id> ». */
+export function mediaFilePath(mediaId: string): string {
+  return `${sections.media.path}?fichier=${encodeURIComponent(mediaId)}`
 }
 
 /** Vrai si l'adresse affichée appartient à la section (ou à l'une de ses pages). */

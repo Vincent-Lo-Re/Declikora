@@ -13,11 +13,11 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 
 ## 1. Sections du menu
 
-- [ ] **Accueil** : une page simple, avec tes brouillons récents et les publications programmées. On y arrive après la connexion.
-- [ ] **Blog** : les articles et leurs catégories.
-- [ ] **Podcasts** : les épisodes (le son fait partie de l'épisode) et leurs catégories.
+- [x] **Accueil** : une page simple, avec tes brouillons récents et les publications programmées. On y arrive après la connexion.
+- [x] **Blog** : les articles et leurs catégories.
+- [x] **Podcasts** : les épisodes (le son fait partie de l'épisode) et leurs catégories.
 - [ ] **Méthodes** : une méthode contient des chapitres, et chaque chapitre contient des leçons. Le chapitre a sa propre introduction en blocs, affichée avant ses leçons. Chaque leçon a son contenu en blocs.
-- [ ] **Pages** : les pages simples de l'app (aide, mentions légales…).
+- [x] **Pages** : les pages simples de l'app (aide, mentions légales…).
 - [ ] **Modèles** : les modèles de blocs (voir § 5).
 - [x] **Médiathèque** : tous les fichiers (voir § 6).
 - [x] **Corbeille** : une seule, pour tout ce qui a été supprimé (voir § 3).
@@ -46,7 +46,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Niveaux d'accès** : chaque contenu indique le niveau nécessaire pour le lire, gratuit ou une formule d'abonnement. **Il n'y a pas de niveau par défaut** : tant qu'on n'a pas choisi « Gratuit » ou une formule, « Publier » le demande, pour qu'aucun contenu ne parte gratuitement par oubli. Un admin crée, renomme et range les formules dans les Paramètres, de la moins complète à la plus complète. On en ajoute sans toucher au code.
 - [ ] **Accès d'une méthode** : un niveau pour toute la méthode, et on peut rendre gratuites quelques leçons, par exemple la première, pour la faire découvrir. L'**introduction d'un chapitre** est gratuite dès qu'une de ses leçons l'est ; sinon, elle suit le niveau de la méthode.
 - [ ] **Une méthode se publie d'un seul geste** : un seul bouton « Publier », celui de la méthode, envoie sa fiche, son plan et les chapitres et leçons modifiés. Une leçon ou un chapitre neuf reste caché de l'app tant qu'on n'a pas coché « Montrer dans l'app ». Avant de publier, l'admin montre la liste de ce qui va changer dans l'app et demande de confirmer.
-- [ ] **Catégories** : une liste pour le Blog, une autre pour les Podcasts, gérées par l'équipe. Un contenu peut en avoir une, plusieurs ou aucune (elles sont facultatives), et l'app s'en sert pour filtrer.
+- [x] **Catégories** : une liste pour le Blog, une autre pour les Podcasts, gérées par l'équipe. Un contenu peut en avoir une, plusieurs ou aucune (elles sont facultatives), et l'app s'en sert pour filtrer.
 - [ ] **Pour publier** un article, un épisode ou une méthode, il faut une **image de présentation** (la vignette des listes de l'app) ; le résumé est facultatif. Un épisode doit avoir son audio ; sa **transcription** est conseillée : l'éditeur avertit quand elle manque, comme pour le texte alternatif d'une image.
 - [x] **Qui a fait quoi** : chaque version et chaque publication indique son auteur et sa date. Il n'y a pas de journal complet des actions.
 
