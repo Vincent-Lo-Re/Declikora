@@ -691,6 +691,223 @@ export const texts = {
     refreshFailed:
       "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
     retry: "Réessayer",
+    // « Nouvelle page » quand des points de départ existent pour les Pages ([D42]).
+    blank: "Page vide",
+    starters: "Points de départ",
+  },
+
+  // Modèles de blocs (étape 6) : page Modèles, éditeur d'un modèle, insertion dans un contenu,
+  // « Enregistrer comme modèle ». docs/ADMINISTRATION.md, § 5.
+  templates: {
+    sorts: {
+      style: {
+        title: "Mise en forme réutilisable",
+        description:
+          "On insère une copie déjà mise en forme, puis on y écrit son propre texte. Modifier le modèle ne change pas les contenus déjà écrits.",
+        example: "Exemple : un encadré « À retenir ».",
+      },
+      shared: {
+        title: "Bloc identique partout",
+        description:
+          "Le même bloc, avec le même texte, dans plusieurs contenus. On le corrige une seule fois dans le modèle, et il est corrigé dans tous les brouillons qui l'utilisent.",
+        example:
+          "Exemple : un encadré « Contact ». Il contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
+      },
+      starter: {
+        title: "Point de départ",
+        description:
+          "Un nouveau contenu s'ouvre avec une structure déjà en place, au lieu d'une page vide.",
+        example: "Exemple : « Interview ».",
+      },
+    },
+    // La section d'un point de départ ([D42]) : la sorte de contenu qu'il sert à créer.
+    sections: {
+      article: "Blog (article)",
+      episode: "Podcasts (épisode)",
+      chapter: "Méthodes (chapitre)",
+      lesson: "Méthodes (leçon)",
+      page: "Pages",
+    },
+    list: {
+      create: "Nouveau modèle",
+      columns: {
+        name: "Nom",
+        uses: "Utilisation",
+        section: "Section",
+        savedAt: "Dernière modification",
+        status: "En ce moment",
+        actions: "Actions",
+      },
+      untitled: "Sans nom",
+      empty: {
+        title: "Aucun modèle pour l'instant",
+        description:
+          "Crée un modèle ici, ou depuis un contenu : choisis des blocs dans le plan, puis « Enregistrer comme modèle ».",
+      },
+      emptySort: "Aucun modèle de cette sorte pour l'instant.",
+      uses: (count: number) =>
+        count === 0
+          ? "Utilisé nulle part"
+          : count === 1
+            ? "Utilisé dans 1 brouillon"
+            : `Utilisé dans ${count} brouillons`,
+      usesLoading: "Recherche des brouillons…",
+      actions: (name: string) => `Actions pour ${name}`,
+      open: "Ouvrir",
+      trash: "Supprimer",
+      savedBy: (name: string) => `par ${name}`,
+      beingEdited: (name: string) => `${name} le modifie`,
+      loadFailed: "La liste des modèles n'a pas pu être chargée.",
+      refreshFailed:
+        "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
+      retry: "Réessayer",
+      createFailed: "Le modèle n'a pas pu être créé.",
+      confirmTrash: {
+        title: "Supprimer ce modèle ?",
+        description: (name: string) =>
+          `${name} va dans la corbeille : tu pourras le restaurer pendant 30 jours. Les contenus où il a été inséré gardent leur copie.`,
+        confirm: "Mettre à la corbeille",
+      },
+      trashed: (name: string) => `${name} est dans la corbeille.`,
+      undo: "Annuler",
+      restored: (name: string) => `${name} est restauré.`,
+      // Un bloc identique partout utilisé ne se supprime pas (ADMIN § 5).
+      used: {
+        title: "Ce modèle est encore utilisé",
+        description:
+          "Un bloc identique partout ne se supprime pas tant qu'un brouillon l'utilise. « Détacher partout » en fait une copie ordinaire dans chacun d'eux, corbeille comprise : ils ne suivront plus le modèle. Ce qui est en ligne dans l'app ne change pas.",
+        list: "Brouillons qui l'utilisent",
+        inTrash: "dans la corbeille",
+        detachAll: "Détacher partout",
+        detached: (count: number) =>
+          count === 1
+            ? "Détaché dans 1 brouillon : tu peux maintenant supprimer le modèle."
+            : `Détaché dans ${count} brouillons : tu peux maintenant supprimer le modèle.`,
+        checkFailed:
+          "Les brouillons qui utilisent ce modèle n'ont pas pu être relus.",
+      },
+    },
+    create: {
+      title: "Nouveau modèle",
+      description:
+        "Choisis la sorte du modèle : elle ne changera plus. Tu écriras ensuite ses blocs dans l'éditeur.",
+      name: "Nom",
+      namePlaceholder: "Par exemple : Contact",
+      nameRequired: "Donne un nom au modèle.",
+      nameTooLong: "Le nom fait 200 caractères au plus.",
+      sort: "Sorte",
+      section: "Section",
+      sectionPlaceholder: "Choisis une section",
+      sectionHint:
+        "Le point de départ ne sera proposé que dans cette section : « Nouvelle page » ne propose que ceux des Pages.",
+      sectionRequired: "Choisis la section du point de départ.",
+      submit: "Créer le modèle",
+    },
+    // Éditeur d'un modèle (le même éditeur plein écran, sans publication).
+    editor: {
+      nameLabel: "Nom du modèle",
+      namePlaceholder: "Nom du modèle",
+      sort: "Sorte du modèle",
+      starterFor: (section: string) => `Point de départ : ${section}`,
+      sharedLimit:
+        "Un bloc identique partout contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
+      empty: {
+        title: "Modèle vide",
+        description:
+          "Ajoute ses blocs : un texte, une image ou un encadré. Tu pourras ensuite l'insérer dans les contenus.",
+        sharedDescription:
+          "Ajoute son bloc : un texte, une image ou un encadré (qui peut en regrouper plusieurs). Tant qu'il est vide, il ne peut pas être inséré.",
+      },
+      usedIn: (count: number) =>
+        count === 0
+          ? "Utilisé dans aucun brouillon"
+          : count === 1
+            ? "Utilisé dans 1 brouillon"
+            : `Utilisé dans ${count} brouillons`,
+      usedInList: "Brouillons qui utilisent ce modèle",
+      inTrash: "dans la corbeille",
+      keepBlock:
+        "Ce modèle est utilisé : il garde son bloc. Pour le retirer, détache-le d'abord partout (page Modèles).",
+      outdated: {
+        push: (count: number) =>
+          count === 1
+            ? "Mettre à jour ce contenu dans l'app"
+            : `Mettre à jour ces ${count} contenus dans l'app`,
+        title: (count: number) =>
+          count === 1
+            ? "Mettre à jour ce contenu dans l'app ?"
+            : `Mettre à jour ces ${count} contenus dans l'app ?`,
+        description:
+          "Ces contenus sont en ligne avec une ancienne version de ce bloc. Seul ce bloc sera remplacé dans l'app : le reste de leurs brouillons ne part pas. Rien ne change dans l'app avant ce clic.",
+        version: (number: number, date: string) =>
+          `version n° ${number}, publiée le ${date}`,
+        confirm: "Mettre à jour",
+        pushed: (count: number) =>
+          count === 0
+            ? "Rien à mettre à jour : l'app a déjà ce bloc."
+            : count === 1
+              ? "1 contenu mis à jour dans l'app."
+              : `${count} contenus mis à jour dans l'app.`,
+        failed:
+          "La liste des contenus à mettre à jour dans l'app n'a pas pu être chargée.",
+      },
+    },
+    // Un bloc lié (bloc identique partout) dans l'éditeur d'un contenu.
+    linked: {
+      label: (name: string) => `Modèle : ${name}`,
+      loading: "Chargement du modèle…",
+      missing:
+        "Ce modèle n'existe plus ou est dans la corbeille : supprime ce bloc, ou restaure le modèle.",
+      empty: "Ce modèle est vide.",
+      edit: "Modifier le modèle",
+      editLabel: (name: string) => `Modifier le modèle ${name}`,
+      detach: "Détacher",
+      detachLabel: (name: string) => `Détacher du modèle ${name}`,
+      detached: (name: string) =>
+        `Bloc détaché de ${name} : c'est maintenant une copie ordinaire, que tu peux modifier ici.`,
+      settings: (name: string) =>
+        `Ce bloc est identique partout : il vient du modèle ${name}. Pour le corriger, modifie le modèle : la correction apparaîtra dans tous les brouillons qui l'utilisent.`,
+      detachHint:
+        "« Détacher » en fait une copie ordinaire, modifiable ici, qui ne suit plus le modèle. Les autres contenus restent liés.",
+    },
+    // « Ajouter un bloc » › « Un modèle… ».
+    insert: {
+      menu: "Un modèle…",
+      title: "Insérer un modèle",
+      description:
+        "Une mise en forme s'insère en copie, que tu modifies ici. Un bloc identique partout reste lié à son modèle.",
+      empty:
+        "Aucun modèle à insérer pour l'instant. Crée-en un dans la section Modèles.",
+      insert: "Insérer",
+      insertLabel: (name: string) => `Insérer ${name}`,
+      emptyTemplate: "Vide : ajoute-lui son bloc dans Modèles.",
+      loadFailed: "Les modèles n'ont pas pu être chargés.",
+      retry: "Réessayer",
+      manage: "Gérer les modèles",
+      inserted: (name: string) => `Modèle inséré : ${name}.`,
+    },
+    // « Enregistrer comme modèle » : une sélection de blocs (plan, ou bloc choisi).
+    saveAs: {
+      action: "Enregistrer comme modèle…",
+      select: "Choisir des blocs",
+      stopSelecting: "Annuler le choix",
+      selectHint:
+        "Coche les blocs à enregistrer comme modèle, puis « Enregistrer comme modèle ».",
+      selectBlock: (label: string) => `Choisir ${label}`,
+      withCount: (count: number) => `Enregistrer comme modèle (${count})`,
+      title: "Enregistrer comme modèle",
+      description: (count: number) =>
+        count === 1
+          ? "Le bloc choisi devient un nouveau modèle."
+          : `Les ${count} blocs choisis deviennent un nouveau modèle, dans l'ordre du contenu.`,
+      sharedOne:
+        "Pour un bloc identique partout, choisis un seul bloc (un encadré peut en regrouper plusieurs).",
+      sharedReplaced:
+        "Le bloc est maintenant lié au modèle : le corriger dans le modèle le corrigera ici aussi.",
+      submit: "Enregistrer le modèle",
+      saved: (name: string) => `Modèle enregistré : ${name}.`,
+      open: "Ouvrir",
+    },
   },
 
   // Éditeur de blocs (plein écran) : docs/ARCHITECTURE-CONTENUS.md, § 2.7 et § 3.3.
@@ -713,7 +930,7 @@ export const texts = {
       text: "Texte",
       image: "Image",
       box: "Encadré",
-      linked: "Bloc lié",
+      linked: "Bloc identique partout",
     },
     // Nom d'un bloc dans le plan, les annonces et les boutons.
     blockLabel: {
@@ -726,7 +943,8 @@ export const texts = {
           : count === 1
             ? "Encadré (1 bloc)"
             : `Encadré (${count} blocs)`,
-      linked: "Bloc lié",
+      linked: (name: string | null) =>
+        name ? `Bloc identique « ${name} »` : "Bloc identique partout",
     },
     textPlaceholder: "Écris ici…",
     add: {
@@ -857,8 +1075,6 @@ export const texts = {
         border: "Bordure",
         hint: "Un encadré contient des textes et des images, pas d'autre encadré.",
       },
-      linked:
-        "Ce bloc vient d'un modèle identique partout. Les modèles arrivent bientôt.",
       moveUp: "Monter",
       moveDown: "Descendre",
       remove: "Supprimer le bloc",
@@ -953,7 +1169,8 @@ export const texts = {
       reserve_a_l_equipe:
         "Ta session ne donne plus accès à l'éditeur. Reconnecte-toi.",
       demande_invalide: "La demande n'est pas valide. Recharge la page.",
-      sorte_invalide: "Cette sorte de contenu n'existe pas.",
+      sorte_invalide:
+        "Cette sorte de contenu ou de modèle n'est pas valide. Recharge la page.",
       parent_invalide: "Ce contenu ne peut pas être rangé à cet endroit.",
       contenu_introuvable: "Ce contenu n'existe plus.",
       dans_la_corbeille:
@@ -1000,6 +1217,15 @@ export const texts = {
         "Ce modèle est encore utilisé dans des brouillons : détache-le d'abord.",
       parent_dans_la_corbeille:
         "Restaure d'abord le chapitre ou la méthode qui le contient.",
+      // Étape 6 : modèles de blocs.
+      modele_vide:
+        "Ce bloc identique partout est encore vide : ajoute-lui son bloc dans Modèles avant de l'insérer.",
+      modele_un_seul_bloc:
+        "Un bloc identique partout contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
+      bloc_introuvable:
+        "Un des blocs choisis n'est pas encore enregistré. Attends la fin de l'enregistrement, puis réessaie.",
+      modele_introuvable:
+        "Ce modèle n'existe plus, ou ce n'est pas un bloc identique partout. Recharge la page.",
     },
   },
 

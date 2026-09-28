@@ -93,11 +93,11 @@ select ok(
 
 -- RPC de l'admin : authenticated seulement (la fonction vérifie ensuite is_staff).
 select function_privs_are(
-  'public', 'content_create', array['text', 'uuid', 'text', 'text', 'uuid'], 'anon', array[]::text[],
+  'public', 'content_create', array['text', 'uuid', 'text', 'text', 'uuid', 'text'], 'anon', array[]::text[],
   'anon : ne peut pas appeler content_create'
 );
 select function_privs_are(
-  'public', 'content_create', array['text', 'uuid', 'text', 'text', 'uuid'], 'authenticated',
+  'public', 'content_create', array['text', 'uuid', 'text', 'text', 'uuid', 'text'], 'authenticated',
   array['EXECUTE'], 'authenticated : peut appeler content_create'
 );
 select function_privs_are(

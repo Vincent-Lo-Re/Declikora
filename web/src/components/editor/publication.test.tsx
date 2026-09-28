@@ -76,6 +76,8 @@ const content: api.Content = {
   access_chosen: true,
   access_level_id: null,
   slug: "aide",
+  template_sort: null,
+  template_for: null,
 }
 
 const publication: publicationApi.Publication = {

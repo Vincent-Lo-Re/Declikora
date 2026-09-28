@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
+  ChevronDown,
   Ellipsis,
+  File,
   FilePlus2,
   FileText,
+  LayoutTemplate,
   SquarePen,
   Trash2,
   TriangleAlert,
@@ -29,7 +32,9 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -63,6 +68,7 @@ import {
   restoreContent,
   trashContent,
 } from "@/lib/contents/publication"
+import { listStarters, templateKeys } from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
 import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
 import { editorPath, type SectionKey } from "@/navigation"
@@ -145,8 +151,16 @@ export function ContentListPage({
     if (list.error) checkAccess(list.error)
   }, [list.error, checkAccess])
 
+  // Les points de départ de cette section ([D42]) : « Nouvelle page » propose « Page vide » ou
+  // l'un d'eux. Sans point de départ (ou si la liste ne se lit pas), une page vide.
+  const starters = useQuery({
+    queryKey: templateKeys.starters(kind),
+    queryFn: () => listStarters(kind),
+  })
+
   const create = useMutation({
-    mutationFn: () => createContent(kind),
+    mutationFn: (fromTemplateId: string | null) =>
+      createContent(kind, "", fromTemplateId),
     onSuccess: (content) => {
       queryClient.setQueryData(contentKeys.detail(content.id), content)
       void queryClient.invalidateQueries({ queryKey: contentKeys.list(kind) })
@@ -164,10 +178,45 @@ export function ContentListPage({
         title={title}
         description={description}
         actions={
-          <Button onClick={() => create.mutate()} disabled={create.isPending}>
-            {create.isPending ? <Spinner /> : <FilePlus2 />}
-            {labels.create}
-          </Button>
+          starters.data && starters.data.length > 0 ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                disabled={create.isPending}
+                render={<Button />}
+              >
+                {create.isPending ? <Spinner /> : <FilePlus2 />}
+                {labels.create}
+                <ChevronDown />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuItem onClick={() => create.mutate(null)}>
+                  <File />
+                  {labels.blank}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>{labels.starters}</DropdownMenuLabel>
+                  {starters.data.map((starter) => (
+                    <DropdownMenuItem
+                      key={starter.id}
+                      onClick={() => create.mutate(starter.id)}
+                    >
+                      <LayoutTemplate />
+                      {starter.title.trim() || texts.templates.list.untitled}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              onClick={() => create.mutate(null)}
+              disabled={create.isPending}
+            >
+              {create.isPending ? <Spinner /> : <FilePlus2 />}
+              {labels.create}
+            </Button>
+          )
         }
       />
 

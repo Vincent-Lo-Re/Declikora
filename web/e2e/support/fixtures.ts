@@ -126,3 +126,17 @@ export async function verifySecondFactor(page: Page, account: Account) {
 export function bottomMenu(page: Page) {
   return page.getByRole("navigation", { name: texts.nav.footerLabel })
 }
+
+/**
+ * « Nouvelle page » dans la liste des Pages, jusqu'à l'éditeur d'une page vide. Si la base
+ * locale a des points de départ pour les Pages (étape 6), le bouton ouvre un menu : « Page vide ».
+ */
+export async function createBlankPage(page: Page) {
+  await page.getByRole("button", { name: texts.contentList.create }).click()
+  const blank = page.getByRole("menuitem", { name: texts.contentList.blank })
+  await expect(
+    blank.or(page.getByLabel(texts.editor.title.label))
+  ).toBeVisible()
+  if (await blank.isVisible()) await blank.click()
+  await expect(page).toHaveURL(/\/pages\/[0-9a-f-]{36}$/)
+}

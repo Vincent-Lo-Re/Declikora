@@ -21,7 +21,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { cn } from "cn"
-import { GripVertical, Plus } from "lucide-react"
+import { GripVertical, Link2, Plus } from "lucide-react"
 import {
   createContext,
   memo,
@@ -31,9 +31,15 @@ import {
   useRef,
   useState,
 } from "react"
+import { Link } from "react-router"
 
-import { useBlocksEditor } from "@/blocks/components/context"
+import {
+  BlocksEditorContext,
+  templateNameOf,
+  useBlocksEditor,
+} from "@/blocks/components/context"
 import { ImageBlockView } from "@/blocks/components/image-block"
+import { StaticBlock } from "@/blocks/components/static-block"
 import { TextBlockView } from "@/blocks/components/text-block"
 import {
   blocksCollision,
@@ -53,14 +59,16 @@ import {
   type BoxBlock,
   type ContainerId,
   type Draft,
+  type LinkedBlock,
 } from "@/blocks/types"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { editorPath } from "@/navigation"
 import { texts } from "@/texts"
 
 /**
@@ -71,9 +79,13 @@ import { texts } from "@/texts"
 export function BlockCanvas({
   draft,
   onChange,
+  rootLimit,
 }: {
   draft: Draft
   onChange: (update: (draft: Draft) => Draft) => void
+  // Nombre maximal de blocs au premier niveau (1 dans un bloc identique partout, [D11]) : un
+  // bloc ne sort pas d'un encadré s'il faut dépasser ce nombre.
+  rootLimit?: number
 }) {
   const [activeId, setActiveId] = useState<string | null>(null)
   // Le brouillon au début du déplacement : remis tel quel si on annule (Échap).
@@ -107,6 +119,11 @@ export function BlockCanvas({
     return lastOver.current !== null ? [{ id: lastOver.current }] : []
   }, [])
 
+  const exceedsLimit = (next: Draft) =>
+    rootLimit !== undefined &&
+    next.blocks.length > rootLimit &&
+    next.blocks.length > draft.blocks.length
+
   const onDragStart = ({ active: started }: DragStartEvent) => {
     before.current = draft
     lastOver.current = null
@@ -121,7 +138,7 @@ export function BlockCanvas({
         over.rect.top + over.rect.height / 2
       : false
     const moved = moveOver(draft, moving.id, over.id, below)
-    if (!moved) return
+    if (!moved || exceedsLimit(moved)) return
     justMoved.current = true
     lastOver.current = moving.id
     requestAnimationFrame(() => {
@@ -135,7 +152,10 @@ export function BlockCanvas({
     before.current = null
     lastOver.current = null
     if (!over) return
-    onChange((current) => moveOnDrop(current, moved.id, over.id) ?? current)
+    onChange((current) => {
+      const next = moveOnDrop(current, moved.id, over.id)
+      return next && !exceedsLimit(next) ? next : current
+    })
   }
 
   const onDragCancel = () => {
@@ -246,7 +266,7 @@ const SortableBlock = memo(function SortableBlock({
   block: Block
   container: ContainerId
 }) {
-  const { editable, selectedId, selectBlock } = useBlocksEditor()
+  const { editable, selectedId, selectBlock, templateFor } = useBlocksEditor()
   const draggingType = useContext(DraggingTypeContext)
   const data: DropData = { kind: "block", type: block.type, container }
   const {
@@ -271,7 +291,12 @@ const SortableBlock = memo(function SortableBlock({
         draggingType !== "image",
     },
   })
-  const label = blockLabel(block)
+  const label = blockLabel(
+    block,
+    block.type === "linked"
+      ? templateNameOf(templateFor(block.templateId))
+      : null
+  )
   const selected = selectedId === block.id
 
   return (
@@ -324,13 +349,84 @@ function BlockBody({ block }: { block: Block }) {
     case "box":
       return <BoxBlockView block={block} />
     case "linked":
-      return (
-        <div className="rounded-md border border-dashed p-3 font-sans text-sm text-muted-foreground">
-          {texts.editor.settings.linked}
-        </div>
-      )
+      return <LinkedBlockView block={block} />
   }
 }
+
+/**
+ * Un bloc lié (bloc identique partout) : le bloc de son modèle tel quel, encadré d'un liseré,
+ * non modifiable sur place, avec « Modifier le modèle » et « Détacher ».
+ */
+const LinkedBlockView = memo(function LinkedBlockView({
+  block,
+}: {
+  block: LinkedBlock
+}) {
+  const editor = useBlocksEditor()
+  const { editable, templateFor, detachBlock } = editor
+  const template = templateFor(block.templateId)
+  // Le bloc du modèle se lit ici sans pouvoir s'y modifier.
+  const readOnly = useMemo(() => ({ ...editor, editable: false }), [editor])
+  const labels = texts.templates.linked
+  const name =
+    template.state === "ready" || template.state === "empty"
+      ? template.name.trim() || texts.templates.list.untitled
+      : null
+
+  return (
+    <div
+      className="blocks-linked rounded-md outline-1 outline-offset-4 outline-primary/40 outline-dashed"
+      data-linked-template={block.templateId}
+      data-linked-state={template.state}
+    >
+      <div className="mb-2 flex flex-wrap items-center gap-x-1 gap-y-1 font-sans text-xs text-muted-foreground">
+        <Link2 aria-hidden className="size-3.5 shrink-0" />
+        <span className="min-w-0 flex-1 truncate">
+          {name
+            ? labels.label(name)
+            : template.state === "missing"
+              ? texts.editor.blockLabel.linked(null)
+              : labels.loading}
+        </span>
+        {template.state !== "missing" && (
+          <Link
+            to={editorPath("templates", block.templateId)}
+            aria-label={name ? labels.editLabel(name) : labels.edit}
+            className={buttonVariants({ variant: "ghost", size: "xs" })}
+          >
+            {labels.edit}
+          </Link>
+        )}
+        {editable && template.state === "ready" && name && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            aria-label={labels.detachLabel(name)}
+            onClick={() => detachBlock(block.id)}
+          >
+            {labels.detach}
+          </Button>
+        )}
+      </div>
+      {template.state === "ready" ? (
+        <BlocksEditorContext value={readOnly}>
+          <StaticBlock block={template.block} />
+        </BlocksEditorContext>
+      ) : (
+        <p className="font-sans text-sm text-muted-foreground">
+          {template.state === "missing"
+            ? labels.missing
+            : template.state === "empty"
+              ? labels.empty
+              : template.state === "error"
+                ? texts.templates.insert.loadFailed
+                : labels.loading}
+        </p>
+      )}
+    </div>
+  )
+})
 
 /** Un encadré : sa zone de dépôt, ses blocs (Texte et Image), et « Ajouter dans l'encadré ». */
 const BoxBlockView = memo(function BoxBlockView({

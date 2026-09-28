@@ -137,6 +137,7 @@ export type Database = {
           scheduled_rev: number | null
           scheduled_set_at: string | null
           slug: string | null
+          template_for: string | null
           template_sort: string | null
           title: string | null
           trash_batch: string | null
@@ -168,6 +169,7 @@ export type Database = {
           scheduled_rev?: number | null
           scheduled_set_at?: string | null
           slug?: string | null
+          template_for?: string | null
           template_sort?: string | null
           title?: never
           trash_batch?: string | null
@@ -199,6 +201,7 @@ export type Database = {
           scheduled_rev?: number | null
           scheduled_set_at?: string | null
           slug?: string | null
+          template_for?: string | null
           template_sort?: string | null
           title?: never
           trash_batch?: string | null
@@ -612,6 +615,7 @@ export type Database = {
           from_template_id?: string
           kind: string
           parent_id?: string
+          template_for?: string
           template_sort?: string
           title?: string
         }
@@ -642,6 +646,7 @@ export type Database = {
           scheduled_rev: number | null
           scheduled_set_at: string | null
           slug: string | null
+          template_for: string | null
           template_sort: string | null
           title: string | null
           trash_batch: string | null
@@ -970,6 +975,79 @@ export type Database = {
           last_sign_in_at: string
           mfa_enabled_at: string
           role: Database["public"]["Enums"]["team_role"]
+        }[]
+      }
+      template_create_from: {
+        Args: {
+          block_ids: string[]
+          content_id: string
+          name: string
+          sort: string
+          template_for?: string
+        }
+        Returns: {
+          access_chosen: boolean
+          access_level_id: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          draft: NonNullable<Json>
+          draft_media_ids: string[]
+          draft_rev: number
+          draft_saved_at: string
+          draft_saved_by: string | null
+          draft_template_ids: string[]
+          first_published_at: string | null
+          id: string
+          in_app: boolean
+          is_free: boolean
+          kind: string
+          live_version_id: string | null
+          parent_id: string | null
+          position: number | null
+          schedule_error: string | null
+          scheduled_at: string | null
+          scheduled_by: string | null
+          scheduled_rev: number | null
+          scheduled_set_at: string | null
+          slug: string | null
+          template_for: string | null
+          template_sort: string | null
+          title: string | null
+          trash_batch: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "contents"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      template_detach_all: {
+        Args: { template_id: string }
+        Returns: {
+          content_id: string
+          draft_rev: number
+        }[]
+      }
+      template_outdated: {
+        Args: { template_id: string }
+        Returns: {
+          content_id: string
+          kind: string
+          published_at: string
+          title: string
+          version_id: string
+          version_number: number
+        }[]
+      }
+      template_push: {
+        Args: { template_id: string }
+        Returns: {
+          content_id: string
+          version_id: string
+          version_number: number
         }[]
       }
       trash: {

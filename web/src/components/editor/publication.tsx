@@ -134,16 +134,20 @@ export function ScheduleBadge({ schedule }: { schedule: ScheduleState }) {
 export function PublishBar({
   pub,
   disabled,
+  alwaysPublishable = false,
 }: {
   pub: PublicationControls
   // Verrou en cours de prise, contenu illisible…
   disabled: boolean
+  // Le brouillon cite un bloc identique partout : son modèle a pu changer depuis la
+  // publication sans que le brouillon change, « Publier » reste donc possible.
+  alwaysPublishable?: boolean
 }) {
   const { status } = pub
   const scheduled =
     status.schedule.kind === "scheduled" || status.schedule.kind === "waiting"
   const inApp = status.live === "live" || status.live === "modified"
-  const upToDate = status.live === "live"
+  const upToDate = status.live === "live" && !alwaysPublishable
   return (
     <div className="flex items-center gap-2">
       {!pub.loading && <LiveBadge live={status.live} />}

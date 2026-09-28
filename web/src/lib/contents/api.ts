@@ -180,6 +180,8 @@ export type Content = Pick<
   | "access_chosen"
   | "access_level_id"
   | "slug"
+  | "template_sort"
+  | "template_for"
 > & { draft: Draft; title: string }
 
 /** Un contenu et son brouillon ; null s'il n'existe pas (ou plus). */
@@ -187,7 +189,7 @@ export async function getContent(id: string): Promise<Content | null> {
   const { data, error, status } = await supabase
     .from("contents")
     .select(
-      "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, parent_id, access_chosen, access_level_id, slug"
+      "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, parent_id, access_chosen, access_level_id, slug, template_sort, template_for"
     )
     .eq("id", id)
     .maybeSingle()
@@ -215,14 +217,19 @@ export async function getMediaByIds(ids: string[]): Promise<Media[]> {
 // Écriture
 // ---------------------------------------------------------------------------------------------
 
-/** Crée un contenu ; l'appelant tient aussitôt son verrou. */
+/**
+ * Crée un contenu ; l'appelant tient aussitôt son verrou. fromTemplateId : un point de départ de
+ * cette sorte de contenu, dont les blocs sont recopiés ([D42]).
+ */
 export async function createContent(
   kind: ContentKind,
-  title = ""
+  title = "",
+  fromTemplateId: string | null = null
 ): Promise<Content> {
   const { data, error, status } = await supabase.rpc("content_create", {
     kind,
     title,
+    ...(fromTemplateId && { from_template_id: fromTemplateId }),
   })
   if (error) throw toContentError(error, status)
   return {

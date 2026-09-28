@@ -15,7 +15,7 @@ import type { Browser, Page } from "@playwright/test"
 
 import { texts } from "../src/texts.ts"
 import type { Account } from "./support/accounts.ts"
-import { expect, signIn, test } from "./support/fixtures.ts"
+import { createBlankPage, expect, signIn, test } from "./support/fixtures.ts"
 import { photoPng } from "./support/media.ts"
 
 const labels = texts.editor
@@ -25,8 +25,7 @@ async function createPage(page: Page, account: Account): Promise<string> {
   await page.goto("/pages")
   await signIn(page, account)
   await expect(page).toHaveURL(/\/pages$/)
-  await page.getByRole("button", { name: texts.contentList.create }).click()
-  await expect(page).toHaveURL(/\/pages\/[0-9a-f-]{36}$/)
+  await createBlankPage(page)
   return page.url()
 }
 
@@ -319,8 +318,7 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
 
   // Une page : un texte, une image avec sa légende et son texte alternatif.
   await page.goto("/pages")
-  await page.getByRole("button", { name: texts.contentList.create }).click()
-  await expect(page).toHaveURL(/\/pages\/[0-9a-f-]{36}$/)
+  await createBlankPage(page)
   const url = page.url()
   await page.getByLabel(labels.title.label).fill(title)
   await page

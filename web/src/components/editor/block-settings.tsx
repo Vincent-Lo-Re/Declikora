@@ -1,15 +1,35 @@
-import { ArrowDown, ArrowUp, Trash2 } from "lucide-react"
+import { cn } from "cn"
+import {
+  ArrowDown,
+  ArrowUp,
+  LayoutTemplate,
+  Trash2,
+  Unlink,
+} from "lucide-react"
+import { Link } from "react-router"
 
-import type { BlockMedia } from "@/blocks/components/context"
+import {
+  templateNameOf,
+  type BlockMedia,
+  type LinkedTemplateState,
+} from "@/blocks/components/context"
 import { ALT_MAX, findBlock, type BlockPlace } from "@/blocks/draft"
 import { blockLabel } from "@/blocks/labels"
-import type { Block, BoxBlock, Draft, ImageBlock } from "@/blocks/types"
-import { Button } from "@/components/ui/button"
+import {
+  ROOT,
+  type Block,
+  type BoxBlock,
+  type Draft,
+  type ImageBlock,
+  type LinkedBlock,
+} from "@/blocks/types"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { editorPath } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.editor.settings
@@ -23,6 +43,13 @@ type Props = {
   onShift: (id: string, offset: -1 | 1) => void
   onRemove: (id: string) => void
   onChooseImage: (id: string) => void
+  // Blocs liés : le modèle cité, et « Détacher ».
+  templateFor: (templateId: string) => LinkedTemplateState
+  onDetach: (id: string) => void
+  // Pourquoi le bloc choisi ne peut pas être supprimé (le bloc d'un modèle utilisé), sinon null.
+  removeBlocked?: string | null
+  // « Enregistrer comme modèle… » pour un bloc de premier niveau (absent : pas proposé).
+  onSaveAsTemplate?: (id: string) => void
 }
 
 /** Panneau de droite : les réglages du bloc choisi dans l'aperçu. */
@@ -52,9 +79,15 @@ function SelectedBlock({
   onShift,
   onRemove,
   onChooseImage,
+  templateFor,
+  onDetach,
+  removeBlocked = null,
+  onSaveAsTemplate,
 }: Props & { place: BlockPlace }) {
   const { block } = place
-  const label = blockLabel(block)
+  const linkedState =
+    block.type === "linked" ? templateFor(block.templateId) : null
+  const label = blockLabel(block, linkedState && templateNameOf(linkedState))
   return (
     <>
       <h2 className="text-sm font-semibold">{labels.title(label)}</h2>
@@ -76,8 +109,27 @@ function SelectedBlock({
       {block.type === "box" && (
         <BoxSettings block={block} editable={editable} onUpdate={onUpdate} />
       )}
-      {block.type === "linked" && (
-        <p className="text-sm text-muted-foreground">{labels.linked}</p>
+      {block.type === "linked" && linkedState && (
+        <LinkedSettings
+          block={block}
+          state={linkedState}
+          editable={editable}
+          onDetach={() => onDetach(block.id)}
+        />
+      )}
+      {editable && onSaveAsTemplate && place.container === ROOT && (
+        <>
+          <Separator />
+          <Button
+            variant="outline"
+            size="sm"
+            className="justify-self-start"
+            onClick={() => onSaveAsTemplate(block.id)}
+          >
+            <LayoutTemplate />
+            {texts.templates.saveAs.action}
+          </Button>
+        </>
       )}
       {editable && (
         <>
@@ -110,16 +162,65 @@ function SelectedBlock({
             <Button
               variant="outline"
               size="sm"
-              className="text-destructive"
+              className="text-destructive aria-disabled:opacity-50"
+              disabled={removeBlocked !== null}
+              focusableWhenDisabled
               onClick={() => onRemove(block.id)}
             >
               <Trash2 />
               {labels.remove}
             </Button>
           </div>
+          {removeBlocked && (
+            <p className="text-sm text-muted-foreground">{removeBlocked}</p>
+          )}
         </>
       )}
     </>
+  )
+}
+
+/** Un bloc lié : d'où il vient, « Modifier le modèle » et « Détacher ». */
+function LinkedSettings({
+  block,
+  state,
+  editable,
+  onDetach,
+}: {
+  block: LinkedBlock
+  state: LinkedTemplateState
+  editable: boolean
+  onDetach: () => void
+}) {
+  const linked = texts.templates.linked
+  const name = templateNameOf(state)?.trim() || texts.templates.list.untitled
+  if (state.state === "missing") {
+    return <p className="text-sm text-muted-foreground">{linked.missing}</p>
+  }
+  if (state.state === "loading" || state.state === "error") {
+    return <p className="text-sm text-muted-foreground">{linked.loading}</p>
+  }
+  return (
+    <div className="grid gap-3">
+      <p className="text-sm text-muted-foreground">{linked.settings(name)}</p>
+      <div className="flex flex-wrap gap-2">
+        <Link
+          to={editorPath("templates", block.templateId)}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+        >
+          {linked.edit}
+        </Link>
+        {editable && state.state === "ready" && (
+          <Button variant="outline" size="sm" onClick={onDetach}>
+            <Unlink />
+            {linked.detach}
+          </Button>
+        )}
+      </div>
+      {editable && state.state === "ready" && (
+        <p className="text-xs text-muted-foreground">{linked.detachHint}</p>
+      )}
+    </div>
   )
 }
 

@@ -17,16 +17,11 @@ import { SettingsPage } from "@/pages/settings-page"
 import { SignInPage } from "@/pages/sign-in-page"
 import { SignOutPage } from "@/pages/sign-out-page"
 import { TeamPage } from "@/pages/team-page"
+import { TemplatesPage } from "@/pages/templates-page"
 import { TrashPage } from "@/pages/trash-page"
 
 // Sections pas encore construites : elles affichent « Bientôt disponible ».
-const upcomingSections: SectionKey[] = [
-  "home",
-  "blog",
-  "podcasts",
-  "methods",
-  "templates",
-]
+const upcomingSections: SectionKey[] = ["home", "blog", "podcasts", "methods"]
 
 const sectionRoute = (section: SectionKey) => ({
   path: sections[section].path,
@@ -63,6 +58,17 @@ export const routes: RouteObject[] = [
             errorElement: <ErrorPage />,
           },
           {
+            // L'éditeur d'un modèle : le même éditeur plein écran, « ← Modèles ».
+            path: `${sections.templates.path}/:contentId`,
+            lazy: async () => {
+              const { EditorPage } = await import("@/pages/editor-page")
+              return {
+                element: <EditorPage section="templates" kind="template" />,
+              }
+            },
+            errorElement: <ErrorPage />,
+          },
+          {
             element: <AppLayout />,
             children: [
               {
@@ -73,6 +79,10 @@ export const routes: RouteObject[] = [
                   {
                     path: sections.pages.path,
                     element: <ContentListPage section="pages" kind="page" />,
+                  },
+                  {
+                    path: sections.templates.path,
+                    element: <TemplatesPage />,
                   },
                   { path: sections.media.path, element: <MediaPage /> },
                   { path: sections.trash.path, element: <TrashPage /> },

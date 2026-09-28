@@ -5,6 +5,7 @@ import type { Draft, ImageBlock, TextBlock } from "@/blocks/types"
 import * as levelsApi from "@/lib/access-levels"
 import * as api from "@/lib/contents/api"
 import * as publicationApi from "@/lib/contents/publication"
+import * as templatesApi from "@/lib/contents/templates"
 import * as mediaApi from "@/lib/media/api"
 import type { Media } from "@/lib/media/constants"
 import { renderApp, testProfile } from "@/test/render"
@@ -42,6 +43,22 @@ vi.mock("@/lib/contents/publication", async (importOriginal) => {
     revertToVersion: vi.fn(),
     trashContent: vi.fn(),
     restoreContent: vi.fn(),
+  }
+})
+
+vi.mock("@/lib/contents/templates", async (importOriginal) => {
+  const actual = await importOriginal<typeof templatesApi>()
+  return {
+    ...actual,
+    listTemplates: vi.fn(async () => []),
+    listTemplateUses: vi.fn(async () => []),
+    getTemplatesByIds: vi.fn(async () => []),
+    listStarters: vi.fn(async () => []),
+    getTemplateOutdated: vi.fn(async () => []),
+    createTemplate: vi.fn(),
+    createTemplateFrom: vi.fn(),
+    pushTemplate: vi.fn(),
+    detachTemplateEverywhere: vi.fn(),
   }
 })
 
@@ -91,6 +108,8 @@ const content: api.Content = {
   access_chosen: false,
   access_level_id: null,
   slug: null,
+  template_sort: null,
+  template_for: null,
 }
 
 const mineRow: api.LockRow = {
@@ -226,7 +245,7 @@ describe("liste des pages", () => {
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/pages/${PAGE_ID}`)
     )
-    expect(api.createContent).toHaveBeenCalledWith("page")
+    expect(api.createContent).toHaveBeenCalledWith("page", "", null)
     // Plein écran : le menu de l'admin est caché, « ← Pages » ramène à la liste.
     expect(
       await screen.findByRole("link", { name: texts.editor.back("Pages") })

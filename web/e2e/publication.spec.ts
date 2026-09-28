@@ -19,7 +19,13 @@ import type { Page } from "@playwright/test"
 
 import { texts } from "../src/texts.ts"
 import type { Account } from "./support/accounts.ts"
-import { bottomMenu, expect, signIn, test } from "./support/fixtures.ts"
+import {
+  bottomMenu,
+  createBlankPage,
+  expect,
+  signIn,
+  test,
+} from "./support/fixtures.ts"
 import { localSupabase } from "./support/local-supabase.ts"
 import { photoPng, readMedia, storedIn } from "./support/media.ts"
 import {
@@ -52,8 +58,7 @@ async function openPages(page: Page, account: Account) {
 }
 
 async function newPage(page: Page, title: string) {
-  await page.getByRole("button", { name: texts.contentList.create }).click()
-  await expect(page).toHaveURL(/\/pages\/[0-9a-f-]{36}$/)
+  await createBlankPage(page)
   await page.getByLabel(texts.editor.title.label).fill(title)
 }
 
