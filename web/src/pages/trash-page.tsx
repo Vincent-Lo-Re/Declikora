@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Eraser, RotateCcw, Trash2, TriangleAlert } from "lucide-react"
+import {
+  Eraser,
+  FileText,
+  RotateCcw,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -18,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Empty,
   EmptyDescription,
@@ -41,6 +48,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { ContentError, contentKeys } from "@/lib/contents/api"
 import { formatDateTime } from "@/lib/dates"
 import {
   emptyTrash,
@@ -52,30 +60,36 @@ import {
   type TrashItem,
 } from "@/lib/media/api"
 import { isMediaKind } from "@/lib/media/constants"
+import {
+  filterTrash,
+  groupTrash,
+  trashFilters,
+  trashTitle,
+  trashTypeLabel,
+  type TrashEntry,
+  type TrashFilter,
+} from "@/lib/trash"
 import { texts } from "@/texts"
 
-// Filtre par type : « Fichiers » à l'étape 3 ; les contenus arriveront à l'étape 5.
-type Filter = "all" | "file"
-const filterItems: Filter[] = ["all", "file"]
+// Ce qui attend une confirmation : tout vider, effacer la sélection, ou un seul élément.
+type Confirmation =
+  | { scope: "all"; entries: TrashEntry[] }
+  | { scope: "selection"; entries: TrashEntry[] }
+  | { scope: "item"; entry: TrashEntry }
 
-// Ce qui attend une confirmation : tout vider, ou effacer un seul élément.
-type Confirmation = { scope: "all" } | { scope: "item"; item: TrashItem }
+const keyOf = (item: TrashItem) => `${item.item_type}-${item.id}`
 
-/** Type d'un élément : « Fichier · Image ». */
-function typeLabel(item: TrashItem): string {
-  const type = texts.trash.itemTypes[item.item_type]
-  if (item.item_type === "file" && isMediaKind(item.kind)) {
-    return `${type} · ${texts.media.kinds[item.kind]}`
-  }
-  return type
-}
-
-/** Corbeille commune à toute l'admin : restaurer, effacer, vider. */
+/**
+ * Corbeille commune à toute l'admin : contenus et fichiers, filtre par type, restaurer (en
+ * brouillon pour un contenu, [D18]), effacer un élément ou une sélection, vider. Ce qui est
+ * effacé est toujours la liste affichée, jamais « tout ce qu'il y a » côté serveur.
+ */
 export function TrashPage() {
   const { title, description } = texts.sections.trash
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
-  const [filter, setFilter] = useState<Filter>("all")
+  const [filter, setFilter] = useState<TrashFilter>("all")
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
 
   const trash = useQuery({ queryKey: trashKey, queryFn: listTrash })
@@ -87,29 +101,48 @@ export function TrashPage() {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: trashKey }),
       queryClient.invalidateQueries({ queryKey: mediaKeys.all }),
+      queryClient.invalidateQueries({ queryKey: contentKeys.all }),
     ])
 
   const restore = useMutation({
     mutationFn: restoreTrashItem,
-    onSuccess: (_, item) => toast.success(texts.trash.restored(item.title)),
+    onSuccess: ({ addressRemoved }, item) => {
+      const name = trashTitle(item)
+      if (addressRemoved) {
+        toast.warning(texts.trash.restoredWithoutAddress(name))
+      } else {
+        toast.success(texts.trash.restored(name), {
+          description:
+            item.item_type === "content"
+              ? texts.trash.restoredDraft
+              : undefined,
+        })
+      }
+    },
     onError: (error) => {
-      toast.error(error.message)
+      toast.error(error.message, {
+        description:
+          error instanceof ContentError
+            ? (error.detail ?? undefined)
+            : undefined,
+      })
       checkAccess(error)
     },
     onSettled: refresh,
   })
 
   const erase = useMutation({
-    // Toujours la liste des éléments affichés (et confirmés), jamais « tout ce qu'il y a » :
-    // un élément mis à la corbeille entre-temps par quelqu'un d'autre n'est pas effacé sans
-    // avoir été vu.
-    mutationFn: (items: TrashItem[]) =>
-      emptyTrash(items.map((item) => ({ type: item.item_type, id: item.id }))),
+    // Les têtes de lot suffisent : effacer une méthode efface ce qui est parti avec elle.
+    mutationFn: (entries: TrashEntry[]) =>
+      emptyTrash(
+        entries.map(({ item }) => ({ type: item.item_type, id: item.id }))
+      ),
     onSuccess: (count) => {
       toast.success(texts.trash.emptied(count))
-      // Effacement tout de suite, sans attendre la tâche planifiée, mais sans bloquer la
-      // fenêtre : la demande est enregistrée, la place occupée est relue une fois l'effacement
-      // fait.
+      setSelected(new Set())
+      // Effacement des fichiers tout de suite, sans attendre la tâche planifiée, mais sans
+      // bloquer la fenêtre : la demande est enregistrée, la liste est relue une fois
+      // l'effacement fait.
       void kickFiles().then(refresh)
     },
     onError: (error) => {
@@ -122,15 +155,32 @@ export function TrashPage() {
     },
   })
 
-  const all = trash.data ?? []
-  const shown =
-    filter === "all" ? all : all.filter((item) => item.item_type === filter)
+  const items = trash.data ?? []
+  const entries = groupTrash(items)
+  const filters = trashFilters(items)
+  // Un filtre dont le dernier élément vient de partir revient à « Tout ».
+  const activeFilter = filters.includes(filter) ? filter : "all"
+  const shown = filterTrash(entries, activeFilter)
+  const shownKeys = new Set(shown.map(({ item }) => keyOf(item)))
+  const selection = shown.filter(({ item }) => selected.has(keyOf(item)))
   const busy = restore.isPending || erase.isPending
+
+  const toggle = (item: TrashItem, checked: boolean) =>
+    setSelected((current) => {
+      const next = new Set(current)
+      if (checked) next.add(keyOf(item))
+      else next.delete(keyOf(item))
+      return next
+    })
+  const allChecked = shown.length > 0 && selection.length === shown.length
 
   const confirm = () => {
     if (!confirmation) return
-    // « Vider » efface exactement ce que montre la liste (et que la confirmation annonce).
-    erase.mutate(confirmation.scope === "item" ? [confirmation.item] : shown)
+    erase.mutate(
+      confirmation.scope === "item"
+        ? [confirmation.entry]
+        : confirmation.entries
+    )
   }
 
   return (
@@ -139,14 +189,29 @@ export function TrashPage() {
         title={title}
         description={description}
         actions={
-          <Button
-            variant="destructive"
-            disabled={shown.length === 0 || busy}
-            onClick={() => setConfirmation({ scope: "all" })}
-          >
-            <Eraser />
-            {texts.trash.empty}
-          </Button>
+          <>
+            {selection.length > 0 && (
+              <Button
+                variant="outline"
+                className="text-destructive"
+                disabled={busy}
+                onClick={() =>
+                  setConfirmation({ scope: "selection", entries: selection })
+                }
+              >
+                <Eraser />
+                {texts.trash.eraseSelection(selection.length)}
+              </Button>
+            )}
+            <Button
+              variant="destructive"
+              disabled={entries.length === 0 || busy}
+              onClick={() => setConfirmation({ scope: "all", entries })}
+            >
+              <Trash2 />
+              {texts.trash.empty}
+            </Button>
+          </>
         }
       />
 
@@ -154,15 +219,15 @@ export function TrashPage() {
         <ToggleGroup
           variant="outline"
           aria-label={texts.trash.filters.label}
-          value={[filter]}
+          value={[activeFilter]}
           onValueChange={(value: string[]) => {
-            const next = value[0]
-            if (next === "all" || next === "file") setFilter(next)
+            const next = filters.find((option) => option === value[0])
+            if (next) setFilter(next)
           }}
         >
-          {filterItems.map((item) => (
-            <ToggleGroupItem key={item} value={item}>
-              {texts.trash.filters[item]}
+          {filters.map((option) => (
+            <ToggleGroupItem key={option} value={option}>
+              {texts.trash.filters[option]}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
@@ -202,7 +267,7 @@ export function TrashPage() {
               </AlertDescription>
             </Alert>
           )}
-          {all.length === 0 ? (
+          {entries.length === 0 ? (
             <Empty className="border border-dashed">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
@@ -222,6 +287,25 @@ export function TrashPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-0">
+                    <Checkbox
+                      aria-label={texts.trash.selectAll}
+                      checked={allChecked}
+                      indeterminate={selection.length > 0 && !allChecked}
+                      disabled={busy}
+                      onCheckedChange={(checked) =>
+                        setSelected((current) => {
+                          const next = new Set(
+                            [...current].filter((key) => !shownKeys.has(key))
+                          )
+                          if (checked) {
+                            for (const key of shownKeys) next.add(key)
+                          }
+                          return next
+                        })
+                      }
+                    />
+                  </TableHead>
                   <TableHead>{texts.trash.columns.name}</TableHead>
                   <TableHead>{texts.trash.columns.type}</TableHead>
                   <TableHead>{texts.trash.columns.deletedAt}</TableHead>
@@ -234,13 +318,15 @@ export function TrashPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {shown.map((item) => (
+                {shown.map((entry) => (
                   <TrashRow
-                    key={`${item.item_type}-${item.id}`}
-                    item={item}
+                    key={keyOf(entry.item)}
+                    entry={entry}
+                    checked={selected.has(keyOf(entry.item))}
                     disabled={busy}
-                    onRestore={() => restore.mutate(item)}
-                    onErase={() => setConfirmation({ scope: "item", item })}
+                    onCheck={(checked) => toggle(entry.item, checked)}
+                    onRestore={() => restore.mutate(entry.item)}
+                    onErase={() => setConfirmation({ scope: "item", entry })}
                   />
                 ))}
               </TableBody>
@@ -257,20 +343,7 @@ export function TrashPage() {
       >
         {confirmation && (
           <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {confirmation.scope === "all"
-                  ? texts.trash.confirmEmpty.title
-                  : texts.trash.confirmErase.title}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {confirmation.scope === "all"
-                  ? texts.trash.confirmEmpty.description(shown.length)
-                  : texts.trash.confirmErase.description(
-                      confirmation.item.title
-                    )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
+            <ConfirmationText confirmation={confirmation} />
             <AlertDialogFooter>
               <AlertDialogCancel disabled={erase.isPending}>
                 {texts.common.cancel}
@@ -283,7 +356,9 @@ export function TrashPage() {
                 {erase.isPending && <Spinner />}
                 {confirmation.scope === "all"
                   ? texts.trash.confirmEmpty.confirm
-                  : texts.trash.confirmErase.confirm}
+                  : confirmation.scope === "selection"
+                    ? texts.trash.confirmSelection.confirm
+                    : texts.trash.confirmErase.confirm}
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -293,28 +368,69 @@ export function TrashPage() {
   )
 }
 
+function ConfirmationText({ confirmation }: { confirmation: Confirmation }) {
+  let title: string
+  let description: string
+  if (confirmation.scope === "all") {
+    title = texts.trash.confirmEmpty.title
+    description = texts.trash.confirmEmpty.description(
+      confirmation.entries.length
+    )
+  } else if (confirmation.scope === "selection") {
+    title = texts.trash.confirmSelection.title
+    description = texts.trash.confirmSelection.description(
+      confirmation.entries.length
+    )
+  } else {
+    title = texts.trash.confirmErase.title
+    description = texts.trash.confirmErase.description(
+      trashTitle(confirmation.entry.item)
+    )
+  }
+  return (
+    <AlertDialogHeader>
+      <AlertDialogTitle>{title}</AlertDialogTitle>
+      <AlertDialogDescription>{description}</AlertDialogDescription>
+    </AlertDialogHeader>
+  )
+}
+
 function TrashRow({
-  item,
+  entry,
+  checked,
   disabled,
+  onCheck,
   onRestore,
   onErase,
 }: {
-  item: TrashItem
+  entry: TrashEntry
+  checked: boolean
   disabled: boolean
+  onCheck: (checked: boolean) => void
   onRestore: () => void
   onErase: () => void
 }) {
+  const { item, batch } = entry
+  const name = trashTitle(item)
   const Icon =
     item.item_type === "file" && isMediaKind(item.kind)
       ? kindIcons[item.kind]
-      : Trash2
+      : FileText
   return (
-    <TableRow>
+    <TableRow data-state={checked ? "selected" : undefined}>
+      <TableCell>
+        <Checkbox
+          aria-label={texts.trash.select(name)}
+          checked={checked}
+          disabled={disabled}
+          onCheckedChange={(value) => onCheck(value)}
+        />
+      </TableCell>
       <TableCell className="max-w-80">
         <div className="flex items-center gap-2">
           <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate font-medium" title={item.title}>
-            {item.title}
+          <span className="truncate font-medium" title={name}>
+            {name}
           </span>
           {item.parent_title && (
             <span className="truncate text-muted-foreground">
@@ -322,8 +438,16 @@ function TrashRow({
             </span>
           )}
         </div>
+        {batch.length > 0 && (
+          <p
+            className="truncate pl-6 text-xs text-muted-foreground"
+            title={texts.trash.batchList(batch.map(trashTitle).join(", "))}
+          >
+            {texts.trash.batch(batch.length)}
+          </p>
+        )}
       </TableCell>
-      <TableCell>{typeLabel(item)}</TableCell>
+      <TableCell>{trashTypeLabel(item)}</TableCell>
       <TableCell>
         <div>{formatDateTime(item.deleted_at)}</div>
         {item.deleted_by_name && (
@@ -353,7 +477,7 @@ function TrashRow({
             variant="outline"
             size="sm"
             disabled={disabled}
-            aria-label={texts.trash.restoreItem(item.title)}
+            aria-label={texts.trash.restoreItem(name)}
             onClick={onRestore}
           >
             <RotateCcw />
@@ -367,7 +491,7 @@ function TrashRow({
                   size="icon-sm"
                   className="text-destructive"
                   disabled={disabled}
-                  aria-label={texts.trash.eraseItem(item.title)}
+                  aria-label={texts.trash.eraseItem(name)}
                   onClick={onErase}
                 />
               }

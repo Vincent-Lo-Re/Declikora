@@ -1,8 +1,11 @@
-import { act, fireEvent, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Draft, ImageBlock, TextBlock } from "@/blocks/types"
+import * as levelsApi from "@/lib/access-levels"
 import * as api from "@/lib/contents/api"
+import * as publicationApi from "@/lib/contents/publication"
+import * as mediaApi from "@/lib/media/api"
 import type { Media } from "@/lib/media/constants"
 import { renderApp, testProfile } from "@/test/render"
 import { texts } from "@/texts"
@@ -24,6 +27,32 @@ vi.mock("@/lib/contents/api", async (importOriginal) => {
     lockReleaseOnExit: vi.fn(),
     subscribeLock: vi.fn(() => () => {}),
   }
+})
+
+vi.mock("@/lib/contents/publication", async (importOriginal) => {
+  const actual = await importOriginal<typeof publicationApi>()
+  return {
+    ...actual,
+    getPublication: vi.fn(),
+    listVersions: vi.fn(async () => []),
+    publishContent: vi.fn(),
+    scheduleContent: vi.fn(),
+    unscheduleContent: vi.fn(),
+    unpublishContent: vi.fn(),
+    revertToVersion: vi.fn(),
+    trashContent: vi.fn(),
+    restoreContent: vi.fn(),
+  }
+})
+
+vi.mock("@/lib/media/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof mediaApi>()
+  return { ...actual, kickFiles: vi.fn(async () => {}) }
+})
+
+vi.mock("@/lib/access-levels", async (importOriginal) => {
+  const actual = await importOriginal<typeof levelsApi>()
+  return { ...actual, listAccessLevels: vi.fn(async () => []) }
 })
 
 const PAGE_ID = "00000000-0000-4000-8000-0000000000aa"
@@ -59,6 +88,9 @@ const content: api.Content = {
   draft_saved_at: "2026-09-27T12:30:00Z",
   deleted_at: null,
   parent_id: null,
+  access_chosen: false,
+  access_level_id: null,
+  slug: null,
 }
 
 const mineRow: api.LockRow = {
@@ -138,6 +170,16 @@ function claireWrites() {
 
 beforeEach(() => {
   vi.mocked(api.getContent).mockResolvedValue(content)
+  vi.mocked(publicationApi.getPublication).mockResolvedValue({
+    id: PAGE_ID,
+    draft_rev: 4,
+    first_published_at: null,
+    scheduled_at: null,
+    scheduled_by_name: null,
+    schedule_error: null,
+    deleted_at: null,
+    live: null,
+  })
   vi.mocked(api.lockTake).mockResolvedValue(mineRow)
   vi.mocked(api.lockStatus).mockResolvedValue(mineRow)
   vi.mocked(api.subscribeLock).mockImplementation((_id, onChange) => {
@@ -156,9 +198,14 @@ describe("liste des pages", () => {
       {
         id: PAGE_ID,
         title: "Mentions légales",
+        draft_rev: 4,
         draft_saved_at: "2026-09-27T12:30:00Z",
         saved_by_name: "Anne Admin",
         editing_name: "Claire Martin",
+        live_draft_rev: null,
+        first_published_at: null,
+        scheduled_at: null,
+        schedule_error: null,
       },
     ])
     vi.mocked(api.createContent).mockResolvedValue(content)
@@ -187,6 +234,154 @@ describe("liste des pages", () => {
     expect(
       screen.queryByRole("navigation", { name: texts.nav.label })
     ).toBeNull()
+  })
+})
+
+describe("liste des pages : publication et corbeille", () => {
+  const row = (changes: Partial<api.ContentListItem>): api.ContentListItem => ({
+    id: PAGE_ID,
+    title: "Mentions légales",
+    draft_rev: 4,
+    draft_saved_at: "2026-09-27T12:30:00Z",
+    saved_by_name: null,
+    editing_name: null,
+    live_draft_rev: null,
+    first_published_at: null,
+    scheduled_at: null,
+    schedule_error: null,
+    ...changes,
+  })
+
+  it("montre l'état de chaque page : brouillon, en ligne, modifiée, programmée, échec", async () => {
+    vi.mocked(api.listContents).mockResolvedValue([
+      row({ id: "p1", title: "Brouillon seul" }),
+      row({
+        id: "p2",
+        title: "En ligne",
+        live_draft_rev: 4,
+        first_published_at: "2026-09-01T08:00:00Z",
+      }),
+      row({
+        id: "p3",
+        title: "Modifiée",
+        draft_rev: 6,
+        live_draft_rev: 4,
+        first_published_at: "2026-09-01T08:00:00Z",
+        scheduled_at: "2099-10-03T06:00:00Z",
+      }),
+      row({ id: "p4", title: "Échouée", schedule_error: "auteur_parti" }),
+    ])
+    renderApp("/pages")
+    const cells = async (title: string) =>
+      (await screen.findByRole("link", { name: title })).closest("tr")!
+    const labels = texts.publication.status
+    expect(await cells("Brouillon seul")).toHaveTextContent(labels.draft)
+    expect(await cells("En ligne")).toHaveTextContent(labels.live)
+    const modified = await cells("Modifiée")
+    expect(modified).toHaveTextContent(labels.modified)
+    expect(modified).toHaveTextContent(labels.scheduled("3 oct. 2099 à 08:00"))
+    expect(await cells("Échouée")).toHaveTextContent(labels.failed)
+  })
+
+  it("« Supprimer » met la page à la corbeille après confirmation, avec « Annuler »", async () => {
+    vi.mocked(api.listContents).mockResolvedValue([row({})])
+    vi.mocked(publicationApi.trashContent).mockResolvedValue({
+      batch: "00000000-0000-4000-8000-0000000000b1",
+      trashed: 1,
+      needsFileSync: false,
+    })
+    vi.mocked(publicationApi.restoreContent).mockResolvedValue({
+      restored: 1,
+      addressRemoved: false,
+    })
+    renderApp("/pages")
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: texts.contentList.actions("Mentions légales"),
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: texts.contentList.trash })
+    )
+    const dialog = await screen.findByRole("alertdialog")
+    expect(publicationApi.trashContent).not.toHaveBeenCalled()
+    fireEvent.click(
+      within(dialog).getByRole("button", {
+        name: texts.contentList.confirmTrash.confirm,
+      })
+    )
+    await waitFor(() =>
+      expect(publicationApi.trashContent).toHaveBeenCalledWith(PAGE_ID)
+    )
+    // Aucun fichier à déplacer : pas d'appel à la fonction « files ».
+    expect(mediaApi.kickFiles).not.toHaveBeenCalled()
+    const toast = await screen.findByText(
+      texts.contentList.trashed("Mentions légales")
+    )
+    fireEvent.click(
+      within(toast.closest("li")!).getByRole("button", {
+        name: texts.contentList.undo,
+      })
+    )
+    await waitFor(() =>
+      expect(publicationApi.restoreContent).toHaveBeenCalledWith(PAGE_ID)
+    )
+  })
+
+  it("une page en ligne mise à la corbeille : la fonction « files » tout de suite", async () => {
+    vi.mocked(api.listContents).mockResolvedValue([
+      row({ live_draft_rev: 4, first_published_at: "2026-09-01T08:00:00Z" }),
+    ])
+    vi.mocked(publicationApi.trashContent).mockResolvedValue({
+      batch: "00000000-0000-4000-8000-0000000000b1",
+      trashed: 1,
+      needsFileSync: true,
+    })
+    renderApp("/pages")
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: texts.contentList.actions("Mentions légales"),
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: texts.contentList.trash })
+    )
+    fireEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", {
+        name: texts.contentList.confirmTrash.confirm,
+      })
+    )
+    await waitFor(() =>
+      expect(publicationApi.trashContent).toHaveBeenCalledWith(PAGE_ID)
+    )
+    await waitFor(() => expect(mediaApi.kickFiles).toHaveBeenCalled())
+  })
+
+  it("refuse la corbeille quand quelqu'un d'autre écrit, en le nommant", async () => {
+    vi.mocked(api.listContents).mockResolvedValue([row({})])
+    vi.mocked(publicationApi.trashContent).mockRejectedValue(
+      new api.ContentError("verrou_tenu", {
+        detail: "Claire Martin écrit ce brouillon.",
+      })
+    )
+    renderApp("/pages")
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: texts.contentList.actions("Mentions légales"),
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: texts.contentList.trash })
+    )
+    fireEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", {
+        name: texts.contentList.confirmTrash.confirm,
+      })
+    )
+    expect(
+      await screen.findByText(texts.editor.errors.verrou_tenu)
+    ).toBeVisible()
+    expect(screen.getByText("Claire Martin écrit ce brouillon.")).toBeVisible()
   })
 })
 

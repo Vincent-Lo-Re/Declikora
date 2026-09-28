@@ -5,7 +5,7 @@
 begin;
 \ir aides/roles.inc
 \ir aides/blocs-cas.inc
-select plan(22 + (select count(*)::int from blocks_cases));
+select plan(23 + (select count(*)::int from blocks_cases));
 
 -- Brouillon d'essai : un bloc Texte avec « depth » niveaux de listes à puces imbriquées ; le
 -- lien du niveau le plus profond vise « deepest_href ».
@@ -106,11 +106,16 @@ select is(
   private.blocks_schema('draft') ->> '$id', 'https://declikora.app/blocks/draft.schema.json',
   'variante draft : identifiant'
 );
-select ok(private.blocks_schema('published') is null, 'variante inconnue : null (published arrive à l''étape 5)');
+select is(
+  private.blocks_schema('published') ->> '$id', 'https://declikora.app/blocks/published.schema.json',
+  'variante published (étape 5) : identifiant'
+);
+select ok(private.blocks_schema('inconnue') is null, 'variante inconnue : null');
 select ok(
   extensions.jsonschema_is_valid(private.blocks_schema('draft'))
-    and extensions.jsonschema_is_valid(private.blocks_schema('template')),
-  'les deux variantes sont des schémas valides pour pg_jsonschema'
+    and extensions.jsonschema_is_valid(private.blocks_schema('template'))
+    and extensions.jsonschema_is_valid(private.blocks_schema('published')),
+  'les trois variantes sont des schémas valides pour pg_jsonschema'
 );
 select ok(
   private.blocks_schema_hash() ~ '^[0-9a-f]{64}$',
@@ -120,10 +125,11 @@ select is(
   private.blocks_schema_hash(),
   encode(sha256(convert_to(
     'draft' || E'\n' || private.blocks_schema('draft')::text || E'\n'
-      || 'template' || E'\n' || private.blocks_schema('template')::text || E'\n',
+      || 'template' || E'\n' || private.blocks_schema('template')::text || E'\n'
+      || 'published' || E'\n' || private.blocks_schema('published')::text || E'\n',
     'UTF8'
   )), 'hex'),
-  'empreinte : calculée sur le texte exact des deux variantes'
+  'empreinte : calculée sur le texte exact des trois variantes'
 );
 select volatility_is('private', 'blocks_schema', array['text'], 'immutable', 'blocks_schema est immutable');
 select volatility_is('private', 'blocks_schema_hash', array[]::text[], 'immutable', 'blocks_schema_hash est immutable');

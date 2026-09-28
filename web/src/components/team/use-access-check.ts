@@ -2,6 +2,8 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
 
 import { profileQueryKey, useAuth } from "@/auth/auth-context"
+import { isAccessLevelAccessLost } from "@/lib/access-levels"
+import { isContentAccessLost } from "@/lib/contents/api"
 import { isMediaAccessLost } from "@/lib/media/api"
 import { isAccessLost } from "@/lib/team"
 
@@ -17,7 +19,13 @@ export function useAccessCheck() {
 
   return useCallback(
     (error: unknown) => {
-      if (userId && (isAccessLost(error) || isMediaAccessLost(error))) {
+      if (
+        userId &&
+        (isAccessLost(error) ||
+          isMediaAccessLost(error) ||
+          isContentAccessLost(error) ||
+          isAccessLevelAccessLost(error))
+      ) {
         void queryClient.invalidateQueries({
           queryKey: profileQueryKey(userId),
         })

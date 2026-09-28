@@ -262,7 +262,7 @@ select is(
 select public.media_trash((select id from created_media));
 select public.media_trash('20000000-0000-4000-8000-000000000001');
 select throws_ok(
-  $$select public.empty_trash('[{"type": "content", "id": "20000000-0000-4000-8000-000000000001"}]')$$,
+  $$select public.empty_trash('[{"type": "category", "id": "20000000-0000-4000-8000-000000000001"}]')$$,
   'P0001', 'demande_invalide', 'empty_trash : type inconnu refusé'
 );
 select is(
@@ -346,8 +346,9 @@ select results_eq(
     ('audit-fichiers', '0 3 * * 0', 'select private.audit_files()'),
     ('corbeille', '0 2 * * *', 'select private.purge_trash()'),
     ('fichiers', '* * * * *', 'select private.kick_files()'),
-    ('menage', '0 4 * * 0', 'select private.housekeeping()')$$,
-  'les quatre tâches planifiées existent'
+    ('menage', '0 4 * * 0', 'select private.housekeeping()'),
+    ('publications', '* * * * *', 'select private.run_due_publications()')$$,
+  'les cinq tâches planifiées existent (publications : étape 5)'
 );
 select lives_ok($$select private.housekeeping()$$, 'le ménage tourne');
 

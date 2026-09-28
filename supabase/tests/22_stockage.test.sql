@@ -190,7 +190,7 @@ select is(
 select pg_temp.as_person('reader');
 select is(
   (select count(*)::int from storage.objects where bucket_id = 'files-protected'),
-  0, 'lecteur : ne lit aucun objet protégé (reader_can_open est faux à l''étape 3)'
+  0, 'lecteur : ne lit aucun objet protégé (aucun contenu en ligne ne les cite ; voir 37_fichiers_publics)'
 );
 select pg_temp.as_anon();
 select is(
@@ -199,7 +199,7 @@ select is(
 );
 select ok(
   not private.reader_can_open('50000000-0000-4000-8000-000000000001/moi.png'),
-  'anonyme : reader_can_open exécutable, et faux à l''étape 3'
+  'anonyme : reader_can_open exécutable, et faux pour un fichier qu''aucun contenu en ligne ne cite'
 );
 select throws_ok(
   $$select private.kick_files()$$, '42501', null,

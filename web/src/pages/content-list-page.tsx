@@ -1,14 +1,38 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { FilePlus2, FileText, TriangleAlert } from "lucide-react"
-import { useEffect } from "react"
+import {
+  Ellipsis,
+  FilePlus2,
+  FileText,
+  SquarePen,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react"
+import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
+import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Empty,
   EmptyDescription,
@@ -27,20 +51,29 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  ContentError,
   contentKeys,
   createContent,
   listContents,
   type ContentKind,
+  type ContentListItem,
 } from "@/lib/contents/api"
+import {
+  publicationStatus,
+  restoreContent,
+  trashContent,
+} from "@/lib/contents/publication"
 import { formatDateTime } from "@/lib/dates"
+import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
 import { editorPath, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.contentList
 
 /**
- * Liste des contenus d'une section, minimale à l'étape 4 : créer, ouvrir dans l'éditeur.
- * L'étape 7 la complétera (adresse, publication, corbeille…).
+ * Liste des contenus d'une section : créer, ouvrir dans l'éditeur, état de publication de
+ * chacun (brouillon, en ligne, modifié, programmé, échec), mettre à la corbeille. L'étape 7 la
+ * complétera (catégories, filtres…).
  */
 export function ContentListPage({
   section,
@@ -57,8 +90,56 @@ export function ContentListPage({
   const list = useQuery({
     queryKey: contentKeys.list(kind),
     queryFn: () => listContents(kind),
-    // Qui écrit quoi : relu toutes les 30 secondes.
+    // Qui écrit quoi, et les publications programmées : relu toutes les 30 secondes.
     refetchInterval: 30_000,
+  })
+  const [toTrash, setToTrash] = useState<ContentListItem | null>(null)
+
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: contentKeys.all }),
+      queryClient.invalidateQueries({ queryKey: trashKey }),
+      queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "uses"] }),
+    ])
+
+  // « Annuler » dans le message : la page revient en brouillon, sans être republiée.
+  const undo = async (item: ContentListItem) => {
+    const name = item.title.trim() || labels.untitled
+    try {
+      const { addressRemoved } = await restoreContent(item.id)
+      if (addressRemoved)
+        toast.warning(texts.trash.restoredWithoutAddress(name))
+      else toast.success(labels.restored(name))
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : texts.common.unexpected
+      )
+    } finally {
+      await refresh()
+    }
+  }
+
+  const trash = useMutation({
+    mutationFn: (item: ContentListItem) => trashContent(item.id),
+    onSuccess: (result, item) => {
+      setToTrash(null)
+      toast.success(labels.trashed(item.title.trim() || labels.untitled), {
+        action: { label: labels.undo, onClick: () => void undo(item) },
+      })
+      // Ses fichiers redeviennent peut-être protégés : tout de suite.
+      if (result.needsFileSync) void kickFiles()
+    },
+    onError: (error) => {
+      setToTrash(null)
+      toast.error(error.message, {
+        description:
+          error instanceof ContentError
+            ? (error.detail ?? undefined)
+            : undefined,
+      })
+      checkAccess(error)
+    },
+    onSettled: refresh,
   })
   useEffect(() => {
     if (list.error) checkAccess(list.error)
@@ -130,8 +211,12 @@ export function ContentListPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>{labels.columns.title}</TableHead>
+                  <TableHead>{labels.columns.publication}</TableHead>
                   <TableHead>{labels.columns.savedAt}</TableHead>
                   <TableHead>{labels.columns.status}</TableHead>
+                  <TableHead className="w-0">
+                    <span className="sr-only">{labels.columns.actions}</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -144,6 +229,9 @@ export function ContentListPage({
                       >
                         {item.title.trim() || labels.untitled}
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      <PublicationCell item={item} now={list.dataUpdatedAt} />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDateTime(item.draft_saved_at)}
@@ -158,6 +246,14 @@ export function ContentListPage({
                         </Badge>
                       )}
                     </TableCell>
+                    <TableCell>
+                      <RowActions
+                        title={item.title.trim() || labels.untitled}
+                        editPath={editorPath(section, item.id)}
+                        disabled={trash.isPending}
+                        onTrash={() => setToTrash(item)}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -165,6 +261,104 @@ export function ContentListPage({
           )}
         </div>
       )}
+
+      <AlertDialog
+        open={toTrash !== null}
+        onOpenChange={(open) => {
+          if (!open && !trash.isPending) setToTrash(null)
+        }}
+      >
+        {toTrash && (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{labels.confirmTrash.title}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {labels.confirmTrash.description(
+                  toTrash.title.trim() || labels.untitled
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={trash.isPending}>
+                {texts.common.cancel}
+              </AlertDialogCancel>
+              <Button
+                variant="destructive"
+                disabled={trash.isPending}
+                onClick={() => trash.mutate(toTrash)}
+              >
+                {trash.isPending ? <Spinner /> : <Trash2 />}
+                {labels.confirmTrash.confirm}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        )}
+      </AlertDialog>
     </>
+  )
+}
+
+/** État de publication d'une ligne : en ligne ou non, modifié, programmation. */
+function PublicationCell({
+  item,
+  now,
+}: {
+  item: ContentListItem
+  now: number
+}) {
+  const status = publicationStatus(
+    {
+      live:
+        item.live_draft_rev === null
+          ? null
+          : { draft_rev: item.live_draft_rev },
+      first_published_at: item.first_published_at,
+      scheduled_at: item.scheduled_at,
+      schedule_error: item.schedule_error,
+    },
+    item.draft_rev,
+    now
+  )
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <LiveBadge live={status.live} />
+      <ScheduleBadge schedule={status.schedule} />
+    </div>
+  )
+}
+
+function RowActions({
+  title,
+  editPath,
+  disabled,
+  onTrash,
+}: {
+  title: string
+  editPath: string
+  disabled: boolean
+  onTrash: () => void
+}) {
+  const navigate = useNavigate()
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        disabled={disabled}
+        aria-label={labels.actions(title)}
+        render={<Button variant="ghost" size="icon-sm" />}
+      >
+        <Ellipsis />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem onClick={() => void navigate(editPath)}>
+          <SquarePen />
+          {labels.open}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onClick={onTrash}>
+          <Trash2 />
+          {labels.trash}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

@@ -2,19 +2,32 @@ import { useEffect, useState, useSyncExternalStore } from "react"
 
 import { prepareDraft } from "@/blocks/draft"
 import type { Draft } from "@/blocks/types"
-import { ContentError, saveDraft, type SavedDraft } from "@/lib/contents/api"
+import {
+  ContentError,
+  saveDraft,
+  type ContentSettings,
+  type SavedDraft,
+  type SettingsPayload,
+} from "@/lib/contents/api"
 import { AutosaveController } from "@/lib/editor/autosave"
 import { texts } from "@/texts"
 
 /**
- * Enregistre un brouillon : nettoyé et vérifié par le validateur généré, puis save_draft.
- * Un brouillon refusé ici ne part pas (même message que la base).
+ * Ce que l'éditeur enregistre : le brouillon et les réglages du contenu (niveau d'accès,
+ * adresse), qui partent ensemble par save_draft, sous le verrou.
+ */
+export type EditorValue = { draft: Draft; settings: ContentSettings }
+
+/**
+ * Enregistre un brouillon : nettoyé et vérifié par le validateur généré, puis save_draft, avec
+ * les réglages changés. Un brouillon refusé ici ne part pas (même message que la base).
  */
 export function saveCheckedDraft(
   contentId: string,
   editorSession: string,
   draft: Draft,
-  baseRev: number
+  baseRev: number,
+  settings: SettingsPayload | null = null
 ): Promise<SavedDraft> {
   const prepared = prepareDraft(draft)
   if (!prepared.ok) {
@@ -29,32 +42,28 @@ export function saveCheckedDraft(
           })
     )
   }
-  return saveDraft(contentId, baseRev, prepared.draft, editorSession)
+  return saveDraft(contentId, baseRev, prepared.draft, editorSession, settings)
 }
 
 type Callbacks = {
-  onSaved?: (result: SavedDraft, draft: Draft) => void
+  onSaved?: (result: SavedDraft, value: EditorValue) => void
   onStopped?: (error: ContentError) => void
 }
 
 /**
- * Enregistrement automatique d'un brouillon (voir lib/editor/autosave.ts), depuis une ouverture
- * de l'éditeur (editorSession, celle du verrou). Le navigateur prévient avant de quitter la
- * page tant qu'une modification n'est pas enregistrée.
+ * Enregistrement automatique d'un brouillon et de ses réglages (voir lib/editor/autosave.ts).
+ * save envoie une valeur sur une révision : une valeur rejouée après une réponse perdue part
+ * telle quelle (mêmes réglages), et la base reconnaît le rejeu. Le navigateur prévient avant
+ * de quitter la page tant qu'une modification n'est pas enregistrée.
  */
 export function useAutosave(
-  contentId: string,
-  editorSession: string,
   initial: { rev: number; savedAt: string | null },
   callbacks: Callbacks,
-  save: (draft: Draft, baseRev: number) => Promise<SavedDraft> = (
-    draft,
-    baseRev
-  ) => saveCheckedDraft(contentId, editorSession, draft, baseRev)
+  save: (value: EditorValue, baseRev: number) => Promise<SavedDraft>
 ) {
   const [controller] = useState(
     () =>
-      new AutosaveController<Draft>({
+      new AutosaveController<EditorValue>({
         save,
         rev: initial.rev,
         savedAt: initial.savedAt,

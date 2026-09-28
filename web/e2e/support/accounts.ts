@@ -30,19 +30,27 @@ function adminClient() {
 }
 
 /**
- * Crée un admin avec la clé secrète : compte confirmé, rôle dans app_metadata (la base crée sa
+ * Crée un membre avec la clé secrète : compte confirmé, rôle dans app_metadata (la base crée sa
  * fiche), sans double vérification. Il la configurera à sa première connexion.
  */
-export async function createAdmin(fullName: string): Promise<Account> {
-  const email = uniqueEmail("admin")
+export async function createMember(
+  fullName: string,
+  role: "admin" | "editor"
+): Promise<Account> {
+  const email = uniqueEmail(role === "admin" ? "admin" : "editeur")
   const { error } = await adminClient().auth.admin.createUser({
     email,
     email_confirm: true,
-    app_metadata: { role: "admin" },
+    app_metadata: { role },
     user_metadata: { full_name: fullName },
   })
   if (error) throw error
   return { email, fullName }
+}
+
+/** Crée un admin (voir createMember). */
+export function createAdmin(fullName: string): Promise<Account> {
+  return createMember(fullName, "admin")
 }
 
 function database() {

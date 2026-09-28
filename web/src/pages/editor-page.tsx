@@ -5,7 +5,14 @@ import {
 } from "@tanstack/react-query"
 import type { Editor } from "@tiptap/react"
 import { cn } from "cn"
-import { ArrowLeft, FileQuestion, ListTree, Plus } from "lucide-react"
+import {
+  ArrowLeft,
+  FileQuestion,
+  History,
+  ListTree,
+  Plus,
+  Settings2,
+} from "lucide-react"
 import {
   useCallback,
   useEffect,
@@ -49,11 +56,22 @@ import {
 } from "@/blocks/registry"
 import { ROOT, type Block, type Draft, type ImageBlock } from "@/blocks/types"
 import { BlockSettings } from "@/components/editor/block-settings"
+import {
+  ContentSettingsSheet,
+  type RefusedSlug,
+} from "@/components/editor/content-settings-sheet"
 import { FormatToolbar } from "@/components/editor/format-toolbar"
+import { HistorySheet } from "@/components/editor/history-sheet"
 import { LockBanner } from "@/components/editor/lock-banner"
 import { MediaPicker } from "@/components/editor/media-picker"
 import { OutlinePanel } from "@/components/editor/outline-panel"
+import {
+  PublicationDialogs,
+  PublishBar,
+  ScheduleBanner,
+} from "@/components/editor/publication"
 import { SaveStatus } from "@/components/editor/save-status"
+import { usePublication } from "@/components/editor/use-publication"
 import { usePreviewUrls } from "@/components/media/use-preview-urls"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import {
@@ -81,15 +99,31 @@ import {
 } from "@/components/ui/empty"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useAutosave } from "@/hooks/use-autosave"
-import { useEditLock } from "@/hooks/use-edit-lock"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
+  saveCheckedDraft,
+  useAutosave,
+  type EditorValue,
+} from "@/hooks/use-autosave"
+import { useEditLock } from "@/hooks/use-edit-lock"
+import { accessLevelsKey, listAccessLevels } from "@/lib/access-levels"
+import {
+  ContentError,
   contentKeys,
   getContent,
   getMediaByIds,
+  settingsDiff,
+  settingsOf,
   type Content,
   type ContentKind,
+  type ContentSettings,
+  type SettingsPayload,
 } from "@/lib/contents/api"
+import { revertToVersion, type VersionItem } from "@/lib/contents/publication"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
 import { sections, type SectionKey } from "@/navigation"
@@ -97,6 +131,9 @@ import { texts } from "@/texts"
 
 // Nouvel essai de relecture du brouillon après un échec (réseau).
 const RELOAD_RETRY_MS = 3000
+
+// Refus de save_draft qui viennent d'un réglage (et non du brouillon).
+const SLUG_REFUSALS = new Set(["adresse_prise", "adresse_invalide"])
 
 /** L'éditeur plein écran d'un contenu : /pages/<id>. Le menu de l'admin se cache. */
 export function EditorPage({
@@ -166,7 +203,12 @@ export function EditorPage({
   }
 
   return (
-    <ContentEditor key={contentId} initial={content.data} section={section} />
+    <ContentEditor
+      key={contentId}
+      initial={content.data}
+      section={section}
+      kind={kind}
+    />
   )
 }
 
@@ -244,9 +286,11 @@ function focusBlockSoon(id: string, attempts = 20) {
 function ContentEditor({
   initial,
   section,
+  kind,
 }: {
   initial: Content
   section: SectionKey
+  kind: ContentKind
 }) {
   const contentId = initial.id
   const queryClient = useQueryClient()
@@ -255,6 +299,14 @@ function ContentEditor({
   const [editorSession] = useState(() => crypto.randomUUID())
 
   const [draft, setDraft] = useState<Draft>(initial.draft)
+  // Réglages du contenu (niveau d'accès, adresse) : enregistrés avec le brouillon.
+  const [initialSettings] = useState(() => settingsOf(initial))
+  const [settings, setSettings] = useState<ContentSettings>(initialSettings)
+  // Les réglages tels qu'ils sont dans la base : seuls ceux qui changent partent.
+  const savedSettings = useRef<ContentSettings>(initialSettings)
+  // Les réglages du dernier envoi (pour reconnaître le refus d'un réglage).
+  const sentSettings = useRef<SettingsPayload | null>(null)
+  const [refusedSlug, setRefusedSlug] = useState<RefusedSlug | null>(null)
   // Révision du brouillon affiché (celle de la base au dernier chargement ou enregistrement).
   const [loadedRev, setLoadedRev] = useState(initial.draft_rev)
   // Change à chaque rechargement depuis la base : les blocs repartent du nouveau brouillon.
@@ -267,29 +319,35 @@ function ContentEditor({
   const [stash, setStash] = useState<Draft | null>(null)
   // Fichiers choisis à l'instant : affichés sans attendre la relecture de la base.
   const [picked, setPicked] = useState<Record<string, Media>>({})
-  // Le dernier brouillon venu de la base : ce n'est pas une modification à enregistrer.
-  const synced = useRef<Draft>(initial.draft)
+  // La dernière valeur venue de la base ou confiée à l'enregistrement : un rendu qui ne la
+  // change pas n'est pas une modification à enregistrer.
+  const synced = useRef<EditorValue>({
+    draft: initial.draft,
+    settings: initialSettings,
+  })
   // Vrai après « Reprendre la main » ou « Modifier » : l'enregistrement reprend.
   const resume = useRef(false)
   // Annonce pour les lecteurs d'écran (bloc monté ou descendu).
   const [announcement, setAnnouncement] = useState("")
 
   const autosave = useAutosave(
-    contentId,
-    editorSession,
     { rev: initial.draft_rev, savedAt: initial.draft_saved_at },
     {
       onSaved: (result, saved) => {
         setLoadedRev(result.rev)
+        savedSettings.current = saved.settings
         queryClient.setQueryData<Content | null>(
           contentKeys.detail(contentId),
           (old) =>
             old && {
               ...old,
-              draft: saved,
-              title: saved.title,
+              draft: saved.draft,
+              title: saved.draft.title,
               draft_rev: result.rev,
               draft_saved_at: result.savedAt,
+              access_chosen: saved.settings.accessChosen,
+              access_level_id: saved.settings.accessLevelId,
+              slug: saved.settings.slug,
             }
         )
         // « Utilisé dans » de la médiathèque et liste des pages.
@@ -301,6 +359,19 @@ function ContentEditor({
         })
       },
       onStopped: (error) => checkAccess(error),
+    },
+    // Les réglages envoyés sont ceux qui diffèrent de la base au moment de l'envoi : une
+    // valeur rejouée après une réponse perdue repart avec les mêmes.
+    (value, baseRev) => {
+      const payload = settingsDiff(savedSettings.current, value.settings)
+      sentSettings.current = payload
+      return saveCheckedDraft(
+        contentId,
+        editorSession,
+        value.draft,
+        baseRev,
+        payload
+      )
     }
   )
   const saving = autosave.controller
@@ -316,10 +387,56 @@ function ContentEditor({
     autosave.state.status !== "stopped" &&
     (serverRev ?? loadedRev) <= loadedRev
 
-  // Chaque modification du brouillon part à l'enregistrement automatique.
+  // Chaque modification du brouillon ou des réglages part à l'enregistrement automatique.
   useEffect(() => {
-    if (draft !== synced.current) saving.change(draft)
-  }, [draft, saving])
+    const last = synced.current
+    if (draft === last.draft && settings === last.settings) return
+    synced.current = { draft, settings }
+    saving.change(synced.current)
+  }, [draft, settings, saving])
+
+  // Un réglage refusé (adresse prise ou invalide, formule supprimée) : la base refuse tout
+  // l'envoi. Le réglage revient à sa valeur enregistrée et le brouillon repart sans lui ;
+  // sinon chaque enregistrement suivant le renverrait et serait refusé à son tour.
+  const failedError =
+    autosave.state.status === "failed" ? autosave.state.error : null
+  useEffect(() => {
+    const sent = sentSettings.current
+    const code = failedError?.code
+    if (!failedError || !sent || !code) return
+    const saved = savedSettings.current
+    const latest = synced.current.settings
+    let next = latest
+    if (SLUG_REFUSALS.has(code) && sent.slug !== undefined) {
+      setRefusedSlug({ slug: sent.slug, message: failedError.message })
+      if (latest.slug === sent.slug) next = { ...latest, slug: saved.slug }
+    } else if (
+      code === "niveau_invalide" &&
+      sent.access_level_id !== undefined
+    ) {
+      void queryClient.invalidateQueries({ queryKey: accessLevelsKey })
+      if (
+        latest.accessChosen &&
+        latest.accessLevelId === sent.access_level_id
+      ) {
+        next = {
+          ...latest,
+          accessChosen: saved.accessChosen,
+          accessLevelId: saved.accessLevelId,
+        }
+      }
+    } else {
+      return
+    }
+    sentSettings.current = null
+    toast.error(failedError.message, {
+      description: texts.publication.settings.refused,
+    })
+    // Le réglage revient en arrière : l'effet ci-dessus renvoie le brouillon. Sinon, un réglage
+    // plus récent attend déjà : on le renvoie.
+    if (next !== latest) setSettings(next)
+    else saving.change(synced.current)
+  }, [failedError, queryClient, saving])
 
   // La base a refusé l'enregistrement parce qu'un autre a pris la main.
   useEffect(() => {
@@ -350,10 +467,14 @@ function ContentEditor({
       // Une lecture plus ancienne que la révision affichée (arrivée en retard) : sans effet.
       if (!fresh || fresh.draft_rev < saving.state.rev) return
       const pending = saving.unsavedValue
-      if (pending) setStash(pending)
-      synced.current = fresh.draft
+      if (pending) setStash(pending.draft)
+      const freshSettings = settingsOf(fresh)
+      savedSettings.current = freshSettings
+      synced.current = { draft: fresh.draft, settings: freshSettings }
       saving.reset(fresh.draft_rev, fresh.draft_saved_at)
       setDraft(fresh.draft)
+      setSettings(freshSettings)
+      setRefusedSlug(null)
       setLoadedRev(fresh.draft_rev)
       setViewKey((key) => key + 1)
     },
@@ -611,6 +732,101 @@ function ContentEditor({
     ]
   )
 
+  // --- Réglages du contenu, publication, historique -----------------------------------------
+
+  const levels = useQuery({
+    queryKey: accessLevelsKey,
+    queryFn: listAccessLevels,
+  })
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsFocus, setSettingsFocus] = useState<"slug" | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const openSettings = useCallback((focus: "slug" | null) => {
+    setSettingsFocus(focus)
+    setSettingsOpen(true)
+  }, [])
+
+  /**
+   * Avant de publier : termine l'enregistrement en attente et renvoie la révision enregistrée.
+   * En lecture seule, la révision affichée (la base refuse si elle a changé, ou si quelqu'un
+   * d'autre écrit : [D14]).
+   */
+  const prepare = async (): Promise<number | null> => {
+    if (phase !== "mine") return loadedRev
+    await saving.flush()
+    const state = saving.state
+    if (
+      state.unsaved ||
+      state.status === "failed" ||
+      state.status === "stopped" ||
+      state.status === "offline"
+    ) {
+      toast.error(texts.publication.needsSaved, {
+        description: state.error?.message,
+      })
+      return null
+    }
+    return state.rev
+  }
+
+  /** Enregistre des réglages avec le brouillon (sous le verrou), puis comme prepare. */
+  const applySettings = async (next: ContentSettings) => {
+    if (!editable) {
+      toast.error(texts.publication.levelNeedsLock)
+      return null
+    }
+    setSettings(next)
+    synced.current = { draft, settings: next }
+    saving.change(synced.current)
+    return prepare()
+  }
+
+  /** « Revenir à cette version » : recopiée dans le brouillon par la base, puis relue. */
+  const onRevert = async (version: VersionItem) => {
+    try {
+      if ((await prepare()) === null) return
+      const result = await revertToVersion(version.id, editorSession)
+      applyFresh(await fetchFresh())
+      setHistoryOpen(false)
+      toast.success(texts.publication.history.reverted(version.number))
+      for (const warning of result.warnings) {
+        toast.warning(texts.publication.history.warnings[warning])
+      }
+    } catch (error) {
+      checkAccess(error)
+      toast.error(
+        error instanceof Error ? error.message : texts.common.unexpected
+      )
+      if (error instanceof ContentError && error.code === "verrou_perdu") {
+        notifyLost()
+      }
+    } finally {
+      void queryClient.invalidateQueries({
+        queryKey: contentKeys.publication(contentId),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: contentKeys.versions(contentId),
+      })
+      void queryClient.invalidateQueries({ queryKey: contentKeys.lists })
+    }
+  }
+
+  const pub = usePublication({
+    contentId,
+    kind,
+    draftRev: Math.max(autosave.state.rev, serverRev ?? 0, loadedRev),
+    unsaved: autosave.state.unsaved,
+    editable,
+    settings,
+    levels: levels.data,
+    levelsFailed: levels.isError,
+    retryLevels: () => void levels.refetch(),
+    prepare,
+    applySettings,
+    takeLock: () => take(true),
+    openSettings,
+  })
+
   // --- Copier mon texte, quitter -----------------------------------------------------------
 
   const lostOrStopped = lock.state.lost || autosave.state.status === "stopped"
@@ -620,7 +836,7 @@ function ContentEditor({
     stash !== null || (lostOrStopped && saving.unsavedValue !== null)
 
   const onCopy = async () => {
-    const value = saving.unsavedValue ?? stash ?? draft
+    const value = saving.unsavedValue?.draft ?? stash ?? draft
     try {
       await navigator.clipboard.writeText(draftToPlainText(value))
       toast.success(texts.editor.lock.copied)
@@ -679,10 +895,30 @@ function ContentEditor({
           state={autosave.state}
           visible={phase === "mine" || autosave.state.unsaved}
         />
+        <HeaderIconButton
+          label={texts.publication.actions.settings}
+          expanded={settingsOpen}
+          onClick={() => openSettings(null)}
+        >
+          <Settings2 />
+        </HeaderIconButton>
+        <HeaderIconButton
+          label={texts.publication.actions.history}
+          expanded={historyOpen}
+          onClick={() => setHistoryOpen(true)}
+        >
+          <History />
+        </HeaderIconButton>
         <AddBlockMenu
           id={ADD_BLOCK_ID}
+          variant="outline"
           disabled={!editable}
           onAdd={(type) => addBlock(type)}
+        />
+        <Separator orientation="vertical" className="h-6" />
+        <PublishBar
+          pub={pub}
+          disabled={phase === "taking" || phase === "error"}
         />
       </header>
 
@@ -699,6 +935,17 @@ function ContentEditor({
         onCopy={() => void onCopy()}
         onReload={reload}
         onDismissCopy={() => setStash(null)}
+      />
+      <ScheduleBanner
+        pub={pub}
+        leave={
+          <Link
+            to={sections[section].path}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            {texts.publication.banner.leave}
+          </Link>
+        }
       />
 
       <div className="flex min-h-0 flex-1">
@@ -811,6 +1058,33 @@ function ContentEditor({
         </aside>
       </div>
 
+      <ContentSettingsSheet
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        focus={settingsFocus}
+        kind={kind}
+        title={title}
+        settings={settings}
+        editable={editable}
+        levels={levels.data}
+        levelsFailed={levels.isError}
+        live={pub.publication?.live ?? null}
+        refusedSlug={refusedSlug}
+        onChange={(next) => {
+          if (next.slug !== settings.slug) setRefusedSlug(null)
+          setSettings(next)
+        }}
+      />
+      <HistorySheet
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        contentId={contentId}
+        liveVersionId={pub.publication?.live?.id ?? null}
+        canRevert={editable}
+        onRevert={onRevert}
+      />
+      <PublicationDialogs pub={pub} />
+
       <MediaPicker
         open={pickerFor !== null}
         onOpenChange={(open) => {
@@ -849,6 +1123,39 @@ function ContentEditor({
   )
 }
 
+/** Bouton d'icône de l'en-tête (Réglages, Historique), avec son nom en infobulle. */
+function HeaderIconButton({
+  label,
+  expanded,
+  onClick,
+  children,
+}: {
+  label: string
+  expanded: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={label}
+            aria-haspopup="dialog"
+            aria-expanded={expanded}
+            onClick={onClick}
+          />
+        }
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
 /** « Ajouter un bloc » : Texte, Image, Encadré (après le bloc choisi, ou à la fin). */
 function AddBlockMenu({
   onAdd,
@@ -859,7 +1166,7 @@ function AddBlockMenu({
   onAdd: (type: InsertableType) => void
   id?: string
   disabled?: boolean
-  variant?: "default" | "ghost"
+  variant?: "default" | "ghost" | "outline"
 }) {
   return (
     <DropdownMenu>

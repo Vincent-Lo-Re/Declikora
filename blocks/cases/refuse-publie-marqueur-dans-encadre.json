@@ -1,0 +1,37 @@
+{
+  "description": "Version publiée : le marqueur templateId n'est qu'au premier niveau",
+  "variant": "published",
+  "valid": false,
+  "data": {
+    "v": 1,
+    "title": "Publié",
+    "blocks": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "type": "box",
+        "look": "fill",
+        "blocks": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "type": "text",
+            "doc": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Bonjour"
+                    }
+                  ]
+                }
+              ]
+            },
+            "templateId": "00000000-0000-4000-8000-000000000092"
+          }
+        ]
+      }
+    ]
+  }
+}

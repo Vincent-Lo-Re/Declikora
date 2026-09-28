@@ -49,3 +49,12 @@ export const mediaDetailsSchema = z.object({
     .trim()
     .max(200_000, texts.media.detail.transcriptTooLong),
 })
+
+// Formule d'abonnement : mêmes limites que la base (table access_levels).
+export const accessLevelNameSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, texts.settings.accessLevels.nameRequired)
+    .max(MAX_NAME_LENGTH, texts.settings.accessLevels.nameTooLong),
+})

@@ -3,7 +3,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(16);
+select plan(17);
 
 select has_schema('private', 'le schéma private existe');
 select ok(
@@ -70,8 +70,21 @@ select is(
       and has_function_privilege('anon', p.oid, 'execute')
     order by 1
   ),
-  array['ping()'],
-  'public : seule ping est exécutable par anon'
+  array['app_access_levels()', 'app_content(uuid)', 'app_file_locations(uuid[])', 'app_page(text)', 'ping()'],
+  'public : seules ping et les lectures de l''app (app_*, étape 5) sont exécutables par anon'
+);
+select is(
+  array(
+    select p.proname::text
+    from pg_proc p
+    where p.pronamespace = 'public'::regnamespace
+      and p.proname like 'app\_%'
+      and not (p.prosecdef and p.provolatile = 's'
+        and 'search_path=""' = any (p.proconfig))
+    order by 1
+  ),
+  array[]::text[],
+  'app_* : security definer, stable, search_path vide (elles ne lisent que ce qui est en ligne)'
 );
 
 -- Les fonctions de déclencheur et les fonctions files_* ne sont pas appelables par l'API.

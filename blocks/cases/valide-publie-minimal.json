@@ -1,0 +1,10 @@
+{
+  "description": "Version publiée minimale : aucun bloc",
+  "variant": "published",
+  "valid": true,
+  "data": {
+    "v": 1,
+    "title": "Publié",
+    "blocks": []
+  }
+}

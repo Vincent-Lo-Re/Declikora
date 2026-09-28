@@ -4,7 +4,12 @@
 import { expect, test as base, type Page } from "@playwright/test"
 
 import { texts } from "../../src/texts.ts"
-import { createAdmin, deleteAccounts, type Account } from "./accounts.ts"
+import {
+  createAdmin,
+  createMember,
+  deleteAccounts,
+  type Account,
+} from "./accounts.ts"
 import {
   deleteEmails,
   receivedIds,
@@ -16,6 +21,8 @@ import { totpCode } from "./totp.ts"
 type Team = {
   /** Crée un admin (compte confirmé, sans double vérification). */
   createAdmin: (fullName: string) => Promise<Account>
+  /** Crée un éditeur (compte confirmé, sans double vérification). */
+  createEditor: (fullName: string) => Promise<Account>
   /** Retient une adresse créée par le test (invitation), pour la supprimer à la fin. */
   track: (account: Account) => Account
 }
@@ -26,6 +33,11 @@ export const test = base.extend<{ team: Team }>({
     await use({
       createAdmin: async (fullName) => {
         const account = await createAdmin(fullName)
+        accounts.push(account)
+        return account
+      },
+      createEditor: async (fullName) => {
+        const account = await createMember(fullName, "editor")
         accounts.push(account)
         return account
       },

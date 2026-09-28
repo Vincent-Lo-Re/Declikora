@@ -19,6 +19,8 @@ vi.mock("@/lib/media/api", async (importOriginal) => {
     getLatestAudit: vi.fn(),
     getPreviewUrls: vi.fn(),
     getMediaUses: vi.fn(),
+    getMediaOutdated: vi.fn(),
+    pushMediaTexts: vi.fn(),
     updateMedia: vi.fn(),
     trashMedia: vi.fn(),
     restoreMedia: vi.fn(),
@@ -102,6 +104,7 @@ beforeEach(() => {
   vi.mocked(api.getLatestAudit).mockResolvedValue(null)
   vi.mocked(api.getPreviewUrls).mockResolvedValue({})
   vi.mocked(api.getMediaUses).mockResolvedValue([])
+  vi.mocked(api.getMediaOutdated).mockResolvedValue([])
   vi.mocked(api.kickFiles).mockResolvedValue()
 })
 
@@ -238,6 +241,72 @@ describe("Médiathèque", () => {
       name: photo.name,
       alt: "Un chat au soleil",
     })
+  })
+
+  it("« Utilisé dans » distingue l'app et les brouillons, et met à jour les textes figés ([D30])", async () => {
+    const PAGE = "00000000-0000-4000-8000-0000000000aa"
+    const HELP = "00000000-0000-4000-8000-0000000000ab"
+    vi.mocked(api.getMediaUses).mockResolvedValue([
+      {
+        content_id: PAGE,
+        kind: "page",
+        title: "Mentions légales",
+        parent_title: null,
+        in_draft: true,
+        in_app: true,
+      },
+      {
+        content_id: HELP,
+        kind: "page",
+        title: "Aide",
+        parent_title: null,
+        in_draft: true,
+        in_app: false,
+      },
+    ])
+    vi.mocked(api.getMediaOutdated)
+      .mockResolvedValueOnce([
+        {
+          content_id: PAGE,
+          kind: "page",
+          title: "Mentions légales",
+          version_id: "00000000-0000-4000-8000-0000000000ac",
+          version_number: 2,
+          published_at: "2026-09-27T12:30:00Z",
+        },
+      ])
+      .mockResolvedValue([])
+    vi.mocked(api.pushMediaTexts).mockResolvedValue(1)
+    renderApp("/mediatheque")
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: texts.media.open(photo.name) })
+    )
+    const sheet = await screen.findByRole("dialog")
+    const outdated = texts.media.detail.outdated
+    expect(await within(sheet).findByText(outdated.title(1))).toBeVisible()
+    expect(within(sheet).getByText(texts.media.detail.usesLive)).toBeVisible()
+    expect(within(sheet).getByText(texts.media.detail.usesDrafts)).toBeVisible()
+    // En ligne : la page publiée ; en brouillon : les deux.
+    expect(within(sheet).getAllByText(texts.media.detail.inApp)).toHaveLength(1)
+    expect(within(sheet).getAllByText(texts.media.detail.inDraft)).toHaveLength(
+      2
+    )
+    expect(
+      within(sheet).getByText(
+        `(${outdated.version(2, "27 sept. 2026 à 14:30")})`,
+        { exact: false }
+      )
+    ).toBeVisible()
+
+    fireEvent.click(
+      within(sheet).getByRole("button", { name: outdated.push(1) })
+    )
+    expect(await screen.findByText(outdated.pushed(1))).toBeVisible()
+    expect(api.pushMediaTexts).toHaveBeenCalledWith(photo.id)
+    await waitFor(() =>
+      expect(within(sheet).queryByText(outdated.title(1))).toBeNull()
+    )
   })
 
   it("propose la transcription pour un audio", async () => {
