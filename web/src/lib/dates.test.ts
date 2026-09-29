@@ -11,7 +11,7 @@ describe("formatDateTime", () => {
 
   it("suit le changement d'heure, en hiver", () => {
     expect(formatDateTime(new Date("2026-01-05T08:05:00Z"))).toBe(
-      "5 janv. 2026 à 9h05"
+      "5 janv. 2026 à 09h05"
     )
   })
 

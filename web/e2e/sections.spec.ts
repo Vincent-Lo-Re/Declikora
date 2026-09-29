@@ -176,7 +176,7 @@ async function scheduleInTwoDays(page: Page) {
   await expect(dialog).toHaveCount(0)
   await expect(
     page.locator('[data-schedule-banner="scheduled"]')
-  ).toContainText("à 8h00")
+  ).toContainText("à 08h00")
 }
 
 /** Envoie une image depuis le choix d'image déjà ouvert ; il se ferme une fois l'image choisie. */
@@ -760,7 +760,7 @@ test("Accueil : brouillon récent, publication programmée et programmation éch
     episodeTitle,
     () =>
       expect(page.locator('[data-schedule-banner="scheduled"]')).toContainText(
-        "à 8h00"
+        "à 08h00"
       )
   )
   await opens(

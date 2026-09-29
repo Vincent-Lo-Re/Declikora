@@ -309,7 +309,7 @@ describe("liste des pages : publication et corbeille", () => {
     expect(await cells("En ligne")).toHaveTextContent(labels.live)
     const modified = await cells("Modifiée")
     expect(modified).toHaveTextContent(labels.modified)
-    expect(modified).toHaveTextContent(labels.scheduled("3 oct. 2099 à 8h00"))
+    expect(modified).toHaveTextContent(labels.scheduled("3 oct. 2099 à 08h00"))
     expect(await cells("Échouée")).toHaveTextContent(labels.failed)
   })
 

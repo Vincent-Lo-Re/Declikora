@@ -93,7 +93,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Menu à gauche, déplié**, repliable en icônes (avec une infobulle au survol). Rangement : Tableau de bord ; **Contenus** (Le Fil, Radio Éclaircies, Méthodes, Pages) ; **Outils** (Modèles de bloc, Médiathèque, Corbeille) ; en bas, Équipe et Paramètres (admins). En haut à droite, l'avatar du membre (initiale du prénom) ouvre un menu : nom et e-mail, Mon compte, Thème, Se déconnecter (29/09/2026). Icônes Lucide au trait d'un pixel. Noms affichés (29/09/2026) : Tableau de bord, Le Fil, Radio Éclaircies, Modèles de bloc ; les adresses (`/`, `/blog`, `/podcasts`, `/modeles`) et le code gardent les anciens noms.
 - [x] **Dans l'éditeur, le menu se cache** : l'éditeur prend tout l'écran, et « ← Blog » (par exemple) ramène à la liste.
 - [x] **Police Inter**, livrée avec l'admin, sans appel à Google.
-- [x] **Dates courtes** : « 27 sept. 2026 à 14h30 », à l'heure de Paris (heures à la française : « 9h05 », décidé le 29/09/2026).
+- [x] **Dates courtes** : « 27 sept. 2026 à 14h30 », à l'heure de Paris (heures à la française : « 09h05 », décidé le 29/09/2026).
 - [x] **Adresses en français** : `/blog`, `/mediatheque`, `/corbeille`, `/mon-compte`…
 
 ## 8. Mise en ligne et garde-fous

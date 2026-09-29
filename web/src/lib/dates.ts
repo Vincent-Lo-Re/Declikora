@@ -11,13 +11,13 @@ const dateFormat = new Intl.DateTimeFormat("fr-FR", {
 })
 
 const timeFormat = new Intl.DateTimeFormat("fr-FR", {
-  hour: "numeric",
+  hour: "2-digit",
   minute: "2-digit",
   hourCycle: "h23",
   timeZone,
 })
 
-/** L'heure à la française, à l'heure de Paris : « 18h42 », « 9h05 ». */
+/** L'heure à la française, à l'heure de Paris : « 18h42 », « 09h05 ». */
 function formatTime(value: Date): string {
   const parts = timeFormat.formatToParts(value)
   const hour = parts.find((part) => part.type === "hour")?.value ?? ""
