@@ -37,11 +37,12 @@ describe("menu", () => {
     const footer = screen.getByRole("navigation", {
       name: texts.nav.footerLabel,
     })
-    expect(
-      within(footer)
-        .getAllByRole("link")
-        .map((link) => link.textContent)
-    ).toEqual(["Équipe", "Paramètres", "Mon compte"])
+    // Par leur nom (celui des lecteurs d'écran) : « Mon compte » montre aussi des initiales.
+    expect(within(footer).getAllByRole("link")).toEqual(
+      ["Équipe", "Paramètres", "Mon compte"].map((name) =>
+        within(footer).getByRole("link", { name })
+      )
+    )
   })
 
   it("mène aux adresses en français", () => {
@@ -146,11 +147,9 @@ describe("rôles", () => {
     const footer = screen.getByRole("navigation", {
       name: texts.nav.footerLabel,
     })
-    expect(
-      within(footer)
-        .getAllByRole("link")
-        .map((link) => link.textContent)
-    ).toEqual(["Mon compte"])
+    expect(within(footer).getAllByRole("link")).toEqual([
+      within(footer).getByRole("link", { name: "Mon compte" }),
+    ])
   })
 
   it.each(["/equipe", "/parametres"])(

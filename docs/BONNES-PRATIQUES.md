@@ -17,7 +17,7 @@
 
 ## 2. Interface (React, shadcn/ui, Tailwind CSS)
 
-- **Composants shadcn/ui** (sur Base UI) avant tout sur-mesure, adaptés dans `web/src/components/ui/`. Icônes Lucide.
+- **Composants shadcn/ui** (sur Base UI) avant tout sur-mesure, adaptés dans `web/src/components/ui/`. Icônes Lucide, avec un trait d'un pixel pour toute l'admin (`LucideProvider` dans `web/src/components/app-providers.tsx`) : pas d'épaisseur réglée icône par icône.
 - **Jetons du thème** pour les couleurs (`bg-card`, `text-muted-foreground`, `text-destructive`…) et **échelle Tailwind** pour les tailles et les espacements : aucune couleur ni valeur en dur. Les thèmes clair et sombre suivent alors tout seuls.
 - **Pas de style en ligne**, sauf pour une valeur qui change en direct (position pendant un glisser-déposer, mesure d'un élément). Ce qui se calcule à partir d'une mesure se déclare en CSS (`web/src/index.css`), avec les jetons.
 - **Tous les textes dans `web/src/texts.ts`**, en français, en tutoyant la personne. Aucun texte en dur dans un composant.

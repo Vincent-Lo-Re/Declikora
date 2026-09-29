@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router"
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +15,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/auth/auth-context"
+import { initials } from "@/lib/initials"
 import {
   adminOnlySections,
   isInSection,
@@ -91,12 +93,28 @@ function MenuItems({ sectionKeys }: { sectionKeys: SectionKey[] }) {
               isActive={isInSection(path, pathname)}
               tooltip={title}
             >
-              <Icon />
+              {key === "account" ? <ProfileAvatar /> : <Icon />}
               <span>{title}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         )
       })}
     </SidebarMenu>
+  )
+}
+
+/**
+ * « Mon compte » : les initiales du membre à la place d'une icône. Un peu plus grand qu'une
+ * icône (size-5), recentré par une marge négative pour garder la hauteur de la ligne.
+ */
+function ProfileAvatar() {
+  const { profile } = useAuth()
+  if (!profile) return null
+  return (
+    <Avatar aria-hidden className="-m-0.5 size-5 after:hidden">
+      <AvatarFallback className="bg-sidebar-primary text-xs font-medium tracking-tighter text-sidebar-primary-foreground">
+        {initials(profile.full_name, profile.email)}
+      </AvatarFallback>
+    </Avatar>
   )
 }
