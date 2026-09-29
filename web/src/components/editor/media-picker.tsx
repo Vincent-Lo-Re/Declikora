@@ -113,7 +113,7 @@ function PickerBody({
   const labels = pickerLabels[kind]
   const [search, setSearch] = useState("")
   const debounced = useDebouncedValue(search, 250)
-  const filters: MediaFilters = { kind, search: debounced }
+  const filters: MediaFilters = { kind, search: debounced, unused: false }
   const media = useQuery({
     queryKey: mediaKeys.list(filters),
     queryFn: () => listMedia(filters),

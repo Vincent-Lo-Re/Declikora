@@ -326,6 +326,7 @@ export type Database = {
           sync_failed_at: string | null
           transcript: string | null
           width: number | null
+          media_in_use: boolean | null
         }
         Insert: {
           alt?: string | null
@@ -854,6 +855,12 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      media_in_use: {
+        Args: { "": Database["public"]["Tables"]["media"]["Row"] }
+        Returns: {
+          error: true
+        } & "the function public.media_in_use with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
       }
       media_outdated: {
         Args: { media_id: string }

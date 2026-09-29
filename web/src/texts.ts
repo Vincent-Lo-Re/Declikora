@@ -65,7 +65,7 @@ export const texts = {
     media: {
       title: "Médiathèque",
       description:
-        "Les images, SVG, animations, audios et PDF, utilisables dans tous les contenus.",
+        "JPG, PNG, WebP, GIF, HEIC, AVIF, SVG, Lottie, MP3, M4A et PDF.",
     },
     trash: {
       title: "Corbeille",
@@ -312,7 +312,11 @@ export const texts = {
       lottie: "Animations",
       audio: "Audios",
       pdf: "PDF",
+      // Ni dans un brouillon ni dans une version en ligne : la règle de la corbeille.
+      unused: "Non utilisés",
     },
+    // Badge d'un fichier qui ne sert dans aucun contenu.
+    unused: "Non utilisé",
     kinds: {
       image: "Image",
       svg: "SVG",
@@ -380,6 +384,32 @@ export const texts = {
       status: "État",
     },
     open: (name: string) => `Ouvrir la fiche de ${name}`,
+    // Sélection en masse (cases des vignettes et de la liste).
+    selection: {
+      select: (name: string) => `Sélectionner ${name}`,
+      selectAll: "Tout sélectionner",
+      column: "Sélection",
+      count: (count: number) =>
+        count === 1
+          ? "1 fichier sélectionné"
+          : `${count} fichiers sélectionnés`,
+      trash: (count: number) => `Mettre à la corbeille (${count})`,
+      trashed: (count: number) =>
+        count === 1
+          ? "1 fichier mis à la corbeille."
+          : `${count} fichiers mis à la corbeille.`,
+      restored: (count: number) =>
+        count === 1 ? "1 fichier restauré." : `${count} fichiers restaurés.`,
+      kept: {
+        title: (count: number) =>
+          count === 1
+            ? "1 fichier gardé : il est encore utilisé"
+            : `${count} fichiers gardés : ils sont encore utilisés`,
+        hint: "Retire-les d'abord des contenus. Ils restent sélectionnés.",
+        item: (name: string, detail: string) => `${name} — ${detail}`,
+        close: "Fermer ce message",
+      },
+    },
     empty: {
       title: "Aucun fichier pour l'instant",
       description:
@@ -388,6 +418,11 @@ export const texts = {
     noResults: {
       title: "Aucun fichier trouvé",
       description: "Essaie un autre nom ou un autre type.",
+    },
+    noUnused: {
+      title: "Tous les fichiers servent",
+      description:
+        "Aucun fichier non utilisé ici : chacun est dans un brouillon ou un contenu en ligne.",
     },
     tooMany: (count: number) =>
       `Seuls les ${count} fichiers les plus récents sont affichés. Affine ta recherche pour trouver les autres.`,

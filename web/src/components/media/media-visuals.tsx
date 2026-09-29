@@ -1,4 +1,5 @@
 import { cn } from "cn"
+import { Unlink } from "lucide-react"
 
 import { kindIcons } from "@/components/media/media-kinds"
 import { Badge } from "@/components/ui/badge"
@@ -32,7 +33,8 @@ export function MediaThumbnail({
           alt=""
           loading="lazy"
           decoding="async"
-          className="size-full object-contain"
+          // La vignette est remplie (image recadrée) ; la fiche montre l'image entière.
+          className="size-full object-cover"
         />
       ) : (
         <Icon aria-hidden className={cn("size-8", iconClassName)} />
@@ -74,4 +76,16 @@ export function MediaStatusBadge({
     case "rejected":
       return <Badge variant="destructive">{texts.media.status.rejected}</Badge>
   }
+}
+
+/** « Non utilisé » : le fichier n'est dans aucun brouillon ni aucune version en ligne. */
+export function MediaUnusedBadge({ media }: { media: Media }) {
+  // Seule la liste lit media_in_use : absent (fiche) ou null (hors équipe), rien à montrer.
+  if (media.media_in_use !== false) return null
+  return (
+    <Badge variant="outline">
+      <Unlink aria-hidden />
+      {texts.media.unused}
+    </Badge>
+  )
 }

@@ -242,6 +242,7 @@ describe("éditeur d'un article", () => {
     expect(mediaApi.listMedia).toHaveBeenCalledWith({
       kind: "image",
       search: "",
+      unused: false,
     })
     fireEvent.click(
       await within(dialog).findByRole("button", {
@@ -582,6 +583,7 @@ describe("éditeur d'un épisode", () => {
     expect(mediaApi.listMedia).toHaveBeenCalledWith({
       kind: "audio",
       search: "",
+      unused: false,
     })
     const choice = await within(dialog).findByRole("button", {
       name: texts.editor.audioPicker.choose("entretien.mp3"),

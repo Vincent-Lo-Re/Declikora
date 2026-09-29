@@ -57,7 +57,12 @@ export function isMediaAccessLost(error: unknown): boolean {
 // Clés de TanStack Query
 // ---------------------------------------------------------------------------------------------
 
-export type MediaFilters = { kind: MediaKind | "all"; search: string }
+export type MediaFilters = {
+  kind: MediaKind | "all"
+  search: string
+  // « Non utilisés » : ni dans un brouillon ni dans une version en ligne (règle de la corbeille).
+  unused: boolean
+}
 
 export const mediaKeys = {
   all: ["media"] as const,
@@ -80,7 +85,11 @@ export const trashKey = ["trash"] as const
 // Au-delà, la page invite à affiner la recherche.
 export const MEDIA_LIST_LIMIT = 500
 
-function toMedia(row: Tables<"media">): Media {
+function toMedia(
+  row: Omit<Tables<"media">, "media_in_use"> & {
+    media_in_use?: boolean | null
+  }
+): Media {
   return row as Media
 }
 
@@ -93,11 +102,13 @@ function likePattern(search: string): string {
 export async function listMedia(filters: MediaFilters): Promise<Media[]> {
   let query = supabase
     .from("media")
-    .select("*")
+    // media_in_use : colonne calculée par la base, pour le badge « Non utilisé » et le filtre.
+    .select("*, media_in_use")
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(MEDIA_LIST_LIMIT)
   if (filters.kind !== "all") query = query.eq("kind", filters.kind)
+  if (filters.unused) query = query.eq("media_in_use", false)
   const search = filters.search.trim()
   if (search !== "") query = query.ilike("name", likePattern(search))
   const { data, error } = await query

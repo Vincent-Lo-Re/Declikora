@@ -14,7 +14,9 @@ export function AppLayout() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      {/* min-w-0 : la zone de droite ne s'élargit pas selon son contenu (sinon la page défile
+          sur le côté au lieu de laisser rétrécir, par exemple, la recherche de la médiathèque). */}
+      <SidebarInset className="min-w-0">
         <div className="flex h-12 shrink-0 items-center border-b px-4">
           <SidebarTrigger className="-ml-1" />
         </div>

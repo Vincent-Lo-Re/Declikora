@@ -178,6 +178,7 @@ Pourquoi une seule table, modèles compris ? Toutes ces sortes ont besoin des m�
 - Index : `(kind, deleted_at, created_at desc)`.
 - **Un fichier ne se remplace jamais** : une nouvelle version d'une image est un nouveau fichier, avec un nouvel `id` et une nouvelle adresse. Cela évite les problèmes de cache et permet à l'app de garder ses images en cache par `id`.
 - **« Où il est utilisé »** : `private.media_uses(id)` renvoie les lignes de `contents` dont `draft_media_ids` contient l'id (brouillons, modèles et contenus en corbeille compris), plus les versions **en ligne** (d'après `private.live`) dont `media_ids` le contient. Les anciennes versions de l'historique ne comptent pas **[D6]**.
+- **« Non utilisés »** (ajouté le 29/09/2026) : la colonne calculée `public.media_in_use(media)` (`security definer`, `stable`, `search_path` vide ; null hors de l'équipe en aal2, refusée à `anon`) répond `exists (select 1 from private.media_uses(id))`. La liste de l'admin la lit (`select=*,media_in_use`) pour le badge « Non utilisé » et la filtre dans la base (`media_in_use=eq.false`), avant la limite de la liste. Même règle que `media_trash` : un fichier non utilisé peut toujours partir à la corbeille. Tests : `supabase/tests/48_mediatheque_non_utilises.test.sql`.
 
 ### 1.10 `edit_locks` (verrou « un seul à la fois »)
 
