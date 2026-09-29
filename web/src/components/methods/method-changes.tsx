@@ -36,7 +36,7 @@ function rowLabel(row: PreviewRow): string {
       ? labels.method[row.change]
       : labels.method.reordered
   }
-  const title = row.title.trim() || texts.methods.outline.untitled
+  const title = row.title.trim() || texts.common.untitled
   return `${labels.kinds[row.kind]} « ${title} »`
 }
 
@@ -87,7 +87,7 @@ export function MethodChanges({
             variant="outline"
             onClick={() => void method.refresh()}
           >
-            {labels.retry}
+            {texts.common.retry}
           </Button>
         </div>
       ) : preview === undefined ? (

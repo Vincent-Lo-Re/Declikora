@@ -216,7 +216,7 @@ function CategoriesSection({
               variant="outline"
               onClick={categories.retry}
             >
-              {words.retry}
+              {texts.common.retry}
             </Button>
           </div>
         ) : (

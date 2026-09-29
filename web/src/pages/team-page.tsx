@@ -13,6 +13,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/auth/auth-context"
+import { LoadState } from "@/components/load-state"
 import { PageHeader } from "@/components/page-header"
 import { InviteDialog } from "@/components/team/invite-dialog"
 import { useAccessCheck } from "@/components/team/use-access-check"
@@ -35,7 +36,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
@@ -113,22 +113,7 @@ export function TeamPage() {
       />
 
       {members.data === undefined ? (
-        members.isError ? (
-          // Rien n'a encore pu être chargé : le message remplace la liste.
-          <div className="space-y-3">
-            <p role="alert" className="text-sm text-destructive">
-              {texts.team.loadFailed} {members.error.message}
-            </p>
-            <Button variant="outline" onClick={() => members.refetch()}>
-              {texts.team.retry}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        )
+        <LoadState query={members} failed={texts.team.loadFailed} />
       ) : (
         <div className="space-y-4">
           {/* Une mise à jour a échoué : la liste déjà chargée reste affichée. */}
@@ -142,7 +127,7 @@ export function TeamPage() {
                   className="h-auto p-0"
                   onClick={() => members.refetch()}
                 >
-                  {texts.team.retry}
+                  {texts.common.retry}
                 </Button>
               </AlertDescription>
             </Alert>
@@ -162,7 +147,7 @@ export function TeamPage() {
                 <TableHead>{texts.team.columns.lastSignIn}</TableHead>
                 <TableHead>{texts.team.columns.mfa}</TableHead>
                 <TableHead className="w-12">
-                  <span className="sr-only">{texts.team.columns.actions}</span>
+                  <span className="sr-only">{texts.common.actions}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>

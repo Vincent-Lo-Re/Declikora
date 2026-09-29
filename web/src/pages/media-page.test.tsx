@@ -290,7 +290,7 @@ describe("Médiathèque", () => {
       target: { value: "  Un chat au soleil " },
     })
     fireEvent.click(
-      within(sheet).getByRole("button", { name: texts.media.detail.save })
+      within(sheet).getByRole("button", { name: texts.common.save })
     )
 
     expect(await screen.findByText(texts.media.detail.saved)).toBeVisible()

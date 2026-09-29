@@ -467,7 +467,7 @@ function LevelsUnavailable({
         variant="outline"
         onClick={pub.bridge.retryLevels}
       >
-        {labels.settings.access.retry}
+        {texts.common.retry}
       </Button>
     </span>
   )

@@ -341,7 +341,7 @@ function MediaDetailsForm({ media }: { media: Media }) {
           disabled={save.isPending || !form.formState.isDirty}
         >
           {save.isPending && <Spinner />}
-          {texts.media.detail.save}
+          {texts.common.save}
         </Button>
       </div>
     </form>
@@ -640,7 +640,7 @@ function TrashButton({
 
 /** Titre d'un contenu qui utilise le fichier, avec un lien vers son éditeur s'il existe. */
 function UseTitle({ use }: { use: MediaUse }) {
-  const title = use.title?.trim() || texts.media.detail.untitled
+  const title = use.title?.trim() || texts.common.untitled
   const path = contentEditorPath(use.kind, use.content_id)
   return path ? (
     <Link to={path} className="underline-offset-4 hover:underline">

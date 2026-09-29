@@ -154,7 +154,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
                   disabled={save.isPending || !form.formState.isDirty}
                 >
                   {save.isPending && <Spinner />}
-                  {texts.account.profile.save}
+                  {texts.common.save}
                 </Button>
               </div>
               <FieldError errors={[fieldState.error]} />

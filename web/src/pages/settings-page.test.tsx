@@ -42,7 +42,7 @@ describe("Paramètres : formules d'abonnement", () => {
     expect(
       within(list)
         .getAllByRole("listitem")
-        .map((item) => item.getAttribute("data-level"))
+        .map((item) => item.getAttribute("data-item"))
     ).toEqual(["Essentiel", "Premium"])
     expect(within(list).getByText(labels.rank(1))).toBeVisible()
     // Chaque formule a sa poignée, pour la souris et le clavier.
@@ -89,7 +89,7 @@ describe("Paramètres : formules d'abonnement", () => {
     )
     const input = screen.getByLabelText(labels.renameLabel("Premium"))
     fireEvent.change(input, { target: { value: "Premium+" } })
-    fireEvent.click(screen.getByRole("button", { name: labels.save }))
+    fireEvent.click(screen.getByRole("button", { name: texts.common.save }))
     await waitFor(() =>
       expect(levelsApi.renameAccessLevel).toHaveBeenCalledWith(
         premium.id,

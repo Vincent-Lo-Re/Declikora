@@ -50,6 +50,7 @@ import {
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
+import { LoadState } from "@/components/load-state"
 import {
   ElementStateBadge,
   ElementStateHint,
@@ -86,7 +87,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import {
   ContentError,
@@ -141,7 +141,7 @@ const dnd = texts.methods.dnd
 // ---------------------------------------------------------------------------------------------
 
 function titleOf(element: OutlineElement): string {
-  return element.title.trim() || labels.untitled
+  return element.title.trim() || texts.common.untitled
 }
 
 /** « chapitre 2 « Respirer » », « leçon 3 « Le souffle » » : la place dans l'arbre et le titre. */
@@ -587,7 +587,7 @@ export function MethodOutline({
         void navigate(path)
         return
       }
-      const name = created.title.trim() || labels.untitled
+      const name = created.title.trim() || texts.common.untitled
       toast.success(texts.methods.create.created[target.kind](name), {
         action: path
           ? {
@@ -729,21 +729,11 @@ export function MethodOutline({
       </p>
 
       {shown === undefined ? (
-        tree.isError ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <p role="alert" className="text-sm text-destructive">
-              {labels.loadFailed} {tree.error.message}
-            </p>
-            <Button variant="outline" size="sm" onClick={() => tree.refetch()}>
-              {labels.retry}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2" aria-label={texts.common.loading}>
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        )
+        <LoadState
+          query={tree}
+          failed={labels.loadFailed}
+          rowClassName="h-20 w-full"
+        />
       ) : shown.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>

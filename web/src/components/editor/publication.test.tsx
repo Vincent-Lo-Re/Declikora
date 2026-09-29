@@ -257,7 +257,7 @@ describe("barre de publication", () => {
 
     fireEvent.click(
       within(dialog).getByRole("button", {
-        name: labels.settings.access.retry,
+        name: texts.common.retry,
       })
     )
     expect(
@@ -288,7 +288,7 @@ describe("barre de publication", () => {
     ).toBeDisabled()
     fireEvent.click(
       within(dialog).getByRole("button", {
-        name: labels.settings.access.retry,
+        name: texts.common.retry,
       })
     )
     expect(await within(dialog).findByText("Premium")).toBeVisible()

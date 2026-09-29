@@ -172,7 +172,7 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
   const preview = sheet.locator("img")
   await expect(preview).toBeVisible()
   await sheet.getByLabel(texts.media.detail.alt).fill("Un dégradé coloré")
-  await sheet.getByRole("button", { name: texts.media.detail.save }).click()
+  await sheet.getByRole("button", { name: texts.common.save }).click()
   await expect(page.getByText(texts.media.detail.saved)).toBeVisible()
   await expect(preview).toHaveAttribute("alt", "Un dégradé coloré")
   expect(await readMedia(photoName)).toMatchObject({ alt: "Un dégradé coloré" })

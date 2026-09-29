@@ -9,9 +9,14 @@ export const texts = {
     name: "Declikora",
   },
 
+  // Les mots de l'interface qui ne dépendent pas de la page : une seule fois ici.
   common: {
     close: "Fermer",
     cancel: "Annuler",
+    retry: "Réessayer",
+    save: "Enregistrer",
+    untitled: "Sans titre",
+    actions: "Actions",
     loading: "Chargement…",
     signOut: "Se déconnecter",
     tooManyAttempts: "Trop d'essais. Attends une minute avant de réessayer.",
@@ -110,8 +115,6 @@ export const texts = {
     savedAt: (date: string) => `Modifié le ${date}`,
     inMethod: (title: string) => `Méthode « ${title} »`,
     loadFailed: "Cette liste n'a pas pu être chargée.",
-    retry: "Réessayer",
-    untitled: "Sans titre",
   },
 
   // Connexion : e-mail, puis code reçu par e-mail, puis double vérification.
@@ -197,7 +200,6 @@ export const texts = {
       name: "Nom",
       namePlaceholder: "Prénom Nom",
       nameTooLong: "Le nom ne doit pas dépasser 100 caractères.",
-      save: "Enregistrer",
       saved: "Nom enregistré.",
       email: "Adresse e-mail",
       role: "Rôle",
@@ -232,14 +234,12 @@ export const texts = {
       "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
     singleAdmin:
       "Tu es le seul admin à avoir configuré la double vérification. Nomme un deuxième admin : si tu perds ton téléphone, c'est lui qui réinitialisera la tienne.",
-    retry: "Réessayer",
     columns: {
       member: "Membre",
       role: "Rôle",
       status: "État",
       lastSignIn: "Dernière connexion",
       mfa: "Double vérification",
-      actions: "Actions",
     },
     status: {
       invited: "Invitation envoyée",
@@ -428,7 +428,6 @@ export const texts = {
     loadFailed: "La médiathèque n'a pas pu être chargée.",
     refreshFailed:
       "La médiathèque n'a pas pu être mise à jour : elle date peut-être un peu.",
-    retry: "Réessayer",
     storage: {
       label: "Place occupée",
       value: (used: string, total: string) => `${used} sur ${total}`,
@@ -553,7 +552,6 @@ export const texts = {
       transcript: "Transcription",
       transcriptHint: "Le texte de l'audio, pour qui ne peut pas l'écouter.",
       transcriptTooLong: "La transcription est trop longue.",
-      save: "Enregistrer",
       saved: "Fiche enregistrée.",
       info: "Informations",
       kind: "Type",
@@ -571,7 +569,6 @@ export const texts = {
         "Ce fichier n'est utilisé dans aucun contenu pour l'instant. Tu peux l'insérer dans un contenu depuis l'éditeur (bloc Image).",
       usesFailed: "La liste des contenus n'a pas pu être chargée.",
       inDraft: "Brouillon",
-      untitled: "Sans titre",
       inApp: "Dans l'app",
       usesLive: "En ligne dans l'app",
       usesDrafts: "Dans les brouillons",
@@ -659,7 +656,6 @@ export const texts = {
       page: "Page",
       template: "Modèle",
     },
-    untitled: "Sans titre",
     // Ce qui est parti avec une méthode (même lot) : restauré ou effacé avec elle.
     batch: (count: number) =>
       count === 1 ? "avec 1 élément" : `avec ${count} éléments`,
@@ -686,7 +682,6 @@ export const texts = {
       type: "Type",
       deletedAt: "Supprimé le",
       purgeAt: "Effacement automatique",
-      actions: "Actions",
     },
     deletedBy: (name: string) => `par ${name}`,
     purgeOn: (date: string) => `le ${date}`,
@@ -729,7 +724,6 @@ export const texts = {
     loadFailed: "La corbeille n'a pas pu être chargée.",
     refreshFailed:
       "La corbeille n'a pas pu être mise à jour : elle date peut-être un peu.",
-    retry: "Réessayer",
   },
 
   // Listes des contenus d'une section (Pages, Blog, Podcasts) : étape 7.
@@ -807,7 +801,6 @@ export const texts = {
       outline: "Plan",
       savedAt: "Dernière modification",
       status: "En ce moment",
-      actions: "Actions",
     },
     searchPlaceholder: "Rechercher par titre…",
     filters: {
@@ -847,13 +840,11 @@ export const texts = {
     },
     trashed: (title: string) => `${title} est dans la corbeille.`,
     undo: "Annuler",
-    untitled: "Sans titre",
     savedBy: (name: string) => `par ${name}`,
     beingEdited: (name: string) => `${name} écrit`,
     loadFailed: "La liste n'a pas pu être chargée.",
     refreshFailed:
       "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
-    retry: "Réessayer",
     starters: "Points de départ",
   },
 
@@ -885,7 +876,6 @@ export const texts = {
         `le chapitre ${position} « ${title} »`,
       lessonLabel: (position: number, title: string) =>
         `la leçon ${position} « ${title} »`,
-      untitled: "Sans titre",
       handle: (label: string) => `Déplacer : ${label}`,
       inApp: "Montrer dans l'app",
       inAppFor: (label: string) => `Montrer dans l'app : ${label}`,
@@ -966,7 +956,6 @@ export const texts = {
       loadFailed: "Le plan n'a pas pu être chargé.",
       refreshFailed:
         "Le plan n'a pas pu être mis à jour : il date peut-être un peu.",
-      retry: "Réessayer",
     },
     // Glisser-déposer du plan : annonces lues par les lecteurs d'écran.
     dnd: {
@@ -1058,7 +1047,6 @@ export const texts = {
       title: "Ce qui va changer dans l'app",
       loading: "Recherche de ce qui a changé…",
       failed: "La liste des changements n'a pas pu être lue.",
-      retry: "Réessayer",
       nothing:
         "Rien à publier : l'app montre déjà cette méthode telle qu'elle est.",
       method: {
@@ -1113,7 +1101,6 @@ export const texts = {
     rename: "Renommer",
     renameItem: (name: string) => `Renommer ${name}`,
     renameLabel: (name: string) => `Nouveau nom pour ${name}`,
-    save: "Enregistrer",
     renamed: "Catégorie renommée.",
     remove: "Supprimer",
     removeItem: (name: string) => `Supprimer ${name}`,
@@ -1152,7 +1139,6 @@ export const texts = {
         `Déplacement annulé : ${name} reprend sa place.`,
     },
     loadFailed: "Les catégories n'ont pas pu être chargées.",
-    retry: "Réessayer",
     errors: {
       nom_en_double: "Une catégorie de cette section porte déjà ce nom.",
       nom_invalide: "Le nom doit faire entre 1 et 100 caractères.",
@@ -1205,7 +1191,6 @@ export const texts = {
         section: "Section",
         savedAt: "Dernière modification",
         status: "En ce moment",
-        actions: "Actions",
       },
       untitled: "Sans nom",
       empty: {
@@ -1229,7 +1214,6 @@ export const texts = {
       loadFailed: "La liste des modèles n'a pas pu être chargée.",
       refreshFailed:
         "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
-      retry: "Réessayer",
       createFailed: "Le modèle n'a pas pu être créé.",
       confirmTrash: {
         title: "Supprimer ce modèle ?",
@@ -1349,7 +1333,6 @@ export const texts = {
       insertLabel: (name: string) => `Insérer ${name}`,
       emptyTemplate: "Vide : ajoute-lui son bloc dans Modèles.",
       loadFailed: "Les modèles n'ont pas pu être chargés.",
-      retry: "Réessayer",
       manage: "Gérer les modèles",
       inserted: (name: string) => `Modèle inséré : ${name}.`,
     },
@@ -1390,7 +1373,6 @@ export const texts = {
       label: "Titre du contenu",
       placeholder: "Titre",
     },
-    untitled: "Sans titre",
     blocks: {
       text: "Texte",
       image: "Image",
@@ -1443,7 +1425,6 @@ export const texts = {
         `Bloc lâché hors de la page : ${label} reprend sa place.`,
       cancel: (label: string) =>
         `Déplacement annulé : ${label} reprend sa place.`,
-      refused: "Un encadré ne peut pas aller dans un autre encadré.",
     },
     outline: {
       toggle: "Plan",
@@ -1483,7 +1464,6 @@ export const texts = {
       none: "Aucune image choisie",
       missing: "Fichier supprimé, choisis-en un autre.",
       loadFailed: "L'image n'a pas pu être chargée.",
-      retry: "Réessayer",
       notReady: "Ce fichier n'est pas prêt. Choisis-en un autre.",
       captionLabel: "Légende",
       captionPlaceholder: "Ajoute une légende (facultatif)",
@@ -1501,7 +1481,6 @@ export const texts = {
         "Aucune image dans la médiathèque. Envoies-en une avec « Envoyer une image ».",
       noResults: "Aucune image trouvée. Essaie un autre nom.",
       loadFailed: "Les images n'ont pas pu être chargées.",
-      retry: "Réessayer",
       upload: "Envoyer une image",
       uploadInput: "Image à envoyer",
       uploading: (name: string) => `Envoi de ${name}…`,
@@ -1577,6 +1556,7 @@ export const texts = {
         none: "Pas encore d'audio",
         missing: "Audio supprimé : choisis-en un autre.",
         notReady: "Cet audio n'est pas prêt : choisis-en un autre.",
+        loadFailed: "L'audio n'a pas pu être chargé.",
         duration: (duration: string) => `Durée : ${duration}`,
         noDuration: "Durée inconnue",
         listen: (name: string) => `Écouter ${name}`,
@@ -1607,7 +1587,6 @@ export const texts = {
           "La médiathèque n'a pas de texte alternatif pour cette image.",
         altHint:
           "Décris l'image en une phrase pour les personnes qui ne la voient pas.",
-        altTooLong: "1 000 caractères au plus.",
         caption: "Légende",
         captionCount: (count: number) => `${count} / 300 caractères`,
         captionHint: "Texte simple, écrit sous l'image dans l'aperçu.",
@@ -1697,7 +1676,6 @@ export const texts = {
         "Ce contenu est dans la corbeille : restaure-le pour le modifier.",
       failed:
         "L'état du brouillon n'a pas pu être lu. Réessaie dans un instant.",
-      retry: "Réessayer",
       reloadFailed:
         "Le brouillon n'a pas pu être relu. Ton texte reste à l'écran : réessaie dans un instant.",
     },
@@ -1978,7 +1956,6 @@ export const texts = {
           "Une autre page a pris cette adresse entre-temps : le brouillon garde son adresse actuelle.",
       },
       loadFailed: "L'historique n'a pas pu être chargé.",
-      retry: "Réessayer",
     },
     settings: {
       title: "Réglages du contenu",
@@ -1998,7 +1975,6 @@ export const texts = {
         noLevels:
           "Aucune formule d'abonnement pour l'instant : un admin peut en créer dans les Paramètres.",
         loadFailed: "Les formules d'abonnement n'ont pas pu être chargées.",
-        retry: "Réessayer",
         live: (name: string) => `En ligne : ${name}`,
         deleted: "formule supprimée",
       },
@@ -2021,7 +1997,6 @@ export const texts = {
         none: "Aucune catégorie dans cette section pour l'instant.",
         manage: "Gérer les catégories",
         loadFailed: "Les catégories n'ont pas pu être chargées.",
-        retry: "Réessayer",
       },
       // Chapitre ou leçon : « Montrer dans l'app » et « Leçon gratuite » ([D29], [D43]).
       element: {
@@ -2062,7 +2037,6 @@ export const texts = {
       rename: "Renommer",
       renameItem: (name: string) => `Renommer ${name}`,
       renameLabel: (name: string) => `Nouveau nom pour ${name}`,
-      save: "Enregistrer",
       renamed: "Formule renommée.",
       remove: "Supprimer",
       removeItem: (name: string) => `Supprimer ${name}`,
@@ -2074,11 +2048,7 @@ export const texts = {
       },
       removed: (name: string) => `Formule « ${name} » supprimée.`,
       handle: (name: string) => `Déplacer ${name}`,
-      moveUp: (name: string) => `Monter ${name}`,
-      moveDown: (name: string) => `Descendre ${name}`,
       reordered: "Nouvel ordre enregistré.",
-      moved: (name: string, position: number, count: number) =>
-        `${name} est maintenant n° ${position} sur ${count}.`,
       // Glisser-déposer : annonces lues par les lecteurs d'écran.
       dnd: {
         roleDescription: "formule déplaçable",
@@ -2093,7 +2063,6 @@ export const texts = {
           `Déplacement annulé : ${name} reprend sa place.`,
       },
       loadFailed: "Les formules n'ont pas pu être chargées.",
-      retry: "Réessayer",
       errors: {
         formule_utilisee:
           "Cette formule est utilisée par un contenu, une version publiée ou un abonné : renomme-la ou déplace-la plutôt.",

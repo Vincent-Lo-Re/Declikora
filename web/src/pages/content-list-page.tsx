@@ -18,6 +18,7 @@ import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
+import { LoadState } from "@/components/load-state"
 import { useMethodPending } from "@/components/methods/use-method-pending"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
@@ -211,7 +212,7 @@ export function ContentListPage({
 
   // « Annuler » dans le message : le contenu revient en brouillon, sans être republié.
   const undo = async (item: ContentListItem) => {
-    const name = item.title.trim() || labels.untitled
+    const name = item.title.trim() || texts.common.untitled
     try {
       const { addressRemoved } = await restoreContent(item.id)
       if (addressRemoved)
@@ -228,9 +229,12 @@ export function ContentListPage({
     mutationFn: (item: ContentListItem) => trashContent(item.id),
     onSuccess: (result, item) => {
       setToTrash(null)
-      toast.success(labels.trashed(item.title.trim() || labels.untitled), {
-        action: { label: labels.undo, onClick: () => void undo(item) },
-      })
+      toast.success(
+        labels.trashed(item.title.trim() || texts.common.untitled),
+        {
+          action: { label: labels.undo, onClick: () => void undo(item) },
+        }
+      )
       // Ses fichiers redeviennent peut-être protégés : tout de suite.
       if (result.needsFileSync) void kickFiles()
     },
@@ -330,22 +334,12 @@ export function ContentListPage({
       />
 
       {list.data === undefined ? (
-        list.isError ? (
-          <div className="space-y-3">
-            <p role="alert" className="text-sm text-destructive">
-              {labels.loadFailed} {list.error.message}
-            </p>
-            <Button variant="outline" onClick={() => list.refetch()}>
-              {labels.retry}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {Array.from({ length: 3 }, (_, index) => (
-              <Skeleton key={index} className="h-12 w-full" />
-            ))}
-          </div>
-        )
+        <LoadState
+          query={list}
+          failed={labels.loadFailed}
+          rows={3}
+          rowClassName="h-12 w-full"
+        />
       ) : (
         <div className="space-y-4">
           {list.isError && (
@@ -412,7 +406,7 @@ export function ContentListPage({
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {kindLabels.confirmTrash(
-                  toTrash.title.trim() || labels.untitled
+                  toTrash.title.trim() || texts.common.untitled
                 )}
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -597,14 +591,14 @@ function ContentTable({
           <TableHead>{labels.columns.savedAt}</TableHead>
           <TableHead>{labels.columns.status}</TableHead>
           <TableHead className="w-0">
-            <span className="sr-only">{labels.columns.actions}</span>
+            <span className="sr-only">{texts.common.actions}</span>
           </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {items.map((item) => {
           const status = itemStatus(item, now)
-          const name = item.title.trim() || labels.untitled
+          const name = item.title.trim() || texts.common.untitled
           return (
             <TableRow key={item.id}>
               <TableCell className="max-w-80 font-medium">

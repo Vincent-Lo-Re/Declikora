@@ -4,7 +4,7 @@ import { texts } from "@/texts"
 
 // Formulaires de l'admin : ce qui est saisi, et les messages en cas d'erreur.
 
-const MAX_NAME_LENGTH = 100
+export const MAX_NAME_LENGTH = 100
 
 const email = (message: string) =>
   z.string().trim().toLowerCase().pipe(z.email(message))

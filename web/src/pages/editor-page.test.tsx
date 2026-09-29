@@ -624,9 +624,7 @@ describe("éditeur : images", () => {
       await screen.findByText(texts.editor.image.loadFailed)
     ).toBeInTheDocument()
     expect(screen.queryByText(texts.editor.image.missing)).toBeNull()
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.editor.image.retry })
-    )
+    fireEvent.click(screen.getByRole("button", { name: texts.common.retry }))
     expect(
       await screen.findByText(texts.editor.image.notReady)
     ).toBeInTheDocument()

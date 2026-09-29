@@ -149,7 +149,7 @@ function PickerBody({
               {labels.loadFailed}
             </p>
             <Button variant="outline" onClick={() => media.refetch()}>
-              {labels.retry}
+              {texts.common.retry}
             </Button>
           </div>
         ) : (
@@ -307,7 +307,7 @@ function PickerUpload({
             </p>
             {item.canRetry && (
               <Button variant="outline" onClick={() => queue.retry(item.id)}>
-                {labels.retry}
+                {texts.common.retry}
               </Button>
             )}
           </div>

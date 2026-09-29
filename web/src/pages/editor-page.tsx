@@ -308,7 +308,7 @@ function EditorLoader({
           </EmptyHeader>
           {failed && (
             <Button variant="outline" onClick={() => content.refetch()}>
-              {texts.editor.lock.retry}
+              {texts.common.retry}
             </Button>
           )}
         </Empty>
@@ -353,7 +353,7 @@ function BackLink({
   method?: { id: string; title: string } | null
 }) {
   if (method) {
-    const title = method.title.trim() || texts.editor.untitled
+    const title = method.title.trim() || texts.common.untitled
     return (
       <Link
         to={editorPath("methods", method.id)}
@@ -1546,7 +1546,7 @@ function ContentEditor({
   const sectionTitle = texts.sections[section].title
   const untitled = isTemplate
     ? texts.templates.list.untitled
-    : texts.editor.untitled
+    : texts.common.untitled
 
   return (
     <div className="flex h-svh flex-col bg-muted/40">

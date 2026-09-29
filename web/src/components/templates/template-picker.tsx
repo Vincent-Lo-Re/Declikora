@@ -72,7 +72,7 @@ export function TemplatePicker({
                 {labels.loadFailed}
               </p>
               <Button variant="outline" onClick={() => templates.refetch()}>
-                {labels.retry}
+                {texts.common.retry}
               </Button>
             </div>
           ) : (

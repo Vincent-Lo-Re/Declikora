@@ -67,7 +67,7 @@ export function LockBanner({
         {copyButton}
         <Button size="sm" variant="outline" onClick={onReload}>
           <RefreshCw />
-          {labels.retry}
+          {texts.common.retry}
         </Button>
       </Row>
     )
@@ -140,7 +140,7 @@ export function LockBanner({
           lock.error?.code !== "contenu_introuvable" && (
             <Button size="sm" variant="outline" onClick={() => onTake(false)}>
               <RefreshCw />
-              {labels.retry}
+              {texts.common.retry}
             </Button>
           )}
       </Row>

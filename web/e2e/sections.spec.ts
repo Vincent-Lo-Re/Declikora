@@ -98,10 +98,8 @@ function panel(page: Page) {
 function categoryOrder(page: Page) {
   return page
     .getByRole("list", { name: categories.listLabel("Blog") })
-    .locator("[data-category]")
-    .evaluateAll((items) =>
-      items.map((item) => item.getAttribute("data-category"))
-    )
+    .locator("[data-item]")
+    .evaluateAll((items) => items.map((item) => item.getAttribute("data-item")))
 }
 
 /** « Publier » : la fenêtre de confirmation (rien n'est encore confirmé). */
@@ -509,7 +507,7 @@ test("Podcasts : épisode refusé sans audio, audio de la médiathèque, durée,
   await sheet
     .getByLabel(texts.media.detail.transcript)
     .fill("Bonjour, et bienvenue dans cet entretien.")
-  await sheet.getByRole("button", { name: texts.media.detail.save }).click()
+  await sheet.getByRole("button", { name: texts.common.save }).click()
   await expect(file.getByText(texts.media.detail.saved)).toBeVisible()
   await file.close()
 

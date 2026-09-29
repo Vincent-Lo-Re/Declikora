@@ -31,9 +31,7 @@ describe("Mon compte", () => {
     fireEvent.change(screen.getByLabelText(texts.account.profile.name), {
       target: { value: "a".repeat(101) },
     })
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.account.profile.save })
-    )
+    fireEvent.click(screen.getByRole("button", { name: texts.common.save }))
 
     expect(
       await screen.findByText(texts.account.profile.nameTooLong)

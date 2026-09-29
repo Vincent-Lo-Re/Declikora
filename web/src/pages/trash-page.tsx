@@ -10,6 +10,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 import { toast } from "sonner"
 
+import { LoadState } from "@/components/load-state"
 import { kindIcons } from "@/components/media/media-kinds"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
@@ -33,7 +34,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
@@ -247,21 +247,7 @@ export function TrashPage() {
       </div>
 
       {trash.data === undefined ? (
-        trash.isError ? (
-          <div className="space-y-3">
-            <p role="alert" className="text-sm text-destructive">
-              {texts.trash.loadFailed} {trash.error.message}
-            </p>
-            <Button variant="outline" onClick={() => trash.refetch()}>
-              {texts.trash.retry}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        )
+        <LoadState query={trash} failed={texts.trash.loadFailed} />
       ) : (
         <div className="space-y-4">
           {trash.isError && (
@@ -274,7 +260,7 @@ export function TrashPage() {
                   className="h-auto p-0"
                   onClick={() => trash.refetch()}
                 >
-                  {texts.trash.retry}
+                  {texts.common.retry}
                 </Button>
               </AlertDescription>
             </Alert>
@@ -323,9 +309,7 @@ export function TrashPage() {
                   <TableHead>{texts.trash.columns.deletedAt}</TableHead>
                   <TableHead>{texts.trash.columns.purgeAt}</TableHead>
                   <TableHead className="w-0">
-                    <span className="sr-only">
-                      {texts.trash.columns.actions}
-                    </span>
+                    <span className="sr-only">{texts.common.actions}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>

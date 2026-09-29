@@ -659,9 +659,9 @@ test("formules d'abonnement : réservées aux admins ; ajouter, ranger au clavie
     const list = page.getByRole("list", { name: settings.listLabel })
     const names = () =>
       list
-        .locator("[data-level]")
+        .locator("[data-item]")
         .evaluateAll((items) =>
-          items.map((item) => item.getAttribute("data-level"))
+          items.map((item) => item.getAttribute("data-item"))
         )
     const before = await names()
     expect(before.indexOf(first)).toBe(before.indexOf(second) + 1)
@@ -690,7 +690,7 @@ test("formules d'abonnement : réservées aux admins ; ajouter, ranger au clavie
       .getByRole("button", { name: settings.renameItem(second) })
       .click()
     await page.getByLabel(settings.renameLabel(second)).fill(renamed)
-    await page.getByRole("button", { name: settings.save }).click()
+    await page.getByRole("button", { name: texts.common.save }).click()
     await expect(page.getByText(settings.renamed)).toBeVisible()
     await page
       .getByRole("button", { name: settings.removeItem(renamed) })
@@ -700,7 +700,7 @@ test("formules d'abonnement : réservées aux admins ; ajouter, ranger au clavie
       .getByRole("button", { name: settings.confirmRemove.confirm })
       .click()
     await expect(page.getByText(settings.removed(renamed))).toBeVisible()
-    await expect(list.locator(`[data-level="${renamed}"]`)).toHaveCount(0)
+    await expect(list.locator(`[data-item="${renamed}"]`)).toHaveCount(0)
   } finally {
     await editorContext.close()
     // Les formules ne sont pas liées au compte de test : on les efface ici.
@@ -732,7 +732,7 @@ test("texte alternatif figé dans l'app, puis mis à jour depuis la fiche du fic
   await card.click()
   const sheet = page.getByRole("dialog")
   await sheet.getByLabel(texts.media.detail.alt).fill("Une plage au soleil")
-  await sheet.getByRole("button", { name: texts.media.detail.save }).click()
+  await sheet.getByRole("button", { name: texts.common.save }).click()
   await expect(page.getByText(texts.media.detail.saved)).toBeVisible()
   await page.keyboard.press("Escape")
 
@@ -765,7 +765,7 @@ test("texte alternatif figé dans l'app, puis mis à jour depuis la fiche du fic
   await expect(sheet.getByText(texts.media.detail.usesLive)).toBeVisible()
   await expect(sheet.getByText(texts.media.detail.usesDrafts)).toBeVisible()
   await sheet.getByLabel(texts.media.detail.alt).fill("Une plage au couchant")
-  await sheet.getByRole("button", { name: texts.media.detail.save }).click()
+  await sheet.getByRole("button", { name: texts.common.save }).click()
   await expect(page.getByText(texts.media.detail.saved)).toBeVisible()
   expect(await appPageText(slug)).toContain("Une plage au soleil")
   const outdated = texts.media.detail.outdated

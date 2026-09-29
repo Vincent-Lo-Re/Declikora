@@ -80,7 +80,7 @@ export function filterTrash(
 
 /** Le nom affiché d'un élément (un contenu sans titre : « Sans titre »). */
 export function trashTitle(item: TrashItem): string {
-  return item.title?.trim() || texts.trash.untitled
+  return item.title?.trim() || texts.common.untitled
 }
 
 /** Le type affiché : « Fichier · Image », « Page », « Leçon »… */

@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
+import { LoadState } from "@/components/load-state"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TemplateDialog } from "@/components/templates/template-dialog"
@@ -42,7 +43,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
@@ -144,22 +144,12 @@ export function TemplatesPage() {
       />
 
       {list.data === undefined ? (
-        list.isError ? (
-          <div className="space-y-3">
-            <p role="alert" className="text-sm text-destructive">
-              {labels.loadFailed} {list.error.message}
-            </p>
-            <Button variant="outline" onClick={() => list.refetch()}>
-              {labels.retry}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {Array.from({ length: 3 }, (_, index) => (
-              <Skeleton key={index} className="h-12 w-full" />
-            ))}
-          </div>
-        )
+        <LoadState
+          query={list}
+          failed={labels.loadFailed}
+          rows={3}
+          rowClassName="h-12 w-full"
+        />
       ) : list.data.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>
@@ -266,7 +256,7 @@ function SortSection({
               <TableHead>{labels.columns.savedAt}</TableHead>
               <TableHead>{labels.columns.status}</TableHead>
               <TableHead className="w-0">
-                <span className="sr-only">{labels.columns.actions}</span>
+                <span className="sr-only">{texts.common.actions}</span>
               </TableHead>
             </TableRow>
           </TableHeader>

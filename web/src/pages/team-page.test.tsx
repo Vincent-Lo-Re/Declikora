@@ -153,7 +153,9 @@ describe("Équipe", () => {
     expect(
       await screen.findByText(texts.team.loadFailed, { exact: false })
     ).toBeVisible()
-    expect(screen.getByRole("button", { name: texts.team.retry })).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: texts.common.retry })
+    ).toBeVisible()
   })
 
   it("relit sa fiche quand la fonction répond « réservé aux admins »", async () => {

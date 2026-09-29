@@ -17,7 +17,7 @@ export function UsesList({
       <p className="text-sm font-medium">{title}</p>
       <ul className="max-h-48 space-y-1 overflow-y-auto text-sm">
         {uses.map((use) => {
-          const name = use.title.trim() || texts.contentList.untitled
+          const name = use.title.trim() || texts.common.untitled
           const path = use.inTrash ? null : contentEditorPath(use.kind, use.id)
           return (
             <li key={use.id} data-template-use={use.id}>
