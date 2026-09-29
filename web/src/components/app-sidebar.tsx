@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from "react-router"
 
-import { InitialsIcon } from "@/components/initials-icon"
+import { InitialIcon } from "@/components/initial-icon"
 import {
   Sidebar,
   SidebarContent,
@@ -15,7 +15,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/auth/auth-context"
-import { initials } from "@/lib/initials"
+import { initial } from "@/lib/initial"
 import {
   adminOnlySections,
   isInSection,
@@ -103,9 +103,9 @@ function MenuItems({ sectionKeys }: { sectionKeys: SectionKey[] }) {
   )
 }
 
-/** « Mon compte » : les initiales du membre, dessinées comme une icône. */
+/** « Mon compte » : l'initiale du prénom du membre, dessinée comme une icône. */
 function ProfileAvatar() {
   const { profile } = useAuth()
   if (!profile) return null
-  return <InitialsIcon letters={initials(profile.full_name, profile.email)} />
+  return <InitialIcon letter={initial(profile.full_name, profile.email)} />
 }
