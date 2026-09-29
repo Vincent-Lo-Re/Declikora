@@ -1,0 +1,59 @@
+# Sauvegarde de la base en ligne, chaque semaine (l'offre gratuite de Supabase n'en fait pas).
+# Elle ne tourne que depuis main : chaque lundi à 03:30 GMT, ou à la main (Actions › « Sauvegarde
+# de la base » › Run workflow).
+#
+# Ce qui est gardé, en fichiers SQL et CSV, dans un « artifact » du dépôt (privé) pendant 90 jours :
+# - roles.sql, structure.sql : rôles et structure des schémas du projet (public, private…) ;
+# - donnees.sql : les données de ces schémas (contenus, brouillons, versions, fichiers de la
+#   médiathèque tels que la base les décrit, formules, catégories, équipe…) ;
+# - comptes.csv : les comptes (identifiant, e-mail, rôle posé par invitation), sans aucun secret
+#   (ni jeton, ni double vérification).
+# Les fichiers eux-mêmes (photos, audios) ne sont pas dedans : ils restent dans le stockage de
+# Supabase.
+#
+# Secret à créer une fois (Settings › Secrets and variables › Actions) : SUPABASE_DB_URL, la chaîne
+# de connexion « Session pooler » du projet (Supabase › Connect), mot de passe compris. Personne
+# d'autre que le dépôt ne la voit ; les journaux la masquent.
+name: Sauvegarde de la base
+
+on:
+  schedule:
+    - cron: "30 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sauvegarde
+  cancel-in-progress: false
+
+jobs:
+  sauvegarde:
+    name: Sauvegarde
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.118.0
+      - name: Copie de la base
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Le secret SUPABASE_DB_URL n'est pas créé (voir l'en-tête de ce fichier)."
+            exit 1
+          fi
+          mkdir -p sauvegarde
+          supabase db dump --db-url "$SUPABASE_DB_URL" --role-only -f sauvegarde/roles.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f sauvegarde/structure.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only --use-copy --schema public,private -f sauvegarde/donnees.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "\copy (select id, email, raw_app_meta_data ->> 'role' as role, created_at, email_confirmed_at from auth.users order by created_at) to 'sauvegarde/comptes.csv' with (format csv, header)"
+          ls -la sauvegarde
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sauvegarde-${{ github.run_number }}
+          path: sauvegarde/
+          retention-days: 90
+          if-no-files-found: error
