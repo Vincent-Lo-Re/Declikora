@@ -9,6 +9,7 @@
 - **Une branche par chantier**, jamais de travail directement sur `main`. Chaque chantier passe par une demande de fusion, fusionnée en un seul commit (`gh pr merge --squash`) : son titre et sa description doivent donc être soignés.
 - **Essai en local d'abord** : l'utilisateur essaie la modification sur l'admin locale (Supabase local et `npm run dev`). On ne la fusionne qu'après son accord.
 - **Garde-fous au vert avant toute fusion** : « Administration », « Base de données », « Fonctions serveur » et « Parcours ».
+- **Une fusion à la fois** : on attend que la précédente soit en ligne avant de fusionner la suivante. Sur `main`, les garde-fous ne s'arrêtent jamais l'un l'autre (`.github/workflows/garde-fous.yml`) : Vercel ne met une fusion en ligne que si ses propres garde-fous sont verts.
 - **Décisions par QCM**, puis écrites dans `docs/`. On emploie des mots courants, et rien de l'ancien projet (`declikora-project`) n'est repris sans être redécidé.
 - **Offres gratuites** tant qu'aucun abonnement n'a été décidé.
 - **Mise en production de la base et des fonctions** : c'est l'utilisateur qui lance les commandes, depuis `~/Projets/Declikora-deploiement`, dans l'ordre `config push`, `db push`, `functions deploy`. Une étape n'est fusionnée que lorsque la précédente est en ligne.

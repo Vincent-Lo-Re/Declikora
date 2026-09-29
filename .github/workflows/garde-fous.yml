@@ -6,9 +6,14 @@ on:
   push:
     branches: [main]
 
+# Une demande de fusion ne garde que ses dernières vérifications : un nouvel envoi arrête les
+# précédentes. Sur main, on n'arrête jamais une série en cours : Vercel ne met une fusion en
+# ligne que si ses propres garde-fous sont verts, et une série arrêtée bloquerait sa mise en
+# ligne (arrivé le 28/09/2026 avec deux fusions à quelques secondes d'écart). Les séries de main
+# passent alors l'une après l'autre.
 concurrency:
   group: garde-fous-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
