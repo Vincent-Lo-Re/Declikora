@@ -17,6 +17,7 @@ import {
   waitForNewEmail,
 } from "./support/mailpit.ts"
 import {
+  accountMenuButton,
   bottomMenu,
   expect,
   signIn,
@@ -75,9 +76,7 @@ test("un admin invite un éditeur, qui rejoint l'équipe sans voir Équipe", asy
     editorPage.getByRole("heading", { name: texts.sections.home.title })
   ).toBeVisible()
   const editorMenu = bottomMenu(editorPage)
-  await expect(
-    editorMenu.getByRole("link", { name: texts.sections.account.title })
-  ).toBeVisible()
+  await expect(accountMenuButton(editorPage)).toBeVisible()
   await expect(
     editorMenu.getByRole("link", { name: texts.sections.team.title })
   ).toHaveCount(0)

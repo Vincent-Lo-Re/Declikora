@@ -20,6 +20,7 @@ import type { Page } from "@playwright/test"
 import { texts } from "../src/texts.ts"
 import type { Account } from "./support/accounts.ts"
 import {
+  accountMenuButton,
   bottomMenu,
   createBlankPage,
   expect,
@@ -611,11 +612,7 @@ test("formules d'abonnement : réservées aux admins ; ajouter, ranger au clavie
       editorPage.getByRole("heading", { name: texts.adminOnly.title })
     ).toBeVisible()
     await expect(editorPage.getByLabel(settings.name)).toHaveCount(0)
-    await expect(
-      bottomMenu(editorPage).getByRole("link", {
-        name: texts.sections.account.title,
-      })
-    ).toBeVisible()
+    await expect(accountMenuButton(editorPage)).toBeVisible()
     await expect(
       bottomMenu(editorPage).getByRole("link", {
         name: texts.sections.settings.title,

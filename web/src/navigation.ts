@@ -56,7 +56,7 @@ export const menu = {
       items: ["templates", "media", "trash"],
     },
   ],
-  bottom: ["team", "settings", "account"],
+  bottom: ["team", "settings"],
 } satisfies {
   top: SectionKey[]
   groups: { label: string; items: SectionKey[] }[]

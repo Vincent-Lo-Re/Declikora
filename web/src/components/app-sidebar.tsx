@@ -1,6 +1,5 @@
 import { NavLink, useLocation } from "react-router"
 
-import { InitialIcon } from "@/components/initial-icon"
 import {
   Sidebar,
   SidebarContent,
@@ -15,7 +14,6 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/auth/auth-context"
-import { initial } from "@/lib/initial"
 import {
   adminOnlySections,
   isInSection,
@@ -67,11 +65,14 @@ export function AppSidebar() {
         </nav>
       </SidebarContent>
 
-      <SidebarFooter>
-        <nav aria-label={texts.nav.footerLabel}>
-          <MenuItems sectionKeys={bottom} />
-        </nav>
-      </SidebarFooter>
+      {/* Équipe et Paramètres (admins). « Mon compte » est dans le menu de l'avatar, en haut. */}
+      {bottom.length > 0 && (
+        <SidebarFooter>
+          <nav aria-label={texts.nav.footerLabel}>
+            <MenuItems sectionKeys={bottom} />
+          </nav>
+        </SidebarFooter>
+      )}
 
       <SidebarRail />
     </Sidebar>
@@ -93,7 +94,7 @@ function MenuItems({ sectionKeys }: { sectionKeys: SectionKey[] }) {
               isActive={isInSection(path, pathname)}
               tooltip={title}
             >
-              {key === "account" ? <ProfileAvatar /> : <Icon />}
+              <Icon />
               <span>{title}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -101,11 +102,4 @@ function MenuItems({ sectionKeys }: { sectionKeys: SectionKey[] }) {
       })}
     </SidebarMenu>
   )
-}
-
-/** « Mon compte » : l'initiale du prénom du membre, dessinée comme une icône. */
-function ProfileAvatar() {
-  const { profile } = useAuth()
-  if (!profile) return null
-  return <InitialIcon letter={initial(profile.full_name, profile.email)} />
 }

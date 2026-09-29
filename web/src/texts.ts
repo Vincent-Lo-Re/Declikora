@@ -2123,6 +2123,11 @@ export const texts = {
     },
   },
 
+  // Menu de l'avatar, en haut à droite de chaque page.
+  accountMenu: {
+    open: "Menu de ton compte",
+  },
+
   theme: {
     title: "Thème",
     description: "Clair, sombre, ou automatique pour suivre l'ordinateur.",
