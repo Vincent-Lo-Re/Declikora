@@ -13,6 +13,7 @@
 - **Décisions par QCM**, puis écrites dans `docs/`. On emploie des mots courants, et rien de l'ancien projet (`declikora-project`) n'est repris sans être redécidé.
 - **Offres gratuites** tant qu'aucun abonnement n'a été décidé.
 - **Mise en production de la base et des fonctions** : c'est l'utilisateur qui lance les commandes, depuis `~/Projets/Declikora-deploiement`, dans l'ordre `config push`, `db push`, `functions deploy`. Une étape n'est fusionnée que lorsque la précédente est en ligne.
+- **La base avant l'admin** : un changement qui a besoin d'une migration (ou d'une fonction serveur) se fusionne en deux fois. D'abord une demande de fusion avec la migration seule, sans rien changer à l'admin, puis `db push` (ou `functions deploy`). Ensuite seulement, la demande de fusion de l'admin qui s'en sert. Vercel met l'admin en ligne dès que les garde-fous de `main` sont verts : sans cet ordre, l'admin en ligne appelle une base qui n'est pas prête (arrivé le 29/09/2026 avec la Médiathèque).
 
 ## 2. Interface (React, shadcn/ui, Tailwind CSS)
 
