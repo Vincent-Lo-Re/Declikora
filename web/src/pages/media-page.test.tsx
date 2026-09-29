@@ -206,7 +206,16 @@ describe("Médiathèque", () => {
     renderApp("/mediatheque")
     await screen.findByText(photo.name)
 
-    fireEvent.click(screen.getByRole("button", { name: texts.media.view.list }))
+    // Une icône seule : son nom s'affiche dans une infobulle au survol.
+    const listButton = screen.getByRole("button", {
+      name: texts.media.view.list,
+    })
+    expect(listButton).toHaveTextContent("")
+    fireEvent.pointerEnter(listButton, { pointerType: "mouse" })
+    fireEvent.mouseEnter(listButton)
+    expect(await screen.findByText(texts.media.view.list)).toBeVisible()
+
+    fireEvent.click(listButton)
 
     const row = screen.getByRole("row", { name: new RegExp(voice.name) })
     expect(within(row).getByText("3 min 05 s")).toBeVisible()

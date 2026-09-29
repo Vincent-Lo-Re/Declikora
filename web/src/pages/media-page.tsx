@@ -75,6 +75,11 @@ type View = "grid" | "list"
 
 const viewStorageKey = "declikora:mediatheque:affichage"
 
+const viewChoices: { value: View; Icon: typeof LayoutGrid }[] = [
+  { value: "grid", Icon: LayoutGrid },
+  { value: "list", Icon: List },
+]
+
 // « /mediatheque?fichier=<id> » ouvre la fiche de ce fichier (lien depuis l'éditeur : la
 // transcription d'un audio, le texte alternatif d'une image de présentation).
 const FILE_PARAM = "fichier"
@@ -440,12 +445,22 @@ export function MediaPage() {
             }
           }}
         >
-          <ToggleGroupItem value="grid" aria-label={texts.media.view.grid}>
-            <LayoutGrid />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="list" aria-label={texts.media.view.list}>
-            <List />
-          </ToggleGroupItem>
+          {/* Comme les filtres de type : une icône, son nom dans une infobulle. */}
+          {viewChoices.map(({ value, Icon }) => (
+            <Tooltip key={value}>
+              <TooltipTrigger
+                render={
+                  <ToggleGroupItem
+                    value={value}
+                    aria-label={texts.media.view[value]}
+                  />
+                }
+              >
+                <Icon />
+              </TooltipTrigger>
+              <TooltipContent>{texts.media.view[value]}</TooltipContent>
+            </Tooltip>
+          ))}
         </ToggleGroup>
       </div>
 
