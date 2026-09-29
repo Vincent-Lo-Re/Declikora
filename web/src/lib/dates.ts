@@ -39,7 +39,7 @@ const partsFormat = new Intl.DateTimeFormat("en-GB", {
 })
 
 /** Jour et heure à Paris : { date: "2026-10-25", time: "02:30" } (formats des champs HTML). */
-export type ParisParts = { date: string; time: string }
+type ParisParts = { date: string; time: string }
 
 export function toParisParts(instant: Date): ParisParts {
   const parts: Record<string, string> = {}
@@ -52,7 +52,7 @@ export function toParisParts(instant: Date): ParisParts {
   }
 }
 
-export type ParisInstant =
+type ParisInstant =
   // ambiguous : l'heure existe deux fois (retour à l'heure d'hiver, fin octobre) ; c'est la
   // première, encore en heure d'été, qui est retenue.
   | { ok: true; instant: Date; ambiguous: boolean }

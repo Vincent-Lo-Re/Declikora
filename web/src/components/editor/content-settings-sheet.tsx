@@ -32,7 +32,7 @@ import { texts } from "@/texts"
 const labels = texts.publication.settings
 
 /** Les catégories de la section d'un article ou d'un épisode, telles que l'éditeur les lit. */
-export type SectionCategories = {
+type SectionCategories = {
   section: CategorySection
   // undefined tant qu'elles ne sont pas lues.
   list: Category[] | undefined

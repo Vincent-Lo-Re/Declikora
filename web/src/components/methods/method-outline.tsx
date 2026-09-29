@@ -127,6 +127,7 @@ import {
 } from "@/lib/contents/publication"
 import { templateKeys } from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
+import { errorMessage } from "@/lib/errors"
 import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
 import type { OutlineElementValues } from "@/lib/schemas"
 import { contentEditorPath } from "@/navigation"
@@ -477,9 +478,7 @@ export function MethodOutline({
       await restoreContent(element.id)
       toast.success(labels.restored(label))
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : texts.common.unexpected
-      )
+      toast.error(errorMessage(error))
     } finally {
       forgetDetails(element)
       await refresh()

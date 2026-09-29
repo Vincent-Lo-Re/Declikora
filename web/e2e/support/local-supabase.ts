@@ -6,7 +6,7 @@
 import { execFileSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 
-export type LocalSupabase = {
+type LocalSupabase = {
   apiUrl: string
   publishableKey: string
   secretKey: string

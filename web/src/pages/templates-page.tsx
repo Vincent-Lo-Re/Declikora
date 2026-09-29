@@ -66,6 +66,7 @@ import {
   type TemplateSort,
 } from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
+import { errorMessage } from "@/lib/errors"
 import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
 import { editorPath } from "@/navigation"
 import { texts } from "@/texts"
@@ -389,9 +390,7 @@ function TrashTemplateDialog({
       await restoreContent(template.id)
       toast.success(labels.restored(name))
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : texts.common.unexpected
-      )
+      toast.error(errorMessage(error))
     } finally {
       await refresh()
     }

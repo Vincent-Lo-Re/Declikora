@@ -24,7 +24,7 @@ export function zoneId(boxId: string): string {
   return `${ZONE_PREFIX}${boxId}`
 }
 
-export function boxOfZone(id: UniqueIdentifier): string | null {
+function boxOfZone(id: UniqueIdentifier): string | null {
   const value = String(id)
   return value.startsWith(ZONE_PREFIX) ? value.slice(ZONE_PREFIX.length) : null
 }

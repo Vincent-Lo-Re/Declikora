@@ -124,7 +124,7 @@ async function withMethodTitles(rows: Row[]): Promise<HomeItem[]> {
 }
 
 // Combien de brouillons récents l'Accueil montre.
-export const RECENT_DRAFTS = 8
+const RECENT_DRAFTS = 8
 
 /**
  * Mes brouillons récents : les contenus que j'ai enregistrés en dernier (hors corbeille). Les

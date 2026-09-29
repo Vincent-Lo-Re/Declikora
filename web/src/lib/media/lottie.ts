@@ -5,7 +5,7 @@
 export type LottieReason =
   "lottie_illisible" | "lottie_invalide" | "lottie_lien_externe"
 
-export type LottieCheck =
+type LottieCheck =
   | { ok: true; width: number; height: number }
   | { ok: false; reason: LottieReason }
 

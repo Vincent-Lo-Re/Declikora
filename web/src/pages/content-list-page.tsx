@@ -105,6 +105,7 @@ import { listStarters, templateKeys } from "@/lib/contents/templates"
 import { useCategories } from "@/hooks/use-categories"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { formatDateTime } from "@/lib/dates"
+import { errorMessage } from "@/lib/errors"
 import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
 import { categoriesPath, editorPath, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
@@ -112,7 +113,7 @@ import { texts } from "@/texts"
 const labels = texts.contentList
 
 /** Les sortes de contenu qui ont une liste. */
-export type ListKind = "page" | "article" | "episode" | "method"
+type ListKind = "page" | "article" | "episode" | "method"
 
 /**
  * Liste des contenus d'une section (Pages, Blog, Podcasts, Méthodes) : recherche, filtres par
@@ -217,9 +218,7 @@ export function ContentListPage({
         toast.warning(texts.trash.restoredWithoutAddress(name))
       else toast.success(kindLabels.restored(name))
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : texts.common.unexpected
-      )
+      toast.error(errorMessage(error))
     } finally {
       await refresh()
     }

@@ -209,7 +209,7 @@ export async function listStarters(
 }
 
 /** Un contenu en ligne dont la copie d'un bloc identique partout n'est plus à jour. */
-export type TemplateOutdatedItem = {
+type TemplateOutdatedItem = {
   content_id: string
   kind: ContentKind
   title: string | null

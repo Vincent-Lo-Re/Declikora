@@ -27,7 +27,7 @@ import { getUploadQueue, type UploadQueue } from "@/lib/media/upload-queue"
 import { texts } from "@/texts"
 
 // Ce que l'on choisit : une image (bloc Image, image de présentation) ou un audio (épisode).
-export type PickerKind = "image" | "audio"
+type PickerKind = "image" | "audio"
 
 const pickerLabels = {
   image: texts.editor.picker,
@@ -164,7 +164,7 @@ function PickerBody({
           {debounced.trim() ? labels.noResults : labels.empty}
         </p>
       ) : kind === "audio" ? (
-        <ul className="max-h-[60vh] space-y-2 overflow-y-auto p-0.5">
+        <ul className="max-h-picker space-y-2 overflow-y-auto p-0.5">
           {ready.map((item) => (
             <li key={item.id}>
               <button
@@ -193,7 +193,7 @@ function PickerBody({
           ))}
         </ul>
       ) : (
-        <ul className="grid max-h-[60vh] grid-cols-4 gap-3 overflow-y-auto p-0.5">
+        <ul className="grid max-h-picker grid-cols-4 gap-3 overflow-y-auto p-0.5">
           {ready.map((item) => (
             <li key={item.id}>
               <button

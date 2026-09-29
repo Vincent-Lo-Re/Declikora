@@ -14,7 +14,7 @@ export type Encoder = (
   quality: number
 ) => Promise<Blob>
 
-export type ReducedImage = { blob: Blob; width: number; height: number }
+type ReducedImage = { blob: Blob; width: number; height: number }
 
 // Qualités essayées pour chaque taille, puis on réduit la taille.
 const qualities = [0.85, 0.72, 0.6]

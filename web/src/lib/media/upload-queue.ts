@@ -20,7 +20,7 @@ type Entry = {
   controller: AbortController | null
 }
 
-export type UploadQueueOptions = {
+type UploadQueueOptions = {
   runner?: UploadRunner
   concurrency?: number
   // Abandon d'une ligne « pending » (envoi annulé ou retiré après un échec).

@@ -14,7 +14,7 @@ import { texts } from "@/texts"
 // Erreurs
 // ---------------------------------------------------------------------------------------------
 
-export type ContentErrorCode = keyof typeof texts.editor.errors
+type ContentErrorCode = keyof typeof texts.editor.errors
 
 function isContentErrorCode(code: unknown): code is ContentErrorCode {
   return typeof code === "string" && Object.hasOwn(texts.editor.errors, code)
@@ -77,7 +77,7 @@ export function toContentError(
 }
 
 /** Le message d'un code d'erreur de la base (texts.editor.errors), ou le message générique. */
-export function contentErrorText(code: string): string {
+function contentErrorText(code: string): string {
   return isContentErrorCode(code)
     ? texts.editor.errors[code]
     : texts.common.unexpected

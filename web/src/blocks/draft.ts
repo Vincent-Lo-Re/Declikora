@@ -32,7 +32,7 @@ export function newId(): string {
   return crypto.randomUUID()
 }
 
-export const emptyTextDoc = (): Doc => ({
+const emptyTextDoc = (): Doc => ({
   type: "doc",
   content: [{ type: "paragraph" }],
 })
@@ -234,7 +234,7 @@ export function draftBytes(draft: Draft): number {
   return new TextEncoder().encode(JSON.stringify(draft)).length
 }
 
-export type PreparedDraft =
+type PreparedDraft =
   | { ok: true; draft: Draft; bytes: number }
   | { ok: false; reason: "too_large"; bytes: number }
   | { ok: false; reason: "invalid"; position: number | null; path: string }

@@ -23,7 +23,7 @@ export type SvgReason =
   | "svg_attribut_interdit"
   | "svg_lien_externe"
 
-export type SvgCheck = { ok: true } | { ok: false; reason: SvgReason }
+type SvgCheck = { ok: true } | { ok: false; reason: SvgReason }
 
 export class SvgError extends Error {
   readonly reason: SvgReason
@@ -365,7 +365,7 @@ function readDimensions(svg: Element): {
   return { width: null, height: null }
 }
 
-export type CleanSvg = {
+type CleanSvg = {
   markup: string
   width: number | null
   height: number | null

@@ -111,6 +111,11 @@
   grid-template-columns: repeat(auto-fill, minmax(--spacing(44), 1fr));
 }
 
+/* Liste qui défile dans une fenêtre de choix (image, audio, modèle) : trois cinquièmes de l'écran. */
+@utility max-h-picker {
+  max-height: 60vh;
+}
+
 /*
  * Fenêtre des envois (web/src/components/media/upload-window.tsx) : tant qu'elle est ouverte,
  * elle pose data-upload-window et sa hauteur (--upload-window-height) sur <html>. La place à

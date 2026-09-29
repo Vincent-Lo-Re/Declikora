@@ -28,7 +28,7 @@ export type AutosaveState = {
   error: ContentError | null
 }
 
-export type AutosaveOptions<T> = {
+type AutosaveOptions<T> = {
   save: (value: T, baseRev: number) => Promise<SavedDraft>
   rev: number
   savedAt: string | null
@@ -40,9 +40,9 @@ export type AutosaveOptions<T> = {
   onStopped?: (error: ContentError) => void
 }
 
-export const AUTOSAVE_DEBOUNCE_MS = 1500
-export const AUTOSAVE_MAX_WAIT_MS = 10_000
-export const AUTOSAVE_RETRY_DELAYS_MS = [2000, 4000, 8000, 15_000, 30_000]
+const AUTOSAVE_DEBOUNCE_MS = 1500
+const AUTOSAVE_MAX_WAIT_MS = 10_000
+const AUTOSAVE_RETRY_DELAYS_MS = [2000, 4000, 8000, 15_000, 30_000]
 
 // Erreurs après lesquelles plus aucun enregistrement n'a de sens.
 const STOPPING_CODES = new Set([

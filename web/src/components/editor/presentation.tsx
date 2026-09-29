@@ -258,7 +258,7 @@ export function AudioPreview({
  * alternatif d'une image ([D15]). Le lien ouvre sa fiche dans la Médiathèque, dans un nouvel
  * onglet (l'éditeur reste ouvert).
  */
-export function TranscriptWarning({ mediaId }: { mediaId: string }) {
+function TranscriptWarning({ mediaId }: { mediaId: string }) {
   return (
     <div className="space-y-1 text-xs text-warning" data-warning="transcript">
       <p className="flex items-start gap-1.5">

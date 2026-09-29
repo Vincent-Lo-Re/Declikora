@@ -42,10 +42,10 @@ export type LockState = {
   mineSince: number | null
 }
 
-export const LOCK_TTL_MS = 90_000
-export const HEARTBEAT_MS = 20_000
-export const POLL_MS = 30_000
-export const HIDDEN_RELEASE_MS = 30 * 60 * 1000
+const LOCK_TTL_MS = 90_000
+const HEARTBEAT_MS = 20_000
+const POLL_MS = 30_000
+const HIDDEN_RELEASE_MS = 30 * 60 * 1000
 
 export const initialLockState: LockState = {
   phase: "taking",
@@ -57,7 +57,7 @@ export const initialLockState: LockState = {
   mineSince: null,
 }
 
-export type LockEvent =
+type LockEvent =
   | { type: "taking" }
   // source : la réponse d'une prise de main (lock_take) ou d'une relecture (lock_status).
   | { type: "row"; row: LockRow; source: "take" | "status" }
@@ -189,7 +189,7 @@ export type LockApi = {
   ) => () => void
 }
 
-export type EditLockOptions = {
+type EditLockOptions = {
   api: LockApi
   myId: string
   // L'ouverture de l'éditeur (la même que celle passée à l'api).

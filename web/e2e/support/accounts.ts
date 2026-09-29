@@ -7,7 +7,7 @@ import { localSupabase } from "./local-supabase.ts"
 import { deleteMediaOf } from "./media.ts"
 
 // Toutes les adresses de test finissent ainsi : on les reconnaît au nettoyage.
-export const testDomain = "e2e.exemple.test"
+const testDomain = "e2e.exemple.test"
 
 export type Account = {
   email: string

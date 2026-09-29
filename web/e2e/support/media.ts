@@ -108,7 +108,7 @@ function database() {
   return postgres(localSupabase().dbUrl, { max: 1, onnotice: () => {} })
 }
 
-export type MediaRow = {
+type MediaRow = {
   id: string
   name: string
   path: string

@@ -72,10 +72,7 @@ export function itemStatus(
 }
 
 /** Vrai si l'état de publication correspond au filtre. */
-export function matchesState(
-  status: PublicationStatus,
-  filter: StateFilter
-): boolean {
+function matchesState(status: PublicationStatus, filter: StateFilter): boolean {
   switch (filter) {
     case "all":
       return true

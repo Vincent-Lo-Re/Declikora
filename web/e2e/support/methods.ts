@@ -10,7 +10,7 @@ function database() {
 }
 
 /** Une leçon d'une méthode en ligne, telle que l'app la reçoit. */
-export type AppLesson = {
+type AppLesson = {
   id: string
   versionId: string
   title: string
@@ -20,7 +20,7 @@ export type AppLesson = {
 }
 
 /** Une méthode en ligne, telle que l'app la reçoit (null si elle ne l'est pas). */
-export type AppMethod = {
+type AppMethod = {
   id: string
   versionId: string
   title: string

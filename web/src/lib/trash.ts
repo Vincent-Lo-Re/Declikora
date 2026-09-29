@@ -5,7 +5,7 @@ import { isMediaKind } from "@/lib/media/constants"
 import { texts } from "@/texts"
 
 // Filtre par type : les chapitres et les leçons sont rangés avec les méthodes.
-export const trashFilterOrder = [
+const trashFilterOrder = [
   "page",
   "article",
   "episode",
@@ -18,7 +18,7 @@ export type TrashType = (typeof trashFilterOrder)[number]
 export type TrashFilter = "all" | TrashType
 
 /** Le type d'un élément pour le filtre. */
-export function trashTypeOf(item: TrashItem): TrashType {
+function trashTypeOf(item: TrashItem): TrashType {
   if (item.item_type === "file") return "file"
   switch (item.kind) {
     case "chapter":

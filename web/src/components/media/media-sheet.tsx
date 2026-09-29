@@ -38,6 +38,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { contentKeys } from "@/lib/contents/api"
 import { formatDateTime } from "@/lib/dates"
+import { errorMessage } from "@/lib/errors"
 import {
   getMediaOutdated,
   getMediaUses,
@@ -584,9 +585,7 @@ function TrashButton({
       await restoreMedia(media.id)
       toast.success(texts.media.detail.restored)
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : texts.common.unexpected
-      )
+      toast.error(errorMessage(error))
     } finally {
       await refresh()
     }

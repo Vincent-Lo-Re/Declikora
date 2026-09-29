@@ -99,7 +99,7 @@ export function rootInsertIndex(
 }
 
 /** Ce qu'un modèle peut devenir dans un contenu. */
-export type TemplateToInsert = {
+type TemplateToInsert = {
   id: string
   sort: "style" | "shared" | "starter"
   draft: Pick<Draft, "blocks">

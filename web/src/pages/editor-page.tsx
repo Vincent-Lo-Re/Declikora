@@ -200,6 +200,7 @@ import {
   type LinkedTemplate,
   type TemplateItem,
 } from "@/lib/contents/templates"
+import { errorMessage } from "@/lib/errors"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
 import type { TemplateValues } from "@/lib/schemas"
@@ -1209,9 +1210,7 @@ function ContentEditor({
       }
     } catch (error) {
       checkAccess(error)
-      toast.error(
-        error instanceof Error ? error.message : texts.common.unexpected
-      )
+      toast.error(errorMessage(error))
       if (error instanceof ContentError && error.code === "verrou_perdu") {
         notifyLost()
       }

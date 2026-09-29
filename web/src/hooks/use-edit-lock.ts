@@ -17,7 +17,7 @@ import {
 } from "@/lib/contents/api"
 import { EditLockController, type LockApi } from "@/lib/editor/edit-lock"
 
-export function lockApiFor(contentId: string, session: string): LockApi {
+function lockApiFor(contentId: string, session: string): LockApi {
   return {
     take: (force) => lockTake(contentId, force, session),
     status: () => lockStatus(contentId, session),

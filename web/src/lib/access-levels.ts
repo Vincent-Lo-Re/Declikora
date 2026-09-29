@@ -12,8 +12,7 @@ export type AccessLevel = { id: string; name: string; rank: number }
 
 export const accessLevelsKey = ["access-levels"] as const
 
-export type AccessLevelErrorCode =
-  keyof typeof texts.settings.accessLevels.errors
+type AccessLevelErrorCode = keyof typeof texts.settings.accessLevels.errors
 
 /** Erreur de la base sur une formule, avec son code (s'il est connu). */
 export class AccessLevelError extends Error {
@@ -28,7 +27,7 @@ export class AccessLevelError extends Error {
   }
 }
 
-export function toAccessLevelError(error: PostgrestError): AccessLevelError {
+function toAccessLevelError(error: PostgrestError): AccessLevelError {
   const known = texts.settings.accessLevels.errors
   if (Object.hasOwn(known, error.message)) {
     return new AccessLevelError(error.message as AccessLevelErrorCode)

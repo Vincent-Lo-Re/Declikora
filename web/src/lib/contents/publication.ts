@@ -184,7 +184,7 @@ export function scheduleErrorText(code: string): string {
 // Écriture
 // ---------------------------------------------------------------------------------------------
 
-export type Published = {
+type Published = {
   versionId: string
   versionNumber: number
   publishedAt: string
@@ -243,9 +243,9 @@ export async function unscheduleContent(contentId: string): Promise<boolean> {
   return data
 }
 
-export type RevertWarning = keyof typeof texts.publication.history.warnings
+type RevertWarning = keyof typeof texts.publication.history.warnings
 
-export type Reverted = SavedDraft & { warnings: RevertWarning[] }
+type Reverted = SavedDraft & { warnings: RevertWarning[] }
 
 /** Recopie une version dans le brouillon (il faut tenir le verrou depuis cette ouverture). */
 export async function revertToVersion(
@@ -269,7 +269,7 @@ export async function revertToVersion(
   }
 }
 
-export type Trashed = {
+type Trashed = {
   batch: string
   trashed: number
   needsFileSync: boolean
@@ -288,7 +288,7 @@ export async function trashContent(contentId: string): Promise<Trashed> {
   }
 }
 
-export type Restored = { restored: number; addressRemoved: boolean }
+type Restored = { restored: number; addressRemoved: boolean }
 
 /** Restaure un contenu (et tout son lot) en brouillon, sans le republier ([D18]). */
 export async function restoreContent(contentId: string): Promise<Restored> {

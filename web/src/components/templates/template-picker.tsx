@@ -84,7 +84,7 @@ export function TemplatePicker({
         ) : available.length === 0 ? (
           <p className="text-sm text-muted-foreground">{labels.empty}</p>
         ) : (
-          <div className="max-h-[60vh] space-y-5 overflow-y-auto">
+          <div className="max-h-picker space-y-5 overflow-y-auto">
             {insertableSorts.map((sort) => {
               const items = available.filter((item) => item.sort === sort)
               if (items.length === 0) return null

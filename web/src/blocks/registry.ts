@@ -10,7 +10,7 @@ import { texts } from "@/texts"
 
 export type InsertableType = "text" | "image" | "box"
 
-export type BlockDefinition = {
+type BlockDefinition = {
   type: InsertableType
   label: string
   icon: LucideIcon
