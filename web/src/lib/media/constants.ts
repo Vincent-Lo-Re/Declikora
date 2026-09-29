@@ -21,10 +21,16 @@ export type MediaMime =
   | "application/pdf"
 
 /** Une ligne de la médiathèque (table media), avec la sorte et l'état précisés. */
-export type Media = Omit<Tables<"media">, "kind" | "status" | "mime"> & {
+export type Media = Omit<
+  Tables<"media">,
+  "kind" | "status" | "mime" | "media_in_use"
+> & {
   kind: MediaKind
   status: MediaStatus
   mime: MediaMime
+  // Colonne calculée (fonction media_in_use) : lue par la liste seulement (listMedia). Absente
+  // ailleurs, et null hors de l'équipe.
+  media_in_use?: boolean | null
 }
 
 const MB = 1024 * 1024

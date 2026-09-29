@@ -6,6 +6,7 @@ import {
   Search,
   Trash2,
   TriangleAlert,
+  Unlink,
   Upload,
   UploadCloud,
 } from "lucide-react"
@@ -41,6 +42,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
+import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Tooltip,
@@ -139,6 +141,7 @@ export function MediaPage() {
   // Les envois se suivent dans la fenêtre des envois (UploadWindow, dans AppLayout).
   const queue = getUploadQueue()
   const [kind, setKind] = useState<MediaFilters["kind"]>("all")
+  const [unused, setUnused] = useState(false)
   const [search, setSearch] = useState("")
   const debouncedSearch = useDebouncedValue(search, 250)
   const [view, setView] = useState<View>(readView)
@@ -157,7 +160,7 @@ export function MediaPage() {
   const [kept, setKept] = useState<KeptMedia[]>([])
   const selectAll = useRef<HTMLSpanElement>(null)
 
-  const filters = { kind, search: debouncedSearch }
+  const filters: MediaFilters = { kind, search: debouncedSearch, unused }
   const media = useQuery({
     queryKey: mediaKeys.list(filters),
     queryFn: () => listMedia(filters),
@@ -262,7 +265,13 @@ export function MediaPage() {
     event.target.value = ""
   }
 
-  const filtering = debouncedSearch.trim() !== "" || kind !== "all"
+  const filtering = debouncedSearch.trim() !== "" || kind !== "all" || unused
+  // « Non utilisés » seul et rien à montrer : tout sert, ce n'est pas une recherche ratée.
+  const emptyText = !filtering
+    ? texts.media.empty
+    : unused && kind === "all" && debouncedSearch.trim() === ""
+      ? texts.media.noUnused
+      : texts.media.noResults
 
   const shownItems = media.data ?? []
   const selection = selectionOf(checkedIds, shownItems)
@@ -401,6 +410,22 @@ export function MediaPage() {
             )
           })}
         </ToggleGroup>
+        {/* Pour entretenir la médiathèque, avec la sélection en masse. */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Toggle
+                variant="outline"
+                aria-label={texts.media.filters.unused}
+                pressed={unused}
+                onPressedChange={setUnused}
+              />
+            }
+          >
+            <Unlink />
+          </TooltipTrigger>
+          <TooltipContent>{texts.media.filters.unused}</TooltipContent>
+        </Tooltip>
         <ToggleGroup
           variant="outline"
           className="ml-auto"
@@ -463,16 +488,8 @@ export function MediaPage() {
                 <EmptyMedia variant="icon">
                   {filtering ? <Search /> : <UploadCloud />}
                 </EmptyMedia>
-                <EmptyTitle>
-                  {filtering
-                    ? texts.media.noResults.title
-                    : texts.media.empty.title}
-                </EmptyTitle>
-                <EmptyDescription>
-                  {filtering
-                    ? texts.media.noResults.description
-                    : texts.media.empty.description}
-                </EmptyDescription>
+                <EmptyTitle>{emptyText.title}</EmptyTitle>
+                <EmptyDescription>{emptyText.description}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (

@@ -7,6 +7,7 @@ import {
   confirmMedia,
   emptyTrash,
   getPreviewUrls,
+  listMedia,
   MediaError,
   PREVIEW_REFRESH_MS,
   PREVIEW_URL_SECONDS,
@@ -165,5 +166,40 @@ describe("liens d'aperçu des fichiers protégés", () => {
     expect(created).toBeGreaterThanOrEqual(
       Math.floor((3 * 60 * 60) / PREVIEW_URL_SECONDS)
     )
+  })
+})
+
+describe("listMedia", () => {
+  /** Requête simulée : chaque appel est noté, et la réponse arrive à la fin de la chaîne. */
+  function recordQuery() {
+    const calls: [string, ...unknown[]][] = []
+    const query: Record<string, unknown> = {}
+    for (const method of ["select", "is", "order", "limit", "eq", "ilike"]) {
+      query[method] = (...args: unknown[]) => {
+        calls.push([method, ...args])
+        return query
+      }
+    }
+    query.then = (resolve: (value: unknown) => void) =>
+      resolve({ data: [], error: null })
+    vi.spyOn(supabase, "from").mockReturnValue(
+      query as unknown as ReturnType<typeof supabase.from>
+    )
+    return calls
+  }
+
+  it("lit la colonne calculée media_in_use pour le badge « Non utilisé »", async () => {
+    const calls = recordQuery()
+    await listMedia({ kind: "all", search: "", unused: false })
+    expect(calls).toContainEqual(["select", "*, media_in_use"])
+    expect(calls.some(([method]) => method === "eq")).toBe(false)
+  })
+
+  it("« Non utilisés » filtre dans la base, avec le type et la recherche", async () => {
+    const calls = recordQuery()
+    await listMedia({ kind: "image", search: "chat", unused: true })
+    expect(calls).toContainEqual(["eq", "kind", "image"])
+    expect(calls).toContainEqual(["eq", "media_in_use", false])
+    expect(calls).toContainEqual(["ilike", "name", "%chat%"])
   })
 })

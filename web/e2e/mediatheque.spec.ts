@@ -8,8 +8,8 @@
 // 2. Le même SVG piégé envoyé SANS passer par l'admin : la tâche planifiée « fichiers »
 //    (pg_net → files) le fait vérifier, le serveur le refuse, l'admin l'affiche.
 // 3. Les autres formats : GIF animé, animation Lottie, gros audio (envoi reprenable), PDF,
-//    format refusé ; filtres, recherche, mise à la corbeille en masse (cases à cocher) et
-//    effacement d'un seul élément.
+//    format refusé ; filtres, recherche, « Non utilisés », mise à la corbeille en masse (cases
+//    à cocher) et effacement d'un seul élément.
 
 import { readFileSync } from "node:fs"
 import type { Page } from "@playwright/test"
@@ -384,6 +384,17 @@ test("un membre envoie les autres formats, filtre, cherche, en met deux à la co
   await expect(card(page, names.audio)).toHaveCount(0)
   await page.getByLabel(texts.media.search).fill("")
   await expect(card(page, names.audio)).toBeVisible()
+
+  // Aucun de ces fichiers ne sert encore : badge « Non utilisé », et le filtre « Non utilisés »
+  // (colonne calculée par la base) les garde.
+  await expect(card(page, names.audio)).toContainText(texts.media.unused)
+  const unusedFilter = page.getByRole("button", {
+    name: texts.media.filters.unused,
+  })
+  await unusedFilter.click()
+  await expect(unusedFilter).toHaveAttribute("aria-pressed", "true")
+  await expect(card(page, names.audio)).toBeVisible()
+  await unusedFilter.click()
 
   // Sélection en masse : le GIF et l'animation partent ensemble à la corbeille.
   const selection = texts.media.selection

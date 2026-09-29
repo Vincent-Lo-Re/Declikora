@@ -312,7 +312,11 @@ export const texts = {
       lottie: "Animations",
       audio: "Audios",
       pdf: "PDF",
+      // Ni dans un brouillon ni dans une version en ligne : la règle de la corbeille.
+      unused: "Non utilisés",
     },
+    // Badge d'un fichier qui ne sert dans aucun contenu.
+    unused: "Non utilisé",
     kinds: {
       image: "Image",
       svg: "SVG",
@@ -414,6 +418,11 @@ export const texts = {
     noResults: {
       title: "Aucun fichier trouvé",
       description: "Essaie un autre nom ou un autre type.",
+    },
+    noUnused: {
+      title: "Tous les fichiers servent",
+      description:
+        "Aucun fichier non utilisé ici : chacun est dans un brouillon ou un contenu en ligne.",
     },
     tooMany: (count: number) =>
       `Seuls les ${count} fichiers les plus récents sont affichés. Affine ta recherche pour trouver les autres.`,

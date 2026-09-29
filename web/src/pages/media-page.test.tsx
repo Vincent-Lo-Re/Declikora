@@ -153,6 +153,7 @@ describe("Médiathèque", () => {
       expect(api.listMedia).toHaveBeenLastCalledWith({
         kind: "audio",
         search: "",
+        unused: false,
       })
     )
 
@@ -163,8 +164,42 @@ describe("Médiathèque", () => {
       expect(api.listMedia).toHaveBeenLastCalledWith({
         kind: "audio",
         search: "épisode",
+        unused: false,
       })
     )
+  })
+
+  it("« Non utilisés » : filtre dans la base et badge sur chaque fichier non utilisé", async () => {
+    vi.mocked(api.listMedia).mockResolvedValue([
+      { ...photo, media_in_use: true },
+      { ...voice, media_in_use: false },
+    ])
+    renderApp("/mediatheque")
+    await screen.findByText(photo.name)
+
+    // Le badge ne se montre que pour le fichier qui ne sert nulle part.
+    const unusedBadges = screen.getAllByText(texts.media.unused)
+    expect(unusedBadges).toHaveLength(1)
+    expect(
+      screen.getByRole("button", { name: texts.media.open(voice.name) })
+    ).toContainElement(unusedBadges[0])
+
+    vi.mocked(api.listMedia).mockResolvedValue([])
+    const toggle = screen.getByRole("button", {
+      name: texts.media.filters.unused,
+    })
+    expect(toggle).toHaveAttribute("aria-pressed", "false")
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute("aria-pressed", "true")
+    await waitFor(() =>
+      expect(api.listMedia).toHaveBeenLastCalledWith({
+        kind: "all",
+        search: "",
+        unused: true,
+      })
+    )
+    // Rien à montrer : tout sert, ce n'est pas une recherche ratée.
+    expect(await screen.findByText(texts.media.noUnused.title)).toBeVisible()
   })
 
   it("bascule en liste, avec poids, dimensions et durée", async () => {

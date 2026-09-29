@@ -4,6 +4,7 @@ import { rejectedText } from "@/components/media/media-kinds"
 import {
   MediaStatusBadge,
   MediaThumbnail,
+  MediaUnusedBadge,
 } from "@/components/media/media-visuals"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -104,7 +105,10 @@ export function MediaGrid({
                     {rejectedText(media)}
                   </p>
                 ) : (
-                  <MediaStatusBadge media={media} now={now} />
+                  <div className="flex flex-wrap gap-1.5">
+                    <MediaStatusBadge media={media} now={now} />
+                    <MediaUnusedBadge media={media} />
+                  </div>
                 )}
               </div>
             </button>
@@ -187,7 +191,10 @@ export function MediaTable({
                   {rejectedText(media)}
                 </span>
               ) : (
-                <MediaStatusBadge media={media} now={now} />
+                <div className="flex flex-wrap gap-1.5">
+                  <MediaStatusBadge media={media} now={now} />
+                  <MediaUnusedBadge media={media} />
+                </div>
               )}
             </TableCell>
           </TableRow>
