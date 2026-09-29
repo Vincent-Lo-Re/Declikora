@@ -1,12 +1,6 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["scripts/*.mjs"],
-  "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts", "scripts/**/*.mjs"],
-  "ignore": [
-    "src/blocks/generated/**",
-    "src/lib/database.types.ts",
-    "public/**",
-    "src/env.d.ts"
-  ],
-  "ignoreDependencies": ["@tiptap/pm", "tw-animate-css"]
+  "project": ["src/**/*.{ts,tsx,css}", "e2e/**/*.ts", "scripts/**/*.mjs"],
+  "ignore": ["src/blocks/generated/**", "src/lib/database.types.ts"]
 }

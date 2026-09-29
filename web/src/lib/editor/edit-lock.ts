@@ -20,7 +20,7 @@ import type {
   LockRow,
 } from "@/lib/contents/api"
 
-export type LockPhase =
+type LockPhase =
   | "taking" // lock_take en cours
   | "mine" // on tient le verrou : on écrit
   | "readonly" // quelqu'un d'autre écrit

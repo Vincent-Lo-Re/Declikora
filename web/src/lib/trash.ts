@@ -14,7 +14,7 @@ const trashFilterOrder = [
   "file",
 ] as const
 
-export type TrashType = (typeof trashFilterOrder)[number]
+type TrashType = (typeof trashFilterOrder)[number]
 export type TrashFilter = "all" | TrashType
 
 /** Le type d'un élément pour le filtre. */

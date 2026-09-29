@@ -48,6 +48,8 @@ Elles ont été vérifiées sur npm et Expo le 2026-09-27. Elles sont épinglée
 # Administration
 cd web && npm run dev          # serveur de dev
 cd web && npm run lint         # ESLint
+cd web && npm run lint:dead    # code, fichiers et dépendances inutilisés (knip, web/knip.json)
+cd web && npm run lint:dup     # copier-coller de plus de 10 lignes (jscpd, web/.jscpd.json)
 cd web && npm run format       # Prettier (format:check pour vérifier seulement)
 cd web && npm test             # tests (test:watch pour relancer à chaque changement)
 cd web && npm run test:e2e     # tests de parcours Playwright (Supabase local démarré, Realtime compris ; la 1re fois : npx playwright install chromium)

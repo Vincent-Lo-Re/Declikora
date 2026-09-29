@@ -58,7 +58,7 @@ export async function getPublication(id: string): Promise<Publication | null> {
   }
 }
 
-export type VersionOrigin = keyof typeof texts.publication.history.origins
+type VersionOrigin = keyof typeof texts.publication.history.origins
 
 /** Une version de l'historique. */
 export type VersionItem = {

@@ -1,0 +1,14 @@
+{
+  "$comment": "Copier-coller dans l'admin : au-delà de 10 lignes identiques, on extrait une brique commune (docs/BONNES-PRATIQUES.md, § 2).",
+  "minLines": 10,
+  "minTokens": 70,
+  "threshold": 0,
+  "reporters": ["console"],
+  "ignore": [
+    "**/generated/**",
+    "**/database.types.ts",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/components/ui/**"
+  ]
+}

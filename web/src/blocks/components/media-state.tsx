@@ -27,7 +27,7 @@ export function MediaImage({
     <img
       src={media.url ?? undefined}
       alt={alt}
-      // Les proportions viennent du fichier : une valeur qui change avec lui, d'où le style.
+      // eslint-disable-next-line no-restricted-syntax -- proportions du fichier
       style={
         width && height ? { aspectRatio: `${width} / ${height}` } : undefined
       }

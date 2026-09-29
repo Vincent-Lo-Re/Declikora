@@ -410,6 +410,7 @@ function SortableName<T extends Named>({
   return (
     <li
       ref={setNodeRef}
+      // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer (dnd-kit)
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={cn(
         "flex min-h-11 items-center gap-2 rounded-lg border bg-card px-2 py-1.5",

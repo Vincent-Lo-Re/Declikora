@@ -51,6 +51,12 @@ jobs:
         run: npm run format:check
       - name: Relecture du code
         run: npm run lint
+      # Rien d'inutile ni de copié (docs/BONNES-PRATIQUES.md, § 2 et 3) : fichiers, exports et
+      # dépendances qui ne servent pas (knip), blocs identiques de plus de 10 lignes (jscpd).
+      - name: Code inutilisé
+        run: npm run lint:dead
+      - name: Copier-coller
+        run: npm run lint:dup
       - name: Tests
         run: npm test
       - name: Types et construction

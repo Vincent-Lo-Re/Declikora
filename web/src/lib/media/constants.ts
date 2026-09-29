@@ -7,7 +7,7 @@ import type { Tables } from "@/lib/database.types"
 export const mediaKinds = ["image", "svg", "lottie", "audio", "pdf"] as const
 export type MediaKind = (typeof mediaKinds)[number]
 
-export type MediaStatus = "pending" | "checking" | "ready" | "rejected"
+type MediaStatus = "pending" | "checking" | "ready" | "rejected"
 
 // Types acceptés par les buckets (liste exacte), après normalisation par l'admin.
 export type MediaMime =

@@ -988,6 +988,7 @@ function ChapterItem({
       ref={setNodeRef}
       data-outline-id={chapter.id}
       data-outline-kind="chapter"
+      // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer (dnd-kit)
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -1004,17 +1005,10 @@ function ChapterItem({
         chapterInApp
         handle={
           editable && (
-            <button
-              type="button"
-              ref={setActivatorNodeRef}
-              {...attributes}
-              {...listeners}
-              aria-label={labels.handle(label)}
-              title={labels.handle(label)}
-              className={HANDLE_CLASS}
-            >
-              <GripVertical className="size-4" />
-            </button>
+            <OutlineHandle
+              label={label}
+              sortable={{ setActivatorNodeRef, attributes, listeners }}
+            />
           )
         }
         isFirst={isFirst}
@@ -1111,6 +1105,7 @@ function LessonItem({
       ref={setNodeRef}
       data-outline-id={lesson.id}
       data-outline-kind="lesson"
+      // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer (dnd-kit)
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -1127,17 +1122,10 @@ function LessonItem({
         chapterInApp={chapterInApp}
         handle={
           editable && (
-            <button
-              type="button"
-              ref={setActivatorNodeRef}
-              {...attributes}
-              {...listeners}
-              aria-label={labels.handle(label)}
-              title={labels.handle(label)}
-              className={HANDLE_CLASS}
-            >
-              <GripVertical className="size-4" />
-            </button>
+            <OutlineHandle
+              label={label}
+              sortable={{ setActivatorNodeRef, attributes, listeners }}
+            />
           )
         }
         isFirst={isFirst}
@@ -1149,8 +1137,31 @@ function LessonItem({
   )
 }
 
-const HANDLE_CLASS =
-  "mt-0.5 flex size-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
+/** La poignée d'un chapitre ou d'une leçon : on la prend à la souris ou au clavier. */
+function OutlineHandle({
+  label,
+  sortable: { setActivatorNodeRef, attributes, listeners },
+}: {
+  label: string
+  sortable: Pick<
+    ReturnType<typeof useSortable>,
+    "setActivatorNodeRef" | "attributes" | "listeners"
+  >
+}) {
+  return (
+    <button
+      type="button"
+      ref={setActivatorNodeRef}
+      {...attributes}
+      {...listeners}
+      aria-label={labels.handle(label)}
+      title={labels.handle(label)}
+      className="mt-0.5 flex size-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
+    >
+      <GripVertical className="size-4" />
+    </button>
+  )
+}
 
 // L'arbre affiché, pour « Monter » et « Descendre » d'une leçon (qui peut changer de chapitre).
 const TreeContext = createContext<MethodTree | null>(null)
