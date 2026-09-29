@@ -21,7 +21,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { PanelLeftOpenIcon, PanelRightOpenIcon } from "lucide-react"
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PanelLeftOpenIcon,
+  PanelRightOpenIcon,
+} from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -255,50 +260,63 @@ function SidebarTrigger({
   ...props
 }: React.ComponentProps<typeof Button>) {
   const { toggleSidebar, state } = useSidebar()
+  const label = state === "expanded" ? texts.nav.close : texts.nav.open
 
   return (
-    <Button
-      data-sidebar="trigger"
-      data-slot="sidebar-trigger"
-      variant="ghost"
-      size="icon-sm"
-      className={cn(className)}
-      onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
-      }}
-      {...props}
-    >
-      {/* La flèche montre où va le menu : vers la gauche pour le replier, vers la droite pour
-          le déplier. */}
-      {state === "expanded" ? <PanelRightOpenIcon /> : <PanelLeftOpenIcon />}
-      <span className="sr-only">{texts.nav.toggle}</span>
-    </Button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            data-sidebar="trigger"
+            data-slot="sidebar-trigger"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={label}
+            className={cn(className)}
+            onClick={(event) => {
+              onClick?.(event)
+              toggleSidebar()
+            }}
+            {...props}
+          />
+        }
+      >
+        {/* La flèche montre où va le menu : vers la gauche pour le replier, vers la droite pour
+            le déplier. */}
+        {state === "expanded" ? <PanelRightOpenIcon /> : <PanelLeftOpenIcon />}
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
   )
 }
 
+// La bordure du menu : au survol, une pastille avec une flèche (replier ou déplier), à la
+// place du curseur de redimensionnement du navigateur. Pas d'infobulle ici : la flèche suffit,
+// et celle du bouton de l'en-tête donne le texte.
 function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, state } = useSidebar()
+  const Icon = state === "expanded" ? ChevronLeftIcon : ChevronRightIcon
 
   return (
     <button
       data-sidebar="rail"
       data-slot="sidebar-rail"
-      aria-label={texts.nav.toggle}
+      aria-label={state === "expanded" ? texts.nav.close : texts.nav.open}
       tabIndex={-1}
       onClick={toggleSidebar}
-      title={texts.nav.toggle}
       className={cn(
-        "absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
-        "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
-        "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
+        "group/rail absolute inset-y-0 z-20 hidden w-4 cursor-pointer transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-px hover:after:bg-sidebar-border sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
         "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar",
         "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
         "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
         className
       )}
       {...props}
-    />
+    >
+      <span className="absolute top-1/2 left-1/2 z-10 flex size-6 -translate-1/2 items-center justify-center rounded-full border border-sidebar-border bg-background text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover/rail:opacity-100">
+        <Icon className="size-3.5" />
+      </span>
+    </button>
   )
 }
 
