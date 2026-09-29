@@ -26,7 +26,7 @@ import { Progress } from "@/components/ui/progress"
 import type { MediaVerdict } from "@/lib/media/api"
 import {
   UPLOAD_WINDOW_CLOSE_MS,
-  UPLOAD_WINDOW_SPACE,
+  UPLOAD_WINDOW_HEIGHT,
 } from "@/lib/media/constants"
 import { formatBytes, formatPercent } from "@/lib/media/format"
 import { rejectReasonText, type UploadItem } from "@/lib/media/upload"
@@ -46,8 +46,6 @@ import { texts } from "@/texts"
 
 // Fréquence à laquelle on regarde si la souris ou le focus sont dans la fenêtre.
 const TICK_MS = 200
-// Écart entre la fenêtre et ce qui passe au-dessus (messages).
-const GAP_PX = 12
 
 /**
  * La fenêtre des envois, en bas à droite de toutes les pages avec le menu (montée une fois dans
@@ -94,21 +92,21 @@ function OpenUploadWindow({
   const allReady = summary.active === 0 && summary.failed === 0
   const uploading = items.some(isActive)
 
-  // La place prise en bas de la page, tenue à jour quand la fenêtre change de taille.
+  // Sa hauteur, tenue à jour quand elle change de taille : index.css en tire la place que lui
+  // laissent le bas des pages et les messages.
   useEffect(() => {
     const element = windowRef.current
     if (!element || typeof ResizeObserver === "undefined") return
     const root = document.documentElement
     const observer = new ResizeObserver(() => {
-      root.style.setProperty(
-        UPLOAD_WINDOW_SPACE,
-        `${element.offsetHeight + GAP_PX}px`
-      )
+      root.style.setProperty(UPLOAD_WINDOW_HEIGHT, `${element.offsetHeight}px`)
     })
     observer.observe(element)
+    root.dataset.uploadWindow = ""
     return () => {
       observer.disconnect()
-      root.style.removeProperty(UPLOAD_WINDOW_SPACE)
+      delete root.dataset.uploadWindow
+      root.style.removeProperty(UPLOAD_WINDOW_HEIGHT)
     }
   }, [])
 

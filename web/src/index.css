@@ -117,6 +117,19 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/*
+ * Fenêtre des envois (web/src/components/media/upload-window.tsx) : tant qu'elle est ouverte,
+ * elle pose data-upload-window et sa hauteur (--upload-window-height) sur <html>. La place à
+ * laisser en bas des pages et sous les messages (Toaster) en découle : sa hauteur et un écart.
+ */
+:root {
+  --upload-window-space: 0px;
+}
+
+:root[data-upload-window] {
+  --upload-window-space: calc(var(--upload-window-height) + --spacing(3));
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

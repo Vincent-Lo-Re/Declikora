@@ -54,10 +54,10 @@ export const INTERRUPTED_AFTER_MS = 60 * 60 * 1000
 // Fenêtre des envois : temps pendant lequel elle reste affichée une fois tout prêt, avant de
 // se fermer toute seule.
 export const UPLOAD_WINDOW_CLOSE_MS = 4000
-// Variable CSS posée sur la page tant que la fenêtre des envois est affichée : la place qu'elle
-// prend en bas (sa hauteur et un écart). Les messages (Toaster) et le bas des pages s'en
-// servent pour ne pas passer dessous.
-export const UPLOAD_WINDOW_SPACE = "--upload-window-space"
+// Variable CSS posée sur <html> (avec data-upload-window) tant que la fenêtre des envois est
+// affichée : sa hauteur mesurée. index.css en tire --upload-window-space, la place que lui
+// laissent le bas des pages et les messages (Toaster).
+export const UPLOAD_WINDOW_HEIGHT = "--upload-window-height"
 
 export function isMediaKind(value: unknown): value is MediaKind {
   return (

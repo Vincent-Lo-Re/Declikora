@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { UploadWindow } from "@/components/media/upload-window"
 import * as api from "@/lib/media/api"
-import { UPLOAD_WINDOW_SPACE, type Media } from "@/lib/media/constants"
+import { UPLOAD_WINDOW_HEIGHT, type Media } from "@/lib/media/constants"
 import { formatPercent } from "@/lib/media/format"
 import { PrepareError } from "@/lib/media/prepare"
 import { TransferError } from "@/lib/media/transfer"
@@ -99,7 +99,8 @@ function wait(ms: number) {
 afterEach(() => {
   vi.clearAllMocks()
   vi.unstubAllGlobals()
-  document.documentElement.style.removeProperty(UPLOAD_WINDOW_SPACE)
+  document.documentElement.style.removeProperty(UPLOAD_WINDOW_HEIGHT)
+  delete document.documentElement.dataset.uploadWindow
 })
 
 describe("fenêtre des envois", () => {
@@ -310,16 +311,19 @@ describe("fenêtre des envois", () => {
     }
     vi.stubGlobal("ResizeObserver", FakeResizeObserver)
     const { queue, runs } = setup()
-    const space = () =>
-      document.documentElement.style.getPropertyValue(UPLOAD_WINDOW_SPACE)
+    const root = document.documentElement
+    const height = () => root.style.getPropertyValue(UPLOAD_WINDOW_HEIGHT)
 
     act(() => {
       queue.add([file()])
     })
-    expect(space()).toBe("12px")
+    // Sa hauteur et son état, dont index.css tire la place laissée (--upload-window-space).
+    expect(height()).toBe("0px")
+    expect(root).toHaveAttribute("data-upload-window")
 
     await act(async () => runs[0].resolve(media()))
     await waitFor(() => expect(uploadWindow()).toBeNull())
-    expect(space()).toBe("")
+    expect(height()).toBe("")
+    expect(root).not.toHaveAttribute("data-upload-window")
   })
 })
