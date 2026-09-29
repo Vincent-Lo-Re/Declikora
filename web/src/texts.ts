@@ -7,7 +7,6 @@ const upperFirst = (text: string) =>
 export const texts = {
   app: {
     name: "Declikora",
-    title: "Declikora — Administration",
   },
 
   common: {
@@ -1277,7 +1276,6 @@ export const texts = {
     editor: {
       nameLabel: "Nom du modèle",
       namePlaceholder: "Nom du modèle",
-      sort: "Sorte du modèle",
       starterFor: (section: string) => `Point de départ : ${section}`,
       sharedLimit:
         "Un bloc identique partout contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
@@ -1295,7 +1293,6 @@ export const texts = {
             ? "Utilisé dans 1 brouillon"
             : `Utilisé dans ${count} brouillons`,
       usedInList: "Brouillons qui utilisent ce modèle",
-      inTrash: "dans la corbeille",
       keepBlock:
         "Ce modèle est utilisé : il garde son bloc. Pour le retirer, détache-le d'abord partout (page Modèles).",
       outdated: {
@@ -1392,14 +1389,12 @@ export const texts = {
     title: {
       label: "Titre du contenu",
       placeholder: "Titre",
-      tooLong: "Le titre ne doit pas dépasser 200 caractères.",
     },
     untitled: "Sans titre",
     blocks: {
       text: "Texte",
       image: "Image",
       box: "Encadré",
-      linked: "Bloc identique partout",
     },
     // Nom d'un bloc dans le plan, les annonces et les boutons.
     blockLabel: {
@@ -1418,7 +1413,6 @@ export const texts = {
     textPlaceholder: "Écris ici…",
     add: {
       label: "Ajouter un bloc",
-      hint: "Ajouté après le bloc choisi, ou à la fin.",
       inBox: "Ajouter dans l'encadré",
     },
     emptyPage: {
@@ -1634,11 +1628,6 @@ export const texts = {
         `Bloc n° ${position} sur ${count}, dans ${container}.`,
       inBox: "l'encadré",
     },
-    page: {
-      title: "Brouillon",
-      savedAt: (date: string) => `Enregistré le ${date}`,
-      size: (percent: string) => `Taille : ${percent} de la limite`,
-    },
     // Enregistrement automatique.
     save: {
       saved: "Enregistré",
@@ -1671,7 +1660,6 @@ export const texts = {
     },
     // Un seul membre à la fois sur un brouillon.
     lock: {
-      taking: "Ouverture du brouillon…",
       readOnly: (name: string) =>
         `${name} écrit ce brouillon. Tu le vois en lecture seule, et il se met à jour à chaque enregistrement.`,
       readOnlySelf:
