@@ -16,9 +16,8 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
-import { authErrorMessage } from "@/lib/auth-errors"
+import { mfaEnrollmentKey, startMfaEnrollment, verifyMfaCode } from "@/lib/auth"
 import { mfaCodeSchema } from "@/lib/schemas"
-import { supabase } from "@/lib/supabase"
 import { authPaths } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -51,39 +50,11 @@ export function MfaPage() {
   )
 }
 
-type Enrollment = { factorId: string; qrCode: string; secret: string }
-
-// Prépare une nouvelle app : les essais abandonnés (non vérifiés) sont d'abord retirés.
-async function startEnrollment(): Promise<Enrollment> {
-  const { data: factors, error } = await supabase.auth.mfa.listFactors()
-  if (error) throw error
-  for (const factor of factors.all) {
-    if (factor.factor_type === "totp" && factor.status === "unverified") {
-      const { error } = await supabase.auth.mfa.unenroll({
-        factorId: factor.id,
-      })
-      if (error) throw error
-    }
-  }
-
-  const { data, error: enrollError } = await supabase.auth.mfa.enroll({
-    factorType: "totp",
-    issuer: texts.app.name,
-  })
-  if (enrollError) throw enrollError
-  // qr_code est déjà une image (data:image/svg+xml…), affichable telle quelle.
-  return {
-    factorId: data.id,
-    qrCode: data.totp.qr_code,
-    secret: data.totp.secret,
-  }
-}
-
 function MfaSetup({ userId }: { userId: string }) {
   // Une seule préparation par membre, même si la page s'affiche deux fois.
   const enrollment = useQuery({
-    queryKey: ["mfa-enrollment", userId],
-    queryFn: startEnrollment,
+    queryKey: mfaEnrollmentKey(userId),
+    queryFn: startMfaEnrollment,
     staleTime: Infinity,
     retry: false,
     refetchOnWindowFocus: false,
@@ -149,13 +120,10 @@ function CodeForm({
   const { isSubmitting, errors } = form.formState
 
   const onSubmit = form.handleSubmit(async ({ code }) => {
-    const { error } = await supabase.auth.mfa.challengeAndVerify({
-      factorId,
-      code,
-    })
+    const error = await verifyMfaCode(factorId, code)
     if (error) {
       form.resetField("code")
-      form.setError("root", { message: authErrorMessage(error, "mfaCode") })
+      form.setError("root", { message: error })
     }
   })
 

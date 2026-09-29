@@ -53,7 +53,7 @@ import { texts } from "@/texts"
 type Named = { id: string; name: string }
 
 /** Les textes d'une liste de noms rangée (Catégories, Formules), tirés de texts.ts. */
-export type OrderedNamesLabels = {
+type OrderedNamesLabels = {
   listLabel: string
   empty: string
   name: string

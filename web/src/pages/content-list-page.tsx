@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
+import { EditingCell, SavedCell } from "@/components/contents/row-cells"
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
 import { LoadState } from "@/components/load-state"
 import { useMethodPending } from "@/components/methods/use-method-pending"
@@ -105,9 +106,9 @@ import { restoreContent, trashContent } from "@/lib/contents/publication"
 import { listStarters, templateKeys } from "@/lib/contents/templates"
 import { useCategories } from "@/hooks/use-categories"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
-import { formatDateTime } from "@/lib/dates"
 import { errorMessage } from "@/lib/errors"
-import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
+import { kickFiles } from "@/lib/media/api"
+import { refreshAfterContentTrash } from "@/lib/refresh"
 import { categoriesPath, editorPath, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -203,12 +204,7 @@ export function ContentListPage({
     filters.state !== "all" ||
     category !== ALL_CATEGORIES
 
-  const refresh = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: contentKeys.all }),
-      queryClient.invalidateQueries({ queryKey: trashKey }),
-      queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "uses"] }),
-    ])
+  const refresh = () => refreshAfterContentTrash(queryClient)
 
   // « Annuler » dans le message : le contenu revient en brouillon, sans être republié.
   const undo = async (item: ContentListItem) => {
@@ -634,19 +630,14 @@ function ContentTable({
                   <ScheduleBadge schedule={status.schedule} />
                 </div>
               </TableCell>
-              <TableCell className="text-muted-foreground">
-                {formatDateTime(item.draft_saved_at)}
-                {item.saved_by_name && (
-                  <> {labels.savedBy(item.saved_by_name)}</>
-                )}
-              </TableCell>
-              <TableCell>
-                {item.editing_name && (
-                  <Badge variant="secondary">
-                    {labels.beingEdited(item.editing_name)}
-                  </Badge>
-                )}
-              </TableCell>
+              <SavedCell
+                savedAt={item.draft_saved_at}
+                savedByName={item.saved_by_name}
+              />
+              <EditingCell
+                editingName={item.editing_name}
+                label={labels.beingEdited}
+              />
               <TableCell>
                 <RowActions
                   title={name}

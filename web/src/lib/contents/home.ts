@@ -3,14 +3,8 @@
 // (contrat : docs/ARCHITECTURE-CONTENUS.md, « Étape 7, partie 7a »).
 
 import { toContentError, type ContentKind } from "@/lib/contents/api"
+import { displayName, type PersonName } from "@/lib/people"
 import { supabase } from "@/lib/supabase"
-
-type ProfileName = { full_name: string | null; email: string } | null
-
-function nameOf(profile: ProfileName): string | null {
-  if (!profile) return null
-  return profile.full_name?.trim() || profile.email
-}
 
 export const homeKeys = {
   all: ["contents", "home"] as const,
@@ -67,7 +61,7 @@ function toItem(row: Row): HomeItem {
     scheduled_at: row.scheduled_at,
     scheduled_set_at: row.scheduled_set_at,
     schedule_error: row.schedule_error,
-    scheduled_by_name: nameOf(row.scheduler as ProfileName),
+    scheduled_by_name: displayName(row.scheduler as PersonName | null),
     method_title: null,
   }
 }

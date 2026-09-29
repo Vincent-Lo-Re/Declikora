@@ -23,7 +23,7 @@ export function AppLayout() {
           <AccountMenu />
         </header>
         {/* En bas, de la place pour la fenêtre des envois quand elle est ouverte (index.css). */}
-        <div className="flex-1 p-8 pb-[calc(--spacing(8)+var(--upload-window-space))]">
+        <div className="flex-1 p-8 pb-page">
           <Outlet />
         </div>
         {/* Envois de la médiathèque : suivis dans toute l'admin. */}

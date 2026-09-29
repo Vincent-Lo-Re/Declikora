@@ -527,16 +527,16 @@ function ContentEditor({
         )
         // « Utilisé dans » de la médiathèque et liste des pages.
         void queryClient.invalidateQueries({
-          queryKey: [...mediaKeys.all, "uses"],
+          queryKey: mediaKeys.allUses,
         })
         // Une méthode, un chapitre ou une leçon : le plan (titres, dernières modifications) et ce
         // qui changera dans l'app (état de l'élément, ce qui ferait refuser la publication).
         if (isMethod || isElement) {
           void queryClient.invalidateQueries({
-            queryKey: [...methodKeys.all, "tree"],
+            queryKey: methodKeys.allTrees,
           })
           void queryClient.invalidateQueries({
-            queryKey: [...methodKeys.all, "preview"],
+            queryKey: methodKeys.allPreviews,
           })
         }
         // La fiche d'une méthode vient de changer : « Modifié depuis la publication ».

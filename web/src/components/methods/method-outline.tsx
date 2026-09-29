@@ -357,7 +357,7 @@ export function MethodOutline({
         // ligne à mettre à jour (modèles, fichiers remplacés).
         queryClient.invalidateQueries({ queryKey: templateKeys.allOutdated }),
         queryClient.invalidateQueries({
-          queryKey: [...mediaKeys.all, "outdated"],
+          queryKey: mediaKeys.allOutdated,
         }),
       ]),
     [queryClient, methodId]
@@ -538,7 +538,7 @@ export function MethodOutline({
       forgetDetails(element)
       void queryClient.invalidateQueries({ queryKey: trashKey })
       void queryClient.invalidateQueries({
-        queryKey: [...mediaKeys.all, "uses"],
+        queryKey: mediaKeys.allUses,
       })
       await refresh()
       const find = focusAfterAct.current
@@ -1269,7 +1269,8 @@ function ElementRow({
           {editing && <Badge variant="secondary">{editing}</Badge>}
           <span className="text-xs text-muted-foreground">
             {labels.savedAt(formatDateTime(element.draftSavedAt))}
-            {element.savedByName && ` ${labels.savedBy(element.savedByName)}`}
+            {element.savedByName &&
+              ` ${texts.common.savedBy(element.savedByName)}`}
           </span>
         </div>
         <ElementStateHint state={state} />

@@ -143,9 +143,9 @@ export function usePublication(bridge: PublicationBridge) {
         queryKey: contentKeys.versions(contentId),
       }),
       queryClient.invalidateQueries({ queryKey: contentKeys.lists }),
-      queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "uses"] }),
+      queryClient.invalidateQueries({ queryKey: mediaKeys.allUses }),
       queryClient.invalidateQueries({
-        queryKey: [...mediaKeys.all, "outdated"],
+        queryKey: mediaKeys.allOutdated,
       }),
       // Un contenu publié ou retiré de l'app : ses blocs identiques partout à mettre à jour.
       queryClient.invalidateQueries({ queryKey: templateKeys.allOutdated }),

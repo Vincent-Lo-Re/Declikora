@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { AudioLines, Search, Upload } from "lucide-react"
 import { useEffect, useRef, useState, type ComponentProps } from "react"
 
+import { LoadState } from "@/components/load-state"
 import { MediaThumbnail } from "@/components/media/media-visuals"
 import { usePreviewUrls } from "@/components/media/use-preview-urls"
 import {
@@ -143,22 +144,17 @@ function PickerBody({
         <PickerUpload kind={kind} queue={queue} onChoose={onChoose} />
       </div>
       {media.data === undefined ? (
-        media.isError ? (
-          <div className="space-y-3">
-            <p role="alert" className="text-sm text-destructive">
-              {labels.loadFailed}
-            </p>
-            <Button variant="outline" onClick={() => media.refetch()}>
-              {texts.common.retry}
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-4 gap-3">
-            {Array.from({ length: 8 }, (_, index) => (
-              <Skeleton key={index} className="aspect-square w-full" />
-            ))}
-          </div>
-        )
+        <LoadState
+          query={media}
+          failed={labels.loadFailed}
+          skeleton={
+            <div className="grid grid-cols-4 gap-3">
+              {Array.from({ length: 8 }, (_, index) => (
+                <Skeleton key={index} className="aspect-square w-full" />
+              ))}
+            </div>
+          }
+        />
       ) : ready.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
           {debounced.trim() ? labels.noResults : labels.empty}

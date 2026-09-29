@@ -17,6 +17,8 @@ export const texts = {
     save: "Enregistrer",
     untitled: "Sans titre",
     actions: "Actions",
+    // « Modifié le 27 sept. 2026 à 14:30 par Anne »
+    savedBy: (name: string) => `par ${name}`,
     loading: "Chargement…",
     signOut: "Se déconnecter",
     tooManyAttempts: "Trop d'essais. Attends une minute avant de réessayer.",
@@ -840,7 +842,6 @@ export const texts = {
     },
     trashed: (title: string) => `${title} est dans la corbeille.`,
     undo: "Annuler",
-    savedBy: (name: string) => `par ${name}`,
     beingEdited: (name: string) => `${name} écrit`,
     loadFailed: "La liste n'a pas pu être chargée.",
     refreshFailed:
@@ -883,7 +884,6 @@ export const texts = {
       isFreeFor: (label: string) => `Leçon gratuite : ${label}`,
       free: "Gratuite",
       savedAt: (date: string) => `Modifié le ${date}`,
-      savedBy: (name: string) => `par ${name}`,
       editing: (name: string) => `${name} écrit`,
       openElsewhere: "Ouvert dans un autre de tes onglets",
       actions: (label: string) => `Actions pour ${label}`,
@@ -1066,7 +1066,6 @@ export const texts = {
       },
       inChapter: (title: string) => `dans « ${title} »`,
       savedAt: (date: string) => `modifié le ${date}`,
-      savedBy: (name: string) => `par ${name}`,
       open: (label: string) => `Ouvrir ${label}`,
       blocked:
         "Corrige d'abord ce qui est signalé : la publication serait refusée.",
@@ -1209,7 +1208,6 @@ export const texts = {
       actions: (name: string) => `Actions pour ${name}`,
       open: "Ouvrir",
       trash: "Supprimer",
-      savedBy: (name: string) => `par ${name}`,
       beingEdited: (name: string) => `${name} le modifie`,
       loadFailed: "La liste des modèles n'a pas pu être chargée.",
       refreshFailed:

@@ -3,15 +3,9 @@
 // docs/ARCHITECTURE-CONTENUS.md (« Étape 5 », parties n° 1 et n° 2).
 
 import { toContentError, type SavedDraft } from "@/lib/contents/api"
+import { displayName, type PersonName } from "@/lib/people"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
-
-type ProfileName = { full_name: string | null; email: string } | null
-
-function nameOf(profile: ProfileName): string | null {
-  if (!profile) return null
-  return profile.full_name?.trim() || profile.email
-}
 
 // ---------------------------------------------------------------------------------------------
 // Lecture
@@ -57,7 +51,7 @@ export async function getPublication(id: string): Promise<Publication | null> {
     draft_rev: data.draft_rev,
     first_published_at: data.first_published_at,
     scheduled_at: data.scheduled_at,
-    scheduled_by_name: nameOf(data.scheduler as ProfileName),
+    scheduled_by_name: displayName(data.scheduler as PersonName | null),
     schedule_error: data.schedule_error,
     deleted_at: data.deleted_at,
     live: (data.live as LiveVersion | null) ?? null,

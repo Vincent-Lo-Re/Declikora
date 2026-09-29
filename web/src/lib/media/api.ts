@@ -71,7 +71,11 @@ export const mediaKeys = {
   audit: ["media", "audit"] as const,
   urls: (paths: string[]) => ["media", "urls", paths] as const,
   one: (id: string) => ["media", "one", id] as const,
+  // Les « Utilisé dans » et « Textes figés » de tous les fichiers (à relire après un geste
+  // sur un contenu), puis ceux d'un fichier.
+  allUses: ["media", "uses"] as const,
   uses: (id: string) => ["media", "uses", id] as const,
+  allOutdated: ["media", "outdated"] as const,
   outdated: (id: string) => ["media", "outdated", id] as const,
   verdicts: (ids: string[]) => ["media", "verdicts", ids] as const,
 }

@@ -5,8 +5,7 @@ import { AuthCard } from "@/components/auth-card"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { FieldError, FieldGroup } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
-import { authErrorMessage } from "@/lib/auth-errors"
-import { supabase } from "@/lib/supabase"
+import { acceptInvitation } from "@/lib/auth"
 import { authPaths } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -27,12 +26,9 @@ export function InvitationPage() {
     if (!tokenHash) return
     setAccepting(true)
     setError(null)
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: "invite",
-    })
+    const failure = await acceptInvitation(tokenHash)
     setAccepting(false)
-    if (error) setError(authErrorMessage(error, "invitation"))
+    if (failure) setError(failure)
     // Connecté : il reste à configurer la double vérification.
     else navigate(authPaths.mfa, { replace: true })
   }

@@ -94,7 +94,7 @@ export function SharedTemplateBar({ templateId }: { templateId: string }) {
           queryKey: templateKeys.outdated(templateId),
         }),
         queryClient.invalidateQueries({ queryKey: contentKeys.all }),
-        queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "uses"] }),
+        queryClient.invalidateQueries({ queryKey: mediaKeys.allUses }),
       ]),
   })
 

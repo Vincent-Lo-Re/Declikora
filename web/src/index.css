@@ -111,6 +111,11 @@
   grid-template-columns: repeat(auto-fill, minmax(--spacing(44), 1fr));
 }
 
+/* Fiche en deux colonnes : les libellés à leur largeur, les valeurs dans le reste. */
+@utility grid-cols-label-value {
+  grid-template-columns: auto 1fr;
+}
+
 /* Liste qui défile dans une fenêtre de choix (image, audio, modèle) : trois cinquièmes de l'écran. */
 @utility max-h-picker {
   max-height: 60vh;
@@ -127,6 +132,11 @@
 
 :root[data-upload-window] {
   --upload-window-space: calc(var(--upload-window-height) + --spacing(3));
+}
+
+/* Le bas des pages avec le menu : leur marge, plus la place de la fenêtre des envois. */
+@utility pb-page {
+  padding-bottom: calc(--spacing(8) + var(--upload-window-space));
 }
 
 @layer base {

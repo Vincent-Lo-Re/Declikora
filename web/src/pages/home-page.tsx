@@ -100,22 +100,30 @@ export function HomePage() {
   // Les méthodes en ligne de « Mes brouillons récents » : y a-t-il quelque chose à publier ?
   const pending = useMethodPending(drafts.data)
 
+  // Les publications ratées : en tête, en rouge et sur toute la largeur s'il y en a ; sinon en
+  // dernier, comme les autres cartes.
+  const failedCard = (
+    <HomeCard
+      className={hasFailures ? "ring-destructive/40 xl:col-span-2" : undefined}
+      icon={
+        <TriangleAlert
+          className={hasFailures ? "text-destructive" : undefined}
+        />
+      }
+      title={labels.failed.title}
+      description={labels.failed.description}
+      query={failed}
+      empty={labels.failed.empty}
+      dataAttribute="failed"
+      render={(item) => <FailedRow key={item.id} item={item} />}
+    />
+  )
+
   return (
     <>
       <PageHeader title={title} description={description} />
       <div className="grid gap-6 xl:grid-cols-2">
-        {hasFailures && (
-          <HomeCard
-            className="ring-destructive/40 xl:col-span-2"
-            icon={<TriangleAlert className="text-destructive" />}
-            title={labels.failed.title}
-            description={labels.failed.description}
-            query={failed}
-            empty={labels.failed.empty}
-            dataAttribute="failed"
-            render={(item) => <FailedRow key={item.id} item={item} />}
-          />
-        )}
+        {hasFailures && failedCard}
         <HomeCard
           icon={<FilePen />}
           title={labels.drafts.title}
@@ -147,17 +155,7 @@ export function HomePage() {
             />
           )}
         />
-        {!hasFailures && (
-          <HomeCard
-            icon={<TriangleAlert />}
-            title={labels.failed.title}
-            description={labels.failed.description}
-            query={failed}
-            empty={labels.failed.empty}
-            dataAttribute="failed"
-            render={(item) => <FailedRow key={item.id} item={item} />}
-          />
-        )}
+        {!hasFailures && failedCard}
       </div>
     </>
   )

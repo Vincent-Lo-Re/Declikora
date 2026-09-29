@@ -167,7 +167,7 @@ function ChangeRow({ row, onOpen }: { row: PreviewRow; onOpen: () => void }) {
       {row.savedAt && (
         <p className="pl-6 text-xs text-muted-foreground">
           {labels.savedAt(formatDateTime(row.savedAt))}
-          {row.savedByName && ` ${labels.savedBy(row.savedByName)}`}
+          {row.savedByName && ` ${texts.common.savedBy(row.savedByName)}`}
         </p>
       )}
       {problem && (

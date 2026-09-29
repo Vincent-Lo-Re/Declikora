@@ -21,30 +21,24 @@ import type {
 } from "@/lib/contents/outline"
 import { toOutlinePayload } from "@/lib/contents/outline"
 import type { Json } from "@/lib/database.types"
+import { isLockAlive } from "@/lib/editor/edit-lock"
+import { displayName, type PersonName } from "@/lib/people"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
 
 // Sous « contents » : ce qui relit tous les contenus relit aussi les méthodes.
 export const methodKeys = {
   all: ["contents", "methods"] as const,
+  allTrees: ["contents", "methods", "tree"] as const,
   tree: (methodId: string) =>
     ["contents", "methods", "tree", methodId] as const,
+  allPreviews: ["contents", "methods", "preview"] as const,
   preview: (methodId: string) =>
     ["contents", "methods", "preview", methodId] as const,
   context: (elementId: string) =>
     ["contents", "methods", "context", elementId] as const,
   counts: ["contents", "methods", "counts"] as const,
 }
-
-type ProfileName = { full_name: string | null; email: string } | null
-
-function nameOf(profile: ProfileName): string | null {
-  if (!profile) return null
-  return profile.full_name?.trim() || profile.email
-}
-
-// Un verrou sans signe de vie depuis 90 s est périmé ([D13]).
-const LOCK_TTL_MS = 90_000
 
 const ELEMENT_COLUMNS =
   "id, kind, title, parent_id, position, in_app, is_free, draft_saved_at, saved_by:profiles!contents_draft_saved_by_fkey(full_name, email), edit_locks(holder_id, heartbeat_at, holder:profiles(full_name, email)), versions!versions_content_id_fkey(count)"
@@ -67,11 +61,9 @@ function toElement(row: ElementRow, now: number): OutlineElement {
   const lock = row.edit_locks as {
     holder_id: string | null
     heartbeat_at: string
-    holder: ProfileName
+    holder: PersonName | null
   } | null
-  const active =
-    lock?.holder_id != null &&
-    now - new Date(lock.heartbeat_at).getTime() < LOCK_TTL_MS
+  const active = lock?.holder_id != null && isLockAlive(lock.heartbeat_at, now)
   const versions = row.versions as { count: number }[] | null
   return {
     id: row.id,
@@ -80,10 +72,10 @@ function toElement(row: ElementRow, now: number): OutlineElement {
     inApp: row.in_app,
     isFree: row.is_free,
     draftSavedAt: row.draft_saved_at,
-    savedByName: nameOf(row.saved_by as ProfileName),
+    savedByName: displayName(row.saved_by as PersonName | null),
     editingId: active ? lock.holder_id : null,
     editingName: active
-      ? (nameOf(lock.holder) ?? texts.editor.lock.someone)
+      ? (displayName(lock.holder) ?? texts.editor.lock.someone)
       : null,
     published: (versions?.[0]?.count ?? 0) > 0,
   }

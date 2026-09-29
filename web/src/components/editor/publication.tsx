@@ -527,7 +527,7 @@ function Summary({ pub }: { pub: PublicationControls }) {
     rows.push([labels.publishDialog.address, settings.slug])
   }
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+    <dl className="grid grid-cols-label-value gap-x-4 gap-y-1">
       {rows.map(([label, value]) => (
         <div key={label} className="contents">
           <dt className="text-muted-foreground">{label}</dt>

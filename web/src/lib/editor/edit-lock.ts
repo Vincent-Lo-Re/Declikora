@@ -42,7 +42,13 @@ export type LockState = {
   mineSince: number | null
 }
 
+// Un verrou sans signe de vie depuis 90 s est périmé ([D13]).
 const LOCK_TTL_MS = 90_000
+
+/** Vrai si le dernier signe de vie d'un verrou date de moins de 90 s. */
+export function isLockAlive(heartbeatAt: string, now: number): boolean {
+  return now - new Date(heartbeatAt).getTime() < LOCK_TTL_MS
+}
 const HEARTBEAT_MS = 20_000
 const POLL_MS = 30_000
 const HIDDEN_RELEASE_MS = 30 * 60 * 1000
@@ -135,8 +141,7 @@ export function lockReducer(state: LockState, event: LockEvent): LockState {
       // Quelqu'un d'autre (ou nous, dans un autre onglet).
       const draftRev = Math.max(state.draftRev ?? 0, change.draft_rev)
       const active =
-        change.holder_id !== null &&
-        now - new Date(change.heartbeat_at).getTime() < LOCK_TTL_MS
+        change.holder_id !== null && isLockAlive(change.heartbeat_at, now)
       if (state.phase === "released" || state.phase === "taking") {
         return { ...state, draftRev }
       }
