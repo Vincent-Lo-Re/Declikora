@@ -176,10 +176,10 @@ async function scheduleInTwoDays(page: Page) {
   })
   const when = inTwoDaysAtEight()
   await dialog
-    .getByLabel(publication.scheduleDialog.date)
+    .getByLabel(publication.scheduleDialog.date, { exact: true })
     .fill(frenchDay(when.date))
   await dialog
-    .getByLabel(publication.scheduleDialog.time)
+    .getByLabel(publication.scheduleDialog.time, { exact: true })
     .fill(frenchTime(when.time))
   await dialog
     .getByRole("button", { name: publication.scheduleDialog.confirm })
