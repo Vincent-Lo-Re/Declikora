@@ -12,13 +12,10 @@ describe("menu", () => {
     const account = await screen.findByRole("link", {
       name: texts.sections.account.title,
     })
-    // Dessinées comme une icône : les lettres sont dans le SVG, à côté du cercle.
+    // Dessinées comme une icône : les lettres seules, dans un SVG.
     const letters = within(account).getByText("AA")
     expect(letters.tagName).toBe("text")
-    expect(letters.closest("svg")?.querySelector("circle")).toHaveAttribute(
-      "vector-effect",
-      "non-scaling-stroke"
-    )
+    expect(letters.closest("svg")).toHaveAttribute("viewBox", "0 0 24 24")
   })
 
   it("les icônes Lucide ont un trait d'un pixel, qui ne change pas avec leur taille", async () => {

@@ -2,8 +2,8 @@ import { cn } from "cn"
 import type { ComponentProps } from "react"
 
 /**
- * Des initiales dessinées comme une icône Lucide : un cercle au trait d'un pixel et les lettres
- * au centre, en SVG (viewBox 24, couleur du texte). Il prend la taille des icônes voisines.
+ * Des initiales dessinées comme une icône Lucide : les lettres seules, sans cadre, en SVG
+ * (viewBox 24, couleur du texte). Elles prennent la taille des icônes voisines.
  */
 export function InitialsIcon({
   letters,
@@ -15,23 +15,22 @@ export function InitialsIcon({
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
-      strokeWidth={1}
+      // Deux lettres larges (« MW ») peuvent déborder un peu du carré : sans les couper.
+      overflow="visible"
       aria-hidden
       className={cn("lucide", className)}
       {...props}
     >
-      <circle cx="12" cy="12" r="11" vectorEffect="non-scaling-stroke" />
       <text
         x="12"
-        y="12.5"
+        y="12"
         textAnchor="middle"
         dominantBaseline="central"
         fill="currentColor"
         stroke="none"
-        // Unités du dessin (viewBox 24), comme le cercle : la taille suit celle de l'icône.
-        fontSize={10}
-        className="font-medium"
+        // Unités du dessin (viewBox 24) : la taille suit celle des icônes voisines.
+        fontSize={18}
+        className="font-normal"
       >
         {letters}
       </text>
