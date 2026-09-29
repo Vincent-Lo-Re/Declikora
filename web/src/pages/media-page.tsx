@@ -366,8 +366,9 @@ export function MediaPage() {
         <OrphansNotice />
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div className="relative w-72">
+      {/* Sur une seule ligne : la recherche rétrécit quand la place manque, le reste garde sa taille. */}
+      <div className="mb-6 flex items-center gap-3 *:shrink-0">
+        <div className="relative w-72 min-w-32 shrink!">
           <Search
             aria-hidden
             className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"

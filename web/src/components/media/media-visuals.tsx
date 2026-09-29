@@ -33,7 +33,8 @@ export function MediaThumbnail({
           alt=""
           loading="lazy"
           decoding="async"
-          className="size-full object-contain"
+          // La vignette est remplie (image recadrée) ; la fiche montre l'image entière.
+          className="size-full object-cover"
         />
       ) : (
         <Icon aria-hidden className={cn("size-8", iconClassName)} />
