@@ -3,7 +3,13 @@
 import { texts } from "../src/texts.ts"
 import { uniqueEmail } from "./support/accounts.ts"
 import { receivedIds, signInCode, waitForNewEmail } from "./support/mailpit.ts"
-import { bottomMenu, expect, signIn, test } from "./support/fixtures.ts"
+import {
+  bottomMenu,
+  expect,
+  openAccountPage,
+  signIn,
+  test,
+} from "./support/fixtures.ts"
 
 test("un admin se connecte avec les deux codes, se déconnecte, puis revient", async ({
   page,
@@ -29,9 +35,7 @@ test("un admin se connecte avec les deux codes, se déconnecte, puis revient", a
   ).toBeVisible()
 
   // Mon compte : la double vérification est configurée.
-  await bottomMenu(page)
-    .getByRole("link", { name: texts.sections.account.title })
-    .click()
+  await openAccountPage(page)
   const configuredOn = texts.account.mfa.configuredOn("…").replace("….", "")
   await expect(page.getByText(configuredOn)).toBeVisible()
 

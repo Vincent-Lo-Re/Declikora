@@ -1,15 +1,15 @@
 import {
+  ArchiveX,
   CircleUser,
-  FileText,
-  GraduationCap,
-  House,
   Images,
-  LayoutTemplate,
-  Newspaper,
-  Podcast,
-  Settings,
-  Trash2,
-  Users,
+  Layers,
+  LayoutDashboard,
+  MicAudioLines,
+  Rss,
+  Sigma,
+  SlidersVertical,
+  SquareText,
+  UserGroup,
   type LucideIcon,
 } from "lucide-react"
 
@@ -19,16 +19,16 @@ export type SectionKey = keyof typeof texts.sections
 
 // Adresse (en français) et icône de chaque section.
 export const sections = {
-  home: { path: "/", icon: House },
-  blog: { path: "/blog", icon: Newspaper },
-  podcasts: { path: "/podcasts", icon: Podcast },
-  methods: { path: "/methodes", icon: GraduationCap },
-  pages: { path: "/pages", icon: FileText },
-  templates: { path: "/modeles", icon: LayoutTemplate },
+  home: { path: "/", icon: LayoutDashboard },
+  blog: { path: "/blog", icon: Rss },
+  podcasts: { path: "/podcasts", icon: MicAudioLines },
+  methods: { path: "/methodes", icon: Sigma },
+  pages: { path: "/pages", icon: SquareText },
+  templates: { path: "/modeles", icon: Layers },
   media: { path: "/mediatheque", icon: Images },
-  trash: { path: "/corbeille", icon: Trash2 },
-  team: { path: "/equipe", icon: Users },
-  settings: { path: "/parametres", icon: Settings },
+  trash: { path: "/corbeille", icon: ArchiveX },
+  team: { path: "/equipe", icon: UserGroup },
+  settings: { path: "/parametres", icon: SlidersVertical },
   account: { path: "/mon-compte", icon: CircleUser },
 } satisfies Record<SectionKey, { path: string; icon: LucideIcon }>
 
@@ -56,7 +56,7 @@ export const menu = {
       items: ["templates", "media", "trash"],
     },
   ],
-  bottom: ["team", "settings", "account"],
+  bottom: ["team", "settings"],
 } satisfies {
   top: SectionKey[]
   groups: { label: string; items: SectionKey[] }[]

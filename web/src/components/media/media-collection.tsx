@@ -46,7 +46,7 @@ export function MediaGrid({
   // Dès qu'un fichier est coché, un clic sur une vignette la coche au lieu d'ouvrir sa fiche.
   const selecting = items.some((media) => selected.has(media.id))
   return (
-    <ul className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4">
+    <ul className="grid grid-cols-media gap-4">
       {items.map((media) => {
         const checked = selected.has(media.id)
         return (

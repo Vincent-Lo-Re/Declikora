@@ -87,10 +87,10 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 ## 7. Interface
 
 - [x] **Kit de composants shadcn/ui avec Tailwind CSS**, dans son **style neutre** par défaut, sans couleur de marque.
-- [x] **Thèmes clair, sombre et automatique** (qui suit l'ordinateur), au choix de chacun, dans Mon compte.
+- [x] **Thèmes clair, sombre et automatique** (qui suit l'ordinateur), au choix de chacun, dans Mon compte et dans le menu de l'avatar.
 - [x] **Pensée pour l'ordinateur**, sur des écrans de 13 pouces et plus. Sous 1 024 px de large, un message invite à agrandir la fenêtre ou à passer sur un ordinateur.
 - [x] **En français**, avec tous les textes de l'interface dans un seul fichier (`web/src/texts.ts`). L'interface tutoie.
-- [x] **Menu à gauche, déplié**, repliable en icônes (avec une infobulle au survol). Rangement : Accueil ; **Contenus** (Blog, Podcasts, Méthodes, Pages) ; **Outils** (Modèles, Médiathèque, Corbeille) ; en bas, Équipe, Paramètres et Mon compte.
+- [x] **Menu à gauche, déplié**, repliable en icônes (avec une infobulle au survol). Rangement : Accueil ; **Contenus** (Blog, Podcasts, Méthodes, Pages) ; **Outils** (Modèles, Médiathèque, Corbeille) ; en bas, Équipe et Paramètres (admins). En haut à droite, l'avatar du membre (initiale du prénom) ouvre un menu : nom et e-mail, Mon compte, Thème, Se déconnecter (29/09/2026). Icônes Lucide au trait d'un pixel.
 - [x] **Dans l'éditeur, le menu se cache** : l'éditeur prend tout l'écran, et « ← Blog » (par exemple) ramène à la liste.
 - [x] **Police Inter**, livrée avec l'admin, sans appel à Google.
 - [x] **Dates courtes** : « 27 sept. 2026 à 14:30 », à l'heure de Paris.

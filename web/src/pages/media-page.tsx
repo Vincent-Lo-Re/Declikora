@@ -475,7 +475,7 @@ export function MediaPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4">
+          <div className="grid grid-cols-media gap-4">
             {Array.from({ length: 6 }, (_, index) => (
               <Skeleton key={index} className="aspect-square w-full" />
             ))}

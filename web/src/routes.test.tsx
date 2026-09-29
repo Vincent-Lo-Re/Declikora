@@ -37,11 +37,12 @@ describe("menu", () => {
     const footer = screen.getByRole("navigation", {
       name: texts.nav.footerLabel,
     })
+    // « Mon compte » n'est plus dans le menu : il est dans celui de l'avatar, en haut.
     expect(
       within(footer)
         .getAllByRole("link")
         .map((link) => link.textContent)
-    ).toEqual(["Équipe", "Paramètres", "Mon compte"])
+    ).toEqual(["Équipe", "Paramètres"])
   })
 
   it("mène aux adresses en français", () => {
@@ -50,10 +51,6 @@ describe("menu", () => {
     expect(screen.getByRole("link", { name: "Médiathèque" })).toHaveAttribute(
       "href",
       "/mediatheque"
-    )
-    expect(screen.getByRole("link", { name: "Mon compte" })).toHaveAttribute(
-      "href",
-      "/mon-compte"
     )
   })
 
@@ -143,14 +140,11 @@ describe("rôles", () => {
   it("cache Équipe et Paramètres dans le menu d'un éditeur", () => {
     renderApp("/", fakeAuth({ role: "editor" }))
 
-    const footer = screen.getByRole("navigation", {
-      name: texts.nav.footerLabel,
-    })
+    // Plus rien en bas du menu : le bloc disparaît.
     expect(
-      within(footer)
-        .getAllByRole("link")
-        .map((link) => link.textContent)
-    ).toEqual(["Mon compte"])
+      screen.queryByRole("navigation", { name: texts.nav.footerLabel })
+    ).toBeNull()
+    expect(screen.queryByRole("link", { name: "Équipe" })).toBeNull()
   })
 
   it.each(["/equipe", "/parametres"])(

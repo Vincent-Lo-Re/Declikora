@@ -65,11 +65,14 @@ export function AppSidebar() {
         </nav>
       </SidebarContent>
 
-      <SidebarFooter>
-        <nav aria-label={texts.nav.footerLabel}>
-          <MenuItems sectionKeys={bottom} />
-        </nav>
-      </SidebarFooter>
+      {/* Équipe et Paramètres (admins). « Mon compte » est dans le menu de l'avatar, en haut. */}
+      {bottom.length > 0 && (
+        <SidebarFooter>
+          <nav aria-label={texts.nav.footerLabel}>
+            <MenuItems sectionKeys={bottom} />
+          </nav>
+        </SidebarFooter>
+      )}
 
       <SidebarRail />
     </Sidebar>

@@ -275,7 +275,7 @@ function EditorLoader({
       <EditorFrame section={section}>
         <div className="flex flex-1 justify-center p-10">
           <div
-            className="w-[390px] space-y-4"
+            className="w-(--blocks-phone-width) space-y-4"
             aria-label={texts.editor.loading}
           >
             <Skeleton className="h-9 w-2/3" />
@@ -1691,19 +1691,20 @@ function ContentEditor({
       {isMethod ? (
         // Une méthode : sa fiche (dans l'aperçu du téléphone, puis son panneau) et son plan.
         <div className="flex min-h-0 flex-1">
-          <main className="w-[27rem] shrink-0 overflow-y-auto xl:w-[30rem]">
+          <main className="w-md shrink-0 overflow-y-auto xl:w-lg">
             <div className="flex flex-col items-center gap-6 px-4 py-6">
               <div
                 className={cn(
-                  "blocks-phone rounded-[2rem] border shadow-sm",
+                  "blocks-phone rounded-4xl border shadow-sm",
                   !editable && "cursor-default"
                 )}
-                style={{ minHeight: 0 }}
+                // La fiche d'une méthode n'a pas de blocs : pas la hauteur d'un écran (preview.css).
+                data-compact
                 data-editable={editable || undefined}
               >
                 {phoneTop}
               </div>
-              <div className="w-full max-w-[390px] rounded-xl border bg-background p-4">
+              <div className="w-full max-w-(--blocks-phone-width) rounded-xl border bg-background p-4">
                 {presentationPanel}
               </div>
             </div>
@@ -1765,7 +1766,7 @@ function ContentEditor({
             {nearLimit && (
               <p
                 role="status"
-                className="mx-auto mb-3 max-w-[390px] text-sm text-amber-700 dark:text-amber-400"
+                className="mx-auto mb-3 max-w-(--blocks-phone-width) text-sm text-warning"
               >
                 {texts.editor.save.nearLimit}
               </p>
@@ -1773,7 +1774,7 @@ function ContentEditor({
             {autosave.state.status === "failed" && autosave.state.error && (
               <p
                 role="alert"
-                className="mx-auto mb-3 max-w-[390px] text-sm text-destructive"
+                className="mx-auto mb-3 max-w-(--blocks-phone-width) text-sm text-destructive"
               >
                 {autosave.state.error.message} {autosave.state.error.detail}
               </p>
@@ -1781,7 +1782,7 @@ function ContentEditor({
             <div className="flex justify-center px-6 pb-16">
               <div
                 className={cn(
-                  "blocks-phone rounded-[2rem] border shadow-sm",
+                  "blocks-phone rounded-4xl border shadow-sm",
                   !editable && "cursor-default"
                 )}
                 data-editable={editable || undefined}

@@ -7,10 +7,10 @@ import { texts } from "@/texts"
 const labels = texts.methods.outline
 
 const stateDots: Record<ElementState, string | null> = {
-  live: "bg-emerald-500",
-  modified: "bg-amber-500",
-  new: "bg-sky-500",
-  removing: "bg-rose-500",
+  live: "bg-status-live",
+  modified: "bg-status-modified",
+  new: "bg-status-new",
+  removing: "bg-status-removing",
   withdrawn: null,
   hidden: null,
   blocked: null,
