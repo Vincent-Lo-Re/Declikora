@@ -495,7 +495,7 @@ describe("programmer (heure de Paris)", () => {
       async (_id, at) => at.toISOString()
     )
     const dialog = await openScheduleDialog()
-    fill(dialog, "2099-10-25", "02:30")
+    fill(dialog, "25/10/2099", "02h30")
     // L'heure doublée : la première (heure d'été) est retenue, et c'est dit.
     const summary = within(dialog).getByText(
       labels.scheduleDialog.summary("25 oct. 2099 à 02h30"),
@@ -531,7 +531,7 @@ describe("programmer (heure de Paris)", () => {
       target: { value: "Aide et contact" },
     })
     expect(api.saveDraft).not.toHaveBeenCalled()
-    fill(dialog, "2099-10-03", "08:00")
+    fill(dialog, "03/10/2099", "08h00")
     fireEvent.click(
       within(dialog).getByRole("button", {
         name: labels.scheduleDialog.confirm,
@@ -555,13 +555,13 @@ describe("programmer (heure de Paris)", () => {
       name: labels.scheduleDialog.confirm,
     })
 
-    fill(dialog, "2099-03-29", "02:30")
+    fill(dialog, "29/03/2099", "02h30")
     expect(
       within(dialog).getByText(labels.scheduleDialog.errors.nonexistent)
     ).toBeVisible()
     fireEvent.click(confirm)
 
-    fill(dialog, "2020-01-01", "08:00")
+    fill(dialog, "01/01/2020", "08h00")
     fireEvent.click(confirm)
     expect(
       await within(dialog).findByText(labels.scheduleDialog.errors.past)

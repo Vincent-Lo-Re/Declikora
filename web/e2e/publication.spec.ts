@@ -24,6 +24,8 @@ import {
   bottomMenu,
   createBlankPage,
   expect,
+  frenchDay,
+  frenchTime,
   signIn,
   test,
 } from "./support/fixtures.ts"
@@ -163,8 +165,10 @@ async function scheduleInTwoDays(page: Page) {
     name: labels.scheduleDialog.title,
   })
   const when = inTwoDaysAtEight()
-  await dialog.getByLabel(labels.scheduleDialog.date).fill(when.date)
-  await dialog.getByLabel(labels.scheduleDialog.time).fill(when.time)
+  await dialog.getByLabel(labels.scheduleDialog.date).fill(frenchDay(when.date))
+  await dialog
+    .getByLabel(labels.scheduleDialog.time)
+    .fill(frenchTime(when.time))
   await dialog
     .getByRole("button", { name: labels.scheduleDialog.confirm })
     .click()

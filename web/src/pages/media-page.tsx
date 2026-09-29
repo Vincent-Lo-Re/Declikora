@@ -30,6 +30,7 @@ import { StorageUsage } from "@/components/media/storage-usage"
 import { useBulkTrash } from "@/components/media/use-bulk-trash"
 import { usePreviewUrls } from "@/components/media/use-preview-urls"
 import { PageHeader } from "@/components/page-header"
+import { SearchInput } from "@/components/search-input"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -40,7 +41,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { Toggle } from "@/components/ui/toggle"
@@ -374,20 +374,13 @@ export function MediaPage() {
 
       {/* Sur une seule ligne : la recherche rétrécit quand la place manque, le reste garde sa taille. */}
       <div className="mb-6 flex items-center gap-3 *:shrink-0">
-        <div className="relative w-72 min-w-32 shrink!">
-          <Search
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={texts.media.searchPlaceholder}
-            aria-label={texts.media.search}
-            className="pl-8"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          label={texts.media.search}
+          placeholder={texts.media.searchPlaceholder}
+          className="w-72 min-w-32 shrink!"
+        />
         <ToggleGroup
           variant="outline"
           aria-label={texts.media.filters.label}

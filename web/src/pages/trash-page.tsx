@@ -425,9 +425,12 @@ function TrashRow({
       <TableCell className="max-w-80">
         <div className="flex items-center gap-2">
           <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate font-medium" title={name}>
-            {name}
-          </span>
+          <Tooltip>
+            <TooltipTrigger render={<span className="truncate font-medium" />}>
+              {name}
+            </TooltipTrigger>
+            <TooltipContent>{name}</TooltipContent>
+          </Tooltip>
           {item.parent_title && (
             <span className="truncate text-muted-foreground">
               ({item.parent_title})
@@ -435,12 +438,18 @@ function TrashRow({
           )}
         </div>
         {batch.length > 0 && (
-          <p
-            className="truncate pl-6 text-xs text-muted-foreground"
-            title={texts.trash.batchList(batch.map(trashTitle).join(", "))}
-          >
-            {texts.trash.batch(batch.length)}
-          </p>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <p className="truncate pl-6 text-xs text-muted-foreground" />
+              }
+            >
+              {texts.trash.batch(batch.length)}
+            </TooltipTrigger>
+            <TooltipContent>
+              {texts.trash.batchList(batch.map(trashTitle).join(", "))}
+            </TooltipContent>
+          </Tooltip>
         )}
       </TableCell>
       <TableCell>{trashTypeLabel(item)}</TableCell>

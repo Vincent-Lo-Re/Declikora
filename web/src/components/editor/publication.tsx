@@ -11,6 +11,7 @@ import { useState, type ReactNode } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
+import { DayField, TimeField } from "@/components/date-time-fields"
 import { AccessLevelChoice } from "@/components/editor/access-level-choice"
 import type {
   LevelPick,
@@ -50,10 +51,14 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { MethodChanges } from "@/components/methods/method-changes"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { AccessLevel } from "@/lib/access-levels"
 import type { ContentSettings } from "@/lib/contents/api"
 import {
@@ -61,7 +66,15 @@ import {
   type LiveState,
   type ScheduleState,
 } from "@/lib/contents/publication"
-import { formatDateTime, parisToInstant, toParisParts } from "@/lib/dates"
+import {
+  formatDateTime,
+  formatDayInput,
+  formatTimeInput,
+  parisToInstant,
+  parseDayInput,
+  parseTimeInput,
+  toParisParts,
+} from "@/lib/dates"
 import { texts } from "@/texts"
 
 const labels = texts.publication
@@ -153,16 +166,21 @@ export function PublishBar({
     <div className="flex items-center gap-2">
       {!pub.loading && <LiveBadge live={status.live} />}
       <div className="flex items-center">
-        <Button
-          size="sm"
-          className="rounded-r-none"
-          disabled={disabled || pub.busy || pub.loading || upToDate}
-          title={upToDate ? labels.upToDate : undefined}
-          onClick={pub.startPublish}
-        >
-          {pub.publish.isPending ? <Spinner /> : <Send />}
-          {labels.actions.publish}
-        </Button>
+        {/* Un bouton grisé ne reçoit pas la souris : l'infobulle se pose sur son contenant. */}
+        <Tooltip disabled={!upToDate}>
+          <TooltipTrigger render={<span className="inline-flex" />}>
+            <Button
+              size="sm"
+              className="rounded-r-none"
+              disabled={disabled || pub.busy || pub.loading || upToDate}
+              onClick={pub.startPublish}
+            >
+              {pub.publish.isPending ? <Spinner /> : <Send />}
+              {labels.actions.publish}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{labels.upToDate}</TooltipContent>
+        </Tooltip>
         <DropdownMenu>
           <DropdownMenuTrigger
             disabled={disabled || pub.busy || pub.loading}
@@ -701,11 +719,20 @@ function closeDialog(pub: PublicationControls) {
   return () => pub.setDialog(null)
 }
 
-// Jour et heure à Paris (champs HTML « date » et « time »).
+// Jour et heure à Paris, tels qu'ils sont saisis (« 25/10/2099 », « 08h00 »).
 const scheduleSchema = z.object({
   date: z.string(),
   time: z.string(),
 })
+
+/** Le jour et l'heure saisis (« 25/10/2099 », « 08h00 ») → l'instant, ou pourquoi c'est impossible. */
+function toInstant(date: string, time: string) {
+  const day = parseDayInput(date)
+  const clock = parseTimeInput(time)
+  return day && clock
+    ? parisToInstant(day, clock)
+    : ({ ok: false, reason: "invalid" } as const)
+}
 
 /** Vrai si l'instant est déjà passé (au moment où l'on valide). */
 function isPast(instant: Date): boolean {
@@ -718,14 +745,18 @@ function ScheduleDialog({ pub }: { pub: PublicationControls }) {
   const [pick, setPick] = useState<LevelPick>(undefined)
   const current = pub.publication?.scheduled_at
   // Par défaut : l'heure déjà programmée, sinon demain à 8 h (heure de Paris).
-  const [defaults] = useState(() =>
-    current
+  const [defaults] = useState(() => {
+    const parts = current
       ? toParisParts(new Date(current))
       : {
           date: toParisParts(new Date(pub.now + 24 * 3600 * 1000)).date,
           time: "08:00",
         }
-  )
+    return {
+      date: formatDayInput(parts.date),
+      time: formatTimeInput(parts.time),
+    }
+  })
   const form = useForm({
     resolver: zodResolver(scheduleSchema),
     defaultValues: defaults,
@@ -734,14 +765,14 @@ function ScheduleDialog({ pub }: { pub: PublicationControls }) {
     control: form.control,
     name: ["date", "time"],
   })
-  const parsed = date && time ? parisToInstant(date, time) : null
+  const parsed = date && time ? toInstant(date, time) : null
 
   const submit = form.handleSubmit((values) => {
     if (!values.date || !values.time) {
       form.setError("time", { message: errors.required })
       return
     }
-    const result = parisToInstant(values.date, values.time)
+    const result = toInstant(values.date, values.time)
     if (!result.ok) {
       form.setError("time", {
         message:
@@ -779,14 +810,13 @@ function ScheduleDialog({ pub }: { pub: PublicationControls }) {
                 <FieldLabel htmlFor="programmer-jour">
                   {labels.scheduleDialog.date}
                 </FieldLabel>
-                <Input
+                <DayField
                   {...field}
                   id="programmer-jour"
-                  type="date"
                   aria-invalid={fieldState.invalid}
-                  onChange={(event) => {
+                  onChange={(value) => {
                     form.clearErrors()
-                    field.onChange(event)
+                    field.onChange(value)
                   }}
                 />
               </Field>
@@ -800,16 +830,14 @@ function ScheduleDialog({ pub }: { pub: PublicationControls }) {
                 <FieldLabel htmlFor="programmer-heure">
                   {labels.scheduleDialog.time}
                 </FieldLabel>
-                <Input
+                <TimeField
                   {...field}
                   id="programmer-heure"
-                  type="time"
-                  step={60}
                   aria-invalid={fieldState.invalid}
                   aria-describedby="programmer-resume"
-                  onChange={(event) => {
+                  onChange={(value) => {
                     form.clearErrors()
-                    field.onChange(event)
+                    field.onChange(value)
                   }}
                 />
               </Field>

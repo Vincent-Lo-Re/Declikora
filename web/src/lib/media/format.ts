@@ -25,6 +25,17 @@ export function formatBytes(bytes: number): string {
   return units.gigabytes(oneDecimal.format(bytes / GB))
 }
 
+/** Le compteur d'un lecteur : « 0:42 », « 3:05 », « 1:02:03 ». */
+export function formatClock(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds))
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const rest = String(total % 60).padStart(2, "0")
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${rest}`
+    : `${minutes}:${rest}`
+}
+
 /** « 45 s », « 3 min 05 s », « 1 h 02 min ». */
 export function formatDuration(seconds: number): string {
   const total = Math.max(0, Math.round(seconds))

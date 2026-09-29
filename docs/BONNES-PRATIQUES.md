@@ -18,6 +18,7 @@
 ## 2. Interface (React, shadcn/ui, Tailwind CSS)
 
 - **Réutiliser avant d'écrire** : les briques communes sont listées dans `CLAUDE.md` (« Briques communes »). Dès qu'un morceau apparaît une deuxième fois, on l'extrait. Le garde-fou refuse un copier-coller de plus de 10 lignes (jscpd).
+- **Rien n'est laissé à l'apparence du navigateur** quand l'admin a son composant : les infobulles passent par `Tooltip` (ESLint refuse l'attribut `title`), la recherche par `SearchInput`, le jour et l'heure par `DayField` et `TimeField` (« 25/10/2099 », « 08h00 »), l'audio par `AudioPlayer` ; les barres de défilement suivent le thème (`web/src/index.css`). Seuls restent au navigateur la fenêtre « Quitter le site ? » et le choix des fichiers, qu'on ne peut pas remplacer.
 - **shadcn/ui : seulement ce qui sert.** Après `npx shadcn add`, on retire les morceaux et les variantes inutilisés.
 - **Composants shadcn/ui** (sur Base UI) avant tout sur-mesure, adaptés dans `web/src/components/ui/`. Icônes Lucide, avec un trait d'un pixel pour toute l'admin (`LucideProvider` dans `web/src/components/app-providers.tsx`) : pas d'épaisseur réglée icône par icône.
 - **Couleurs : seulement des jetons du thème**, jamais la palette de Tailwind (`amber-500`, `emerald-500`…). **Pas de valeur arbitraire chiffrée** (`w-[390px]`) : un jeton, ou un utilitaire nommé dans `web/src/index.css`. ESLint refuse les deux, comme le style en ligne (les exceptions autorisées se marquent sur leur ligne, avec la raison).

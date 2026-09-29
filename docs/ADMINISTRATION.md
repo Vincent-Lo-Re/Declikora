@@ -94,6 +94,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Dans l'éditeur, le menu se cache** : l'éditeur prend tout l'écran, et « ← Blog » (par exemple) ramène à la liste.
 - [x] **Police Inter**, livrée avec l'admin, sans appel à Google.
 - [x] **Dates courtes** : « 27 sept. 2026 à 14h30 », à l'heure de Paris (heures à la française : « 09h05 », décidé le 29/09/2026).
+- [x] **Commandes aux couleurs de l'admin** (29/09/2026) : jour et heure de « Programmer » saisis à la française (« 25/10/2099 » avec un calendrier, « 08h00 »), lecteur audio, infobulles, bouton pour effacer une recherche et barres de défilement du thème, au lieu de ceux du navigateur.
 - [x] **Adresses en français** : `/blog`, `/mediatheque`, `/corbeille`, `/mon-compte`…
 
 ## 8. Mise en ligne et garde-fous

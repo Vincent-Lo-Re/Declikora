@@ -32,6 +32,54 @@ export function formatDateTime(date: Date | string): string {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Saisie d'un jour et d'une heure à la française (fenêtre « Programmer ») : « 25/10/2099 »,
+// « 08h00 ». Les calculs gardent les formats ISO (« 2099-10-25 », « 08:00 »).
+// ---------------------------------------------------------------------------------------------
+
+const DAY_INPUT = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
+const TIME_INPUT = /^(\d{1,2})\s*[h:]\s*(\d{2})?$/i
+
+const pad = (value: number) => String(value).padStart(2, "0")
+
+/** « 25/10/2099 » (ou « 5/3/2099 ») → « 2099-10-25 » ; null si ce n'est pas un jour qui existe. */
+export function parseDayInput(text: string): string | null {
+  const match = DAY_INPUT.exec(text.trim())
+  if (!match) return null
+  const [day, month, year] = match.slice(1).map(Number)
+  const check = new Date(Date.UTC(year, month - 1, day))
+  if (
+    check.getUTCFullYear() !== year ||
+    check.getUTCMonth() !== month - 1 ||
+    check.getUTCDate() !== day
+  ) {
+    return null
+  }
+  return `${year}-${pad(month)}-${pad(day)}`
+}
+
+/** « 2099-10-25 » → « 25/10/2099 ». */
+export function formatDayInput(iso: string): string {
+  const [year, month, day] = iso.split("-")
+  return `${day}/${month}/${year}`
+}
+
+/** « 8h05 », « 08h05 », « 8h », « 08:05 » → « 08:05 » ; null sinon. */
+export function parseTimeInput(text: string): string | null {
+  const match = TIME_INPUT.exec(text.trim())
+  if (!match) return null
+  const hours = Number(match[1])
+  const minutes = Number(match[2] ?? "0")
+  if (hours > 23 || minutes > 59) return null
+  return `${pad(hours)}:${pad(minutes)}`
+}
+
+/** « 08:05 » → « 08h05 ». */
+export function formatTimeInput(time: string): string {
+  const [hours, minutes] = time.split(":")
+  return `${hours}${texts.dates.hour}${minutes}`
+}
+
+// ---------------------------------------------------------------------------------------------
 // Heure de Paris ↔ instant (timestamptz), pour programmer une publication.
 // La base compare l'instant avec now() : seul l'instant compte, pas le fuseau de pg_cron.
 // ---------------------------------------------------------------------------------------------

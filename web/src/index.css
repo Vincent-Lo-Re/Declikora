@@ -142,6 +142,8 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Barres de défilement fines, aux couleurs du thème (la couleur est posée sur html). */
+    scrollbar-width: thin;
   }
   body {
     @apply bg-background text-foreground;
@@ -149,6 +151,14 @@
   html {
     @apply font-sans;
     color-scheme: light;
+    /* La poignée : le gris des textes secondaires, adouci ; le fond : transparent. Hérité par
+       toutes les zones qui défilent, en clair comme en sombre. */
+    scrollbar-color: color-mix(
+        in oklch,
+        var(--muted-foreground) 45%,
+        transparent
+      )
+      transparent;
   }
   /* Barres de défilement et champs natifs en sombre aussi. */
   html.dark {

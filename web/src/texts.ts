@@ -17,6 +17,7 @@ export const texts = {
     save: "Enregistrer",
     untitled: "Sans titre",
     actions: "Actions",
+    clearSearch: "Effacer la recherche",
     // « Modifié le 27 sept. 2026 à 14h30 par Anne »
     savedBy: (name: string) => `par ${name}`,
     loading: "Chargement…",
@@ -1557,7 +1558,6 @@ export const texts = {
         loadFailed: "L'audio n'a pas pu être chargé.",
         duration: (duration: string) => `Durée : ${duration}`,
         noDuration: "Durée inconnue",
-        listen: (name: string) => `Écouter ${name}`,
         transcriptOk: "Transcription renseignée dans la médiathèque.",
         transcriptMissing:
           "Pas de transcription : ajoute-la dans la fiche du fichier, pour les personnes qui ne peuvent pas écouter. Elle est conseillée, pas obligatoire.",
@@ -2075,6 +2075,17 @@ export const texts = {
     },
   },
 
+  // Lecteur audio (fiche d'un fichier, présentation d'un épisode).
+  audioPlayer: {
+    play: (name: string) => `Écouter ${name}`,
+    pause: (name: string) => `Mettre ${name} en pause`,
+    position: "Position dans l'audio",
+    mute: "Couper le son",
+    unmute: "Remettre le son",
+    failed:
+      "Cet audio n'a pas pu être lu. Vérifie ta connexion, puis réessaie.",
+  },
+
   // Menu de l'avatar, en haut à droite de chaque page.
   accountMenu: {
     open: "Menu de ton compte",
@@ -2113,5 +2124,9 @@ export const texts = {
     at: "à",
     // Entre les heures et les minutes : « 18h42 »
     hour: "h",
+    // Champs « Jour » et « Heure » (fenêtre « Programmer »).
+    dayPlaceholder: "jj/mm/aaaa",
+    timePlaceholder: "08h00",
+    pickDay: "Choisir le jour dans le calendrier",
   },
 } as const

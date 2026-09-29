@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest"
 
-import { formatDateTime, parisToInstant, toParisParts } from "./dates"
+import {
+  formatDateTime,
+  formatDayInput,
+  formatTimeInput,
+  parisToInstant,
+  parseDayInput,
+  parseTimeInput,
+  toParisParts,
+} from "./dates"
 
 describe("formatDateTime", () => {
   it("écrit la date courte à l'heure de Paris, en été", () => {
@@ -130,5 +138,28 @@ describe("heure de Paris ↔ instant (programmation)", () => {
       }
       expect(toParisParts(back.instant)).toEqual(parts)
     }
+  })
+})
+
+describe("saisie à la française (fenêtre « Programmer »)", () => {
+  it("lit un jour « jj/mm/aaaa », avec ou sans zéro, et refuse un jour qui n'existe pas", () => {
+    expect(parseDayInput("25/10/2099")).toBe("2099-10-25")
+    expect(parseDayInput(" 5/3/2099 ")).toBe("2099-03-05")
+    expect(parseDayInput("31/04/2099")).toBeNull()
+    expect(parseDayInput("29/02/2099")).toBeNull()
+    expect(parseDayInput("2099-10-25")).toBeNull()
+    expect(formatDayInput("2099-03-05")).toBe("05/03/2099")
+  })
+
+  it("lit une heure « 08h05 », « 8h05 », « 8h » ou « 08:05 », et l'écrit « 08h05 »", () => {
+    expect(parseTimeInput("08h05")).toBe("08:05")
+    expect(parseTimeInput("8h05")).toBe("08:05")
+    expect(parseTimeInput("8h")).toBe("08:00")
+    expect(parseTimeInput("08:05")).toBe("08:05")
+    expect(parseTimeInput("18 h 42")).toBe("18:42")
+    expect(parseTimeInput("24h00")).toBeNull()
+    expect(parseTimeInput("8h60")).toBeNull()
+    expect(parseTimeInput("huit heures")).toBeNull()
+    expect(formatTimeInput("08:05")).toBe("08h05")
   })
 })

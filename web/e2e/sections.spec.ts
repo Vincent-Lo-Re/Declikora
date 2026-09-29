@@ -17,7 +17,14 @@ import type { Locator, Page } from "@playwright/test"
 
 import { texts } from "../src/texts.ts"
 import type { Account } from "./support/accounts.ts"
-import { createBlankPage, expect, signIn, test } from "./support/fixtures.ts"
+import {
+  createBlankPage,
+  expect,
+  frenchDay,
+  frenchTime,
+  signIn,
+  test,
+} from "./support/fixtures.ts"
 import { photoPng, silentMp3 } from "./support/media.ts"
 import {
   contentIdFromUrl,
@@ -168,8 +175,12 @@ async function scheduleInTwoDays(page: Page) {
     name: publication.scheduleDialog.title,
   })
   const when = inTwoDaysAtEight()
-  await dialog.getByLabel(publication.scheduleDialog.date).fill(when.date)
-  await dialog.getByLabel(publication.scheduleDialog.time).fill(when.time)
+  await dialog
+    .getByLabel(publication.scheduleDialog.date)
+    .fill(frenchDay(when.date))
+  await dialog
+    .getByLabel(publication.scheduleDialog.time)
+    .fill(frenchTime(when.time))
   await dialog
     .getByRole("button", { name: publication.scheduleDialog.confirm })
     .click()
@@ -463,7 +474,9 @@ test("Podcasts : épisode refusé sans audio, audio de la médiathèque, durée,
   // L'aperçu : la durée et le lecteur ; l'avertissement de transcription, ici et à droite.
   const preview = page.locator('[data-presentation="audio"]')
   await expect(preview).toContainText(words.audio.duration(duration))
-  await expect(preview.getByLabel(words.audio.listen(audioName))).toBeAttached()
+  await expect(
+    preview.getByRole("button", { name: texts.audioPlayer.play(audioName) })
+  ).toBeVisible()
   await expect(preview.locator('[data-warning="transcript"]')).toContainText(
     words.audio.transcriptMissing
   )
