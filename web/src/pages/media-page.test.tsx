@@ -455,6 +455,141 @@ describe("Médiathèque", () => {
   })
 })
 
+describe("Sélection en masse", () => {
+  const selection = texts.media.selection
+  const box = (name: string) =>
+    screen.getByRole("checkbox", { name: selection.select(name) })
+
+  it("coche en grille : un clic sur une vignette coche au lieu d'ouvrir la fiche", async () => {
+    renderApp("/mediatheque")
+    await screen.findByText(photo.name)
+    expect(
+      screen.queryByRole("button", { name: selection.trash(1) })
+    ).toBeNull()
+
+    fireEvent.click(box(photo.name))
+    expect(screen.getByText(selection.count(1))).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: selection.trash(1) })
+    ).toBeVisible()
+
+    // Pendant la sélection, la vignette entière coche le fichier.
+    fireEvent.click(
+      screen.getByRole("button", { name: selection.select(logo.name) })
+    )
+    expect(box(logo.name)).toBeChecked()
+    expect(screen.getByText(selection.count(2))).toBeVisible()
+    expect(screen.queryByRole("dialog")).toBeNull()
+
+    // Tout décoché : un clic ouvre de nouveau la fiche.
+    fireEvent.click(box(photo.name))
+    fireEvent.click(box(logo.name))
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.media.open(photo.name) })
+    )
+    expect(await screen.findByRole("dialog")).toBeVisible()
+  })
+
+  it("« Tout sélectionner » ne coche que les fichiers affichés", async () => {
+    renderApp("/mediatheque")
+    await screen.findByText(photo.name)
+
+    vi.mocked(api.listMedia).mockResolvedValue([voice])
+    fireEvent.click(screen.getByRole("button", { name: /Audios/ }))
+    await waitFor(() => expect(screen.queryByText(photo.name)).toBeNull())
+
+    fireEvent.click(screen.getByRole("checkbox", { name: selection.selectAll }))
+    expect(box(voice.name)).toBeChecked()
+    expect(
+      screen.getByRole("button", { name: selection.trash(1) })
+    ).toBeVisible()
+  })
+
+  it("met la sélection à la corbeille, garde les fichiers utilisés, et propose d'annuler", async () => {
+    vi.mocked(api.trashMedia).mockImplementation(async (id) => {
+      if (id === logo.id) {
+        throw new api.MediaError(
+          "fichier_utilise",
+          "Ce fichier est utilisé dans : Recette du pain."
+        )
+      }
+      return { ...photo, id, deleted_at: "2026-09-27T13:00:00Z" }
+    })
+    vi.mocked(api.restoreMedia).mockResolvedValue(photo)
+    // En liste : les mêmes cases, dans la première colonne.
+    localStorage.setItem("declikora:mediatheque:affichage", "list")
+    renderApp("/mediatheque")
+    await screen.findByText(photo.name)
+
+    fireEvent.click(box(photo.name))
+    fireEvent.click(box(logo.name))
+    fireEvent.click(box(voice.name))
+    fireEvent.click(screen.getByRole("button", { name: selection.trash(3) }))
+
+    expect(await screen.findByText(selection.trashed(2))).toBeVisible()
+    expect(vi.mocked(api.trashMedia).mock.calls.map(([id]) => id)).toEqual([
+      photo.id,
+      logo.id,
+      voice.id,
+    ])
+    expect(api.kickFiles).toHaveBeenCalled()
+    // Le fichier utilisé est gardé, reste coché, et le message dit où il sert.
+    expect(screen.getByText(selection.kept.title(1))).toBeVisible()
+    expect(
+      screen.getByText(
+        selection.kept.item(
+          logo.name,
+          "Ce fichier est utilisé dans : Recette du pain."
+        )
+      )
+    ).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: selection.trash(1) })
+    ).toBeVisible()
+
+    // Le message de cette mise à la corbeille (un autre test peut en avoir laissé un).
+    const toastItem = screen
+      .getByText(selection.trashed(2))
+      .closest<HTMLElement>("[data-sonner-toast]")
+    fireEvent.click(
+      within(toastItem!).getByRole("button", { name: texts.media.detail.undo })
+    )
+    expect(await screen.findByText(selection.restored(2))).toBeVisible()
+    expect(vi.mocked(api.restoreMedia).mock.calls.map(([id]) => id)).toEqual([
+      photo.id,
+      voice.id,
+    ])
+
+    fireEvent.click(screen.getByRole("button", { name: selection.kept.close }))
+    expect(screen.queryByText(selection.kept.title(1))).toBeNull()
+    expect(document.activeElement).toBe(
+      screen.getByRole("checkbox", { name: selection.selectAll })
+    )
+  })
+
+  it("après la corbeille, le focus va sur « Tout sélectionner »", async () => {
+    vi.mocked(api.trashMedia).mockResolvedValue({
+      ...photo,
+      deleted_at: "2026-09-27T13:00:00Z",
+    })
+    renderApp("/mediatheque")
+    await screen.findByText(photo.name)
+
+    fireEvent.click(box(photo.name))
+    vi.mocked(api.listMedia).mockResolvedValue([logo, animation, voice])
+    fireEvent.click(screen.getByRole("button", { name: selection.trash(1) }))
+
+    expect(await screen.findByText(selection.trashed(1))).toBeVisible()
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole("checkbox", { name: selection.selectAll })
+      )
+    )
+    await waitFor(() => expect(screen.queryByText(photo.name)).toBeNull())
+    expect(screen.queryByText(selection.count(1))).toBeNull()
+  })
+})
+
 describe("Envoi", () => {
   const input = () => screen.getByLabelText(texts.media.uploadInput)
   const pdfFile = () =>

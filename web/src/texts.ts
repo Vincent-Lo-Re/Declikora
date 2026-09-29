@@ -380,6 +380,32 @@ export const texts = {
       status: "État",
     },
     open: (name: string) => `Ouvrir la fiche de ${name}`,
+    // Sélection en masse (cases des vignettes et de la liste).
+    selection: {
+      select: (name: string) => `Sélectionner ${name}`,
+      selectAll: "Tout sélectionner",
+      column: "Sélection",
+      count: (count: number) =>
+        count === 1
+          ? "1 fichier sélectionné"
+          : `${count} fichiers sélectionnés`,
+      trash: (count: number) => `Mettre à la corbeille (${count})`,
+      trashed: (count: number) =>
+        count === 1
+          ? "1 fichier mis à la corbeille."
+          : `${count} fichiers mis à la corbeille.`,
+      restored: (count: number) =>
+        count === 1 ? "1 fichier restauré." : `${count} fichiers restaurés.`,
+      kept: {
+        title: (count: number) =>
+          count === 1
+            ? "1 fichier gardé : il est encore utilisé"
+            : `${count} fichiers gardés : ils sont encore utilisés`,
+        hint: "Retire-les d'abord des contenus. Ils restent sélectionnés.",
+        item: (name: string, detail: string) => `${name} — ${detail}`,
+        close: "Fermer ce message",
+      },
+    },
     empty: {
       title: "Aucun fichier pour l'instant",
       description:

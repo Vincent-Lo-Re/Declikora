@@ -3,6 +3,7 @@ import {
   LayoutGrid,
   List,
   Search,
+  Trash2,
   TriangleAlert,
   Upload,
   UploadCloud,
@@ -19,9 +20,11 @@ import { toast } from "sonner"
 
 import { kindIcons } from "@/components/media/media-kinds"
 import { MediaGrid, MediaTable } from "@/components/media/media-collection"
+import { KeptNotice, SelectionBar } from "@/components/media/media-selection"
 import { MediaSheet } from "@/components/media/media-sheet"
 import { OrphansNotice } from "@/components/media/orphans-notice"
 import { StorageUsage } from "@/components/media/storage-usage"
+import { useBulkTrash } from "@/components/media/use-bulk-trash"
 import { usePreviewUrls } from "@/components/media/use-preview-urls"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
@@ -36,6 +39,7 @@ import {
 } from "@/components/ui/empty"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import {
@@ -45,6 +49,12 @@ import {
   mediaKeys,
   type MediaFilters,
 } from "@/lib/media/api"
+import {
+  selectionOf,
+  toggleAll,
+  toggleSelected,
+  type KeptMedia,
+} from "@/lib/media/bulk-trash"
 import {
   INTERRUPTED_AFTER_MS,
   mediaKinds,
@@ -134,6 +144,12 @@ export function MediaPage() {
   // Après une mise à la corbeille depuis la fiche : id du fichier voisin qui reçoit le focus
   // (le bouton qui avait ouvert la fiche disparaît de la liste avec le fichier).
   const focusAfterTrash = useRef<string | null>(null)
+  // Sélection en masse : les fichiers cochés, et ceux gardés car encore utilisés.
+  const [checkedIds, setCheckedIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  )
+  const [kept, setKept] = useState<KeptMedia[]>([])
+  const selectAll = useRef<HTMLSpanElement>(null)
 
   const filters = { kind, search: debouncedSearch }
   const media = useQuery({
@@ -242,12 +258,30 @@ export function MediaPage() {
 
   const filtering = debouncedSearch.trim() !== "" || kind !== "all"
 
+  const shownItems = media.data ?? []
+  const selection = selectionOf(checkedIds, shownItems)
+  const bulkTrash = useBulkTrash((result) => {
+    setCheckedIds((current) => {
+      const next = new Set(current)
+      for (const trashed of result.trashed) next.delete(trashed.id)
+      return next
+    })
+    setKept(result.kept)
+    // Le bouton « Mettre à la corbeille » disparaît quand tout est parti : le focus va sur
+    // « Tout sélectionner », ou sur « Envoyer des fichiers » si la liste va être vide.
+    if (result.kept.length === 0 && result.error === null) {
+      const emptied = result.trashed.length === shownItems.length
+      ;(emptied ? uploadButton.current : selectAll.current)?.focus()
+    }
+  })
+
   const onTrashed = (trashed: Media) => {
     const items = media.data ?? []
     const index = items.findIndex((item) => item.id === trashed.id)
     const neighbor =
       index === -1 ? null : (items[index + 1] ?? items[index - 1])
     focusAfterTrash.current = neighbor?.id ?? ""
+    setCheckedIds((current) => toggleSelected(current, trashed.id, false))
     closeSheet()
   }
 
@@ -264,6 +298,13 @@ export function MediaPage() {
         )
       : null
     return neighbor ?? uploadButton.current
+  }
+
+  const collectionSelection = {
+    selected: checkedIds,
+    onSelect: (item: Media, checked: boolean) =>
+      setCheckedIds((current) => toggleSelected(current, item.id, checked)),
+    selectionDisabled: bulkTrash.isPending,
   }
 
   return (
@@ -283,6 +324,17 @@ export function MediaPage() {
               aria-label={texts.media.uploadInput}
               onChange={onInputChange}
             />
+            {selection.items.length > 0 && (
+              <Button
+                variant="outline"
+                className="text-destructive"
+                disabled={bulkTrash.isPending}
+                onClick={() => bulkTrash.mutate(selection.items)}
+              >
+                {bulkTrash.isPending ? <Spinner /> : <Trash2 />}
+                {texts.media.selection.trash(selection.items.length)}
+              </Button>
+            )}
             <Button
               ref={uploadButton}
               onClick={() => fileInput.current?.click()}
@@ -410,20 +462,47 @@ export function MediaPage() {
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
-          ) : view === "grid" ? (
-            <MediaGrid
-              items={media.data}
-              urlFor={urlFor}
-              onOpen={setOpened}
-              now={media.dataUpdatedAt}
-            />
           ) : (
-            <MediaTable
-              items={media.data}
-              urlFor={urlFor}
-              onOpen={setOpened}
-              now={media.dataUpdatedAt}
-            />
+            <>
+              {kept.length > 0 && (
+                <KeptNotice
+                  kept={kept}
+                  onClose={() => {
+                    setKept([])
+                    selectAll.current?.focus()
+                  }}
+                />
+              )}
+              <SelectionBar
+                count={selection.items.length}
+                all={selection.all}
+                some={selection.some}
+                disabled={bulkTrash.isPending}
+                onToggleAll={(checked) =>
+                  setCheckedIds((current) =>
+                    toggleAll(current, media.data ?? [], checked)
+                  )
+                }
+                selectAllRef={selectAll}
+              />
+              {view === "grid" ? (
+                <MediaGrid
+                  items={media.data}
+                  urlFor={urlFor}
+                  onOpen={setOpened}
+                  now={media.dataUpdatedAt}
+                  {...collectionSelection}
+                />
+              ) : (
+                <MediaTable
+                  items={media.data}
+                  urlFor={urlFor}
+                  onOpen={setOpened}
+                  now={media.dataUpdatedAt}
+                  {...collectionSelection}
+                />
+              )}
+            </>
           )}
           {media.data.length >= MEDIA_LIST_LIMIT && (
             <p className="text-sm text-muted-foreground">

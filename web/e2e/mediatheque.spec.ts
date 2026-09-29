@@ -8,7 +8,8 @@
 // 2. Le même SVG piégé envoyé SANS passer par l'admin : la tâche planifiée « fichiers »
 //    (pg_net → files) le fait vérifier, le serveur le refuse, l'admin l'affiche.
 // 3. Les autres formats : GIF animé, animation Lottie, gros audio (envoi reprenable), PDF,
-//    format refusé ; filtres, recherche et effacement d'un seul élément.
+//    format refusé ; filtres, recherche, mise à la corbeille en masse (cases à cocher) et
+//    effacement d'un seul élément.
 
 import { readFileSync } from "node:fs"
 import type { Page } from "@playwright/test"
@@ -284,7 +285,7 @@ test("un SVG piégé envoyé sans passer par l'admin est refusé par le serveur"
   )
 })
 
-test("un membre envoie les autres formats, filtre, cherche et efface un seul fichier", async ({
+test("un membre envoie les autres formats, filtre, cherche, en met deux à la corbeille d'un coup et efface un seul fichier", async ({
   page,
   team,
 }) => {
@@ -384,10 +385,29 @@ test("un membre envoie les autres formats, filtre, cherche et efface un seul fic
   await page.getByLabel(texts.media.search).fill("")
   await expect(card(page, names.audio)).toBeVisible()
 
+  // Sélection en masse : le GIF et l'animation partent ensemble à la corbeille.
+  const selection = texts.media.selection
+  await page
+    .getByRole("checkbox", { name: selection.select(names.gif) })
+    .check()
+  // Pendant une sélection, un clic sur une vignette la coche au lieu d'ouvrir sa fiche.
+  await page
+    .getByRole("button", { name: selection.select(names.lottie) })
+    .click()
+  await expect(page.getByText(selection.count(2))).toBeVisible()
+  await page.getByRole("button", { name: selection.trash(2) }).click()
+  await expect(page.getByText(selection.trashed(2))).toBeVisible()
+  await expect(card(page, names.gif)).toHaveCount(0)
+  await expect(card(page, names.lottie)).toHaveCount(0)
+  await expect(card(page, names.audio)).toBeVisible()
+
   // Effacement d'un seul fichier depuis la corbeille : les autres restent.
   const pdf = await readMedia(names.pdf)
   await trashFromSheet(page, names.pdf)
   await page.goto("/corbeille")
+  for (const name of [names.gif, names.lottie]) {
+    await expect(page.getByRole("row").filter({ hasText: name })).toHaveCount(1)
+  }
   await page
     .getByRole("row")
     .filter({ hasText: names.pdf })
