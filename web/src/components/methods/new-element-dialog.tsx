@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useEffect, type ComponentProps } from "react"
 import { Controller, useForm } from "react-hook-form"
 
+import { TITLE_MAX } from "@/blocks/draft"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -106,7 +107,7 @@ export function NewElementDialog({
                     {...field}
                     id={`${idPrefix}-titre`}
                     autoComplete="off"
-                    maxLength={200}
+                    maxLength={TITLE_MAX}
                     aria-invalid={fieldState.invalid}
                   />
                   <FieldError errors={[fieldState.error]} />
