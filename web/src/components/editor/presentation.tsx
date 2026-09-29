@@ -260,10 +260,7 @@ export function AudioPreview({
  */
 export function TranscriptWarning({ mediaId }: { mediaId: string }) {
   return (
-    <div
-      className="space-y-1 text-xs text-amber-700 dark:text-amber-400"
-      data-warning="transcript"
-    >
+    <div className="space-y-1 text-xs text-warning" data-warning="transcript">
       <p className="flex items-start gap-1.5">
         <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
         {labels.audio.transcriptMissing}
@@ -366,7 +363,7 @@ export function PresentationPanel({
               {labels.cover.alt(cover.media.alt.trim())}
             </p>
           ) : (
-            <div className="space-y-1 text-xs text-amber-700 dark:text-amber-400">
+            <div className="space-y-1 text-xs text-warning">
               <p className="flex items-start gap-1.5">
                 <TriangleAlert
                   aria-hidden

@@ -156,7 +156,7 @@ export function HistorySheet({
                         <Badge variant="secondary" className="gap-1.5">
                           <span
                             aria-hidden
-                            className="size-1.5 rounded-full bg-emerald-500"
+                            className="size-1.5 rounded-full bg-status-live"
                           />
                           {labels.live}
                         </Badge>

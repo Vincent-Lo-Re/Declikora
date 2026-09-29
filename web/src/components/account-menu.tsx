@@ -1,8 +1,9 @@
-import { CircleUser, LogOut, Monitor, Moon, Palette, Sun } from "lucide-react"
+import { LogOut, Palette } from "lucide-react"
 import { useNavigate } from "react-router"
 
 import { useAuth } from "@/auth/auth-context"
 import { isTheme, useTheme } from "@/components/theme/theme-context"
+import { themeOptions } from "@/components/theme/theme-options"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -22,11 +23,7 @@ import { initial } from "@/lib/initial"
 import { authPaths, sections } from "@/navigation"
 import { texts } from "@/texts"
 
-const themes = [
-  { value: "light", label: texts.theme.light, icon: Sun },
-  { value: "dark", label: texts.theme.dark, icon: Moon },
-  { value: "system", label: texts.theme.system, icon: Monitor },
-] as const
+const AccountIcon = sections.account.icon
 
 /**
  * L'avatar du membre (initiale du prénom), en haut à droite : son nom et son e-mail, « Mon
@@ -64,7 +61,7 @@ export function AccountMenu() {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => void navigate(sections.account.path)}>
-          <CircleUser />
+          <AccountIcon />
           {texts.sections.account.title}
         </DropdownMenuItem>
         <DropdownMenuSub>
@@ -79,7 +76,7 @@ export function AccountMenu() {
                 if (isTheme(value)) setTheme(value)
               }}
             >
-              {themes.map(({ value, label, icon: Icon }) => (
+              {themeOptions.map(({ value, label, icon: Icon }) => (
                 <DropdownMenuRadioItem key={value} value={value}>
                   <Icon />
                   {label}

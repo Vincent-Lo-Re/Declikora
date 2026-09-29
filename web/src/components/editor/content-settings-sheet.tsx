@@ -367,9 +367,7 @@ function AccessSection({
             onChange={onChange}
           />
           {!settings.accessChosen && (
-            <p className="text-sm text-amber-700 dark:text-amber-400">
-              {labels.access.notChosen}
-            </p>
+            <p className="text-sm text-warning">{labels.access.notChosen}</p>
           )}
           {levels.length === 0 && (
             <p className="text-sm text-muted-foreground">

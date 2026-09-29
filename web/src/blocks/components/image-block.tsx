@@ -92,7 +92,7 @@ export const ImageBlockView = memo(function ImageBlockView({
         </div>
       )}
       {missingAlt && (
-        <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+        <p className="mt-2 flex items-start gap-1.5 text-xs text-warning">
           <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
           {texts.editor.image.altWarning}
         </p>

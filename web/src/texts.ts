@@ -28,7 +28,7 @@ export const texts = {
   nav: {
     label: "Menu principal",
     description: "Les sections de l'administration.",
-    footerLabel: "Équipe et compte",
+    footerLabel: "Équipe et paramètres",
     toggle: "Afficher ou masquer le menu",
     groups: {
       contents: "Contenus",
@@ -1395,7 +1395,6 @@ export const texts = {
       tooLong: "Le titre ne doit pas dépasser 200 caractères.",
     },
     untitled: "Sans titre",
-    pageTitle: (title: string) => `${title} — Éditeur`,
     blocks: {
       text: "Texte",
       image: "Image",
@@ -1801,8 +1800,6 @@ export const texts = {
       waiting: "Programmation en attente : quelqu'un écrit",
       failed: "Programmation échouée",
     },
-    liveSince: (number: number, date: string) =>
-      `Version n° ${number} en ligne depuis le ${date}.`,
     // Bandeau de l'éditeur ([D16], [D31]).
     banner: {
       scheduled: (date: string) =>

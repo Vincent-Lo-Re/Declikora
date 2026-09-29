@@ -16,6 +16,11 @@
   padding: var(--blocks-space-page-padding);
 }
 
+/* La fiche d'une méthode, sans blocs : l'aperçu prend la hauteur de son contenu. */
+.blocks-phone[data-compact] {
+  min-height: 0;
+}
+
 .blocks-title {
   display: block;
   width: 100%;

@@ -73,8 +73,8 @@ const labels = texts.publication
 const liveDots: Record<LiveState, string | null> = {
   draft: null,
   withdrawn: null,
-  live: "bg-emerald-500",
-  modified: "bg-amber-500",
+  live: "bg-status-live",
+  modified: "bg-status-modified",
 }
 
 /** « Brouillon », « En ligne », « Modifié depuis la publication », « Retiré de l'app ». */
@@ -630,7 +630,7 @@ function RequirementsNotice({
       {checks.advice.map((item) => (
         <p
           key={item.key}
-          className="flex items-start gap-1.5 text-sm text-amber-700 dark:text-amber-400"
+          className="flex items-start gap-1.5 text-sm text-warning"
           data-advice={item.key}
         >
           <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />

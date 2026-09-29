@@ -179,7 +179,7 @@ function PickerBody({
                 />
                 <span className="min-w-0 flex-1 truncate">{item.name}</span>
                 {!item.transcript?.trim() && (
-                  <span className="shrink-0 text-xs text-amber-700 dark:text-amber-400">
+                  <span className="shrink-0 text-xs text-warning">
                     {texts.editor.audioPicker.noTranscript}
                   </span>
                 )}
