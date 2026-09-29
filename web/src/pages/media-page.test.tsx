@@ -620,7 +620,7 @@ describe("Envoi", () => {
     )
   })
 
-  it("en quittant la Médiathèque, retire les envois réussis et garde les échecs", async () => {
+  it("la fenêtre des envois suit sur les autres pages, et reste ouverte après un échec", async () => {
     vi.mocked(api.createMedia).mockResolvedValue(createdPdf)
     vi.mocked(sendFile).mockResolvedValue()
     vi.mocked(api.confirmMedia).mockResolvedValue({
@@ -633,21 +633,30 @@ describe("Envoi", () => {
     fireEvent.change(input(), {
       target: { files: [pdfFile(), new File(["bonjour"], "notes.txt")] },
     })
-    const panel = await screen.findByRole("region", {
+    const uploads = await screen.findByRole("region", {
       name: texts.media.uploads.title,
     })
-    await within(panel).findByText(texts.media.uploads.stages.done)
-    await within(panel).findByText(texts.media.prepareErrors.type_refuse)
+    await within(uploads).findByText(texts.media.uploads.stages.done)
+    await within(uploads).findByText(texts.media.prepareErrors.type_refuse)
+    expect(
+      within(uploads).getByText(texts.media.uploads.summary.failed(1))
+    ).toBeVisible()
 
     await act(() => router.navigate("/corbeille"))
-    // Le retrait attend la fin de la tâche en cours (voir UploadPanel).
-    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
-    await act(() => router.navigate("/mediatheque"))
 
-    const back = await screen.findByRole("region", {
+    const elsewhere = await screen.findByRole("region", {
       name: texts.media.uploads.title,
     })
-    expect(within(back).getByText("notes.txt")).toBeVisible()
-    expect(within(back).queryByText("guide.pdf")).toBeNull()
+    expect(within(elsewhere).getByText("guide.pdf")).toBeVisible()
+    expect(within(elsewhere).getByText("notes.txt")).toBeVisible()
+
+    fireEvent.click(
+      within(elsewhere).getByRole("button", {
+        name: texts.media.uploads.close,
+      })
+    )
+    expect(
+      screen.queryByRole("region", { name: texts.media.uploads.title })
+    ).toBeNull()
   })
 })

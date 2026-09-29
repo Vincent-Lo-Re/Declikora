@@ -2,6 +2,7 @@ import { Outlet } from "react-router"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { UploadAnnouncer } from "@/components/media/upload-announcer"
+import { UploadWindow } from "@/components/media/upload-window"
 import {
   SidebarInset,
   SidebarProvider,
@@ -17,11 +18,13 @@ export function AppLayout() {
         <div className="flex h-12 shrink-0 items-center border-b px-4">
           <SidebarTrigger className="-ml-1" />
         </div>
-        <div className="flex-1 p-8">
+        {/* En bas, de la place pour la fenêtre des envois quand elle est ouverte (index.css). */}
+        <div className="flex-1 p-8 pb-[calc(--spacing(8)+var(--upload-window-space))]">
           <Outlet />
         </div>
         {/* Envois de la médiathèque : suivis dans toute l'admin. */}
         <UploadAnnouncer />
+        <UploadWindow />
       </SidebarInset>
     </SidebarProvider>
   )

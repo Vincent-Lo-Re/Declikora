@@ -51,12 +51,14 @@ function card(page: Page, name: string) {
   return page.getByRole("button", { name: texts.media.open(name) })
 }
 
-/** Une ligne de la liste des envois. */
+/** La fenêtre des envois, en bas à droite. */
+function uploadWindow(page: Page) {
+  return page.getByRole("region", { name: texts.media.uploads.title })
+}
+
+/** Une ligne de la fenêtre des envois. */
 function upload(page: Page, name: string) {
-  return page
-    .getByRole("region", { name: texts.media.uploads.title })
-    .getByRole("listitem")
-    .filter({ hasText: name })
+  return uploadWindow(page).getByRole("listitem").filter({ hasText: name })
 }
 
 /** Ouvre la médiathèque et se connecte (e-mail, code reçu, puis double vérification). */
@@ -114,6 +116,8 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
       timeout: 60_000,
     })
   }
+  // Tout est prêt : la fenêtre des envois se ferme toute seule.
+  await expect(uploadWindow(page)).toHaveCount(0)
 
   // La photo a été réduite dans le navigateur : WebP, 300 Ko au plus, 2 000 px au plus, mêmes
   // proportions, cache de 60 secondes. L'objet stocké est bien celui annoncé.
@@ -330,6 +334,17 @@ test("un membre envoie les autres formats, filtre, cherche et efface un seul fic
       timeout: 60_000,
     })
   }
+  // Le .txt refusé garde la fenêtre des envois ouverte : on la ferme, car elle cacherait des
+  // fichiers de la grille.
+  // (Le titre attend la fin de la vérification du Lottie par le serveur.)
+  await expect(uploadWindow(page)).toContainText(
+    texts.media.uploads.summary.failed(1),
+    { timeout: 30_000 }
+  )
+  await uploadWindow(page)
+    .getByRole("button", { name: texts.media.uploads.close })
+    .click()
+  await expect(uploadWindow(page)).toHaveCount(0)
   for (const name of [names.gif, names.lottie, names.pdf, names.audio]) {
     await expect(card(page, name)).toContainText(texts.media.status.ready, {
       timeout: 60_000,

@@ -421,8 +421,20 @@ export const texts = {
             : `${count} fichiers effacés du stockage.`,
     },
     uploads: {
+      // Nom de la fenêtre des envois (en bas à droite) pour les lecteurs d'écran.
       title: "Envois",
-      clear: "Effacer la liste",
+      summary: {
+        active: (count: number) =>
+          count === 1 ? "1 envoi en cours" : `${count} envois en cours`,
+        failed: (count: number) =>
+          count === 1 ? "1 envoi a échoué" : `${count} envois ont échoué`,
+        ready: (count: number) =>
+          count === 1 ? "1 fichier prêt" : `${count} fichiers prêts`,
+        cancelled: "Envois annulés",
+      },
+      collapse: "Réduire la fenêtre des envois",
+      expand: "Afficher le détail des envois",
+      close: "Fermer la fenêtre des envois",
       cancel: (name: string) => `Annuler l'envoi de ${name}`,
       retry: (name: string) => `Réessayer l'envoi de ${name}`,
       dismiss: (name: string) => `Retirer ${name} de la liste`,
@@ -431,12 +443,12 @@ export const texts = {
         preparing: "Préparation…",
         sending: "Envoi…",
         confirming: "Enregistrement…",
-        done: "Envoyé",
+        done: "Prêt",
         error: "Échec",
         cancelled: "Annulé",
       },
       checking: "Envoyé, vérification en cours",
-      checked: "Envoyé et vérifié",
+      checked: "Vérifié et prêt",
       announcerLabel: "Suivi des envois",
       // Annonces lues par les lecteurs d'écran (une par étape, pas à chaque pourcentage).
       announce: {

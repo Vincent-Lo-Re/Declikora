@@ -18,7 +18,16 @@ export function AppProviders({
       <ThemeProvider>
         <TooltipProvider>
           {children}
-          <Toaster position="bottom-right" />
+          {/*
+            Au-dessus de la fenêtre des envois quand elle est ouverte (--upload-window-space,
+            index.css). Sonner n'accepte cet écart qu'en réglage : --spacing × 6 = ses 24 px.
+          */}
+          <Toaster
+            position="bottom-right"
+            offset={{
+              bottom: "calc(var(--spacing) * 6 + var(--upload-window-space))",
+            }}
+          />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
