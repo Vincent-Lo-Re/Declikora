@@ -22,9 +22,7 @@ import { MediaGrid, MediaTable } from "@/components/media/media-collection"
 import { MediaSheet } from "@/components/media/media-sheet"
 import { OrphansNotice } from "@/components/media/orphans-notice"
 import { StorageUsage } from "@/components/media/storage-usage"
-import { UploadPanel } from "@/components/media/upload-panel"
 import { usePreviewUrls } from "@/components/media/use-preview-urls"
-import { useUploadQueue } from "@/components/media/use-upload-queue"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -52,6 +50,7 @@ import {
   mediaKinds,
   type Media,
 } from "@/lib/media/constants"
+import { getUploadQueue } from "@/lib/media/upload-queue"
 import { texts } from "@/texts"
 
 type View = "grid" | "list"
@@ -121,7 +120,8 @@ function needsRefresh(items: Media[] | undefined): boolean {
 export function MediaPage() {
   const { title, description } = texts.sections.media
   const checkAccess = useAccessCheck()
-  const { queue, items: uploads } = useUploadQueue()
+  // Les envois se suivent dans la fenêtre des envois (UploadWindow, dans AppLayout).
+  const queue = getUploadQueue()
   const [kind, setKind] = useState<MediaFilters["kind"]>("all")
   const [search, setSearch] = useState("")
   const debouncedSearch = useDebouncedValue(search, 250)
@@ -298,8 +298,6 @@ export function MediaPage() {
         <StorageUsage />
         <OrphansNotice />
       </div>
-
-      <UploadPanel queue={queue} items={uploads} />
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="relative w-72">

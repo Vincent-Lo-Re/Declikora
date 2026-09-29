@@ -51,6 +51,14 @@ export const CACHE_CONTROL_SECONDS = "60"
 // Un envoi « pending » plus vieux que ça est considéré comme interrompu.
 export const INTERRUPTED_AFTER_MS = 60 * 60 * 1000
 
+// Fenêtre des envois : temps pendant lequel elle reste affichée une fois tout prêt, avant de
+// se fermer toute seule.
+export const UPLOAD_WINDOW_CLOSE_MS = 4000
+// Variable CSS posée sur la page tant que la fenêtre des envois est affichée : la place qu'elle
+// prend en bas (sa hauteur et un écart). Les messages (Toaster) et le bas des pages s'en
+// servent pour ne pas passer dessous.
+export const UPLOAD_WINDOW_SPACE = "--upload-window-space"
+
 export function isMediaKind(value: unknown): value is MediaKind {
   return (
     typeof value === "string" &&
