@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest"
 import { initials } from "@/lib/initials"
 
 describe("initials", () => {
-  it("prend le prénom et le dernier mot du nom", () => {
-    expect(initials("Vincent Lo Re", "v@exemple.fr")).toBe("VR")
+  it("prend le prénom et le premier mot du nom", () => {
+    expect(initials("Vincent Lo Re", "v@exemple.fr")).toBe("VL")
     expect(initials("  marie   curie ", "m@exemple.fr")).toBe("MC")
   })
 
