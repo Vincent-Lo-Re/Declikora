@@ -381,15 +381,18 @@ function BackLink({
   )
 }
 
-/** Met le focus sur un élément dès qu'il apparaît (au prochain rendu). */
-function focusSoon(find: () => HTMLElement | null, attempts = 20) {
+/**
+ * Met le focus sur un élément dès qu'il apparaît (dans les prochains rendus), même si un panneau
+ * est ouvert : contrairement à focusSoon (lib/focus.ts), qui attend qu'aucune fenêtre ne le soit.
+ */
+function focusOnceShown(find: () => HTMLElement | null, attempts = 20) {
   const element = find()
   if (element) {
     element.focus()
     return
   }
   if (attempts > 0) {
-    requestAnimationFrame(() => focusSoon(find, attempts - 1))
+    requestAnimationFrame(() => focusOnceShown(find, attempts - 1))
   }
 }
 
@@ -967,7 +970,7 @@ function ContentEditor({
       (place.container === ROOT ? null : place.container)
     setDraft((current) => removeBlock(current, id))
     setSelectedId(neighbor)
-    focusSoon(() =>
+    focusOnceShown(() =>
       neighbor ? blockHandle(neighbor) : document.getElementById(ADD_BLOCK_ID)
     )
     toast(texts.editor.settings.removed(blockLabel(place.block)), {
@@ -1056,7 +1059,7 @@ function ContentEditor({
   /** « Voir la présentation » disparaît au clic : le focus va au titre du panneau. */
   const showPresentation = () => {
     setSelectedId(null)
-    focusSoon(() =>
+    focusOnceShown(() =>
       document.querySelector<HTMLElement>("[data-presentation-title]")
     )
   }
@@ -1073,7 +1076,7 @@ function ContentEditor({
       const name = state.name.trim() || texts.templates.list.untitled
       setDraft((current) => detachLinked(current, blockId, state.block))
       setSelectedId(blockId)
-      focusSoon(() => blockHandle(blockId))
+      focusOnceShown(() => blockHandle(blockId))
       toast(texts.templates.linked.detached(name), {
         action: {
           label: texts.editor.settings.undo,
@@ -1114,7 +1117,9 @@ function ContentEditor({
     }
     setDraft(result.draft)
     setSelectedId(result.firstId)
-    requestAnimationFrame(() => focusSoon(() => blockHandle(result.firstId)))
+    requestAnimationFrame(() =>
+      focusOnceShown(() => blockHandle(result.firstId))
+    )
     toast.success(
       texts.templates.insert.inserted(
         template.title.trim() || texts.templates.list.untitled

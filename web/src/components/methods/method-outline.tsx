@@ -128,6 +128,7 @@ import {
 import { templateKeys } from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
 import { errorMessage } from "@/lib/errors"
+import { focusSoon } from "@/lib/focus"
 import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
 import type { OutlineElementValues } from "@/lib/schemas"
 import { contentEditorPath } from "@/navigation"
@@ -880,33 +881,6 @@ export function MethodOutline({
       </AlertDialog>
     </section>
   )
-}
-
-// Temps laissé à l'élément pour pouvoir prendre le focus : sur une machine lente, une fenêtre
-// ou un menu peut mettre plus d'une demi-seconde à se refermer.
-const FOCUS_PATIENCE_MS = 2000
-
-/**
- * Met le focus sur un élément dès qu'il peut le prendre : aucune fenêtre ni aucun menu n'est
- * ouvert (tant qu'ils sont là, ils gardent le focus pour eux et le reprendraient), et l'élément
- * existe. Réessaie à chaque image, pendant FOCUS_PATIENCE_MS au plus.
- */
-function focusSoon(
-  find: () => HTMLElement | null,
-  until = performance.now() + FOCUS_PATIENCE_MS
-) {
-  if (
-    !document.querySelector(
-      '[role="dialog"], [role="alertdialog"], [role="menu"]'
-    )
-  ) {
-    const element = find()
-    element?.focus()
-    if (element && document.activeElement === element) return
-  }
-  if (performance.now() < until) {
-    requestAnimationFrame(() => focusSoon(find, until))
-  }
 }
 
 /** Le bouton « Actions pour … » d'un élément du plan. */

@@ -46,6 +46,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { formatDateTime } from "@/lib/dates"
+import { displayName } from "@/lib/people"
 import {
   callTeam,
   countActiveAdmins,
@@ -71,10 +72,6 @@ const successMessages: Record<
   set_role: texts.team.done.role,
   reset_mfa: texts.team.done.resetMfa,
   remove: texts.team.done.removed,
-}
-
-function displayName(member: Member) {
-  return member.full_name ?? member.email
 }
 
 /** Équipe (réservée aux admins) : membres, invitations, rôles et double vérification. */
