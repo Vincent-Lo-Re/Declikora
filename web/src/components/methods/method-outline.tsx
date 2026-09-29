@@ -60,6 +60,11 @@ import {
   type NewElement,
 } from "@/components/methods/new-element-dialog"
 import { useAccessCheck } from "@/components/team/use-access-check"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { editorsClosed } from "@/hooks/use-edit-lock"
 import {
   AlertDialog,
@@ -1007,7 +1012,12 @@ function ChapterItem({
           editable && (
             <OutlineHandle
               label={label}
-              sortable={{ setActivatorNodeRef, attributes, listeners }}
+              sortable={{
+                setActivatorNodeRef,
+                attributes,
+                listeners,
+                isDragging,
+              }}
             />
           )
         }
@@ -1124,7 +1134,12 @@ function LessonItem({
           editable && (
             <OutlineHandle
               label={label}
-              sortable={{ setActivatorNodeRef, attributes, listeners }}
+              sortable={{
+                setActivatorNodeRef,
+                attributes,
+                listeners,
+                isDragging,
+              }}
             />
           )
         }
@@ -1140,26 +1155,33 @@ function LessonItem({
 /** La poignée d'un chapitre ou d'une leçon : on la prend à la souris ou au clavier. */
 function OutlineHandle({
   label,
-  sortable: { setActivatorNodeRef, attributes, listeners },
+  sortable: { setActivatorNodeRef, attributes, listeners, isDragging },
 }: {
   label: string
   sortable: Pick<
     ReturnType<typeof useSortable>,
-    "setActivatorNodeRef" | "attributes" | "listeners"
+    "setActivatorNodeRef" | "attributes" | "listeners" | "isDragging"
   >
 }) {
   return (
-    <button
-      type="button"
-      ref={setActivatorNodeRef}
-      {...attributes}
-      {...listeners}
-      aria-label={labels.handle(label)}
-      title={labels.handle(label)}
-      className="mt-0.5 flex size-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
-    >
-      <GripVertical className="size-4" />
-    </button>
+    // Pendant un déplacement, l'infobulle se ferme : Échap doit annuler le déplacement.
+    <Tooltip disabled={isDragging}>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            aria-label={labels.handle(label)}
+            className="mt-0.5 flex size-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
+          />
+        }
+      >
+        <GripVertical className="size-4" />
+      </TooltipTrigger>
+      <TooltipContent>{labels.handle(label)}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -1242,14 +1264,22 @@ function ElementRow({
             <Badge variant="outline">{labels.free}</Badge>
           )}
           {row?.problem && (
-            <Badge
-              variant="destructive"
-              title={contentProblemText(row.problem, row.problemDetail)}
-              data-element-problem={row.problem}
-            >
-              <TriangleAlert aria-hidden />
-              {labels.problem}
-            </Badge>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Badge
+                    variant="destructive"
+                    data-element-problem={row.problem}
+                  />
+                }
+              >
+                <TriangleAlert aria-hidden />
+                {labels.problem}
+              </TooltipTrigger>
+              <TooltipContent>
+                {contentProblemText(row.problem, row.problemDetail)}
+              </TooltipContent>
+            </Tooltip>
           )}
           {editing && <Badge variant="secondary">{editing}</Badge>}
           <span className="text-xs text-muted-foreground">

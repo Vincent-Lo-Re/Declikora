@@ -88,7 +88,7 @@ describe("Équipe", () => {
 
     const anne = screen.getByText(me.email).closest("tr")!
     expect(within(anne).getByText(texts.team.you)).toBeVisible()
-    expect(within(anne).getByText("27 sept. 2026 à 14:30")).toBeVisible()
+    expect(within(anne).getByText("27 sept. 2026 à 14h30")).toBeVisible()
     expect(within(anne).getByText(texts.team.mfaOn)).toBeVisible()
   })
 

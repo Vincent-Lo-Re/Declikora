@@ -211,7 +211,9 @@ describe("éditeur d'un article", () => {
     renderApp(`/blog/${ARTICLE}`)
     await editable()
     expect(
-      screen.getByRole("link", { name: texts.editor.back("Blog") })
+      screen.getByRole("link", {
+        name: texts.editor.back(texts.sections.blog.title),
+      })
     ).toHaveAttribute("href", "/blog")
     expect(
       within(panel()).getByRole("heading", { name: words.panelTitle.article })
@@ -570,7 +572,9 @@ describe("éditeur d'un épisode", () => {
     renderApp(`/podcasts/${EPISODE}`)
     await editable()
     expect(
-      screen.getByRole("link", { name: texts.editor.back("Podcasts") })
+      screen.getByRole("link", {
+        name: texts.editor.back(texts.sections.podcasts.title),
+      })
     ).toHaveAttribute("href", "/podcasts")
     expect(within(panel()).getByText(words.audio.none)).toBeVisible()
 

@@ -17,7 +17,14 @@ import type { Locator, Page } from "@playwright/test"
 
 import { texts } from "../src/texts.ts"
 import type { Account } from "./support/accounts.ts"
-import { createBlankPage, expect, signIn, test } from "./support/fixtures.ts"
+import {
+  createBlankPage,
+  expect,
+  frenchDay,
+  frenchTime,
+  signIn,
+  test,
+} from "./support/fixtures.ts"
 import { photoPng, silentMp3 } from "./support/media.ts"
 import {
   contentIdFromUrl,
@@ -97,7 +104,9 @@ function panel(page: Page) {
 /** Les noms des catégories du Blog affichées, dans l'ordre. */
 function categoryOrder(page: Page) {
   return page
-    .getByRole("list", { name: categories.listLabel("Blog") })
+    .getByRole("list", {
+      name: categories.listLabel(texts.sections.blog.title),
+    })
     .locator("[data-item]")
     .evaluateAll((items) => items.map((item) => item.getAttribute("data-item")))
 }
@@ -166,15 +175,19 @@ async function scheduleInTwoDays(page: Page) {
     name: publication.scheduleDialog.title,
   })
   const when = inTwoDaysAtEight()
-  await dialog.getByLabel(publication.scheduleDialog.date).fill(when.date)
-  await dialog.getByLabel(publication.scheduleDialog.time).fill(when.time)
+  await dialog
+    .getByLabel(publication.scheduleDialog.date, { exact: true })
+    .fill(frenchDay(when.date))
+  await dialog
+    .getByLabel(publication.scheduleDialog.time, { exact: true })
+    .fill(frenchTime(when.time))
   await dialog
     .getByRole("button", { name: publication.scheduleDialog.confirm })
     .click()
   await expect(dialog).toHaveCount(0)
   await expect(
     page.locator('[data-schedule-banner="scheduled"]')
-  ).toContainText("à 08:00")
+  ).toContainText("à 08h00")
 }
 
 /** Envoie une image depuis le choix d'image déjà ouvert ; il se ferme une fois l'image choisie. */
@@ -263,7 +276,9 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     const stressId = await categoryId(stress)
 
     // --- Un article : titre, résumé, catégorie ------------------------------------------
-    await page.getByRole("link", { name: categories.back("Blog") }).click()
+    await page
+      .getByRole("link", { name: categories.back(texts.sections.blog.title) })
+      .click()
     await expect(page).toHaveURL(/\/blog$/)
     await createBlank(page, "article")
     const articleId = contentIdFromUrl(page.url())
@@ -385,7 +400,9 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     expect((await feedItem())?.categoryIds).toEqual([])
     expect(await appFeed("blog", sommeilId)).toEqual([])
     // L'admin : l'article n'a plus de catégorie.
-    await page.getByRole("link", { name: categories.back("Blog") }).click()
+    await page
+      .getByRole("link", { name: categories.back(texts.sections.blog.title) })
+      .click()
     await expect(row).toContainText(list.noCategory)
     await byCategory(list.filters.noCategory)
     await expect(row).toBeVisible()
@@ -457,7 +474,9 @@ test("Podcasts : épisode refusé sans audio, audio de la médiathèque, durée,
   // L'aperçu : la durée et le lecteur ; l'avertissement de transcription, ici et à droite.
   const preview = page.locator('[data-presentation="audio"]')
   await expect(preview).toContainText(words.audio.duration(duration))
-  await expect(preview.getByLabel(words.audio.listen(audioName))).toBeAttached()
+  await expect(
+    preview.getByRole("button", { name: texts.audioPlayer.play(audioName) })
+  ).toBeVisible()
   await expect(preview.locator('[data-warning="transcript"]')).toContainText(
     words.audio.transcriptMissing
   )
@@ -754,7 +773,7 @@ test("Accueil : brouillon récent, publication programmée et programmation éch
     episodeTitle,
     () =>
       expect(page.locator('[data-schedule-banner="scheduled"]')).toContainText(
-        "à 08:00"
+        "à 08h00"
       )
   )
   await opens(

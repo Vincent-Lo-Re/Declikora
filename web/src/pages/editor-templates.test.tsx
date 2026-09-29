@@ -606,7 +606,9 @@ describe("éditeur d'un modèle", () => {
 
     // « ← Modèles », la sorte, pas de publication ni de réglages d'accès.
     expect(
-      screen.getByRole("link", { name: texts.editor.back("Modèles") })
+      screen.getByRole("link", {
+        name: texts.editor.back(texts.sections.templates.title),
+      })
     ).toHaveAttribute("href", "/modeles")
     expect(
       screen.getByText(texts.templates.sorts.shared.title)

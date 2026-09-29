@@ -240,7 +240,7 @@ describe("liste des pages", () => {
     const link = await screen.findByRole("link", { name: "Mentions légales" })
     expect(link).toHaveAttribute("href", `/pages/${PAGE_ID}`)
     expect(
-      screen.getByText(/27 sept\. 2026 à 14:30 par Anne Admin/)
+      screen.getByText(/27 sept\. 2026 à 14h30 par Anne Admin/)
     ).toBeInTheDocument()
     expect(
       screen.getByText(texts.contentList.beingEdited("Claire Martin"))
@@ -309,7 +309,7 @@ describe("liste des pages : publication et corbeille", () => {
     expect(await cells("En ligne")).toHaveTextContent(labels.live)
     const modified = await cells("Modifiée")
     expect(modified).toHaveTextContent(labels.modified)
-    expect(modified).toHaveTextContent(labels.scheduled("3 oct. 2099 à 08:00"))
+    expect(modified).toHaveTextContent(labels.scheduled("3 oct. 2099 à 08h00"))
     expect(await cells("Échouée")).toHaveTextContent(labels.failed)
   })
 

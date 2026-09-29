@@ -7,7 +7,6 @@ import {
   FileText,
   FilterX,
   LayoutTemplate,
-  Search,
   SquarePen,
   Tags,
   Trash2,
@@ -22,6 +21,7 @@ import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
 import { LoadState } from "@/components/load-state"
 import { useMethodPending } from "@/components/methods/use-method-pending"
 import { PageHeader } from "@/components/page-header"
+import { SearchInput } from "@/components/search-input"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -51,7 +51,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -458,22 +457,13 @@ function ListFiltersBar({
   ]
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="relative w-72">
-        <Search
-          aria-hidden
-          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          type="search"
-          value={filters.search}
-          onChange={(event) =>
-            onChange({ ...filters, search: event.target.value })
-          }
-          placeholder={labels.searchPlaceholder}
-          aria-label={labels.kinds[kind].search}
-          className="pl-8"
-        />
-      </div>
+      <SearchInput
+        value={filters.search}
+        onChange={(search) => onChange({ ...filters, search })}
+        label={labels.kinds[kind].search}
+        placeholder={labels.searchPlaceholder}
+        className="w-72"
+      />
       <Select
         items={stateItems}
         value={filters.state}

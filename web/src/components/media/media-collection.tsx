@@ -15,6 +15,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { formatDateTime } from "@/lib/dates"
 import type { Media } from "@/lib/media/constants"
 import { formatBytes, formatMediaDetails } from "@/lib/media/format"
@@ -93,9 +98,14 @@ export function MediaGrid({
                 className="aspect-square w-full"
               />
               <div className="space-y-1.5 p-3" id={`media-${media.id}-etat`}>
-                <p className="truncate text-sm font-medium" title={media.name}>
-                  {media.name}
-                </p>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={<p className="truncate text-sm font-medium" />}
+                  >
+                    {media.name}
+                  </TooltipTrigger>
+                  <TooltipContent>{media.name}</TooltipContent>
+                </Tooltip>
                 <p className="text-xs text-muted-foreground">
                   {texts.media.kinds[media.kind]} ·{" "}
                   {formatBytes(media.size_bytes)}
@@ -170,16 +180,22 @@ export function MediaTable({
               />
             </TableCell>
             <TableCell className="max-w-72">
-              <button
-                type="button"
-                className="max-w-full truncate text-left font-medium underline-offset-4 outline-none hover:underline focus-visible:underline"
-                aria-label={texts.media.open(media.name)}
-                title={media.name}
-                data-media-open={media.id}
-                onClick={() => onOpen(media)}
-              >
-                {media.name}
-              </button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      className="max-w-full truncate text-left font-medium underline-offset-4 outline-none hover:underline focus-visible:underline"
+                      aria-label={texts.media.open(media.name)}
+                      data-media-open={media.id}
+                      onClick={() => onOpen(media)}
+                    />
+                  }
+                >
+                  {media.name}
+                </TooltipTrigger>
+                <TooltipContent>{media.name}</TooltipContent>
+              </Tooltip>
             </TableCell>
             <TableCell>{texts.media.kinds[media.kind]}</TableCell>
             <TableCell>{formatBytes(media.size_bytes)}</TableCell>

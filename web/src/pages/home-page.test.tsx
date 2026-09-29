@@ -142,7 +142,7 @@ describe("Accueil", () => {
     ).toBeVisible()
     expect(
       within(rows[1]).getByText(
-        texts.publication.status.scheduled("3 oct. 2099 à 08:00")
+        texts.publication.status.scheduled("3 oct. 2099 à 08h00")
       )
     ).toBeVisible()
   })

@@ -158,3 +158,13 @@ export async function createBlankPage(page: Page) {
   if (await blank.isVisible()) await blank.click()
   await expect(page).toHaveURL(/\/pages\/[0-9a-f-]{36}$/)
 }
+
+/** « 2099-10-25 » → « 25/10/2099 », comme on l'écrit dans le champ « Jour » de « Programmer ». */
+export function frenchDay(iso: string): string {
+  return iso.split("-").reverse().join("/")
+}
+
+/** « 08:00 » → « 08h00 », comme on l'écrit dans le champ « Heure » de « Programmer ». */
+export function frenchTime(time: string): string {
+  return time.replace(":", "h")
+}

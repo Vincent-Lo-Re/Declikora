@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
-import { AudioLines, Search, Upload } from "lucide-react"
+import { AudioLines, Upload } from "lucide-react"
 import { useEffect, useRef, useState, type ComponentProps } from "react"
 
 import { LoadState } from "@/components/load-state"
@@ -9,6 +9,7 @@ import {
   useUploadQueue,
   useUploadQueueWatch,
 } from "@/components/media/use-upload-queue"
+import { SearchInput } from "@/components/search-input"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,7 +18,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
@@ -126,21 +126,14 @@ function PickerBody({
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            autoFocus
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={labels.searchPlaceholder}
-            aria-label={labels.search}
-            className="pl-8"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          label={labels.search}
+          placeholder={labels.searchPlaceholder}
+          autoFocus
+          className="min-w-0 flex-1"
+        />
         <PickerUpload kind={kind} queue={queue} onChoose={onChoose} />
       </div>
       {media.data === undefined ? (

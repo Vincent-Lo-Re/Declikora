@@ -14,6 +14,7 @@ import { MediaImage, MediaUnavailable } from "@/blocks/components/media-state"
 import { singleLine, useAutoHeight } from "@/blocks/components/fields"
 import { SUMMARY_MAX } from "@/blocks/draft"
 import type { Draft } from "@/blocks/types"
+import { AudioPlayer } from "@/components/media/audio-player"
 import { MediaThumbnail } from "@/components/media/media-visuals"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -143,12 +144,12 @@ export function AudioPreview({
             </span>
           </p>
           {media.url && (
-            <audio
-              controls
-              preload="none"
+            <AudioPlayer
+              key={media.url}
               src={media.url}
-              aria-label={labels.audio.listen(media.media.name)}
-              className="w-full"
+              name={media.media.name}
+              durationHint={media.media.duration_s}
+              preload="none"
             />
           )}
           {!media.media.transcript?.trim() && editable && (

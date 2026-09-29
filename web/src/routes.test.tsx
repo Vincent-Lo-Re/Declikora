@@ -24,12 +24,12 @@ describe("menu", () => {
         .getAllByRole("link")
         .map((link) => link.textContent)
     ).toEqual([
-      "Accueil",
-      "Blog",
-      "Podcasts",
+      "Tableau de bord",
+      "Le Fil",
+      "Radio Éclaircies",
       "Méthodes",
       "Pages",
-      "Modèles",
+      "Modèles de bloc",
       "Médiathèque",
       "Corbeille",
     ])
@@ -57,14 +57,16 @@ describe("menu", () => {
   it("ouvre la section demandée et marque son lien comme actif", () => {
     renderAt("/blog")
 
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Blog")
-    expect(screen.getByRole("link", { name: "Blog" })).toHaveAttribute(
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Le Fil"
+    )
+    expect(screen.getByRole("link", { name: "Le Fil" })).toHaveAttribute(
       "aria-current",
       "page"
     )
-    expect(screen.getByRole("link", { name: "Accueil" })).not.toHaveAttribute(
-      "aria-current"
-    )
+    expect(
+      screen.getByRole("link", { name: "Tableau de bord" })
+    ).not.toHaveAttribute("aria-current")
   })
 })
 

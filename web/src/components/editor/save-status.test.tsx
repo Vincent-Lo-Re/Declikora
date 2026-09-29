@@ -53,7 +53,7 @@ describe("indicateur d'enregistrement", () => {
     expect(indicator).not.toBeNull()
     expect(indicator).toHaveAttribute("tabindex", "0")
     expect(indicator).toHaveTextContent(
-      `${labels.saved} ${labels.savedOn("27 sept. 2026 à 14:32")}`
+      `${labels.saved} ${labels.savedOn("27 sept. 2026 à 14h32")}`
     )
     expect(indicator).not.toHaveAttribute("title")
   })

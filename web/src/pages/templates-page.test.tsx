@@ -145,7 +145,7 @@ describe("section Modèles", () => {
       .closest("tr")!
     expect(row).toHaveTextContent(labels.uses(2))
     expect(row).toHaveTextContent(labels.beingEdited("Claire Martin"))
-    expect(row).toHaveTextContent("27 sept. 2026 à 14:30 par Anne Admin")
+    expect(row).toHaveTextContent("27 sept. 2026 à 14h30 par Anne Admin")
     expect(
       within(shared).getByRole("link", { name: "Contact" })
     ).toHaveAttribute("href", `/modeles/${CONTACT}`)

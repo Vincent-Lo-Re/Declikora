@@ -24,6 +24,8 @@ import {
   bottomMenu,
   createBlankPage,
   expect,
+  frenchDay,
+  frenchTime,
   signIn,
   test,
 } from "./support/fixtures.ts"
@@ -163,15 +165,19 @@ async function scheduleInTwoDays(page: Page) {
     name: labels.scheduleDialog.title,
   })
   const when = inTwoDaysAtEight()
-  await dialog.getByLabel(labels.scheduleDialog.date).fill(when.date)
-  await dialog.getByLabel(labels.scheduleDialog.time).fill(when.time)
+  await dialog
+    .getByLabel(labels.scheduleDialog.date, { exact: true })
+    .fill(frenchDay(when.date))
+  await dialog
+    .getByLabel(labels.scheduleDialog.time, { exact: true })
+    .fill(frenchTime(when.time))
   await dialog
     .getByRole("button", { name: labels.scheduleDialog.confirm })
     .click()
   await expect(dialog).toHaveCount(0)
   await expect(
     page.locator('[data-schedule-banner="scheduled"]')
-  ).toContainText("à 08:00 : ce que tu écris partira")
+  ).toContainText("à 08h00 : ce que tu écris partira")
 }
 
 test("publier une page, la modifier sans toucher à l'app, republier, revenir à une version", async ({

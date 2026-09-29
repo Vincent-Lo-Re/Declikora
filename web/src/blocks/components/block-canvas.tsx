@@ -68,6 +68,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { editorPath } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -320,21 +325,28 @@ const SortableBlock = memo(function SortableBlock({
       onFocusCapture={() => selectBlock(block.id)}
     >
       {editable && (
-        <button
-          type="button"
-          ref={setActivatorNodeRef}
-          data-block-handle
-          {...attributes}
-          {...listeners}
-          aria-label={texts.editor.handle(label)}
-          title={texts.editor.handle(label)}
-          className={cn(
-            "absolute top-0 -left-9 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-md font-sans text-muted-foreground opacity-0 transition-opacity group-hover/block:opacity-100 hover:bg-accent hover:text-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing",
-            selected && "opacity-100"
-          )}
-        >
-          <GripVertical aria-hidden className="size-4" />
-        </button>
+        // Pendant un déplacement, l'infobulle se ferme : Échap doit annuler le déplacement.
+        <Tooltip disabled={isDragging}>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                ref={setActivatorNodeRef}
+                data-block-handle
+                {...attributes}
+                {...listeners}
+                aria-label={texts.editor.handle(label)}
+                className={cn(
+                  "absolute top-0 -left-9 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-md font-sans text-muted-foreground opacity-0 transition-opacity group-hover/block:opacity-100 hover:bg-accent hover:text-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing",
+                  selected && "opacity-100"
+                )}
+              />
+            }
+          >
+            <GripVertical aria-hidden className="size-4" />
+          </TooltipTrigger>
+          <TooltipContent>{texts.editor.handle(label)}</TooltipContent>
+        </Tooltip>
       )}
       <BlockBody block={block} />
     </div>

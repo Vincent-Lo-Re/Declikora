@@ -12,6 +12,7 @@ import { Controller, useForm } from "react-hook-form"
 import { Link } from "react-router"
 import { toast } from "sonner"
 
+import { AudioPlayer } from "@/components/media/audio-player"
 import { kindIcons, rejectedText } from "@/components/media/media-kinds"
 import { MediaStatusBadge } from "@/components/media/media-visuals"
 import { useAccessCheck } from "@/components/team/use-access-check"
@@ -179,9 +180,12 @@ function MediaPreview({
   }
   if (url && media.kind === "audio") {
     return (
-      <audio controls preload="metadata" src={url} className="w-full">
-        <track kind="captions" />
-      </audio>
+      <AudioPlayer
+        key={url}
+        src={url}
+        name={media.name}
+        durationHint={media.duration_s}
+      />
     )
   }
   // Une animation n'est affichée qu'une fois vérifiée par le serveur.

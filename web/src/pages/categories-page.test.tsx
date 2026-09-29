@@ -35,7 +35,7 @@ describe("Catégories du Blog", () => {
   it("les liste dans l'ordre de l'app, avec le nombre de brouillons qui les citent", async () => {
     renderApp("/blog/categories")
     const list = await screen.findByRole("list", {
-      name: labels.listLabel("Blog"),
+      name: labels.listLabel(texts.sections.blog.title),
     })
     expect(categoriesApi.listCategories).toHaveBeenCalledWith("blog")
     expect(
@@ -45,10 +45,13 @@ describe("Catégories du Blog", () => {
     ).toEqual(["Sommeil", "Stress"])
     expect(within(list).getByText(labels.uses(3))).toBeVisible()
     expect(
-      screen.getByRole("heading", { level: 1, name: labels.title("Blog") })
+      screen.getByRole("heading", {
+        level: 1,
+        name: labels.title(texts.sections.blog.title),
+      })
     ).toBeVisible()
     expect(
-      screen.getByRole("link", { name: labels.back("Blog") })
+      screen.getByRole("link", { name: labels.back(texts.sections.blog.title) })
     ).toHaveAttribute("href", "/blog")
     // Une poignée par catégorie, pour les ranger à la souris ou au clavier.
     expect(

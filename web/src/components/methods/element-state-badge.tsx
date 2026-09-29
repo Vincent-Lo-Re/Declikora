@@ -1,6 +1,11 @@
 import { CircleOff } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { ElementState } from "@/lib/contents/outline"
 import { texts } from "@/texts"
 
@@ -34,19 +39,25 @@ export function ElementStateBadge({ state }: { state: ElementState }) {
   const dot = stateDots[state]
   return (
     <>
-      <Badge
-        variant={dot ? "secondary" : "outline"}
-        className="gap-1.5"
-        data-element-state={state}
-        title={labels.stateHints[state]}
-      >
-        {dot ? (
-          <span aria-hidden className={`size-1.5 rounded-full ${dot}`} />
-        ) : (
-          <CircleOff aria-hidden />
-        )}
-        {labels.states[state]}
-      </Badge>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Badge
+              variant={dot ? "secondary" : "outline"}
+              className="gap-1.5"
+              data-element-state={state}
+            />
+          }
+        >
+          {dot ? (
+            <span aria-hidden className={`size-1.5 rounded-full ${dot}`} />
+          ) : (
+            <CircleOff aria-hidden />
+          )}
+          {labels.states[state]}
+        </TooltipTrigger>
+        <TooltipContent>{labels.stateHints[state]}</TooltipContent>
+      </Tooltip>
       {!GESTURE_STATES.has(state) && (
         <span className="sr-only" data-element-state-hint={state}>
           {labels.stateHints[state]}

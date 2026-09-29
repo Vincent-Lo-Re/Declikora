@@ -51,6 +51,12 @@ export default defineConfig([
       "no-restricted-syntax": [
         "error",
         {
+          selector:
+            "JSXOpeningElement[name.name=/^([a-z]|Badge$|Button$)/] > JSXAttribute[name.name='title']",
+          message:
+            "Pas d'infobulle du navigateur (title) : le composant Tooltip (components/ui/tooltip).",
+        },
+        {
           selector: "JSXAttribute[name.name='style']",
           message:
             "Pas de style en ligne : une classe Tailwind, un jeton ou un utilitaire de index.css.",

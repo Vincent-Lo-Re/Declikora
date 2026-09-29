@@ -13,13 +13,70 @@ const dateFormat = new Intl.DateTimeFormat("fr-FR", {
 const timeFormat = new Intl.DateTimeFormat("fr-FR", {
   hour: "2-digit",
   minute: "2-digit",
+  hourCycle: "h23",
   timeZone,
 })
 
-/** « 27 sept. 2026 à 14:30 », à l'heure de Paris. */
+/** L'heure à la française, à l'heure de Paris : « 18h42 », « 09h05 ». */
+function formatTime(value: Date): string {
+  const parts = timeFormat.formatToParts(value)
+  const hour = parts.find((part) => part.type === "hour")?.value ?? ""
+  const minute = parts.find((part) => part.type === "minute")?.value ?? ""
+  return `${hour}${texts.dates.hour}${minute}`
+}
+
+/** « 27 sept. 2026 à 18h42 », à l'heure de Paris. */
 export function formatDateTime(date: Date | string): string {
   const value = typeof date === "string" ? new Date(date) : date
-  return `${dateFormat.format(value)} ${texts.dates.at} ${timeFormat.format(value)}`
+  return `${dateFormat.format(value)} ${texts.dates.at} ${formatTime(value)}`
+}
+
+// ---------------------------------------------------------------------------------------------
+// Saisie d'un jour et d'une heure à la française (fenêtre « Programmer ») : « 25/10/2099 »,
+// « 08h00 ». Les calculs gardent les formats ISO (« 2099-10-25 », « 08:00 »).
+// ---------------------------------------------------------------------------------------------
+
+const DAY_INPUT = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
+const TIME_INPUT = /^(\d{1,2})\s*[h:]\s*(\d{2})?$/i
+
+const pad = (value: number) => String(value).padStart(2, "0")
+
+/** « 25/10/2099 » (ou « 5/3/2099 ») → « 2099-10-25 » ; null si ce n'est pas un jour qui existe. */
+export function parseDayInput(text: string): string | null {
+  const match = DAY_INPUT.exec(text.trim())
+  if (!match) return null
+  const [day, month, year] = match.slice(1).map(Number)
+  const check = new Date(Date.UTC(year, month - 1, day))
+  if (
+    check.getUTCFullYear() !== year ||
+    check.getUTCMonth() !== month - 1 ||
+    check.getUTCDate() !== day
+  ) {
+    return null
+  }
+  return `${year}-${pad(month)}-${pad(day)}`
+}
+
+/** « 2099-10-25 » → « 25/10/2099 ». */
+export function formatDayInput(iso: string): string {
+  const [year, month, day] = iso.split("-")
+  return `${day}/${month}/${year}`
+}
+
+/** « 8h05 », « 08h05 », « 8h », « 08:05 » → « 08:05 » ; null sinon. */
+export function parseTimeInput(text: string): string | null {
+  const match = TIME_INPUT.exec(text.trim())
+  if (!match) return null
+  const hours = Number(match[1])
+  const minutes = Number(match[2] ?? "0")
+  if (hours > 23 || minutes > 59) return null
+  return `${pad(hours)}:${pad(minutes)}`
+}
+
+/** « 08:05 » → « 08h05 ». */
+export function formatTimeInput(time: string): string {
+  const [hours, minutes] = time.split(":")
+  return `${hours}${texts.dates.hour}${minutes}`
 }
 
 // ---------------------------------------------------------------------------------------------

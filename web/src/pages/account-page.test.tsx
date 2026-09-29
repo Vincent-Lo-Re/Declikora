@@ -20,7 +20,7 @@ describe("Mon compte", () => {
     expect(screen.getByText(testProfile.email)).toBeVisible()
     expect(screen.getByText(texts.roles.editor)).toBeVisible()
     expect(
-      screen.getByText(texts.account.mfa.configuredOn("27 sept. 2026 à 14:30"))
+      screen.getByText(texts.account.mfa.configuredOn("27 sept. 2026 à 14h30"))
     ).toBeVisible()
   })
 
