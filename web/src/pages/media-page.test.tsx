@@ -136,7 +136,19 @@ describe("Médiathèque", () => {
     renderApp("/mediatheque")
     await screen.findByText(photo.name)
 
-    fireEvent.click(screen.getByRole("button", { name: /Audios/ }))
+    // « Tout » garde son texte ; les types n'ont qu'une icône, nommée pour les lecteurs d'écran.
+    const filters = screen.getByRole("group", {
+      name: texts.media.filters.label,
+    })
+    expect(
+      within(filters).getByRole("button", { name: texts.media.filters.all })
+    ).toHaveTextContent(texts.media.filters.all)
+    const audios = within(filters).getByRole("button", {
+      name: texts.media.filters.audio,
+    })
+    expect(audios).toHaveTextContent("")
+
+    fireEvent.click(audios)
     await waitFor(() =>
       expect(api.listMedia).toHaveBeenLastCalledWith({
         kind: "audio",

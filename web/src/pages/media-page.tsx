@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import {
+  Files,
   LayoutGrid,
   List,
   Search,
@@ -41,6 +42,11 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import {
   getMedia,
@@ -376,15 +382,22 @@ export function MediaPage() {
           }}
         >
           <ToggleGroupItem value="all">
+            <Files />
             {texts.media.filters.all}
           </ToggleGroupItem>
+          {/* Une icône par type : son nom dans une infobulle et pour les lecteurs d'écran. */}
           {mediaKinds.map((item) => {
             const Icon = kindIcons[item]
+            const label = texts.media.filters[item]
             return (
-              <ToggleGroupItem key={item} value={item}>
-                <Icon />
-                {texts.media.filters[item]}
-              </ToggleGroupItem>
+              <Tooltip key={item}>
+                <TooltipTrigger
+                  render={<ToggleGroupItem value={item} aria-label={label} />}
+                >
+                  <Icon />
+                </TooltipTrigger>
+                <TooltipContent>{label}</TooltipContent>
+              </Tooltip>
             )
           })}
         </ToggleGroup>

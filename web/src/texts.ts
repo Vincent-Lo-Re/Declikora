@@ -65,7 +65,7 @@ export const texts = {
     media: {
       title: "Médiathèque",
       description:
-        "Les images, SVG, animations, audios et PDF, utilisables dans tous les contenus.",
+        "JPG, PNG, WebP, GIF, HEIC, AVIF, SVG, Lottie, MP3, M4A et PDF.",
     },
     trash: {
       title: "Corbeille",
