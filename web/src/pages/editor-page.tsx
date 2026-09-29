@@ -200,6 +200,7 @@ import {
   type LinkedTemplate,
   type TemplateItem,
 } from "@/lib/contents/templates"
+import { errorMessage } from "@/lib/errors"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
 import type { TemplateValues } from "@/lib/schemas"
@@ -307,7 +308,7 @@ function EditorLoader({
           </EmptyHeader>
           {failed && (
             <Button variant="outline" onClick={() => content.refetch()}>
-              {texts.editor.lock.retry}
+              {texts.common.retry}
             </Button>
           )}
         </Empty>
@@ -352,7 +353,7 @@ function BackLink({
   method?: { id: string; title: string } | null
 }) {
   if (method) {
-    const title = method.title.trim() || texts.editor.untitled
+    const title = method.title.trim() || texts.common.untitled
     return (
       <Link
         to={editorPath("methods", method.id)}
@@ -380,15 +381,18 @@ function BackLink({
   )
 }
 
-/** Met le focus sur un élément dès qu'il apparaît (au prochain rendu). */
-function focusSoon(find: () => HTMLElement | null, attempts = 20) {
+/**
+ * Met le focus sur un élément dès qu'il apparaît (dans les prochains rendus), même si un panneau
+ * est ouvert : contrairement à focusSoon (lib/focus.ts), qui attend qu'aucune fenêtre ne le soit.
+ */
+function focusOnceShown(find: () => HTMLElement | null, attempts = 20) {
   const element = find()
   if (element) {
     element.focus()
     return
   }
   if (attempts > 0) {
-    requestAnimationFrame(() => focusSoon(find, attempts - 1))
+    requestAnimationFrame(() => focusOnceShown(find, attempts - 1))
   }
 }
 
@@ -526,16 +530,16 @@ function ContentEditor({
         )
         // « Utilisé dans » de la médiathèque et liste des pages.
         void queryClient.invalidateQueries({
-          queryKey: [...mediaKeys.all, "uses"],
+          queryKey: mediaKeys.allUses,
         })
         // Une méthode, un chapitre ou une leçon : le plan (titres, dernières modifications) et ce
         // qui changera dans l'app (état de l'élément, ce qui ferait refuser la publication).
         if (isMethod || isElement) {
           void queryClient.invalidateQueries({
-            queryKey: [...methodKeys.all, "tree"],
+            queryKey: methodKeys.allTrees,
           })
           void queryClient.invalidateQueries({
-            queryKey: [...methodKeys.all, "preview"],
+            queryKey: methodKeys.allPreviews,
           })
         }
         // La fiche d'une méthode vient de changer : « Modifié depuis la publication ».
@@ -966,7 +970,7 @@ function ContentEditor({
       (place.container === ROOT ? null : place.container)
     setDraft((current) => removeBlock(current, id))
     setSelectedId(neighbor)
-    focusSoon(() =>
+    focusOnceShown(() =>
       neighbor ? blockHandle(neighbor) : document.getElementById(ADD_BLOCK_ID)
     )
     toast(texts.editor.settings.removed(blockLabel(place.block)), {
@@ -1055,7 +1059,7 @@ function ContentEditor({
   /** « Voir la présentation » disparaît au clic : le focus va au titre du panneau. */
   const showPresentation = () => {
     setSelectedId(null)
-    focusSoon(() =>
+    focusOnceShown(() =>
       document.querySelector<HTMLElement>("[data-presentation-title]")
     )
   }
@@ -1072,7 +1076,7 @@ function ContentEditor({
       const name = state.name.trim() || texts.templates.list.untitled
       setDraft((current) => detachLinked(current, blockId, state.block))
       setSelectedId(blockId)
-      focusSoon(() => blockHandle(blockId))
+      focusOnceShown(() => blockHandle(blockId))
       toast(texts.templates.linked.detached(name), {
         action: {
           label: texts.editor.settings.undo,
@@ -1113,7 +1117,9 @@ function ContentEditor({
     }
     setDraft(result.draft)
     setSelectedId(result.firstId)
-    requestAnimationFrame(() => focusSoon(() => blockHandle(result.firstId)))
+    requestAnimationFrame(() =>
+      focusOnceShown(() => blockHandle(result.firstId))
+    )
     toast.success(
       texts.templates.insert.inserted(
         template.title.trim() || texts.templates.list.untitled
@@ -1209,9 +1215,7 @@ function ContentEditor({
       }
     } catch (error) {
       checkAccess(error)
-      toast.error(
-        error instanceof Error ? error.message : texts.common.unexpected
-      )
+      toast.error(errorMessage(error))
       if (error instanceof ContentError && error.code === "verrou_perdu") {
         notifyLost()
       }
@@ -1547,7 +1551,7 @@ function ContentEditor({
   const sectionTitle = texts.sections[section].title
   const untitled = isTemplate
     ? texts.templates.list.untitled
-    : texts.editor.untitled
+    : texts.common.untitled
 
   return (
     <div className="flex h-svh flex-col bg-muted/40">

@@ -21,36 +21,10 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
-import {
-  authErrorMessage,
-  isNotAMemberError,
-  isRateLimitError,
-} from "@/lib/auth-errors"
+import { sendSignInCode, verifySignInCode } from "@/lib/auth"
 import { signInCodeSchema, signInEmailSchema } from "@/lib/schemas"
-import { supabase } from "@/lib/supabase"
 import { authPaths } from "@/navigation"
 import { texts } from "@/texts"
-
-// Résultat d'une demande de code : envoyé, déjà envoyé il y a moins d'une minute
-// (le code précédent reste valable), ou message d'erreur à afficher.
-type SendResult = "sent" | "recentlySent" | { error: string }
-
-/**
- * Demande un code de connexion.
- * Une adresse inconnue est traitée comme une adresse connue : l'interface ne dit
- * pas qui fait partie de l'équipe. Attention, l'API de Supabase Auth, appelable
- * directement avec la clé publique, répond elle différemment (limite connue de
- * Supabase) : ce masquage évite seulement de l'afficher.
- */
-async function sendCode(email: string): Promise<SendResult> {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: false },
-  })
-  if (!error || isNotAMemberError(error)) return "sent"
-  if (isRateLimitError(error)) return "recentlySent"
-  return { error: authErrorMessage(error, "email") }
-}
 
 // L'étape du code : l'adresse, et le message à afficher en tête.
 type CodeRequest = { email: string; notice: string }
@@ -107,7 +81,7 @@ function EmailStep({ onSent }: { onSent: (request: CodeRequest) => void }) {
   const { isSubmitting, errors } = form.formState
 
   const onSubmit = form.handleSubmit(async ({ email }) => {
-    const result = await sendCode(email)
+    const result = await sendSignInCode(email)
     if (result === "sent") {
       onSent({ email, notice: texts.signIn.codeSent(email) })
     } else if (result === "recentlySent") {
@@ -172,13 +146,9 @@ function CodeStep({
 
   // En cas de succès, la session change et SignInPage passe à l'étape suivante.
   const onSubmit = form.handleSubmit(async ({ code }) => {
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: code,
-      type: "email",
-    })
+    const error = await verifySignInCode(email, code)
     if (error) {
-      form.setError("root", { message: authErrorMessage(error, "emailCode") })
+      form.setError("root", { message: error })
     } else {
       clearPendingSignIn()
     }
@@ -186,7 +156,7 @@ function CodeStep({
 
   const resend = async () => {
     setResending(true)
-    const result = await sendCode(email)
+    const result = await sendSignInCode(email)
     setResending(false)
     form.clearErrors()
     form.resetField("code")

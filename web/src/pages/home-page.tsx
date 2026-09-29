@@ -5,11 +5,11 @@ import { Link } from "react-router"
 
 import { useAuth } from "@/auth/auth-context"
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
+import { LoadState } from "@/components/load-state"
 import { useMethodPending } from "@/components/methods/use-method-pending"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -17,7 +17,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   homeKeys,
   listFailedSchedules,
@@ -101,22 +100,30 @@ export function HomePage() {
   // Les méthodes en ligne de « Mes brouillons récents » : y a-t-il quelque chose à publier ?
   const pending = useMethodPending(drafts.data)
 
+  // Les publications ratées : en tête, en rouge et sur toute la largeur s'il y en a ; sinon en
+  // dernier, comme les autres cartes.
+  const failedCard = (
+    <HomeCard
+      className={hasFailures ? "ring-destructive/40 xl:col-span-2" : undefined}
+      icon={
+        <TriangleAlert
+          className={hasFailures ? "text-destructive" : undefined}
+        />
+      }
+      title={labels.failed.title}
+      description={labels.failed.description}
+      query={failed}
+      empty={labels.failed.empty}
+      dataAttribute="failed"
+      render={(item) => <FailedRow key={item.id} item={item} />}
+    />
+  )
+
   return (
     <>
       <PageHeader title={title} description={description} />
       <div className="grid gap-6 xl:grid-cols-2">
-        {hasFailures && (
-          <HomeCard
-            className="ring-destructive/40 xl:col-span-2"
-            icon={<TriangleAlert className="text-destructive" />}
-            title={labels.failed.title}
-            description={labels.failed.description}
-            query={failed}
-            empty={labels.failed.empty}
-            dataAttribute="failed"
-            render={(item) => <FailedRow key={item.id} item={item} />}
-          />
-        )}
+        {hasFailures && failedCard}
         <HomeCard
           icon={<FilePen />}
           title={labels.drafts.title}
@@ -148,17 +155,7 @@ export function HomePage() {
             />
           )}
         />
-        {!hasFailures && (
-          <HomeCard
-            icon={<TriangleAlert />}
-            title={labels.failed.title}
-            description={labels.failed.description}
-            query={failed}
-            empty={labels.failed.empty}
-            dataAttribute="failed"
-            render={(item) => <FailedRow key={item.id} item={item} />}
-          />
-        )}
+        {!hasFailures && failedCard}
       </div>
     </>
   )
@@ -200,25 +197,7 @@ function HomeCard({
       </CardHeader>
       <CardContent>
         {query.data === undefined ? (
-          query.isError ? (
-            <div className="space-y-3">
-              <p role="alert" className="text-sm text-destructive">
-                {labels.loadFailed} {query.error.message}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => query.refetch()}
-              >
-                {labels.retry}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2" aria-label={texts.common.loading}>
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          )
+          <LoadState query={query} failed={labels.loadFailed} />
         ) : query.data.length === 0 ? (
           <p className="text-sm text-muted-foreground">{empty}</p>
         ) : (
@@ -233,7 +212,7 @@ function HomeCard({
 
 /** Le titre d'un contenu, avec un lien vers son éditeur (chapitre et leçon compris). */
 function ItemTitle({ item }: { item: HomeItem }) {
-  const name = item.title.trim() || labels.untitled
+  const name = item.title.trim() || texts.common.untitled
   const path = contentEditorPath(item.kind, item.id)
   return (
     <span className="flex min-w-0 items-center gap-2">
@@ -273,7 +252,9 @@ function DraftRow({
         <p className="text-xs text-muted-foreground">
           {element && item.method_title !== null && (
             <>
-              {labels.inMethod(item.method_title.trim() || labels.untitled)}{" "}
+              {labels.inMethod(
+                item.method_title.trim() || texts.common.untitled
+              )}{" "}
               ·{" "}
             </>
           )}

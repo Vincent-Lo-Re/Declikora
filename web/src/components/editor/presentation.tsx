@@ -10,6 +10,7 @@ import { useRef, type ChangeEvent, type ReactNode } from "react"
 import { Link } from "react-router"
 
 import type { BlockMedia } from "@/blocks/components/context"
+import { MediaImage, MediaUnavailable } from "@/blocks/components/media-state"
 import { singleLine, useAutoHeight } from "@/blocks/components/fields"
 import { SUMMARY_MAX } from "@/blocks/draft"
 import type { Draft } from "@/blocks/types"
@@ -35,23 +36,6 @@ const integer = new Intl.NumberFormat("fr-FR")
 // Dans l'aperçu du téléphone : ce que l'app montre en tête d'un article ou d'un épisode.
 // ---------------------------------------------------------------------------------------------
 
-/** Pourquoi un fichier choisi ne s'affiche pas (supprimé, pas prêt, lecture ratée…). */
-function unavailableText(
-  media: BlockMedia,
-  words: { missing: string; notReady: string; none: string }
-): string | null {
-  switch (media.state) {
-    case "missing":
-      return words.missing
-    case "not_ready":
-      return words.notReady
-    case "none":
-      return words.none
-    default:
-      return null
-  }
-}
-
 /**
  * L'image de présentation, en tête de l'aperçu, comme dans l'app. Cliquer dessus montre la
  * présentation dans le panneau de droite ; le bouton ouvre le choix d'une image.
@@ -67,7 +51,6 @@ export function CoverPreview({
   onChoose: () => void
   onSelect: () => void
 }) {
-  const problem = unavailableText(media, labels.cover)
   return (
     <figure
       className="blocks-image blocks-cover"
@@ -75,55 +58,20 @@ export function CoverPreview({
       onClick={onSelect}
     >
       {media.state === "ready" && media.url ? (
-        <img
-          src={media.url}
-          alt={media.media.alt ?? ""}
-          style={
-            media.media.width && media.media.height
-              ? { aspectRatio: `${media.media.width} / ${media.media.height}` }
-              : undefined
-          }
-        />
+        <MediaImage media={media} alt={media.media.alt ?? ""} />
       ) : (
-        <div className="blocks-image-placeholder flex flex-col items-center justify-center gap-3 p-4 text-center font-sans">
-          {media.state === "missing" ||
-          media.state === "not_ready" ||
-          media.state === "error" ? (
-            <TriangleAlert aria-hidden className="size-6" />
-          ) : (
-            <ImageIcon aria-hidden className="size-6" />
-          )}
-          <span>
-            {media.state === "error"
-              ? texts.editor.image.loadFailed
-              : (problem ?? texts.common.loading)}
-          </span>
-          {media.state === "error" ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={media.retry}
-            >
-              {texts.editor.image.retry}
-            </Button>
-          ) : (
-            editable &&
-            media.state !== "loading" && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onChoose()
-                }}
-              >
-                {labels.cover.choose}
-              </Button>
-            )
-          )}
-        </div>
+        <MediaUnavailable
+          media={media}
+          words={{ ...labels.cover, loadFailed: texts.editor.image.loadFailed }}
+          icon={ImageIcon}
+          editable={editable}
+          onChoose={(event) => {
+            event.stopPropagation()
+            onChoose()
+          }}
+          className="blocks-image-placeholder flex flex-col items-center justify-center gap-3 p-4 text-center font-sans"
+          iconClassName="size-6"
+        />
       )}
     </figure>
   )
@@ -178,7 +126,6 @@ export function AudioPreview({
   onChoose: () => void
   onSelect: () => void
 }) {
-  const problem = unavailableText(media, labels.audio)
   return (
     <div
       className="blocks-audio font-sans"
@@ -209,45 +156,18 @@ export function AudioPreview({
           )}
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-3 py-2 text-center text-sm">
-          {media.state === "missing" ||
-          media.state === "not_ready" ||
-          media.state === "error" ? (
-            <TriangleAlert aria-hidden className="size-5" />
-          ) : (
-            <AudioLines aria-hidden className="size-5" />
-          )}
-          <span>
-            {media.state === "error"
-              ? texts.editor.image.loadFailed
-              : (problem ?? texts.common.loading)}
-          </span>
-          {media.state === "error" ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={media.retry}
-            >
-              {texts.editor.image.retry}
-            </Button>
-          ) : (
-            editable &&
-            media.state !== "loading" && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onChoose()
-                }}
-              >
-                {labels.audio.choose}
-              </Button>
-            )
-          )}
-        </div>
+        <MediaUnavailable
+          media={media}
+          words={labels.audio}
+          icon={AudioLines}
+          editable={editable}
+          onChoose={(event) => {
+            event.stopPropagation()
+            onChoose()
+          }}
+          className="flex flex-col items-center gap-3 py-2 text-center text-sm"
+          iconClassName="size-5"
+        />
       )}
     </div>
   )
@@ -258,7 +178,7 @@ export function AudioPreview({
  * alternatif d'une image ([D15]). Le lien ouvre sa fiche dans la Médiathèque, dans un nouvel
  * onglet (l'éditeur reste ouvert).
  */
-export function TranscriptWarning({ mediaId }: { mediaId: string }) {
+function TranscriptWarning({ mediaId }: { mediaId: string }) {
   return (
     <div className="space-y-1 text-xs text-warning" data-warning="transcript">
       <p className="flex items-start gap-1.5">

@@ -25,7 +25,7 @@ async function appRpc<T>(name: string, body: object): Promise<T> {
 }
 
 /** Ce que l'app reçoit d'un contenu en ligne (null s'il ne l'est pas). */
-export type AppContent = {
+type AppContent = {
   id: string
   versionId: string
   kind: string

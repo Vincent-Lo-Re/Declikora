@@ -36,7 +36,7 @@ export type OutlineChapter = OutlineElement & {
 export type MethodTree = OutlineChapter[]
 
 /** La place d'un élément dans l'arbre. */
-export type TreePlace =
+type TreePlace =
   | { kind: "chapter"; element: OutlineChapter; chapterIndex: number }
   | {
       kind: "lesson"
@@ -178,7 +178,7 @@ export function lessonZoneId(chapterId: string): string {
   return `${ZONE_PREFIX}${chapterId}`
 }
 
-export function chapterOfZone(id: UniqueIdentifier): string | null {
+function chapterOfZone(id: UniqueIdentifier): string | null {
   const value = String(id)
   return value.startsWith(ZONE_PREFIX) ? value.slice(ZONE_PREFIX.length) : null
 }

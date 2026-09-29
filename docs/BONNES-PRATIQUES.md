@@ -17,10 +17,13 @@
 
 ## 2. Interface (React, shadcn/ui, Tailwind CSS)
 
+- **Réutiliser avant d'écrire** : les briques communes sont listées dans `CLAUDE.md` (« Briques communes »). Dès qu'un morceau apparaît une deuxième fois, on l'extrait. Le garde-fou refuse un copier-coller de plus de 10 lignes (jscpd).
+- **shadcn/ui : seulement ce qui sert.** Après `npx shadcn add`, on retire les morceaux et les variantes inutilisés.
 - **Composants shadcn/ui** (sur Base UI) avant tout sur-mesure, adaptés dans `web/src/components/ui/`. Icônes Lucide, avec un trait d'un pixel pour toute l'admin (`LucideProvider` dans `web/src/components/app-providers.tsx`) : pas d'épaisseur réglée icône par icône.
+- **Couleurs : seulement des jetons du thème**, jamais la palette de Tailwind (`amber-500`, `emerald-500`…). **Pas de valeur arbitraire chiffrée** (`w-[390px]`) : un jeton, ou un utilitaire nommé dans `web/src/index.css`. ESLint refuse les deux, comme le style en ligne (les exceptions autorisées se marquent sur leur ligne, avec la raison).
 - **Jetons du thème** pour les couleurs (`bg-card`, `text-muted-foreground`, `text-destructive`, `text-warning`, pastilles `bg-status-live`, `bg-status-modified`, `bg-status-new`, `bg-status-removing`…, dans `web/src/index.css`) et **échelle Tailwind** pour les tailles et les espacements : aucune couleur ni valeur en dur. Les thèmes clair et sombre suivent alors tout seuls.
 - **Pas de style en ligne**, sauf pour une valeur qui change en direct (position pendant un glisser-déposer, mesure d'un élément). Ce qui se calcule à partir d'une mesure se déclare en CSS (`web/src/index.css`), avec les jetons.
-- **Tous les textes dans `web/src/texts.ts`**, en français, en tutoyant la personne. Aucun texte en dur dans un composant.
+- **Tous les textes dans `web/src/texts.ts`**, en français, en tutoyant la personne. Aucun texte en dur dans un composant. Les mots qui ne dépendent pas de la page (Réessayer, Enregistrer, Sans titre…) sont dans `texts.common`. Quand on retire un usage, on retire aussi son texte.
 - **Dates** avec `formatDateTime` (heure de Paris) ; **tailles, durées et pourcentages** avec `web/src/lib/media/format.ts`.
 - **Accessibilité** :
   - chaque zone et chaque bouton a un nom ;
@@ -28,8 +31,8 @@
   - les changements importants sont annoncés aux lecteurs d'écran (`role="status"`) ;
   - le glisser-déposer marche aussi au clavier ;
   - les animations se coupent si l'ordinateur le demande (`motion-reduce`).
-- **Logique à part** : les règles pures vont dans `web/src/lib/`, sans React, et se testent seules. Un fichier de composant n'exporte que des composants.
-- **Données** avec TanStack Query : des clés rangées (`mediaKeys`, `contentKeys`…) et une relecture après chaque écriture. **Formulaires** avec React Hook Form et Zod.
+- **Logique à part** : les règles pures vont dans `web/src/lib/`, sans React, et se testent seules. Un fichier de composant n'exporte que des composants. **Les pages et les composants n'appellent jamais Supabase** : tout passe par `lib/` (`lib/auth.ts` pour la connexion).
+- **Données** avec TanStack Query : des clés rangées (`mediaKeys`, `contentKeys`…), jamais écrites sur place, et une relecture après chaque écriture. **Formulaires** avec React Hook Form et Zod.
 - **Écran d'ordinateur** : l'admin est faite pour 1 024 px de large au moins.
 - **Un nouveau service appelé par le navigateur** s'ajoute aux règles de sécurité (CSP) de `web/vercel.json`.
 
@@ -40,6 +43,8 @@
 - **Versions épinglées** sans `^` ; on n'en monte une qu'après avoir vérifié la compatibilité. Node 24 partout.
 - **Lint (ESLint), mise en forme (Prettier), types et tests** passent avant chaque envoi.
 - **Noms en anglais dans le code, commentaires en français**, qui expliquent le pourquoi plutôt que le comment.
+- **Un fichier n'exporte que ce qui sert ailleurs**, et rien ne reste inutilisé : le garde-fou le vérifie (knip, configuré par `web/knip.json` ; `npm run lint:dead`).
+- **Une règle métier chiffrée** (durée, longueur maximale…) se définit une seule fois, et tout le reste s'en sert (`TITLE_MAX`, `MAX_NAME_LENGTH`, `isLockAlive`…).
 
 ## 4. Base de données (Supabase, Postgres)
 

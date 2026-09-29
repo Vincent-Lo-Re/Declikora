@@ -48,6 +48,8 @@ Elles ont été vérifiées sur npm et Expo le 2026-09-27. Elles sont épinglée
 # Administration
 cd web && npm run dev          # serveur de dev
 cd web && npm run lint         # ESLint
+cd web && npm run lint:dead    # code, fichiers et dépendances inutilisés (knip, web/knip.json)
+cd web && npm run lint:dup     # copier-coller de plus de 10 lignes (jscpd, web/.jscpd.json)
 cd web && npm run format       # Prettier (format:check pour vérifier seulement)
 cd web && npm test             # tests (test:watch pour relancer à chaque changement)
 cd web && npm run test:e2e     # tests de parcours Playwright (Supabase local démarré, Realtime compris ; la 1re fois : npx playwright install chromium)
@@ -93,7 +95,14 @@ npm run db:stop
 
 - `web/src/texts.ts` : **tous** les textes de l'interface, en français. Aucun texte en dur dans les composants.
 - `web/src/navigation.ts` : les sections (adresse en français, icône) et le rangement du menu. `web/src/routes.tsx` : les pages.
-- `web/src/components/ui/` : les composants shadcn/ui (on peut les modifier ; leurs textes passent aussi par `texts.ts`).
+- `web/src/components/ui/` : les composants shadcn/ui (on peut les modifier ; leurs textes passent aussi par `texts.ts`). Seuls les morceaux et les variantes qui servent y restent.
+- Briques communes (à réutiliser avant d'en écrire une autre) :
+  - `web/src/components/load-state.tsx` : une liste pas encore chargée (lignes grises, ou message d'échec et « Réessayer ») ;
+  - `web/src/components/ordered-names.tsx` : une liste de noms rangée par glisser-déposer, renommée, complétée, avec suppression confirmée (Catégories, Formules) ;
+  - `web/src/blocks/components/media-state.tsx` : une image à ses proportions, et un fichier choisi qui ne s'affiche pas (bloc Image, présentation) ;
+  - `web/src/components/contents/row-cells.tsx` : les cellules « Dernière modification » et « État » des listes ;
+  - `web/src/lib/auth.ts` (tous les appels de Supabase Auth des pages), `lib/people.ts` (nom affiché, initiale), `lib/errors.ts` (`errorMessage`), `lib/focus.ts` (`focusSoon`), `lib/refresh.ts` (relecture après une corbeille) ;
+  - dans `texts.common`, les mots qui ne dépendent pas de la page (Réessayer, Enregistrer, Sans titre, Actions, « par … ») ; dans `web/src/index.css`, les jetons (`text-warning`, `bg-status-*`) et les utilitaires nommés (`grid-cols-media`, `grid-cols-label-value`, `max-h-picker`, `pb-page`).
 - `web/src/lib/dates.ts` : toutes les dates s'affichent avec `formatDateTime` (« 27 sept. 2026 à 14:30 », heure de Paris).
 - `web/src/lib/media/format.ts` : tailles, durées, dimensions et pourcentages (« 12,5 Mo », « 3 min 05 s ») ; les unités sont dans `texts.media.units`.
 - L'interface tutoie la personne (« Agrandis la fenêtre… »).

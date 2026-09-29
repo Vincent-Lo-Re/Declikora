@@ -50,6 +50,7 @@ import {
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
+import { LoadState } from "@/components/load-state"
 import {
   ElementStateBadge,
   ElementStateHint,
@@ -86,7 +87,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import {
   ContentError,
@@ -127,6 +127,8 @@ import {
 } from "@/lib/contents/publication"
 import { templateKeys } from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
+import { errorMessage } from "@/lib/errors"
+import { focusSoon } from "@/lib/focus"
 import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
 import type { OutlineElementValues } from "@/lib/schemas"
 import { contentEditorPath } from "@/navigation"
@@ -140,7 +142,7 @@ const dnd = texts.methods.dnd
 // ---------------------------------------------------------------------------------------------
 
 function titleOf(element: OutlineElement): string {
-  return element.title.trim() || labels.untitled
+  return element.title.trim() || texts.common.untitled
 }
 
 /** « chapitre 2 « Respirer » », « leçon 3 « Le souffle » » : la place dans l'arbre et le titre. */
@@ -356,7 +358,7 @@ export function MethodOutline({
         // ligne à mettre à jour (modèles, fichiers remplacés).
         queryClient.invalidateQueries({ queryKey: templateKeys.allOutdated }),
         queryClient.invalidateQueries({
-          queryKey: [...mediaKeys.all, "outdated"],
+          queryKey: mediaKeys.allOutdated,
         }),
       ]),
     [queryClient, methodId]
@@ -477,9 +479,7 @@ export function MethodOutline({
       await restoreContent(element.id)
       toast.success(labels.restored(label))
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : texts.common.unexpected
-      )
+      toast.error(errorMessage(error))
     } finally {
       forgetDetails(element)
       await refresh()
@@ -539,7 +539,7 @@ export function MethodOutline({
       forgetDetails(element)
       void queryClient.invalidateQueries({ queryKey: trashKey })
       void queryClient.invalidateQueries({
-        queryKey: [...mediaKeys.all, "uses"],
+        queryKey: mediaKeys.allUses,
       })
       await refresh()
       const find = focusAfterAct.current
@@ -588,7 +588,7 @@ export function MethodOutline({
         void navigate(path)
         return
       }
-      const name = created.title.trim() || labels.untitled
+      const name = created.title.trim() || texts.common.untitled
       toast.success(texts.methods.create.created[target.kind](name), {
         action: path
           ? {
@@ -730,21 +730,11 @@ export function MethodOutline({
       </p>
 
       {shown === undefined ? (
-        tree.isError ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <p role="alert" className="text-sm text-destructive">
-              {labels.loadFailed} {tree.error.message}
-            </p>
-            <Button variant="outline" size="sm" onClick={() => tree.refetch()}>
-              {labels.retry}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2" aria-label={texts.common.loading}>
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        )
+        <LoadState
+          query={tree}
+          failed={labels.loadFailed}
+          rowClassName="h-20 w-full"
+        />
       ) : shown.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>
@@ -893,33 +883,6 @@ export function MethodOutline({
   )
 }
 
-// Temps laissé à l'élément pour pouvoir prendre le focus : sur une machine lente, une fenêtre
-// ou un menu peut mettre plus d'une demi-seconde à se refermer.
-const FOCUS_PATIENCE_MS = 2000
-
-/**
- * Met le focus sur un élément dès qu'il peut le prendre : aucune fenêtre ni aucun menu n'est
- * ouvert (tant qu'ils sont là, ils gardent le focus pour eux et le reprendraient), et l'élément
- * existe. Réessaie à chaque image, pendant FOCUS_PATIENCE_MS au plus.
- */
-function focusSoon(
-  find: () => HTMLElement | null,
-  until = performance.now() + FOCUS_PATIENCE_MS
-) {
-  if (
-    !document.querySelector(
-      '[role="dialog"], [role="alertdialog"], [role="menu"]'
-    )
-  ) {
-    const element = find()
-    element?.focus()
-    if (element && document.activeElement === element) return
-  }
-  if (performance.now() < until) {
-    requestAnimationFrame(() => focusSoon(find, until))
-  }
-}
-
 /** Le bouton « Actions pour … » d'un élément du plan. */
 function actionsButtonOf(id: string): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[data-outline-actions="${id}"]`)
@@ -1025,6 +988,7 @@ function ChapterItem({
       ref={setNodeRef}
       data-outline-id={chapter.id}
       data-outline-kind="chapter"
+      // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer (dnd-kit)
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -1041,17 +1005,10 @@ function ChapterItem({
         chapterInApp
         handle={
           editable && (
-            <button
-              type="button"
-              ref={setActivatorNodeRef}
-              {...attributes}
-              {...listeners}
-              aria-label={labels.handle(label)}
-              title={labels.handle(label)}
-              className={HANDLE_CLASS}
-            >
-              <GripVertical className="size-4" />
-            </button>
+            <OutlineHandle
+              label={label}
+              sortable={{ setActivatorNodeRef, attributes, listeners }}
+            />
           )
         }
         isFirst={isFirst}
@@ -1148,6 +1105,7 @@ function LessonItem({
       ref={setNodeRef}
       data-outline-id={lesson.id}
       data-outline-kind="lesson"
+      // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer (dnd-kit)
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -1164,17 +1122,10 @@ function LessonItem({
         chapterInApp={chapterInApp}
         handle={
           editable && (
-            <button
-              type="button"
-              ref={setActivatorNodeRef}
-              {...attributes}
-              {...listeners}
-              aria-label={labels.handle(label)}
-              title={labels.handle(label)}
-              className={HANDLE_CLASS}
-            >
-              <GripVertical className="size-4" />
-            </button>
+            <OutlineHandle
+              label={label}
+              sortable={{ setActivatorNodeRef, attributes, listeners }}
+            />
           )
         }
         isFirst={isFirst}
@@ -1186,8 +1137,31 @@ function LessonItem({
   )
 }
 
-const HANDLE_CLASS =
-  "mt-0.5 flex size-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
+/** La poignée d'un chapitre ou d'une leçon : on la prend à la souris ou au clavier. */
+function OutlineHandle({
+  label,
+  sortable: { setActivatorNodeRef, attributes, listeners },
+}: {
+  label: string
+  sortable: Pick<
+    ReturnType<typeof useSortable>,
+    "setActivatorNodeRef" | "attributes" | "listeners"
+  >
+}) {
+  return (
+    <button
+      type="button"
+      ref={setActivatorNodeRef}
+      {...attributes}
+      {...listeners}
+      aria-label={labels.handle(label)}
+      title={labels.handle(label)}
+      className="mt-0.5 flex size-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
+    >
+      <GripVertical className="size-4" />
+    </button>
+  )
+}
 
 // L'arbre affiché, pour « Monter » et « Descendre » d'une leçon (qui peut changer de chapitre).
 const TreeContext = createContext<MethodTree | null>(null)
@@ -1280,7 +1254,8 @@ function ElementRow({
           {editing && <Badge variant="secondary">{editing}</Badge>}
           <span className="text-xs text-muted-foreground">
             {labels.savedAt(formatDateTime(element.draftSavedAt))}
-            {element.savedByName && ` ${labels.savedBy(element.savedByName)}`}
+            {element.savedByName &&
+              ` ${texts.common.savedBy(element.savedByName)}`}
           </span>
         </div>
         <ElementStateHint state={state} />

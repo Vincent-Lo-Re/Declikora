@@ -20,7 +20,7 @@ import type {
   LockRow,
 } from "@/lib/contents/api"
 
-export type LockPhase =
+type LockPhase =
   | "taking" // lock_take en cours
   | "mine" // on tient le verrou : on écrit
   | "readonly" // quelqu'un d'autre écrit
@@ -42,10 +42,16 @@ export type LockState = {
   mineSince: number | null
 }
 
-export const LOCK_TTL_MS = 90_000
-export const HEARTBEAT_MS = 20_000
-export const POLL_MS = 30_000
-export const HIDDEN_RELEASE_MS = 30 * 60 * 1000
+// Un verrou sans signe de vie depuis 90 s est périmé ([D13]).
+const LOCK_TTL_MS = 90_000
+
+/** Vrai si le dernier signe de vie d'un verrou date de moins de 90 s. */
+export function isLockAlive(heartbeatAt: string, now: number): boolean {
+  return now - new Date(heartbeatAt).getTime() < LOCK_TTL_MS
+}
+const HEARTBEAT_MS = 20_000
+const POLL_MS = 30_000
+const HIDDEN_RELEASE_MS = 30 * 60 * 1000
 
 export const initialLockState: LockState = {
   phase: "taking",
@@ -57,7 +63,7 @@ export const initialLockState: LockState = {
   mineSince: null,
 }
 
-export type LockEvent =
+type LockEvent =
   | { type: "taking" }
   // source : la réponse d'une prise de main (lock_take) ou d'une relecture (lock_status).
   | { type: "row"; row: LockRow; source: "take" | "status" }
@@ -135,8 +141,7 @@ export function lockReducer(state: LockState, event: LockEvent): LockState {
       // Quelqu'un d'autre (ou nous, dans un autre onglet).
       const draftRev = Math.max(state.draftRev ?? 0, change.draft_rev)
       const active =
-        change.holder_id !== null &&
-        now - new Date(change.heartbeat_at).getTime() < LOCK_TTL_MS
+        change.holder_id !== null && isLockAlive(change.heartbeat_at, now)
       if (state.phase === "released" || state.phase === "taking") {
         return { ...state, draftRev }
       }
@@ -189,7 +194,7 @@ export type LockApi = {
   ) => () => void
 }
 
-export type EditLockOptions = {
+type EditLockOptions = {
   api: LockApi
   myId: string
   // L'ouverture de l'éditeur (la même que celle passée à l'api).

@@ -23,7 +23,7 @@ import {
 import { checkLottie, type LottieReason } from "@/lib/media/lottie"
 import type { SvgReason } from "@/lib/media/svg"
 
-export type PrepareErrorCode =
+type PrepareErrorCode =
   | "type_refuse"
   | "video_refusee"
   | "fichier_vide"
@@ -68,7 +68,7 @@ export type PrepareDeps = {
 }
 
 /** Durée d'un audio lue par le navigateur (métadonnées seulement), null s'il n'y arrive pas. */
-export function readAudioDuration(blob: Blob): Promise<number | null> {
+function readAudioDuration(blob: Blob): Promise<number | null> {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(blob)
     const audio = new Audio()
@@ -93,7 +93,7 @@ const browserDeps: PrepareDeps = { decodeImage, readAudioDuration }
  * Nom d'origine en Unicode composé (NFC) : macOS et Safari donnent souvent « e » suivi d'un
  * accent séparé (NFD), que la recherche « café » ne trouverait pas. La base normalise aussi.
  */
-export function fileName(file: File): string {
+function fileName(file: File): string {
   return file.name.normalize("NFC")
 }
 

@@ -10,6 +10,8 @@ import {
   type Content,
   type ContentKind,
 } from "@/lib/contents/api"
+import { isLockAlive } from "@/lib/editor/edit-lock"
+import { displayName, type PersonName } from "@/lib/people"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
 
@@ -60,16 +62,6 @@ export const templateKeys = {
     ["contents", "templates", "starters", kind] as const,
 }
 
-type ProfileName = { full_name: string | null; email: string } | null
-
-function nameOf(profile: ProfileName): string | null {
-  if (!profile) return null
-  return profile.full_name?.trim() || profile.email
-}
-
-// Un verrou sans signe de vie depuis 90 s est périmé ([D13]).
-const LOCK_TTL_MS = 90_000
-
 // ---------------------------------------------------------------------------------------------
 // Lecture
 // ---------------------------------------------------------------------------------------------
@@ -105,11 +97,10 @@ export async function listTemplates(): Promise<TemplateItem[]> {
     const lock = row.edit_locks as {
       holder_id: string | null
       heartbeat_at: string
-      holder: ProfileName
+      holder: PersonName | null
     } | null
     const active =
-      lock?.holder_id != null &&
-      now - new Date(lock.heartbeat_at).getTime() < LOCK_TTL_MS
+      lock?.holder_id != null && isLockAlive(lock.heartbeat_at, now)
     return [
       {
         id: row.id,
@@ -118,9 +109,9 @@ export async function listTemplates(): Promise<TemplateItem[]> {
         templateFor: isTemplateFor(row.template_for) ? row.template_for : null,
         draft: row.draft as unknown as Draft,
         draft_saved_at: row.draft_saved_at,
-        saved_by_name: nameOf(row.saved_by as ProfileName),
+        saved_by_name: displayName(row.saved_by as PersonName | null),
         editing_name: active
-          ? (nameOf(lock.holder) ?? texts.editor.lock.someone)
+          ? (displayName(lock.holder) ?? texts.editor.lock.someone)
           : null,
       },
     ]
@@ -209,7 +200,7 @@ export async function listStarters(
 }
 
 /** Un contenu en ligne dont la copie d'un bloc identique partout n'est plus à jour. */
-export type TemplateOutdatedItem = {
+type TemplateOutdatedItem = {
   content_id: string
   kind: ContentKind
   title: string | null

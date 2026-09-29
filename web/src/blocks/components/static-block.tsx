@@ -61,7 +61,7 @@ function block(node: TextNode, key: number): ReactNode {
  * Un texte affiché tel quel, sans éditeur (bloc d'un modèle montré dans un contenu). Mêmes
  * classes que Tiptap : l'aperçu reste identique.
  */
-export function StaticText({ doc }: { doc: Doc }) {
+function StaticText({ doc }: { doc: Doc }) {
   const root = doc as unknown as TextNode
   return (
     <div className="blocks-text">

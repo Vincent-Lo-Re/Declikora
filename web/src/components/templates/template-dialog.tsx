@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
+import { TITLE_MAX } from "@/blocks/draft"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -114,7 +115,7 @@ export function TemplateDialog({
                     {...field}
                     id="modele-nom"
                     autoComplete="off"
-                    maxLength={200}
+                    maxLength={TITLE_MAX}
                     placeholder={labels.namePlaceholder}
                     aria-invalid={fieldState.invalid}
                   />

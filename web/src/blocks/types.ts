@@ -20,7 +20,6 @@ export type {
   ImageBlock,
   LinkedBlock,
   TextBlock,
-  TopBlock,
 }
 
 /** Un bloc, au premier niveau ou dans un encadré. */

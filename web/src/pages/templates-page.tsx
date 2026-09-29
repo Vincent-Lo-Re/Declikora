@@ -12,6 +12,8 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
+import { EditingCell, SavedCell } from "@/components/contents/row-cells"
+import { LoadState } from "@/components/load-state"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TemplateDialog } from "@/components/templates/template-dialog"
@@ -26,7 +28,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -42,7 +43,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
@@ -65,8 +65,9 @@ import {
   type TemplateItem,
   type TemplateSort,
 } from "@/lib/contents/templates"
-import { formatDateTime } from "@/lib/dates"
-import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
+import { errorMessage } from "@/lib/errors"
+import { kickFiles } from "@/lib/media/api"
+import { refreshAfterContentTrash } from "@/lib/refresh"
 import { editorPath } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -143,22 +144,12 @@ export function TemplatesPage() {
       />
 
       {list.data === undefined ? (
-        list.isError ? (
-          <div className="space-y-3">
-            <p role="alert" className="text-sm text-destructive">
-              {labels.loadFailed} {list.error.message}
-            </p>
-            <Button variant="outline" onClick={() => list.refetch()}>
-              {labels.retry}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {Array.from({ length: 3 }, (_, index) => (
-              <Skeleton key={index} className="h-12 w-full" />
-            ))}
-          </div>
-        )
+        <LoadState
+          query={list}
+          failed={labels.loadFailed}
+          rows={3}
+          rowClassName="h-12 w-full"
+        />
       ) : list.data.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>
@@ -265,7 +256,7 @@ function SortSection({
               <TableHead>{labels.columns.savedAt}</TableHead>
               <TableHead>{labels.columns.status}</TableHead>
               <TableHead className="w-0">
-                <span className="sr-only">{labels.columns.actions}</span>
+                <span className="sr-only">{texts.common.actions}</span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -294,19 +285,14 @@ function SortSection({
                       : null}
                   </TableCell>
                 )}
-                <TableCell className="text-muted-foreground">
-                  {formatDateTime(item.draft_saved_at)}
-                  {item.saved_by_name && (
-                    <> {labels.savedBy(item.saved_by_name)}</>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {item.editing_name && (
-                    <Badge variant="secondary">
-                      {labels.beingEdited(item.editing_name)}
-                    </Badge>
-                  )}
-                </TableCell>
+                <SavedCell
+                  savedAt={item.draft_saved_at}
+                  savedByName={item.saved_by_name}
+                />
+                <EditingCell
+                  editingName={item.editing_name}
+                  label={labels.beingEdited}
+                />
                 <TableCell>
                   <RowActions item={item} onTrash={() => onTrash(item)} />
                 </TableCell>
@@ -377,21 +363,14 @@ function TrashTemplateDialog({
   })
   const blocking = shared ? (uses.data ?? null) : []
 
-  const refresh = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: contentKeys.all }),
-      queryClient.invalidateQueries({ queryKey: trashKey }),
-      queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "uses"] }),
-    ])
+  const refresh = () => refreshAfterContentTrash(queryClient)
 
   const undo = async () => {
     try {
       await restoreContent(template.id)
       toast.success(labels.restored(name))
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : texts.common.unexpected
-      )
+      toast.error(errorMessage(error))
     } finally {
       await refresh()
     }

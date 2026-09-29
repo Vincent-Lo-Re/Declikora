@@ -24,7 +24,7 @@ import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
 
 /** La base a refusé le fichier reçu (media_confirm), avec la raison. */
-export class RejectedError extends Error {
+class RejectedError extends Error {
   readonly reason: string
 
   constructor(reason: string) {

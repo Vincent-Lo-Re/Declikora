@@ -19,7 +19,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { initial } from "@/lib/initial"
+import { displayName, initial } from "@/lib/people"
 import { authPaths, sections } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -34,7 +34,7 @@ export function AccountMenu() {
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   if (!profile) return null
-  const name = profile.full_name?.trim() || profile.email
+  const name = displayName(profile)
 
   return (
     <DropdownMenu>
@@ -43,9 +43,7 @@ export function AccountMenu() {
         className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <Avatar size="lg">
-          <AvatarFallback>
-            {initial(profile.full_name, profile.email)}
-          </AvatarFallback>
+          <AvatarFallback>{initial(profile)}</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">

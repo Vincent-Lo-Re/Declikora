@@ -6,7 +6,9 @@ import type { PostgrestError } from "@supabase/supabase-js"
 
 import type { Draft } from "@/blocks/types"
 import type { Json, Tables } from "@/lib/database.types"
+import { isLockAlive } from "@/lib/editor/edit-lock"
 import type { Media } from "@/lib/media/constants"
+import { displayName, type PersonName } from "@/lib/people"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
 
@@ -14,7 +16,7 @@ import { texts } from "@/texts"
 // Erreurs
 // ---------------------------------------------------------------------------------------------
 
-export type ContentErrorCode = keyof typeof texts.editor.errors
+type ContentErrorCode = keyof typeof texts.editor.errors
 
 function isContentErrorCode(code: unknown): code is ContentErrorCode {
   return typeof code === "string" && Object.hasOwn(texts.editor.errors, code)
@@ -77,7 +79,7 @@ export function toContentError(
 }
 
 /** Le message d'un code d'erreur de la base (texts.editor.errors), ou le message générique. */
-export function contentErrorText(code: string): string {
+function contentErrorText(code: string): string {
   return isContentErrorCode(code)
     ? texts.editor.errors[code]
     : texts.common.unexpected
@@ -145,22 +147,12 @@ export type ContentListItem = {
   pending_changes?: boolean
 }
 
-type ProfileName = { full_name: string | null; email: string } | null
-
-function nameOf(profile: ProfileName): string | null {
-  if (!profile) return null
-  return profile.full_name?.trim() || profile.email
-}
-
 /** Les catégories d'un brouillon (content_categories), triées : l'ordre ne compte pas. */
 function categoryIdsOf(
   rows: { category_id: string }[] | null | undefined
 ): string[] {
   return (rows ?? []).map((row) => row.category_id).sort()
 }
-
-// Un verrou sans signe de vie depuis 90 s est périmé ([D13]).
-const LOCK_TTL_MS = 90_000
 
 /** Les contenus d'une sorte, hors corbeille, les derniers modifiés d'abord. */
 export async function listContents(
@@ -181,11 +173,10 @@ export async function listContents(
     const lock = row.edit_locks as {
       holder_id: string | null
       heartbeat_at: string
-      holder: ProfileName
+      holder: PersonName | null
     } | null
     const active =
-      lock?.holder_id != null &&
-      now - new Date(lock.heartbeat_at).getTime() < LOCK_TTL_MS
+      lock?.holder_id != null && isLockAlive(lock.heartbeat_at, now)
     const live = row.live as { draft_rev: number } | null
     return {
       id: row.id,
@@ -194,9 +185,9 @@ export async function listContents(
       category_ids: categoryIdsOf(row.content_categories),
       draft_rev: row.draft_rev,
       draft_saved_at: row.draft_saved_at,
-      saved_by_name: nameOf(row.saved_by as ProfileName),
+      saved_by_name: displayName(row.saved_by as PersonName | null),
       editing_name: active
-        ? (nameOf(lock.holder) ?? texts.editor.lock.someone)
+        ? (displayName(lock.holder) ?? texts.editor.lock.someone)
         : null,
       live_draft_rev: live?.draft_rev ?? null,
       first_published_at: row.first_published_at,

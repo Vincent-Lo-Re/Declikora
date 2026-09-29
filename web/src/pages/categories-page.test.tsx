@@ -41,7 +41,7 @@ describe("Catégories du Blog", () => {
     expect(
       within(list)
         .getAllByRole("listitem")
-        .map((item) => item.getAttribute("data-category"))
+        .map((item) => item.getAttribute("data-item"))
     ).toEqual(["Sommeil", "Stress"])
     expect(within(list).getByText(labels.uses(3))).toBeVisible()
     expect(
@@ -99,7 +99,7 @@ describe("Catégories du Blog", () => {
     )
     const field = screen.getByLabelText(labels.renameLabel("Stress"))
     fireEvent.change(field, { target: { value: "Anxiété" } })
-    fireEvent.click(screen.getByRole("button", { name: labels.save }))
+    fireEvent.click(screen.getByRole("button", { name: texts.common.save }))
     await waitFor(() =>
       expect(categoriesApi.renameCategory).toHaveBeenCalledWith("c2", "Anxiété")
     )

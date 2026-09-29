@@ -19,7 +19,7 @@ import { texts } from "@/texts"
 // Erreurs
 // ---------------------------------------------------------------------------------------------
 
-export type MediaErrorCode = keyof typeof texts.media.errors
+type MediaErrorCode = keyof typeof texts.media.errors
 
 function isMediaErrorCode(code: unknown): code is MediaErrorCode {
   return typeof code === "string" && Object.hasOwn(texts.media.errors, code)
@@ -40,7 +40,7 @@ export class MediaError extends Error {
 }
 
 /** Traduit une erreur de la base (RPC ou table). */
-export function toMediaError(error: PostgrestError): MediaError {
+function toMediaError(error: PostgrestError): MediaError {
   const code = isMediaErrorCode(error.message) ? error.message : null
   return new MediaError(code, error.details || null)
 }
@@ -71,7 +71,11 @@ export const mediaKeys = {
   audit: ["media", "audit"] as const,
   urls: (paths: string[]) => ["media", "urls", paths] as const,
   one: (id: string) => ["media", "one", id] as const,
+  // Les « Utilisé dans » et « Textes figés » de tous les fichiers (à relire après un geste
+  // sur un contenu), puis ceux d'un fichier.
+  allUses: ["media", "uses"] as const,
   uses: (id: string) => ["media", "uses", id] as const,
+  allOutdated: ["media", "outdated"] as const,
   outdated: (id: string) => ["media", "outdated", id] as const,
   verdicts: (ids: string[]) => ["media", "verdicts", ids] as const,
 }
@@ -148,10 +152,7 @@ export async function getStorageUsed(): Promise<number> {
   return data
 }
 
-export type MediaAudit = Pick<
-  Tables<"media_audit">,
-  "checked_at" | "orphan_paths"
->
+type MediaAudit = Pick<Tables<"media_audit">, "checked_at" | "orphan_paths">
 
 /** Dernier contrôle des fichiers orphelins (null s'il n'y en a pas encore eu). */
 export async function getLatestAudit(): Promise<MediaAudit | null> {
@@ -247,7 +248,7 @@ export async function getMediaUses(mediaId: string): Promise<MediaUse[]> {
 }
 
 /** Un contenu en ligne dont la version garde un ancien texte de ce fichier ([D30]). */
-export type MediaOutdated = {
+type MediaOutdated = {
   content_id: string
   kind: string
   title: string
@@ -422,11 +423,11 @@ export async function emptyTrash(
 // Fonction serveur « files »
 // ---------------------------------------------------------------------------------------------
 
-export type FilesMode = "kick" | "audit" | "clean"
+type FilesMode = "kick" | "audit" | "clean"
 
-export type KickSummary = { mode: "kick"; remaining: number }
-export type AuditSummary = { mode: "audit"; orphans: number }
-export type CleanSummary = { mode: "clean"; removed: number; orphans: number }
+type KickSummary = { mode: "kick"; remaining: number }
+type AuditSummary = { mode: "audit"; orphans: number }
+type CleanSummary = { mode: "clean"; removed: number; orphans: number }
 
 type FilesSummary<M extends FilesMode> = M extends "kick"
   ? KickSummary

@@ -128,7 +128,7 @@ export function HistorySheet({
                   size="sm"
                   onClick={() => versions.refetch()}
                 >
-                  {labels.retry}
+                  {texts.common.retry}
                 </Button>
               </div>
             ) : versions.data.length === 0 ? (

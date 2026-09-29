@@ -71,7 +71,7 @@ export function ElementBanner({
             {context?.chapter && (
               <span className="block text-muted-foreground">
                 {labels.inChapter(
-                  context.chapter.title.trim() || texts.methods.outline.untitled
+                  context.chapter.title.trim() || texts.common.untitled
                 )}
               </span>
             )}

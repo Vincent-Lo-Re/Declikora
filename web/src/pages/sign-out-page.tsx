@@ -2,7 +2,7 @@ import { useEffect } from "react"
 import { Navigate } from "react-router"
 
 import { useAuth } from "@/auth/auth-context"
-import { supabase } from "@/lib/supabase"
+import { signOutHere } from "@/lib/auth"
 import { authPaths } from "@/navigation"
 
 /**
@@ -14,7 +14,7 @@ export function SignOutPage() {
   const { session } = useAuth()
 
   useEffect(() => {
-    void supabase.auth.signOut({ scope: "local" })
+    void signOutHere()
   }, [])
 
   return session ? null : <Navigate to={authPaths.signIn} replace />

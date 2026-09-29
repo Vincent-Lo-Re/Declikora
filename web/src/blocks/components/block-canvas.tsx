@@ -305,6 +305,7 @@ const SortableBlock = memo(function SortableBlock({
       data-block-id={block.id}
       data-block-type={block.type}
       data-selected={selected || undefined}
+      // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer (dnd-kit)
       style={{
         transform: CSS.Translate.toString(transform),
         transition,

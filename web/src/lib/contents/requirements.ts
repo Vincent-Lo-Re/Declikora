@@ -50,7 +50,7 @@ export type Requirement = {
 }
 
 /** Un conseil, qui n'empêche pas de publier : l'audio n'a pas de transcription ([D46]). */
-export type Advice = { key: "transcript"; mediaId: string }
+type Advice = { key: "transcript"; mediaId: string }
 
 export type PublishChecks = { missing: Requirement[]; advice: Advice[] }
 

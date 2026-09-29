@@ -1,9 +1,9 @@
 // Adresse d'une page (slug) : mêmes règles que la base (save_draft).
 
-export const SLUG_MAX = 100
-export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
+const SLUG_MAX = 100
+const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
-export type SlugCheck =
+type SlugCheck =
   | { ok: true; slug: string | null }
   | { ok: false; reason: "invalid" | "too_long" }
 

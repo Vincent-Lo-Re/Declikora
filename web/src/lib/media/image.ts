@@ -4,7 +4,7 @@
 
 import { IMAGE_MAX_SIDE, IMAGE_TARGET_BYTES } from "@/lib/media/constants"
 
-export type ImageType = "image/webp" | "image/jpeg"
+type ImageType = "image/webp" | "image/jpeg"
 
 /** Dessine l'image à la taille donnée et l'encode. Le Blob rendu dit le type réellement écrit. */
 export type Encoder = (
@@ -14,7 +14,7 @@ export type Encoder = (
   quality: number
 ) => Promise<Blob>
 
-export type ReducedImage = { blob: Blob; width: number; height: number }
+type ReducedImage = { blob: Blob; width: number; height: number }
 
 // Qualités essayées pour chaque taille, puis on réduit la taille.
 const qualities = [0.85, 0.72, 0.6]

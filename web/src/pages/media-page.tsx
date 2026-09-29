@@ -20,6 +20,7 @@ import {
 import { useSearchParams } from "react-router"
 import { toast } from "sonner"
 
+import { LoadState } from "@/components/load-state"
 import { kindIcons } from "@/components/media/media-kinds"
 import { MediaGrid, MediaTable } from "@/components/media/media-collection"
 import { KeptNotice, SelectionBar } from "@/components/media/media-selection"
@@ -465,22 +466,17 @@ export function MediaPage() {
       </div>
 
       {media.data === undefined ? (
-        media.isError ? (
-          <div className="space-y-3">
-            <p role="alert" className="text-sm text-destructive">
-              {texts.media.loadFailed} {media.error.message}
-            </p>
-            <Button variant="outline" onClick={() => media.refetch()}>
-              {texts.media.retry}
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-media gap-4">
-            {Array.from({ length: 6 }, (_, index) => (
-              <Skeleton key={index} className="aspect-square w-full" />
-            ))}
-          </div>
-        )
+        <LoadState
+          query={media}
+          failed={texts.media.loadFailed}
+          skeleton={
+            <div className="grid grid-cols-media gap-4">
+              {Array.from({ length: 6 }, (_, index) => (
+                <Skeleton key={index} className="aspect-square w-full" />
+              ))}
+            </div>
+          }
+        />
       ) : (
         <div className="space-y-4">
           {media.isError && (
@@ -493,7 +489,7 @@ export function MediaPage() {
                   className="h-auto p-0"
                   onClick={() => media.refetch()}
                 >
-                  {texts.media.retry}
+                  {texts.common.retry}
                 </Button>
               </AlertDescription>
             </Alert>

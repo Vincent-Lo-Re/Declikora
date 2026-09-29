@@ -38,6 +38,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { contentKeys } from "@/lib/contents/api"
 import { formatDateTime } from "@/lib/dates"
+import { errorMessage } from "@/lib/errors"
 import {
   getMediaOutdated,
   getMediaUses,
@@ -340,7 +341,7 @@ function MediaDetailsForm({ media }: { media: Media }) {
           disabled={save.isPending || !form.formState.isDirty}
         >
           {save.isPending && <Spinner />}
-          {texts.media.detail.save}
+          {texts.common.save}
         </Button>
       </div>
     </form>
@@ -373,7 +374,7 @@ function MediaInfo({ media }: { media: Media }) {
   return (
     <section className="space-y-2">
       <h3 className="text-sm font-medium">{texts.media.detail.info}</h3>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+      <dl className="grid grid-cols-label-value gap-x-4 gap-y-1 text-sm">
         {rows.map(([label, value]) => (
           <div key={label} className="contents">
             <dt className="text-muted-foreground">{label}</dt>
@@ -584,9 +585,7 @@ function TrashButton({
       await restoreMedia(media.id)
       toast.success(texts.media.detail.restored)
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : texts.common.unexpected
-      )
+      toast.error(errorMessage(error))
     } finally {
       await refresh()
     }
@@ -641,7 +640,7 @@ function TrashButton({
 
 /** Titre d'un contenu qui utilise le fichier, avec un lien vers son éditeur s'il existe. */
 function UseTitle({ use }: { use: MediaUse }) {
-  const title = use.title?.trim() || texts.media.detail.untitled
+  const title = use.title?.trim() || texts.common.untitled
   const path = contentEditorPath(use.kind, use.content_id)
   return path ? (
     <Link to={path} className="underline-offset-4 hover:underline">

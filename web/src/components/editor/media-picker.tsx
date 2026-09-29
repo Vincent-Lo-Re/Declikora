@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { AudioLines, Search, Upload } from "lucide-react"
 import { useEffect, useRef, useState, type ComponentProps } from "react"
 
+import { LoadState } from "@/components/load-state"
 import { MediaThumbnail } from "@/components/media/media-visuals"
 import { usePreviewUrls } from "@/components/media/use-preview-urls"
 import {
@@ -27,7 +28,7 @@ import { getUploadQueue, type UploadQueue } from "@/lib/media/upload-queue"
 import { texts } from "@/texts"
 
 // Ce que l'on choisit : une image (bloc Image, image de présentation) ou un audio (épisode).
-export type PickerKind = "image" | "audio"
+type PickerKind = "image" | "audio"
 
 const pickerLabels = {
   image: texts.editor.picker,
@@ -143,28 +144,23 @@ function PickerBody({
         <PickerUpload kind={kind} queue={queue} onChoose={onChoose} />
       </div>
       {media.data === undefined ? (
-        media.isError ? (
-          <div className="space-y-3">
-            <p role="alert" className="text-sm text-destructive">
-              {labels.loadFailed}
-            </p>
-            <Button variant="outline" onClick={() => media.refetch()}>
-              {labels.retry}
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-4 gap-3">
-            {Array.from({ length: 8 }, (_, index) => (
-              <Skeleton key={index} className="aspect-square w-full" />
-            ))}
-          </div>
-        )
+        <LoadState
+          query={media}
+          failed={labels.loadFailed}
+          skeleton={
+            <div className="grid grid-cols-4 gap-3">
+              {Array.from({ length: 8 }, (_, index) => (
+                <Skeleton key={index} className="aspect-square w-full" />
+              ))}
+            </div>
+          }
+        />
       ) : ready.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
           {debounced.trim() ? labels.noResults : labels.empty}
         </p>
       ) : kind === "audio" ? (
-        <ul className="max-h-[60vh] space-y-2 overflow-y-auto p-0.5">
+        <ul className="max-h-picker space-y-2 overflow-y-auto p-0.5">
           {ready.map((item) => (
             <li key={item.id}>
               <button
@@ -193,7 +189,7 @@ function PickerBody({
           ))}
         </ul>
       ) : (
-        <ul className="grid max-h-[60vh] grid-cols-4 gap-3 overflow-y-auto p-0.5">
+        <ul className="grid max-h-picker grid-cols-4 gap-3 overflow-y-auto p-0.5">
           {ready.map((item) => (
             <li key={item.id}>
               <button
@@ -307,7 +303,7 @@ function PickerUpload({
             </p>
             {item.canRetry && (
               <Button variant="outline" onClick={() => queue.retry(item.id)}>
-                {labels.retry}
+                {texts.common.retry}
               </Button>
             )}
           </div>

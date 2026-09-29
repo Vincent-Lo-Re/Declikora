@@ -1,5 +1,6 @@
 import { z } from "zod"
 
+import { ALT_MAX, TITLE_MAX } from "@/blocks/draft"
 import { texts } from "@/texts"
 
 // Formulaires de l'admin : ce qui est saisi, et les messages en cas d'erreur.
@@ -43,7 +44,7 @@ export const mediaDetailsSchema = z.object({
     .trim()
     .min(1, texts.media.detail.nameRequired)
     .max(255, texts.media.detail.nameTooLong),
-  alt: z.string().trim().max(1000, texts.media.detail.altTooLong),
+  alt: z.string().trim().max(ALT_MAX, texts.media.detail.altTooLong),
   transcript: z
     .string()
     .trim()
@@ -77,7 +78,7 @@ export const templateSchema = z
       .string()
       .trim()
       .min(1, texts.templates.create.nameRequired)
-      .max(200, texts.templates.create.nameTooLong),
+      .max(TITLE_MAX, texts.templates.create.nameTooLong),
     sort: z.enum(["style", "shared", "starter"]),
     templateFor: z
       .enum(["article", "episode", "chapter", "lesson", "page"])
@@ -96,7 +97,7 @@ export const outlineElementSchema = z.object({
     .string()
     .trim()
     .min(1, texts.methods.create.nameRequired)
-    .max(200, texts.methods.create.nameTooLong),
+    .max(TITLE_MAX, texts.methods.create.nameTooLong),
   // L'identifiant d'un point de départ, ou "" pour un élément vide.
   starter: z.string(),
 })

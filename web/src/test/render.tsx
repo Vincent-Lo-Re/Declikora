@@ -7,7 +7,7 @@ import { AppProviders } from "@/components/app-providers"
 import { createQueryClient } from "@/lib/query-client"
 import { routes } from "@/routes"
 
-export const testFactor: Factor = {
+const testFactor: Factor = {
   id: "facteur-1",
   factor_type: "totp",
   status: "verified",

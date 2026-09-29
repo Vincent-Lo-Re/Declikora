@@ -18,9 +18,9 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
+import { saveFullName } from "@/lib/auth"
 import { formatDateTime } from "@/lib/dates"
 import { profileSchema } from "@/lib/schemas"
-import { supabase } from "@/lib/supabase"
 import { authPaths } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -107,16 +107,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
   })
 
   const save = useMutation({
-    mutationFn: async (fullName: string) => {
-      // La base n'autorise que le nom, et seulement sur sa propre fiche.
-      const { error } = await supabase
-        .from("profiles")
-        .update({ full_name: fullName || null })
-        .eq("id", profile.id)
-        .select("id")
-        .single()
-      if (error) throw error
-    },
+    mutationFn: (fullName: string) => saveFullName(profile.id, fullName),
     onSuccess: async (_, fullName) => {
       form.reset({ full_name: fullName })
       await queryClient.invalidateQueries({
@@ -154,14 +145,14 @@ function ProfileForm({ profile }: { profile: Profile }) {
                   disabled={save.isPending || !form.formState.isDirty}
                 >
                   {save.isPending && <Spinner />}
-                  {texts.account.profile.save}
+                  {texts.common.save}
                 </Button>
               </div>
               <FieldError errors={[fieldState.error]} />
             </Field>
           )}
         />
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+        <dl className="grid grid-cols-label-value gap-x-6 gap-y-2 text-sm">
           <dt className="text-muted-foreground">
             {texts.account.profile.email}
           </dt>

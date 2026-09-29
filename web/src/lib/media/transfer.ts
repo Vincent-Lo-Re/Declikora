@@ -16,7 +16,7 @@ import {
   RESUMABLE_THRESHOLD_BYTES,
 } from "@/lib/media/constants"
 
-export type TransferErrorCode =
+type TransferErrorCode =
   | "annule"
   | "envoi_interrompu"
   | "fichier_trop_lourd"
@@ -54,7 +54,7 @@ export function resumableEndpoint(supabaseUrl: string): string {
 }
 
 /** Raison d'un refus de Storage, d'après le code HTTP. */
-export function transferErrorFromStatus(status: number): TransferError {
+function transferErrorFromStatus(status: number): TransferError {
   if (status === 413) return new TransferError("fichier_trop_lourd")
   if (status === 415) return new TransferError("type_refuse")
   if (status === 409) return new TransferError("deja_envoye")

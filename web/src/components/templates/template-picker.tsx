@@ -4,6 +4,7 @@ import { Link } from "react-router"
 import { excerpt, flattenBlocks } from "@/blocks/draft"
 import { blockLabel } from "@/blocks/labels"
 import { templateInsertable } from "@/blocks/templates"
+import { LoadState } from "@/components/load-state"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   listTemplates,
   templateKeys,
@@ -66,25 +66,15 @@ export function TemplatePicker({
           <DialogDescription>{labels.description}</DialogDescription>
         </DialogHeader>
         {templates.data === undefined ? (
-          templates.isError ? (
-            <div className="space-y-2">
-              <p role="alert" className="text-sm text-destructive">
-                {labels.loadFailed}
-              </p>
-              <Button variant="outline" onClick={() => templates.refetch()}>
-                {labels.retry}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2" aria-label={texts.common.loading}>
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          )
+          <LoadState
+            query={templates}
+            failed={labels.loadFailed}
+            rowClassName="h-12 w-full"
+          />
         ) : available.length === 0 ? (
           <p className="text-sm text-muted-foreground">{labels.empty}</p>
         ) : (
-          <div className="max-h-[60vh] space-y-5 overflow-y-auto">
+          <div className="max-h-picker space-y-5 overflow-y-auto">
             {insertableSorts.map((sort) => {
               const items = available.filter((item) => item.sort === sort)
               if (items.length === 0) return null

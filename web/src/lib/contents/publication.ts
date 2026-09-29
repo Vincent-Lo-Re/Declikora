@@ -3,15 +3,9 @@
 // docs/ARCHITECTURE-CONTENUS.md (« Étape 5 », parties n° 1 et n° 2).
 
 import { toContentError, type SavedDraft } from "@/lib/contents/api"
+import { displayName, type PersonName } from "@/lib/people"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
-
-type ProfileName = { full_name: string | null; email: string } | null
-
-function nameOf(profile: ProfileName): string | null {
-  if (!profile) return null
-  return profile.full_name?.trim() || profile.email
-}
 
 // ---------------------------------------------------------------------------------------------
 // Lecture
@@ -57,14 +51,14 @@ export async function getPublication(id: string): Promise<Publication | null> {
     draft_rev: data.draft_rev,
     first_published_at: data.first_published_at,
     scheduled_at: data.scheduled_at,
-    scheduled_by_name: nameOf(data.scheduler as ProfileName),
+    scheduled_by_name: displayName(data.scheduler as PersonName | null),
     schedule_error: data.schedule_error,
     deleted_at: data.deleted_at,
     live: (data.live as LiveVersion | null) ?? null,
   }
 }
 
-export type VersionOrigin = keyof typeof texts.publication.history.origins
+type VersionOrigin = keyof typeof texts.publication.history.origins
 
 /** Une version de l'historique. */
 export type VersionItem = {
@@ -184,7 +178,7 @@ export function scheduleErrorText(code: string): string {
 // Écriture
 // ---------------------------------------------------------------------------------------------
 
-export type Published = {
+type Published = {
   versionId: string
   versionNumber: number
   publishedAt: string
@@ -243,9 +237,9 @@ export async function unscheduleContent(contentId: string): Promise<boolean> {
   return data
 }
 
-export type RevertWarning = keyof typeof texts.publication.history.warnings
+type RevertWarning = keyof typeof texts.publication.history.warnings
 
-export type Reverted = SavedDraft & { warnings: RevertWarning[] }
+type Reverted = SavedDraft & { warnings: RevertWarning[] }
 
 /** Recopie une version dans le brouillon (il faut tenir le verrou depuis cette ouverture). */
 export async function revertToVersion(
@@ -269,7 +263,7 @@ export async function revertToVersion(
   }
 }
 
-export type Trashed = {
+type Trashed = {
   batch: string
   trashed: number
   needsFileSync: boolean
@@ -288,7 +282,7 @@ export async function trashContent(contentId: string): Promise<Trashed> {
   }
 }
 
-export type Restored = { restored: number; addressRemoved: boolean }
+type Restored = { restored: number; addressRemoved: boolean }
 
 /** Restaure un contenu (et tout son lot) en brouillon, sans le republier ([D18]). */
 export async function restoreContent(contentId: string): Promise<Restored> {

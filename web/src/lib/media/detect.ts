@@ -4,7 +4,7 @@
 
 import type { MediaMime } from "@/lib/media/constants"
 
-export type DetectedFormat =
+type DetectedFormat =
   | "jpeg"
   | "png"
   | "webp"
@@ -20,7 +20,7 @@ export type DetectedFormat =
   | "video"
 
 // Nombre d'octets lus au début du fichier pour le reconnaître.
-export const HEAD_BYTES = 64
+const HEAD_BYTES = 64
 
 const heicBrands = new Set([
   "heic",
@@ -44,7 +44,7 @@ function startsWith(bytes: Uint8Array, signature: number[]): boolean {
 }
 
 /** Extension en minuscules, sans le point (« photo.HEIC » → « heic »). */
-export function extensionOf(name: string): string {
+function extensionOf(name: string): string {
   const match = /\.([^./\\]+)$/.exec(name)
   return match ? match[1].toLowerCase() : ""
 }

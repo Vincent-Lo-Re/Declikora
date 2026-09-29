@@ -30,7 +30,7 @@ import { texts } from "@/texts"
 const labels = texts.publication
 
 // Ce que l'éditeur donne à la publication : l'état du brouillon et de quoi l'enregistrer.
-export type PublicationBridge = {
+type PublicationBridge = {
   contentId: string
   kind: ContentKind
   // Faux pour un modèle : il ne se publie pas (pas de lecture de l'état de publication).
@@ -143,9 +143,9 @@ export function usePublication(bridge: PublicationBridge) {
         queryKey: contentKeys.versions(contentId),
       }),
       queryClient.invalidateQueries({ queryKey: contentKeys.lists }),
-      queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "uses"] }),
+      queryClient.invalidateQueries({ queryKey: mediaKeys.allUses }),
       queryClient.invalidateQueries({
-        queryKey: [...mediaKeys.all, "outdated"],
+        queryKey: mediaKeys.allOutdated,
       }),
       // Un contenu publié ou retiré de l'app : ses blocs identiques partout à mettre à jour.
       queryClient.invalidateQueries({ queryKey: templateKeys.allOutdated }),

@@ -36,7 +36,7 @@ function rowLabel(row: PreviewRow): string {
       ? labels.method[row.change]
       : labels.method.reordered
   }
-  const title = row.title.trim() || texts.methods.outline.untitled
+  const title = row.title.trim() || texts.common.untitled
   return `${labels.kinds[row.kind]} « ${title} »`
 }
 
@@ -87,7 +87,7 @@ export function MethodChanges({
             variant="outline"
             onClick={() => void method.refresh()}
           >
-            {labels.retry}
+            {texts.common.retry}
           </Button>
         </div>
       ) : preview === undefined ? (
@@ -167,7 +167,7 @@ function ChangeRow({ row, onOpen }: { row: PreviewRow; onOpen: () => void }) {
       {row.savedAt && (
         <p className="pl-6 text-xs text-muted-foreground">
           {labels.savedAt(formatDateTime(row.savedAt))}
-          {row.savedByName && ` ${labels.savedBy(row.savedByName)}`}
+          {row.savedByName && ` ${texts.common.savedBy(row.savedByName)}`}
         </p>
       )}
       {problem && (

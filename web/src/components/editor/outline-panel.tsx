@@ -16,7 +16,7 @@ const saveAs = texts.templates.saveAs
  * Le choix de blocs pour « Enregistrer comme modèle » : des cases à cocher sur les blocs de
  * premier niveau du plan (accessibles au clavier), puis un bouton.
  */
-export type OutlineSelection = {
+type OutlineSelection = {
   active: boolean
   chosen: ReadonlySet<string>
   onToggleActive: () => void

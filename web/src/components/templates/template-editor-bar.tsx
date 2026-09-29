@@ -94,7 +94,7 @@ export function SharedTemplateBar({ templateId }: { templateId: string }) {
           queryKey: templateKeys.outdated(templateId),
         }),
         queryClient.invalidateQueries({ queryKey: contentKeys.all }),
-        queryClient.invalidateQueries({ queryKey: [...mediaKeys.all, "uses"] }),
+        queryClient.invalidateQueries({ queryKey: mediaKeys.allUses }),
       ]),
   })
 
@@ -153,7 +153,7 @@ export function SharedTemplateBar({ templateId }: { templateId: string }) {
           <ul className="max-h-48 space-y-1 overflow-y-auto text-sm">
             {stale.map((item) => (
               <li key={item.content_id} data-outdated-content={item.content_id}>
-                {item.title?.trim() || texts.contentList.untitled}
+                {item.title?.trim() || texts.common.untitled}
                 <span className="text-muted-foreground">
                   {" "}
                   (

@@ -32,7 +32,7 @@ export const categoryKeys = {
   list: (section: CategorySection) => ["categories", section] as const,
 }
 
-export type CategoryErrorCode = keyof typeof texts.categories.errors
+type CategoryErrorCode = keyof typeof texts.categories.errors
 
 /** Erreur de la base sur une catégorie, avec son code (s'il est connu). */
 export class CategoryError extends Error {

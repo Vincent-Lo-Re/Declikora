@@ -3,9 +3,9 @@ import { memo, type ChangeEvent } from "react"
 
 import { useBlocksEditor } from "@/blocks/components/context"
 import { singleLine, useAutoHeight } from "@/blocks/components/fields"
+import { MediaImage, MediaUnavailable } from "@/blocks/components/media-state"
 import { CAPTION_MAX } from "@/blocks/draft"
 import type { ImageBlock } from "@/blocks/types"
-import { Button } from "@/components/ui/button"
 import { texts } from "@/texts"
 
 /**
@@ -38,58 +38,17 @@ export const ImageBlockView = memo(function ImageBlockView({
   return (
     <figure className="blocks-image">
       {media.state === "ready" && media.url ? (
-        <img
-          src={media.url}
-          alt={altText}
-          style={
-            media.media.width && media.media.height
-              ? { aspectRatio: `${media.media.width} / ${media.media.height}` }
-              : undefined
-          }
-        />
+        <MediaImage media={media} alt={altText} />
       ) : (
-        <div className="blocks-image-placeholder flex flex-col items-center justify-center gap-3 p-4 text-center">
-          {media.state === "missing" ||
-          media.state === "not_ready" ||
-          media.state === "error" ? (
-            <TriangleAlert aria-hidden className="size-6" />
-          ) : (
-            <ImageIcon aria-hidden className="size-6" />
-          )}
-          <span>
-            {media.state === "missing"
-              ? texts.editor.image.missing
-              : media.state === "error"
-                ? texts.editor.image.loadFailed
-                : media.state === "not_ready"
-                  ? texts.editor.image.notReady
-                  : media.state === "none"
-                    ? texts.editor.image.none
-                    : texts.common.loading}
-          </span>
-          {media.state === "error" ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={media.retry}
-            >
-              {texts.editor.image.retry}
-            </Button>
-          ) : (
-            editable &&
-            media.state !== "loading" && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => openPicker(block.id)}
-              >
-                {texts.editor.image.choose}
-              </Button>
-            )
-          )}
-        </div>
+        <MediaUnavailable
+          media={media}
+          words={texts.editor.image}
+          icon={ImageIcon}
+          editable={editable}
+          onChoose={() => openPicker(block.id)}
+          className="blocks-image-placeholder flex flex-col items-center justify-center gap-3 p-4 text-center"
+          iconClassName="size-6"
+        />
       )}
       {missingAlt && (
         <p className="mt-2 flex items-start gap-1.5 text-xs text-warning">

@@ -41,6 +41,48 @@ export default defineConfig([
     },
   },
   {
+    // Règles de l'interface (docs/BONNES-PRATIQUES.md, § 2). Les composants de shadcn/ui
+    // (components/ui) gardent leur code d'origine. Une exception autorisée (valeur qui change en
+    // direct : position d'un glisser-déposer, proportions d'un fichier) se marque sur sa ligne :
+    // « eslint-disable-next-line no-restricted-syntax -- la raison ».
+    files: ["src/**/*.tsx"],
+    ignores: ["src/components/ui/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXAttribute[name.name='style']",
+          message:
+            "Pas de style en ligne : une classe Tailwind, un jeton ou un utilitaire de index.css.",
+        },
+        {
+          selector:
+            "Literal[value=/(^|[\\s:])[a-z][a-z0-9-]*-\\[[^\\]]*\\d[^\\]]*\\]/]",
+          message:
+            "Pas de valeur arbitraire chiffrée (w-[390px]) : un jeton ou un utilitaire nommé dans index.css.",
+        },
+        {
+          selector:
+            "Literal[value=/(^|[\\s:])(bg|text|border|ring|outline|fill|stroke|from|via|to|decoration|divide|shadow)-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-\\d/]",
+          message:
+            "Pas de couleur de la palette Tailwind : un jeton du thème (text-warning, bg-status-live…).",
+        },
+        {
+          selector:
+            "TemplateElement[value.raw=/(^|[\\s:])[a-z][a-z0-9-]*-\\[[^\\]]*\\d[^\\]]*\\]/]",
+          message:
+            "Pas de valeur arbitraire chiffrée (w-[390px]) : un jeton ou un utilitaire nommé dans index.css.",
+        },
+        {
+          selector:
+            "TemplateElement[value.raw=/(^|[\\s:])(bg|text|border|ring|outline|fill|stroke|from|via|to|decoration|divide|shadow)-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-\\d/]",
+          message:
+            "Pas de couleur de la palette Tailwind : un jeton du thème (text-warning, bg-status-live…).",
+        },
+      ],
+    },
+  },
+  {
     // Les composants de shadcn/ui exportent aussi leurs variantes et leurs hooks.
     files: ["src/components/ui/**/*.tsx"],
     rules: {

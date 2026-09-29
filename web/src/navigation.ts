@@ -85,7 +85,7 @@ export const methodElementSegments = {
 } as const
 
 /** Adresse de l'éditeur d'un chapitre ou d'une leçon. */
-export function methodElementPath(
+function methodElementPath(
   kind: "chapter" | "lesson",
   contentId: string
 ): string {

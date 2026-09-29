@@ -23,7 +23,7 @@ async function appRpc<T>(name: string, body: object): Promise<T> {
 }
 
 /** Un élément de la liste de l'app (app_feed). */
-export type FeedItem = {
+type FeedItem = {
   id: string
   kind: string
   title: string
