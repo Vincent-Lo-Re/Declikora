@@ -171,7 +171,7 @@ async function scheduleInTwoDays(page: Page) {
   await expect(dialog).toHaveCount(0)
   await expect(
     page.locator('[data-schedule-banner="scheduled"]')
-  ).toContainText("à 08:00 : ce que tu écris partira")
+  ).toContainText("à 8h00 : ce que tu écris partira")
 }
 
 test("publier une page, la modifier sans toucher à l'app, republier, revenir à une version", async ({

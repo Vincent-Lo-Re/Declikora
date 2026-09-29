@@ -103,7 +103,7 @@ npm run db:stop
   - `web/src/components/contents/row-cells.tsx` : les cellules « Dernière modification » et « État » des listes ;
   - `web/src/lib/auth.ts` (tous les appels de Supabase Auth des pages), `lib/people.ts` (nom affiché, initiale), `lib/errors.ts` (`errorMessage`), `lib/focus.ts` (`focusSoon`), `lib/refresh.ts` (relecture après une corbeille) ;
   - dans `texts.common`, les mots qui ne dépendent pas de la page (Réessayer, Enregistrer, Sans titre, Actions, « par … ») ; dans `web/src/index.css`, les jetons (`text-warning`, `bg-status-*`) et les utilitaires nommés (`grid-cols-media`, `grid-cols-label-value`, `max-h-picker`, `pb-page`).
-- `web/src/lib/dates.ts` : toutes les dates s'affichent avec `formatDateTime` (« 27 sept. 2026 à 14:30 », heure de Paris).
+- `web/src/lib/dates.ts` : toutes les dates s'affichent avec `formatDateTime` (« 27 sept. 2026 à 14h30 », heure de Paris).
 - `web/src/lib/media/format.ts` : tailles, durées, dimensions et pourcentages (« 12,5 Mo », « 3 min 05 s ») ; les unités sont dans `texts.media.units`.
 - L'interface tutoie la personne (« Agrandis la fenêtre… »).
 - `web/vercel.json` : en-têtes de sécurité (CSP). Un nouveau service appelé par le navigateur doit y être ajouté.

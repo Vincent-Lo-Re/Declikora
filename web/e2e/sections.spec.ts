@@ -97,7 +97,9 @@ function panel(page: Page) {
 /** Les noms des catégories du Blog affichées, dans l'ordre. */
 function categoryOrder(page: Page) {
   return page
-    .getByRole("list", { name: categories.listLabel("Blog") })
+    .getByRole("list", {
+      name: categories.listLabel(texts.sections.blog.title),
+    })
     .locator("[data-item]")
     .evaluateAll((items) => items.map((item) => item.getAttribute("data-item")))
 }
@@ -174,7 +176,7 @@ async function scheduleInTwoDays(page: Page) {
   await expect(dialog).toHaveCount(0)
   await expect(
     page.locator('[data-schedule-banner="scheduled"]')
-  ).toContainText("à 08:00")
+  ).toContainText("à 8h00")
 }
 
 /** Envoie une image depuis le choix d'image déjà ouvert ; il se ferme une fois l'image choisie. */
@@ -263,7 +265,9 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     const stressId = await categoryId(stress)
 
     // --- Un article : titre, résumé, catégorie ------------------------------------------
-    await page.getByRole("link", { name: categories.back("Blog") }).click()
+    await page
+      .getByRole("link", { name: categories.back(texts.sections.blog.title) })
+      .click()
     await expect(page).toHaveURL(/\/blog$/)
     await createBlank(page, "article")
     const articleId = contentIdFromUrl(page.url())
@@ -385,7 +389,9 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     expect((await feedItem())?.categoryIds).toEqual([])
     expect(await appFeed("blog", sommeilId)).toEqual([])
     // L'admin : l'article n'a plus de catégorie.
-    await page.getByRole("link", { name: categories.back("Blog") }).click()
+    await page
+      .getByRole("link", { name: categories.back(texts.sections.blog.title) })
+      .click()
     await expect(row).toContainText(list.noCategory)
     await byCategory(list.filters.noCategory)
     await expect(row).toBeVisible()
@@ -754,7 +760,7 @@ test("Accueil : brouillon récent, publication programmée et programmation éch
     episodeTitle,
     () =>
       expect(page.locator('[data-schedule-banner="scheduled"]')).toContainText(
-        "à 08:00"
+        "à 8h00"
       )
   )
   await opens(

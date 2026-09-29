@@ -54,12 +54,12 @@ describe("Corbeille", () => {
 
     const row = (await screen.findByText(photoName)).closest("tr")!
     expect(within(row).getByText("Fichier · Image")).toBeVisible()
-    expect(within(row).getByText("27 sept. 2026 à 14:30")).toBeVisible()
+    expect(within(row).getByText("27 sept. 2026 à 14h30")).toBeVisible()
     expect(
       within(row).getByText(texts.trash.deletedBy("Anne Admin"))
     ).toBeVisible()
     expect(
-      within(row).getByText(texts.trash.purgeOn("27 oct. 2026 à 14:30"))
+      within(row).getByText(texts.trash.purgeOn("27 oct. 2026 à 14h30"))
     ).toBeVisible()
   })
 

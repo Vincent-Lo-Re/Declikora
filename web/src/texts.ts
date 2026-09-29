@@ -17,7 +17,7 @@ export const texts = {
     save: "Enregistrer",
     untitled: "Sans titre",
     actions: "Actions",
-    // « Modifié le 27 sept. 2026 à 14:30 par Anne »
+    // « Modifié le 27 sept. 2026 à 14h30 par Anne »
     savedBy: (name: string) => `par ${name}`,
     loading: "Chargement…",
     signOut: "Se déconnecter",
@@ -45,15 +45,15 @@ export const texts = {
   // Titre et présentation de chaque section, dans le menu et en tête de page.
   sections: {
     home: {
-      title: "Accueil",
+      title: "Tableau de bord",
       description: "Brouillons récents et publications programmées.",
     },
     blog: {
-      title: "Blog",
+      title: "Le Fil",
       description: "Les articles et leurs catégories.",
     },
     podcasts: {
-      title: "Podcasts",
+      title: "Radio Éclaircies",
       description: "Les épisodes et leurs catégories.",
     },
     methods: {
@@ -65,7 +65,7 @@ export const texts = {
       description: "Les pages simples de l'app.",
     },
     templates: {
-      title: "Modèles",
+      title: "Modèles de bloc",
       description: "Les modèles de blocs, à réutiliser dans les contenus.",
     },
     media: {
@@ -1176,8 +1176,8 @@ export const texts = {
     },
     // La section d'un point de départ ([D42]) : la sorte de contenu qu'il sert à créer.
     sections: {
-      article: "Blog (article)",
-      episode: "Podcasts (épisode)",
+      article: "Le Fil (article)",
+      episode: "Radio Éclaircies (épisode)",
       chapter: "Méthodes (chapitre)",
       lesson: "Méthodes (leçon)",
       page: "Pages",
@@ -1276,7 +1276,7 @@ export const texts = {
             : `Utilisé dans ${count} brouillons`,
       usedInList: "Brouillons qui utilisent ce modèle",
       keepBlock:
-        "Ce modèle est utilisé : il garde son bloc. Pour le retirer, détache-le d'abord partout (page Modèles).",
+        "Ce modèle est utilisé : il garde son bloc. Pour le retirer, détache-le d'abord partout (page Modèles de bloc).",
       outdated: {
         push: (count: number) =>
           count === 1
@@ -2109,7 +2109,9 @@ export const texts = {
   },
 
   dates: {
-    // Entre la date et l'heure : « 27 sept. 2026 à 14:30 »
+    // Entre la date et l'heure : « 27 sept. 2026 à 18h42 »
     at: "à",
+    // Entre les heures et les minutes : « 18h42 »
+    hour: "h",
   },
 } as const

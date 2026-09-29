@@ -351,7 +351,7 @@ describe("Médiathèque", () => {
     )
     expect(
       within(sheet).getByText(
-        `(${outdated.version(2, "27 sept. 2026 à 14:30")})`,
+        `(${outdated.version(2, "27 sept. 2026 à 14h30")})`,
         { exact: false }
       )
     ).toBeVisible()

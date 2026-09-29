@@ -346,7 +346,7 @@ describe("barre de publication", () => {
     open({}, { scheduled_at: "2099-10-03T06:00:00Z" })
     await ready()
     expect(
-      await screen.findByText(labels.banner.scheduled("3 oct. 2099 à 08:00"))
+      await screen.findByText(labels.banner.scheduled("3 oct. 2099 à 8h00"))
     ).toBeVisible()
   })
 
@@ -354,7 +354,7 @@ describe("barre de publication", () => {
     open({}, { scheduled_at: "2020-01-01T08:00:00Z" })
     await ready()
     const banner = (
-      await screen.findByText(labels.banner.waitingMine("1 janv. 2020 à 09:00"))
+      await screen.findByText(labels.banner.waitingMine("1 janv. 2020 à 9h00"))
     ).closest("[data-schedule-banner]") as HTMLElement
     expect(banner).toHaveTextContent(labels.banner.waitingMineHint)
     expect(banner).not.toHaveTextContent(labels.banner.waitingHint)
@@ -374,7 +374,7 @@ describe("barre de publication", () => {
     vi.mocked(api.lockStatus).mockResolvedValue(claire)
     open({}, { scheduled_at: "2020-01-01T08:00:00Z" })
     expect(
-      await screen.findByText(labels.banner.waiting("1 janv. 2020 à 09:00"))
+      await screen.findByText(labels.banner.waiting("1 janv. 2020 à 9h00"))
     ).toBeVisible()
     expect(screen.getByText(labels.banner.waitingHint)).toBeVisible()
     expect(screen.queryByText(labels.banner.waitingMineHint)).toBeNull()
@@ -498,7 +498,7 @@ describe("programmer (heure de Paris)", () => {
     fill(dialog, "2099-10-25", "02:30")
     // L'heure doublée : la première (heure d'été) est retenue, et c'est dit.
     const summary = within(dialog).getByText(
-      labels.scheduleDialog.summary("25 oct. 2099 à 02:30"),
+      labels.scheduleDialog.summary("25 oct. 2099 à 2h30"),
       { exact: false }
     )
     expect(summary).toHaveTextContent(labels.scheduleDialog.ambiguous)
