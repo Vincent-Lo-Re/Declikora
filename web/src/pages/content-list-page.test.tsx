@@ -6,6 +6,7 @@ import * as api from "@/lib/contents/api"
 import * as publicationApi from "@/lib/contents/publication"
 import * as templatesApi from "@/lib/contents/templates"
 import * as mediaApi from "@/lib/media/api"
+import type { Media } from "@/lib/media/constants"
 import { renderApp } from "@/test/render"
 import { texts } from "@/texts"
 
@@ -17,6 +18,7 @@ vi.mock("@/lib/contents/api", async (importOriginal) => {
   return {
     ...actual,
     listContents: vi.fn(),
+    getMediaByIds: vi.fn(async () => []),
     createContent: vi.fn(),
     getContent: vi.fn(async () => null),
     lockTake: vi.fn(),
@@ -49,7 +51,13 @@ vi.mock("@/lib/categories", async (importOriginal) => {
 
 vi.mock("@/lib/media/api", async (importOriginal) => {
   const actual = await importOriginal<typeof mediaApi>()
-  return { ...actual, kickFiles: vi.fn(async () => {}) }
+  return {
+    ...actual,
+    kickFiles: vi.fn(async () => {}),
+    getPreviewUrls: vi.fn(async (keys: string[]) =>
+      Object.fromEntries(keys.map((key) => [key, `blob:${key}`]))
+    ),
+  }
 })
 
 const labels = texts.contentList
@@ -67,6 +75,7 @@ function row(
     id,
     title,
     slug: null,
+    cover_id: null,
     category_ids: [],
     draft_rev: 3,
     draft_saved_at: "2026-09-27T12:30:00Z",
@@ -110,7 +119,7 @@ function shownTitles(): string[] {
   return within(table)
     .getAllByRole("row")
     .slice(1)
-    .map((line) => within(line).getAllByRole("cell")[0].textContent ?? "")
+    .map((line) => within(line).getAllByRole("link")[0].textContent ?? "")
 }
 
 /** Choisit une option d'un filtre (liste déroulante). */
@@ -153,6 +162,41 @@ describe("Blog", () => {
     expect(
       screen.getByRole("link", { name: labels.manageCategories })
     ).toHaveAttribute("href", "/blog/categories")
+  })
+
+  it("montre l'image de présentation de chaque article, sinon l'icône d'une image", async () => {
+    const PLAGE = "00000000-0000-4000-8000-0000000000f1"
+    vi.mocked(api.listContents).mockResolvedValue([
+      row(ARTICLE, "Bien dormir en été", { cover_id: PLAGE }),
+      row("00000000-0000-4000-8000-0000000000a3", "Sans image"),
+    ])
+    vi.mocked(api.getMediaByIds).mockResolvedValue([
+      {
+        id: PLAGE,
+        kind: "image",
+        status: "ready",
+        deleted_at: null,
+        is_public: false,
+        path: `${PLAGE}/plage.webp`,
+      } as unknown as Media,
+    ])
+    renderApp("/blog")
+
+    const withCover = (
+      await screen.findByRole("link", { name: "Bien dormir en été" })
+    ).closest("tr")!
+    await waitFor(() =>
+      expect(withCover.querySelector("img")).toHaveAttribute(
+        "src",
+        `blob:${mediaApi.previewKey({ is_public: false, path: `${PLAGE}/plage.webp` })}`
+      )
+    )
+    expect(api.getMediaByIds).toHaveBeenCalledWith([PLAGE])
+    const without = screen
+      .getByRole("link", { name: "Sans image" })
+      .closest("tr")!
+    expect(without.querySelector("img")).toBeNull()
+    expect(without.querySelector(".lucide-image")).not.toBeNull()
   })
 
   it("cherche et filtre par état et par catégorie", async () => {

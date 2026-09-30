@@ -797,6 +797,7 @@ export const texts = {
       },
     },
     columns: {
+      cover: "Image de présentation",
       title: "Titre",
       publication: "Publication",
       categories: "Catégories",

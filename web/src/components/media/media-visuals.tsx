@@ -7,19 +7,22 @@ import { Spinner } from "@/components/ui/spinner"
 import { INTERRUPTED_AFTER_MS, type Media } from "@/lib/media/constants"
 import { texts } from "@/texts"
 
-/** Vignette : l'image ou le SVG (dans un <img>, qui n'exécute jamais de script), sinon l'icône. */
+/**
+ * Vignette : l'image ou le SVG (dans un <img>, qui n'exécute jamais de script), sinon l'icône
+ * (celle d'une image quand il n'y a pas de fichier : une image de présentation pas choisie).
+ */
 export function MediaThumbnail({
   media,
   url,
   className,
   iconClassName,
 }: {
-  media: Media
+  media: Media | undefined
   url: string | undefined
   className?: string
   iconClassName?: string
 }) {
-  const Icon = kindIcons[media.kind]
+  const Icon = kindIcons[media?.kind ?? "image"]
   return (
     <div
       className={cn(
@@ -27,7 +30,7 @@ export function MediaThumbnail({
         className
       )}
     >
-      {url && (media.kind === "image" || media.kind === "svg") ? (
+      {url && (media?.kind === "image" || media?.kind === "svg") ? (
         <img
           src={url}
           alt=""

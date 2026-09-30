@@ -16,7 +16,12 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
-import { EditingCell, SavedCell } from "@/components/contents/row-cells"
+import {
+  CoverCell,
+  EditingCell,
+  SavedCell,
+} from "@/components/contents/row-cells"
+import { useCovers } from "@/components/contents/use-covers"
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
 import { LoadState } from "@/components/load-state"
 import { useMethodPending } from "@/components/methods/use-method-pending"
@@ -556,10 +561,18 @@ function ContentTable({
 }) {
   const withCategories = kind === "article" || kind === "episode"
   const isMethod = kind === "method"
+  // Le Fil : l'image de présentation de chaque article, en vignette.
+  const withCover = kind === "article"
+  const coverFor = useCovers(withCover ? items : [])
   return (
     <Table>
       <TableHeader>
         <TableRow>
+          {withCover && (
+            <TableHead className="w-14">
+              <span className="sr-only">{labels.columns.cover}</span>
+            </TableHead>
+          )}
           <TableHead>{labels.columns.title}</TableHead>
           {isMethod ? (
             <>
@@ -587,6 +600,7 @@ function ContentTable({
           const name = item.title.trim() || texts.common.untitled
           return (
             <TableRow key={item.id}>
+              {withCover && <CoverCell {...coverFor(item)} />}
               <TableCell className="max-w-80 font-medium">
                 <Link
                   to={editorPath(section, item.id)}

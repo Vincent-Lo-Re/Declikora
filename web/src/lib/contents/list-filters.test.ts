@@ -23,6 +23,7 @@ function item(
     id,
     title,
     slug: null,
+    cover_id: null,
     category_ids: [],
     draft_rev: 3,
     draft_saved_at: "2026-09-27T12:30:00Z",
