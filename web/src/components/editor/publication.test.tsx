@@ -15,6 +15,8 @@ vi.mock("@/lib/contents/api", async (importOriginal) => {
   const actual = await importOriginal<typeof api>()
   return {
     ...actual,
+    // Une adresse libre : aucune autre page ne l'a.
+    findPageBySlug: vi.fn(async () => null),
     getContent: vi.fn(),
     getMediaByIds: vi.fn(async () => []),
     saveDraft: vi.fn(),
