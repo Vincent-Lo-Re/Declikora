@@ -152,7 +152,7 @@ export function ContentListPage({
   // Méthodes : les formules (niveau d'accès) et, pour
   // celles qui sont en ligne, s'il y a quelque chose à publier (la fiche ne suffit pas : une
   // leçon modifiée ne change pas la fiche, [D29]).
-  // Les formules : colonne des méthodes, fenêtre de création et réglages.
+  // Les formules : colonne des méthodes et réglages d'une ligne.
   const levels = useQuery({
     queryKey: accessLevelsKey,
     queryFn: listAccessLevels,
@@ -400,8 +400,6 @@ export function ContentListPage({
         kind={kind}
         starters={starters.data ?? []}
         categories={sectionCategories}
-        levels={levels.data}
-        levelsFailed={levels.isError}
         pending={create.isPending}
         error={
           create.error
