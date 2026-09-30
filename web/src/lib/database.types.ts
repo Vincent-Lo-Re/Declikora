@@ -128,6 +128,7 @@ export type Database = {
           in_app: boolean
           is_free: boolean
           kind: string
+          list_position: number | null
           live_version_id: string | null
           parent_id: string | null
           position: number | null
@@ -160,6 +161,7 @@ export type Database = {
           in_app?: boolean
           is_free?: boolean
           kind: string
+          list_position?: number | null
           live_version_id?: string | null
           parent_id?: string | null
           position?: number | null
@@ -192,6 +194,7 @@ export type Database = {
           in_app?: boolean
           is_free?: boolean
           kind?: string
+          list_position?: number | null
           live_version_id?: string | null
           parent_id?: string | null
           position?: number | null
@@ -671,6 +674,7 @@ export type Database = {
           in_app: boolean
           is_free: boolean
           kind: string
+          list_position: number | null
           live_version_id: string | null
           parent_id: string | null
           position: number | null
@@ -691,6 +695,13 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      contents_reorder: {
+        Args: { ids: string[]; kind: string }
+        Returns: {
+          id: string
+          list_position: number
+        }[]
       }
       empty_trash: { Args: { items?: Json }; Returns: number }
       end_member_sessions: {
@@ -875,6 +886,15 @@ export type Database = {
       }
       media_push: {
         Args: { media_id: string }
+        Returns: {
+          content_id: string
+          version_id: string
+          version_number: number
+        }[]
+      }
+      media_replace: { Args: { new_id: string; old_id: string }; Returns: Json }
+      media_replace_live: {
+        Args: { new_id: string; old_id: string }
         Returns: {
           content_id: string
           version_id: string
@@ -1068,6 +1088,7 @@ export type Database = {
           in_app: boolean
           is_free: boolean
           kind: string
+          list_position: number | null
           live_version_id: string | null
           parent_id: string | null
           position: number | null
