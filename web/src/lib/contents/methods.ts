@@ -3,15 +3,7 @@
 // depuis le plan, la méthode d'un chapitre ou d'une leçon, et le nombre d'éléments de chaque
 // méthode. Contrat : docs/ARCHITECTURE-CONTENUS.md, « Étape 7, partie 7b ».
 
-import {
-  ContentError,
-  getContent,
-  lockRelease,
-  lockStatus,
-  lockTake,
-  saveDraft,
-  toContentError,
-} from "@/lib/contents/api"
+import { toContentError } from "@/lib/contents/api"
 import type {
   MethodTree,
   OutlineChapter,
@@ -20,6 +12,7 @@ import type {
   PreviewRow,
 } from "@/lib/contents/outline"
 import { toOutlinePayload } from "@/lib/contents/outline"
+import { saveSettingsPayload } from "@/lib/contents/settings"
 import type { Json } from "@/lib/database.types"
 import { isLockAlive } from "@/lib/editor/edit-lock"
 import { displayName, type PersonName } from "@/lib/people"
@@ -182,42 +175,12 @@ export type ElementFlags = { in_app?: boolean; is_free?: boolean }
  * de l'enregistrement, puis rendu. Refusé (verrou_tenu, avec le nom) si quelqu'un l'écrit en ce
  * moment, y compris soi-même dans un autre onglet : on ne lui retire pas la main en silence.
  */
-export async function setElementFlags(
+export function setElementFlags(
   elementId: string,
   flags: ElementFlags,
   myId: string
 ): Promise<void> {
-  const session = crypto.randomUUID()
-  const state = await lockStatus(elementId, session)
-  if (state.is_active && state.holder_id !== null) {
-    const self = state.holder_id === myId
-    const name = self
-      ? texts.methods.outline.yourselfElsewhere
-      : (state.holder_name ?? texts.editor.lock.someone)
-    throw new ContentError("verrou_tenu", {
-      hint: name,
-      detail: self
-        ? texts.methods.outline.heldSelf
-        : texts.methods.outline.heldBy(name),
-    })
-  }
-  const taken = await lockTake(elementId, false, session)
-  if (!taken.mine) {
-    const name = taken.holder_name ?? texts.editor.lock.someone
-    throw new ContentError("verrou_tenu", {
-      hint: name,
-      detail: texts.methods.outline.heldBy(name),
-    })
-  }
-  try {
-    const content = await getContent(elementId)
-    if (!content || content.deleted_at) {
-      throw new ContentError("contenu_introuvable")
-    }
-    await saveDraft(elementId, content.draft_rev, content.draft, session, flags)
-  } finally {
-    await lockRelease(elementId, session).catch(() => false)
-  }
+  return saveSettingsPayload(elementId, myId, texts.methods.outline, flags)
 }
 
 /** La méthode (et le chapitre) d'un chapitre ou d'une leçon. */

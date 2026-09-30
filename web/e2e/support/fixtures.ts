@@ -142,20 +142,25 @@ export async function openAccountPage(page: Page) {
 }
 
 /**
- * « Nouvelle page » dans la liste des Pages, jusqu'à l'éditeur d'une page vide. Si la base
- * locale a des points de départ pour les Pages (étape 6), le bouton ouvre un menu : « Page vide ».
+ * « Nouvel article » (…) dans une liste : la fenêtre de création, avec un titre (obligatoire),
+ * sans point de départ ni réglage, jusqu'à l'éditeur du contenu.
  */
-export async function createBlankPage(page: Page) {
-  await page
-    .getByRole("button", { name: texts.contentList.kinds.page.create })
-    .click()
-  const blank = page.getByRole("menuitem", {
-    name: texts.contentList.kinds.page.blank,
-  })
-  await expect(
-    blank.or(page.getByLabel(texts.editor.title.label))
-  ).toBeVisible()
-  if (await blank.isVisible()) await blank.click()
+export async function createFromDialog(
+  page: Page,
+  kind: "page" | "article" | "episode" | "method",
+  title: string
+) {
+  const words = texts.contentList.kinds[kind]
+  await page.getByRole("button", { name: words.create }).click()
+  const dialog = page.getByRole("dialog", { name: words.create })
+  await dialog.getByLabel(texts.publication.settings.titleLabel).fill(title)
+  await dialog.getByRole("button", { name: words.submit }).click()
+  await expect(page.getByLabel(texts.editor.title.label)).toBeEditable()
+}
+
+/** « Nouvelle page » dans la liste des Pages, jusqu'à l'éditeur d'une page vide. */
+export async function createBlankPage(page: Page, title = "Page d'essai") {
+  await createFromDialog(page, "page", title)
   await expect(page).toHaveURL(/\/pages\/[0-9a-f-]{36}$/)
 }
 

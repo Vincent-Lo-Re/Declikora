@@ -19,7 +19,7 @@ import type { Page } from "@playwright/test"
 
 import { texts } from "../src/texts.ts"
 import type { Account } from "./support/accounts.ts"
-import { expect, signIn, test } from "./support/fixtures.ts"
+import { createFromDialog, expect, signIn, test } from "./support/fixtures.ts"
 import { photoPng } from "./support/media.ts"
 import {
   appMethod,
@@ -187,9 +187,7 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
 
     // --- La fiche -----------------------------------------------------------------------
     await open(page, "/methodes", admin)
-    await page
-      .getByRole("button", { name: texts.contentList.kinds.method.create })
-      .click()
+    await createFromDialog(page, "method", title)
     await expect(
       page.getByRole("heading", { name: outline.title })
     ).toBeVisible()

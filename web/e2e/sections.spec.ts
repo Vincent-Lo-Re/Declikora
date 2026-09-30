@@ -19,6 +19,7 @@ import { texts } from "../src/texts.ts"
 import type { Account } from "./support/accounts.ts"
 import {
   createBlankPage,
+  createFromDialog,
   expect,
   frenchDay,
   frenchTime,
@@ -77,12 +78,7 @@ async function saved(page: Page) {
 
 /** « Nouvel article » ou « Nouvel épisode », jusqu'à l'éditeur d'un contenu vide ([D42]). */
 async function createBlank(page: Page, kind: "article" | "episode") {
-  const kindLabels = list.kinds[kind]
-  await page.getByRole("button", { name: kindLabels.create }).click()
-  const blank = page.getByRole("menuitem", { name: kindLabels.blank })
-  await expect(blank.or(page.getByLabel(editor.title.label))).toBeVisible()
-  if (await blank.isVisible()) await blank.click()
-  await expect(page.getByLabel(editor.title.label)).toBeEditable()
+  await createFromDialog(page, kind, `Essai ${kind}`)
 }
 
 /**

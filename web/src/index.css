@@ -116,6 +116,11 @@
   grid-template-columns: auto 1fr;
 }
 
+/* Fenêtre de formulaire longue (création d'un contenu) : elle défile au-delà de 9/10 de l'écran. */
+@utility max-h-dialog {
+  max-height: 90svh;
+}
+
 /* Liste qui défile dans une fenêtre de choix (image, audio, modèle) : trois cinquièmes de l'écran. */
 @utility max-h-picker {
   max-height: 60vh;

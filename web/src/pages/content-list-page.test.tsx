@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import * as levelsApi from "@/lib/access-levels"
 import * as categoriesApi from "@/lib/categories"
 import * as api from "@/lib/contents/api"
 import * as publicationApi from "@/lib/contents/publication"
@@ -23,6 +24,10 @@ vi.mock("@/lib/contents/api", async (importOriginal) => {
     getContent: vi.fn(async () => null),
     lockTake: vi.fn(),
     lockStatus: vi.fn(),
+    saveDraft: vi.fn(async () => ({
+      rev: 2,
+      savedAt: "2026-09-28T08:01:00Z",
+    })),
     lockRelease: vi.fn(async () => true),
     lockReleaseOnExit: vi.fn(),
     subscribeLock: vi.fn(() => () => {}),
@@ -47,6 +52,20 @@ vi.mock("@/lib/contents/templates", async (importOriginal) => {
 vi.mock("@/lib/categories", async (importOriginal) => {
   const actual = await importOriginal<typeof categoriesApi>()
   return { ...actual, listCategories: vi.fn() }
+})
+
+vi.mock("@/lib/access-levels", async (importOriginal) => {
+  const actual = await importOriginal<typeof levelsApi>()
+  return {
+    ...actual,
+    listAccessLevels: vi.fn(async () => [
+      {
+        id: "00000000-0000-4000-8000-00000000f001",
+        name: "Essentiel",
+        rank: 1,
+      },
+    ]),
+  }
 })
 
 vi.mock("@/lib/media/api", async (importOriginal) => {
@@ -100,6 +119,39 @@ const articles = [
   }),
   row("00000000-0000-4000-8000-0000000000a3", "Sans rangement"),
 ]
+
+const newArticle: api.Content = {
+  id: ARTICLE,
+  kind: "article",
+  title: "Bien respirer",
+  draft: { v: 1, title: "Bien respirer", blocks: [] },
+  draft_rev: 1,
+  draft_saved_at: "2026-09-28T08:00:00Z",
+  deleted_at: null,
+  parent_id: null,
+  access_chosen: false,
+  access_level_id: null,
+  slug: null,
+  template_sort: null,
+  template_for: null,
+  in_app: false,
+  is_free: false,
+  category_ids: [],
+}
+
+/** L'état d'un verrou : libre par défaut. */
+function lockRow(changes: Partial<api.LockRow>): api.LockRow {
+  return {
+    mine: false,
+    holder_id: null,
+    holder_name: null,
+    taken_at: null,
+    heartbeat_at: null,
+    is_active: false,
+    draft_rev: 1,
+    ...changes,
+  }
+}
 
 beforeEach(() => {
   vi.mocked(categoriesApi.listCategories).mockResolvedValue([
@@ -232,53 +284,159 @@ describe("Blog", () => {
     ).toBeVisible()
   })
 
-  it("« Nouvel article » propose un article vide ou les points de départ du Blog ([D42])", async () => {
+  it("« Nouvel article » : une fenêtre (titre, point de départ, catégories, niveau), puis l'éditeur", async () => {
     vi.mocked(api.listContents).mockResolvedValue([])
     vi.mocked(templatesApi.listStarters).mockResolvedValue([
       { id: INTERVIEW, title: "Interview" },
     ])
-    vi.mocked(api.createContent).mockResolvedValue({
-      id: ARTICLE,
-      kind: "article",
-      title: "",
-      draft: { v: 1, title: "", blocks: [] },
-      draft_rev: 1,
-      draft_saved_at: "2026-09-28T08:00:00Z",
-      deleted_at: null,
-      parent_id: null,
-      access_chosen: false,
-      access_level_id: null,
-      slug: null,
-      template_sort: null,
-      template_for: null,
-      in_app: false,
-      is_free: false,
-      category_ids: [],
-    })
+    vi.mocked(api.createContent).mockResolvedValue(newArticle)
+    vi.mocked(api.lockTake).mockResolvedValue(lockRow({ mine: true }))
     const { router } = renderApp("/blog")
 
     expect(
       await screen.findByText(labels.kinds.article.emptyTitle)
     ).toBeVisible()
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: labels.kinds.article.create })
-      ).toHaveAttribute("aria-haspopup", "menu")
-    )
-    expect(templatesApi.listStarters).toHaveBeenCalledWith("article")
     fireEvent.click(
       screen.getByRole("button", { name: labels.kinds.article.create })
     )
-    expect(
-      await screen.findByRole("menuitem", { name: labels.kinds.article.blank })
-    ).toBeVisible()
-    fireEvent.click(screen.getByRole("menuitem", { name: "Interview" }))
-    await waitFor(() =>
-      expect(api.createContent).toHaveBeenCalledWith("article", "", INTERVIEW)
+    const dialog = await screen.findByRole("dialog", {
+      name: labels.kinds.article.create,
+    })
+
+    // Le titre est obligatoire.
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: labels.kinds.article.submit })
     )
+    expect(
+      await within(dialog).findByText(texts.publication.settings.titleRequired)
+    ).toBeVisible()
+    expect(api.createContent).not.toHaveBeenCalled()
+
+    fireEvent.change(
+      within(dialog).getByLabelText(texts.publication.settings.titleLabel),
+      { target: { value: "Bien respirer" } }
+    )
+    await pick(labels.newContent.starter, "Interview")
+    fireEvent.click(
+      await within(dialog).findByRole("checkbox", { name: "Sommeil" })
+    )
+    fireEvent.click(
+      await within(dialog).findByRole("radio", { name: /Essentiel/ })
+    )
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: labels.kinds.article.submit })
+    )
+
+    await waitFor(() =>
+      expect(api.createContent).toHaveBeenCalledWith(
+        "article",
+        "Bien respirer",
+        INTERVIEW
+      )
+    )
+    // Les réglages partent aussitôt, sous le verrou donné à la création, puis il est rendu.
+    await waitFor(() =>
+      expect(api.saveDraft).toHaveBeenCalledWith(
+        ARTICLE,
+        1,
+        newArticle.draft,
+        expect.any(String),
+        {
+          access_level_id: "00000000-0000-4000-8000-00000000f001",
+          category_ids: [SOMMEIL],
+        }
+      )
+    )
+    expect(api.lockRelease).toHaveBeenCalledWith(ARTICLE, expect.any(String))
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/blog/${ARTICLE}`)
     )
+  })
+
+  it("« Réglages » depuis la liste : le titre et les réglages, enregistrés d'un coup", async () => {
+    vi.mocked(api.listContents).mockResolvedValue([articles[2]])
+    vi.mocked(api.lockStatus).mockResolvedValue(lockRow({}))
+    vi.mocked(api.lockTake).mockResolvedValue(lockRow({ mine: true }))
+    vi.mocked(api.getContent).mockResolvedValue({
+      ...newArticle,
+      id: articles[2].id,
+      title: "Sans rangement",
+      draft: { v: 1, title: "Sans rangement", blocks: [] },
+      draft_rev: 3,
+    })
+    renderApp("/blog")
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: labels.actions("Sans rangement"),
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: labels.settings.action })
+    )
+    const sheet = await screen.findByRole("dialog", {
+      name: texts.publication.settings.title,
+    })
+    const save = within(sheet).getByRole("button", {
+      name: labels.settings.save,
+    })
+    await waitFor(() => expect(save).toBeEnabled())
+    fireEvent.change(
+      within(sheet).getByLabelText(texts.publication.settings.titleLabel),
+      { target: { value: "Rangé enfin" } }
+    )
+    fireEvent.click(within(sheet).getByRole("checkbox", { name: "Stress" }))
+    fireEvent.click(save)
+
+    await waitFor(() =>
+      expect(api.saveDraft).toHaveBeenCalledWith(
+        articles[2].id,
+        3,
+        { v: 1, title: "Rangé enfin", blocks: [] },
+        expect.any(String),
+        { category_ids: [STRESS] }
+      )
+    )
+    expect(
+      await screen.findByText(labels.settings.saved("Rangé enfin"))
+    ).toBeVisible()
+    expect(api.lockRelease).toHaveBeenCalledWith(
+      articles[2].id,
+      expect.any(String)
+    )
+  })
+
+  it("« Réglages » d'un contenu que quelqu'un écrit : en lecture seule, avec son nom", async () => {
+    vi.mocked(api.listContents).mockResolvedValue([articles[2]])
+    vi.mocked(api.lockStatus).mockResolvedValue(
+      lockRow({
+        holder_id: "autre",
+        holder_name: "Claire Martin",
+        is_active: true,
+      })
+    )
+    renderApp("/blog")
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: labels.actions("Sans rangement"),
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: labels.settings.action })
+    )
+    const sheet = await screen.findByRole("dialog", {
+      name: texts.publication.settings.title,
+    })
+    expect(
+      await within(sheet).findByText(labels.settings.heldBy("Claire Martin"))
+    ).toBeVisible()
+    expect(
+      within(sheet).getByRole("button", { name: labels.settings.save })
+    ).toBeDisabled()
+    expect(
+      within(sheet).getByLabelText(texts.publication.settings.titleLabel)
+    ).toHaveAttribute("readonly")
   })
 
   it("« Supprimer » met l'article à la corbeille, avec « Annuler »", async () => {

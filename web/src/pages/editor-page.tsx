@@ -1913,6 +1913,9 @@ function ContentEditor({
             focus={settingsFocus}
             kind={kind}
             title={title}
+            onTitleChange={(value) =>
+              setDraft((current) => ({ ...current, title: value }))
+            }
             settings={settings}
             editable={editable}
             levels={levels.data}

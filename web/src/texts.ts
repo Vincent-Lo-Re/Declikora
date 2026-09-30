@@ -738,6 +738,7 @@ export const texts = {
     // Ce qui dépend de la sorte de contenu (genre, nombre).
     kinds: {
       page: {
+        submit: "Créer la page",
         create: "Nouvelle page",
         createFailed: "La page n'a pas pu être créée.",
         // « Nouvelle page » quand des points de départ existent pour les Pages ([D42]).
@@ -773,6 +774,7 @@ export const texts = {
         noResults: "Aucune page ne correspond à ta recherche ou à tes filtres.",
       },
       article: {
+        submit: "Créer l'article",
         create: "Nouvel article",
         createFailed: "L'article n'a pas pu être créé.",
         blank: "Article vide",
@@ -805,6 +807,7 @@ export const texts = {
           "Aucun article ne correspond à ta recherche ou à tes filtres.",
       },
       episode: {
+        submit: "Créer l'épisode",
         create: "Nouvel épisode",
         createFailed: "L'épisode n'a pas pu être créé.",
         blank: "Épisode vide",
@@ -837,6 +840,7 @@ export const texts = {
           "Aucun épisode ne correspond à ta recherche ou à tes filtres.",
       },
       method: {
+        submit: "Créer la méthode",
         create: "Nouvelle méthode",
         createFailed: "La méthode n'a pas pu être créée.",
         blank: "Méthode vide",
@@ -917,13 +921,34 @@ export const texts = {
     },
     trashed: (title: string) => `« ${title} » est dans la corbeille.`,
     undo: "Annuler",
+    // Fenêtre « Nouvel article » (…) : le titre, un point de départ, les réglages ([D42]).
+    newContent: {
+      description:
+        "Le titre suffit pour commencer : tout se modifie ensuite dans les réglages.",
+      starter: "Point de départ",
+      starterHint: "Une structure déjà en place, au lieu d'un contenu vide.",
+      settingsFailed: (message: string) =>
+        `Créé, mais ses réglages n'ont pas été enregistrés : ${message} Corrige-les dans les réglages.`,
+    },
+    // « Réglages » dans le menu d'une ligne : les mêmes réglages que dans l'éditeur.
+    settings: {
+      action: "Réglages",
+      save: "Enregistrer",
+      saved: (title: string) => `Réglages de « ${title} » enregistrés.`,
+      unchanged: "Rien n'a changé.",
+      checking: "Vérification du brouillon…",
+      heldBy: (name: string) =>
+        `${name} écrit ce contenu en ce moment : attends qu'il ait fini, ou ouvre-le pour reprendre la main.`,
+      heldSelf:
+        "Tu écris ce contenu dans un autre onglet : change ses réglages dans cet onglet-là.",
+      yourselfElsewhere: "Toi (dans un autre onglet)",
+    },
     // Colonne Catégories : la première, puis « +2 » pour les autres.
     moreCategories: (count: number) => `+${count}`,
     otherCategories: (names: string) => `Aussi : ${names}`,
     loadFailed: "La liste n'a pas pu être chargée.",
     refreshFailed:
       "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
-    starters: "Points de départ",
   },
 
   // Méthodes (étape 7, partie 7b) : ADMIN § 1 et § 3, [D29], [D26], [D36], [D42], [D43].
@@ -2053,6 +2078,8 @@ export const texts = {
         "Ils sont enregistrés avec le brouillon et ne changent l'app qu'à la prochaine publication.",
       readOnly:
         "Lecture seule : prends la main sur le brouillon pour modifier les réglages.",
+      titleLabel: "Titre",
+      titleRequired: "Donne un titre.",
       access: {
         label: "Niveau d'accès",
         description:

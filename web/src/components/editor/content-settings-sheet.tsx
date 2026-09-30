@@ -1,7 +1,9 @@
 import { Tags } from "lucide-react"
-import { useRef, useState, type KeyboardEvent } from "react"
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { Link } from "react-router"
 
+import { singleLine } from "@/blocks/components/fields"
+import { TITLE_MAX } from "@/blocks/draft"
 import { AccessLevelChoice } from "@/components/editor/access-level-choice"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -17,6 +19,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
@@ -32,7 +35,7 @@ import { texts } from "@/texts"
 const labels = texts.publication.settings
 
 /** Les catégories de la section d'un article ou d'un épisode, telles que l'éditeur les lit. */
-type SectionCategories = {
+export type SectionCategories = {
   section: CategorySection
   // undefined tant qu'elles ne sont pas lues.
   list: Category[] | undefined
@@ -59,23 +62,70 @@ export function ContentSettingsSheet({
   open,
   onOpenChange,
   focus,
-  kind,
-  title,
-  settings,
-  editable,
-  levels,
-  levelsFailed,
-  live,
-  refusedSlug,
-  categories,
-  onChange,
+  footer,
+  notice,
+  ...fields
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   // Le champ à mettre en avant à l'ouverture (adresse manquante ou déjà prise, catégories).
   focus: SettingsFocus
+  // Depuis une liste : « Enregistrer » et « Annuler » (dans l'éditeur, tout part tout seul).
+  footer?: ReactNode
+  // À la place de « Lecture seule… » : pourquoi on ne peut pas modifier (quelqu'un écrit ce
+  // contenu), ou ce qui se vérifie encore.
+  notice?: string
+} & Omit<SettingsFieldsProps, "slugRef" | "categoriesRef" | "highlightSlug">) {
+  const slugRef = useRef<HTMLInputElement>(null)
+  const categoriesRef = useRef<HTMLHeadingElement>(null)
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        className="w-full gap-0 overflow-y-auto sm:max-w-md"
+        initialFocus={
+          focus === "slug"
+            ? slugRef
+            : focus === "categories" && fields.categories
+              ? categoriesRef
+              : undefined
+        }
+      >
+        <SheetHeader className="pr-12">
+          <SheetTitle>{labels.title}</SheetTitle>
+          <SheetDescription>{labels.description}</SheetDescription>
+        </SheetHeader>
+        <div className="space-y-6 px-4 pb-6">
+          {notice ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              {notice}
+            </p>
+          ) : (
+            !fields.editable && (
+              <p className="text-sm text-muted-foreground">{labels.readOnly}</p>
+            )
+          )}
+          <ContentSettingsFields
+            {...fields}
+            slugRef={slugRef}
+            categoriesRef={categoriesRef}
+            highlightSlug={focus === "slug"}
+          />
+        </div>
+        {footer && <SheetFooter>{footer}</SheetFooter>}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+type SettingsFieldsProps = {
   kind: ContentKind
   title: string
+  // Le titre comme champ (fenêtre de création, réglages) : sinon, il ne sert qu'à proposer
+  // l'adresse d'une page.
+  onTitleChange?: (title: string) => void
+  titleError?: string | null
+  // Sous le titre (fenêtre de création : le point de départ).
+  afterTitle?: ReactNode
   settings: ContentSettings
   editable: boolean
   levels: AccessLevel[] | undefined
@@ -86,80 +136,106 @@ export function ContentSettingsSheet({
   // Article ou épisode : les catégories de sa section.
   categories?: SectionCategories
   onChange: (next: ContentSettings) => void
-}) {
-  const slugRef = useRef<HTMLInputElement>(null)
-  const categoriesRef = useRef<HTMLHeadingElement>(null)
+  slugRef?: React.RefObject<HTMLInputElement | null>
+  categoriesRef?: React.RefObject<HTMLHeadingElement | null>
+  highlightSlug?: boolean
+}
+
+/**
+ * Les réglages d'un contenu (titre, niveau d'accès, catégories, adresse) : dans la glissière
+ * « Réglages » et dans la fenêtre de création.
+ */
+export function ContentSettingsFields({
+  kind,
+  title,
+  onTitleChange,
+  titleError = null,
+  afterTitle,
+  settings,
+  editable,
+  levels,
+  levelsFailed,
+  live,
+  refusedSlug,
+  categories,
+  onChange,
+  slugRef,
+  categoriesRef,
+  highlightSlug = false,
+}: SettingsFieldsProps) {
+  const ownSlugRef = useRef<HTMLInputElement>(null)
+  const ownCategoriesRef = useRef<HTMLHeadingElement>(null)
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        className="w-full gap-0 overflow-y-auto sm:max-w-md"
-        initialFocus={
-          focus === "slug"
-            ? slugRef
-            : focus === "categories"
-              ? categoriesRef
-              : undefined
-        }
-      >
-        <SheetHeader className="pr-12">
-          <SheetTitle>{labels.title}</SheetTitle>
-          <SheetDescription>{labels.description}</SheetDescription>
-        </SheetHeader>
-        <div className="space-y-6 px-4 pb-6">
-          {!editable && (
-            <p className="text-sm text-muted-foreground">{labels.readOnly}</p>
-          )}
-          {kind === "chapter" || kind === "lesson" ? (
-            <ElementSection
-              kind={kind}
-              settings={settings}
-              editable={editable}
-              onChange={onChange}
-            />
-          ) : (
-            <AccessSection
-              settings={settings}
-              editable={editable}
-              levels={levels}
-              levelsFailed={levelsFailed}
-              live={live}
-              onChange={(accessLevelId) =>
-                onChange({ ...settings, accessChosen: true, accessLevelId })
-              }
-            />
-          )}
-          {categories && (
-            <>
-              <Separator />
-              <CategoriesSection
-                headingRef={categoriesRef}
-                categories={categories}
-                chosen={settings.categoryIds}
-                editable={editable}
-                onChange={(categoryIds) =>
-                  onChange({ ...settings, categoryIds })
-                }
-              />
-            </>
-          )}
-          {kind === "page" && (
-            <>
-              <Separator />
-              <SlugField
-                inputRef={slugRef}
-                slug={settings.slug}
-                title={title}
-                editable={editable}
-                live={live}
-                highlight={focus === "slug"}
-                refused={refusedSlug}
-                onCommit={(slug) => onChange({ ...settings, slug })}
-              />
-            </>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+    <>
+      {onTitleChange && (
+        <Field data-invalid={titleError !== null}>
+          <FieldLabel htmlFor="reglages-titre">{labels.titleLabel}</FieldLabel>
+          <Input
+            id="reglages-titre"
+            value={title}
+            readOnly={!editable}
+            maxLength={TITLE_MAX}
+            autoComplete="off"
+            placeholder={texts.editor.title.placeholder}
+            aria-invalid={titleError !== null}
+            onChange={(event) =>
+              onTitleChange(singleLine(event.target.value).slice(0, TITLE_MAX))
+            }
+          />
+          <FieldError>{titleError}</FieldError>
+        </Field>
+      )}
+      {afterTitle}
+      {kind === "chapter" || kind === "lesson" ? (
+        <ElementSection
+          kind={kind}
+          settings={settings}
+          editable={editable}
+          onChange={onChange}
+        />
+      ) : (
+        <>
+          {onTitleChange && <Separator />}
+          <AccessSection
+            settings={settings}
+            editable={editable}
+            levels={levels}
+            levelsFailed={levelsFailed}
+            live={live}
+            onChange={(accessLevelId) =>
+              onChange({ ...settings, accessChosen: true, accessLevelId })
+            }
+          />
+        </>
+      )}
+      {categories && (
+        <>
+          <Separator />
+          <CategoriesSection
+            headingRef={categoriesRef ?? ownCategoriesRef}
+            categories={categories}
+            chosen={settings.categoryIds}
+            editable={editable}
+            onChange={(categoryIds) => onChange({ ...settings, categoryIds })}
+          />
+        </>
+      )}
+      {kind === "page" && (
+        <>
+          <Separator />
+          <SlugField
+            inputRef={slugRef ?? ownSlugRef}
+            slug={settings.slug}
+            title={title}
+            editable={editable}
+            live={live}
+            highlight={highlightSlug}
+            refused={refusedSlug}
+            onCommit={(slug) => onChange({ ...settings, slug })}
+          />
+        </>
+      )}
+    </>
   )
 }
 

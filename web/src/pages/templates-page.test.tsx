@@ -6,6 +6,7 @@ import * as api from "@/lib/contents/api"
 import * as publicationApi from "@/lib/contents/publication"
 import * as templatesApi from "@/lib/contents/templates"
 import * as mediaApi from "@/lib/media/api"
+import { createFromDialog } from "@/test/new-content"
 import { renderApp } from "@/test/render"
 import { texts } from "@/texts"
 
@@ -394,7 +395,7 @@ describe("section Modèles", () => {
 })
 
 describe("« Nouvelle page » et les points de départ ([D42])", () => {
-  it("propose « Page vide » ou un point de départ des Pages", async () => {
+  it("la fenêtre propose « Page vide » ou un point de départ des Pages", async () => {
     vi.mocked(templatesApi.listStarters).mockResolvedValue([
       { id: INTERVIEW, title: "Interview" },
     ])
@@ -405,25 +406,18 @@ describe("« Nouvelle page » et les points de départ ([D42])", () => {
       template_sort: null,
     })
     const { router } = renderApp("/pages")
-    // Les points de départ lus, « Nouvelle page » devient un menu.
+    // Les points de départ lus, la fenêtre de « Nouvelle page » propose « Page vide » ou l'un
+    // d'eux.
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", {
-          name: texts.contentList.kinds.page.create,
-        })
-      ).toHaveAttribute("aria-haspopup", "menu")
+      expect(templatesApi.listStarters).toHaveBeenCalledWith("page")
     )
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.contentList.kinds.page.create })
-    )
-    expect(
-      await screen.findByRole("menuitem", {
-        name: texts.contentList.kinds.page.blank,
-      })
-    ).toBeInTheDocument()
-    fireEvent.click(screen.getByRole("menuitem", { name: "Interview" }))
+    await createFromDialog("page", "Rencontre", "Interview")
     await waitFor(() =>
-      expect(api.createContent).toHaveBeenCalledWith("page", "", INTERVIEW)
+      expect(api.createContent).toHaveBeenCalledWith(
+        "page",
+        "Rencontre",
+        INTERVIEW
+      )
     )
     expect(templatesApi.listStarters).toHaveBeenCalledWith("page")
     await waitFor(() =>
