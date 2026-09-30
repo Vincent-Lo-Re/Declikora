@@ -22,7 +22,8 @@ import { toast } from "sonner"
 import {
   BulkTrashButton,
   KeptNotice,
-  SelectionBar,
+  SelectAllCheckbox,
+  type SelectAll,
 } from "@/components/bulk-selection"
 import { LoadState } from "@/components/load-state"
 import { kindIcons } from "@/components/media/media-kinds"
@@ -323,7 +324,16 @@ export function MediaPage() {
     return neighbor ?? uploadButton.current
   }
 
+  const selectAllProps: SelectAll = {
+    all: selection.all,
+    some: selection.some,
+    disabled: bulkTrash.isPending,
+    onToggleAll: (checked) =>
+      setCheckedIds((current) => toggleAll(current, shownItems, checked)),
+    checkboxRef: selectAll,
+  }
   const collectionSelection = {
+    selectAll: selectAllProps,
     selected: checkedIds,
     onSelect: (item: Media, checked: boolean) =>
       setCheckedIds((current) => toggleSelected(current, item.id, checked)),
@@ -506,22 +516,7 @@ export function MediaPage() {
                   }}
                 />
               )}
-              <SelectionBar
-                countLabel={
-                  selection.items.length > 0
-                    ? texts.media.selection.count(selection.items.length)
-                    : null
-                }
-                all={selection.all}
-                some={selection.some}
-                disabled={bulkTrash.isPending}
-                onToggleAll={(checked) =>
-                  setCheckedIds((current) =>
-                    toggleAll(current, media.data ?? [], checked)
-                  )
-                }
-                selectAllRef={selectAll}
-              />
+              {view === "grid" && <SelectAllCheckbox {...selectAllProps} />}
               {view === "grid" ? (
                 <MediaGrid
                   items={media.data}

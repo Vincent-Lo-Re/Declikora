@@ -509,11 +509,10 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     expect(third?.chapters[0].versionId).toBe(appBreathe.versionId)
     expect(third?.chapters[0].lessons[0].versionId).toBe(appSouffle.versionId)
 
-    // --- La liste des méthodes : niveau et taille du plan ----------------------------------
+    // --- La liste des méthodes : niveau d'accès -------------------------------------------
     await page.getByRole("link", { name: editor.back("Méthodes") }).click()
     const row = page.getByRole("row").filter({ hasText: title })
     await expect(row).toContainText(level)
-    await expect(row).toContainText(texts.contentList.outlineCount(1, 2))
 
     // --- Restaurer depuis la Corbeille : en fin de liste, caché de l'app -----------------
     await page

@@ -15,7 +15,8 @@ import { toast } from "sonner"
 import {
   BulkTrashButton,
   KeptNotice,
-  SelectionBar,
+  SelectAllHead,
+  type SelectAll,
 } from "@/components/bulk-selection"
 import { SavedCell } from "@/components/contents/row-cells"
 import { useContentsSelection } from "@/components/contents/use-contents-selection"
@@ -218,21 +219,10 @@ export function TemplatesPage() {
                     {texts.templates.sorts[value].example}
                   </p>
                 )}
-                <SelectionBar
-                  countLabel={
-                    selection.items.length > 0
-                      ? labels.selected(selection.items.length)
-                      : null
-                  }
-                  all={selection.all}
-                  some={selection.some}
-                  disabled={bulk.pending}
-                  onToggleAll={bulk.toggleAll}
-                  selectAllRef={bulk.selectAllRef}
-                />
                 <TemplateTable
                   items={shown}
                   withType={value === ALL}
+                  selectAll={bulk.selectAll}
                   selected={bulk.checkedIds}
                   onSelect={bulk.toggle}
                   selectionDisabled={bulk.pending}
@@ -299,6 +289,7 @@ export function TemplatesPage() {
 function TemplateTable({
   items,
   withType,
+  selectAll,
   selected,
   onSelect,
   selectionDisabled,
@@ -306,7 +297,8 @@ function TemplateTable({
 }: {
   items: TemplateItem[]
   withType: boolean
-  // Sélection en masse : les modèles cochés.
+  // Sélection en masse : « Tout sélectionner » et les modèles cochés.
+  selectAll: SelectAll
   selected: ReadonlySet<string>
   onSelect: (item: TemplateItem, checked: boolean) => void
   selectionDisabled: boolean
@@ -323,9 +315,7 @@ function TemplateTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-0">
-            <span className="sr-only">{texts.selection.column}</span>
-          </TableHead>
+          <SelectAllHead {...selectAll} />
           <TableHead>{labels.columns.name}</TableHead>
           {withType && <TableHead>{labels.columns.type}</TableHead>}
           <TableHead>{labels.columns.savedAt}</TableHead>

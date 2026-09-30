@@ -1,4 +1,3 @@
-import type { Media } from "@/lib/media/constants"
 import { texts } from "@/texts"
 
 // Affichage des tailles, durées et dimensions, en français (unités dans texts.media.units).
@@ -58,15 +57,4 @@ export function formatDimensions(width: number, height: number): string {
 /** « 42 % » (progression d'un envoi, de 0 à 1). */
 export function formatPercent(fraction: number): string {
   return units.percent(Math.round(fraction * 100))
-}
-
-/** Dimensions ou durée d'un fichier, s'il en a. */
-export function formatMediaDetails(
-  media: Pick<Media, "width" | "height" | "duration_s">
-): string | null {
-  if (media.width !== null && media.height !== null) {
-    return formatDimensions(media.width, media.height)
-  }
-  if (media.duration_s !== null) return formatDuration(media.duration_s)
-  return null
 }

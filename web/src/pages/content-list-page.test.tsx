@@ -340,11 +340,15 @@ describe("Blog", () => {
         name: texts.selection.select("Sans rangement"),
       })
     )
-    expect(screen.getByText(article.selected(1))).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: texts.selection.trash(1) })
+    ).toBeVisible()
     fireEvent.click(
       screen.getByRole("checkbox", { name: texts.selection.selectAll })
     )
-    expect(screen.getByText(article.selected(3))).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: texts.selection.trash(3) })
+    ).toBeVisible()
 
     fireEvent.click(
       screen.getByRole("button", { name: texts.selection.trash(3) })

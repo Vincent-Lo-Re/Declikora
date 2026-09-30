@@ -31,7 +31,6 @@ export const texts = {
   selection: {
     select: (name: string) => `Sélectionner ${name}`,
     selectAll: "Tout sélectionner",
-    column: "Sélection",
     trash: (count: number) => `Mettre à la corbeille (${count})`,
     keptItem: (name: string, detail: string) => `${name} — ${detail}`,
     closeKept: "Fermer ce message",
@@ -328,8 +327,9 @@ export const texts = {
       // Ni dans un brouillon ni dans une version en ligne : la règle de la corbeille.
       unused: "Non utilisés",
     },
-    // Badge d'un fichier qui ne sert dans aucun contenu.
+    // Badge (grille) ou icône (liste) d'un fichier qui ne sert dans aucun contenu, ou qui sert.
     unused: "Non utilisé",
+    used: "Utilisé",
     kinds: {
       image: "Image",
       svg: "SVG",
@@ -392,17 +392,12 @@ export const texts = {
       name: "Nom",
       kind: "Type",
       size: "Poids",
-      details: "Dimensions ou durée",
       createdAt: "Ajouté le",
       status: "État",
     },
     open: (name: string) => `Ouvrir la fiche de ${name}`,
     // Sélection en masse (cases des vignettes et de la liste).
     selection: {
-      count: (count: number) =>
-        count === 1
-          ? "1 fichier sélectionné"
-          : `${count} fichiers sélectionnés`,
       trashed: (count: number) =>
         count === 1
           ? "1 fichier mis à la corbeille."
@@ -749,8 +744,6 @@ export const texts = {
           `${title} va dans la corbeille. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
         restored: (title: string) => `${title} est restaurée, en brouillon.`,
         // Sélection en masse.
-        selected: (count: number) =>
-          count === 1 ? "1 page sélectionnée" : `${count} pages sélectionnées`,
         confirmTrashManyTitle: (count: number) => `Supprimer ${count} pages ?`,
         confirmTrashMany:
           "Elles vont dans la corbeille. Celles qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
@@ -783,10 +776,6 @@ export const texts = {
           `${title} va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras le restaurer pendant 30 jours.`,
         restored: (title: string) => `${title} est restauré, en brouillon.`,
         // Sélection en masse.
-        selected: (count: number) =>
-          count === 1
-            ? "1 article sélectionné"
-            : `${count} articles sélectionnés`,
         confirmTrashManyTitle: (count: number) =>
           `Supprimer ${count} articles ?`,
         confirmTrashMany:
@@ -819,10 +808,6 @@ export const texts = {
           `${title} va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras le restaurer pendant 30 jours.`,
         restored: (title: string) => `${title} est restauré, en brouillon.`,
         // Sélection en masse.
-        selected: (count: number) =>
-          count === 1
-            ? "1 épisode sélectionné"
-            : `${count} épisodes sélectionnés`,
         confirmTrashManyTitle: (count: number) =>
           `Supprimer ${count} épisodes ?`,
         confirmTrashMany:
@@ -856,10 +841,6 @@ export const texts = {
         restored: (title: string) =>
           `${title} est restaurée, en brouillon, avec ses chapitres et ses leçons.`,
         // Sélection en masse.
-        selected: (count: number) =>
-          count === 1
-            ? "1 méthode sélectionnée"
-            : `${count} méthodes sélectionnées`,
         confirmTrashManyTitle: (count: number) =>
           `Supprimer ${count} méthodes ?`,
         confirmTrashMany:
@@ -893,7 +874,6 @@ export const texts = {
       categories: "Catégories",
       address: "Adresse",
       level: "Niveau d'accès",
-      outline: "Plan",
       savedAt: "Dernière modification",
     },
     searchPlaceholder: "Rechercher par titre…",
@@ -920,10 +900,8 @@ export const texts = {
           : `${total} éléments`
         : `${shown} sur ${total}`,
     noAddress: "Pas d'adresse",
-    // Méthodes : le niveau de la fiche et la taille du plan.
+    // Méthodes : le niveau de la fiche.
     levelNotChosen: "Pas encore choisi",
-    outlineCount: (chapters: number, lessons: number) =>
-      `${chapters === 1 ? "1 chapitre" : `${chapters} chapitres`}, ${lessons === 1 ? "1 leçon" : `${lessons} leçons`}`,
     noCategory: "Aucune",
     manageCategories: "Catégories",
     actions: (title: string) => `Actions pour ${title}`,
@@ -1316,8 +1294,6 @@ export const texts = {
       undo: "Annuler",
       restored: (name: string) => `${name} est restauré.`,
       // Sélection en masse.
-      selected: (count: number) =>
-        count === 1 ? "1 modèle sélectionné" : `${count} modèles sélectionnés`,
       confirmTrashManyTitle: (count: number) => `Supprimer ${count} modèles ?`,
       confirmTrashMany:
         "Ils vont dans la corbeille : tu pourras les restaurer pendant 30 jours. Les contenus où ils ont été insérés gardent leur copie. Un bloc partagé encore utilisé est gardé.",

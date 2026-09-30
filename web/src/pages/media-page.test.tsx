@@ -202,7 +202,11 @@ describe("Médiathèque", () => {
     expect(await screen.findByText(texts.media.noUnused.title)).toBeVisible()
   })
 
-  it("bascule en liste, avec poids, dimensions et durée", async () => {
+  it("bascule en liste : poids, et l'état et l'utilisation en icônes", async () => {
+    vi.mocked(api.listMedia).mockResolvedValue([
+      { ...photo, media_in_use: true },
+      { ...voice, media_in_use: false },
+    ])
     renderApp("/mediatheque")
     await screen.findByText(photo.name)
 
@@ -217,8 +221,20 @@ describe("Médiathèque", () => {
 
     fireEvent.click(listButton)
 
+    // État et utilisation : des icônes, nommées par leur infobulle.
     const row = screen.getByRole("row", { name: new RegExp(voice.name) })
-    expect(within(row).getByText("3 min 05 s")).toBeVisible()
+    expect(
+      within(row).getByRole("img", { name: texts.media.status.ready })
+    ).toBeVisible()
+    expect(
+      within(row).getByRole("img", { name: texts.media.unused })
+    ).toBeVisible()
+    const used = screen.getByRole("row", { name: new RegExp(photo.name) })
+    expect(
+      within(used).getByRole("img", { name: texts.media.used })
+    ).toBeVisible()
+    // Ni dimensions ni durée dans la liste.
+    expect(within(row).queryByText("3 min 05 s")).toBeNull()
     expect(
       screen.getByRole("columnheader", { name: texts.media.columns.size })
     ).toBeVisible()
@@ -524,7 +540,9 @@ describe("Sélection en masse", () => {
     ).toBeNull()
 
     fireEvent.click(box(photo.name))
-    expect(screen.getByText(selection.count(1))).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: selection.trash(1) })
+    ).toBeVisible()
     expect(
       screen.getByRole("button", { name: selection.trash(1) })
     ).toBeVisible()
@@ -534,7 +552,9 @@ describe("Sélection en masse", () => {
       screen.getByRole("button", { name: selection.select(logo.name) })
     )
     expect(box(logo.name)).toBeChecked()
-    expect(screen.getByText(selection.count(2))).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: selection.trash(2) })
+    ).toBeVisible()
     expect(screen.queryByRole("dialog")).toBeNull()
 
     // Tout décoché : un clic ouvre de nouveau la fiche.
@@ -642,7 +662,9 @@ describe("Sélection en masse", () => {
       )
     )
     await waitFor(() => expect(screen.queryByText(photo.name)).toBeNull())
-    expect(screen.queryByText(selection.count(1))).toBeNull()
+    expect(
+      screen.queryByRole("button", { name: selection.trash(1) })
+    ).toBeNull()
   })
 })
 

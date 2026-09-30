@@ -405,7 +405,6 @@ test("un membre envoie les autres formats, filtre, cherche, en met deux à la co
   await page
     .getByRole("button", { name: selection.select(names.lottie) })
     .click()
-  await expect(page.getByText(selection.count(2))).toBeVisible()
   await page.getByRole("button", { name: selection.trash(2) }).click()
   await expect(page.getByText(selection.trashed(2))).toBeVisible()
   await expect(card(page, names.gif)).toHaveCount(0)

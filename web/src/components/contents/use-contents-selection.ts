@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRef, useState } from "react"
 import { toast } from "sonner"
 
+import type { SelectAll } from "@/components/bulk-selection"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import {
   restoreMany,
@@ -72,17 +73,24 @@ export function useContentsSelection<T extends Row>({
     },
   })
 
+  const selectAll: SelectAll = {
+    all: selection.all,
+    some: selection.some,
+    disabled: trash.isPending,
+    onToggleAll: (checked) =>
+      setCheckedIds((current) => toggleAll(current, shown, checked)),
+    checkboxRef: selectAllRef,
+  }
+
   return {
     selection,
+    selectAll,
     checkedIds,
     kept,
-    selectAllRef,
     pending: trash.isPending,
     confirming,
     toggle: (item: T, checked: boolean) =>
       setCheckedIds((current) => toggleSelected(current, item.id, checked)),
-    toggleAll: (checked: boolean) =>
-      setCheckedIds((current) => toggleAll(current, shown, checked)),
     closeKept: () => {
       setKept([])
       selectAllRef.current?.focus()

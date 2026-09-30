@@ -19,7 +19,8 @@ import { toast } from "sonner"
 import {
   BulkTrashButton,
   KeptNotice,
-  SelectionBar,
+  SelectAllHead,
+  type SelectAll,
 } from "@/components/bulk-selection"
 import { CoverCell, SavedCell } from "@/components/contents/row-cells"
 import { useContentsSelection } from "@/components/contents/use-contents-selection"
@@ -101,11 +102,6 @@ import {
   stateFilters,
   type ListFilters,
 } from "@/lib/contents/list-filters"
-import {
-  listMethodCounts,
-  methodKeys,
-  type MethodCounts,
-} from "@/lib/contents/methods"
 import { restoreContent, trashContent } from "@/lib/contents/publication"
 import { coverRequired } from "@/lib/contents/requirements"
 import { listStarters, templateKeys } from "@/lib/contents/templates"
@@ -155,19 +151,13 @@ export function ContentListPage({
   })
   const categories = useCategories(categorySection)
   const isMethod = kind === "method"
-  // Méthodes : les formules (niveau d'accès), le nombre de chapitres et de leçons, et, pour
+  // Méthodes : les formules (niveau d'accès) et, pour
   // celles qui sont en ligne, s'il y a quelque chose à publier (la fiche ne suffit pas : une
   // leçon modifiée ne change pas la fiche, [D29]).
   const levels = useQuery({
     queryKey: accessLevelsKey,
     queryFn: listAccessLevels,
     enabled: isMethod,
-  })
-  const counts = useQuery({
-    queryKey: methodKeys.counts,
-    queryFn: listMethodCounts,
-    enabled: isMethod,
-    refetchInterval: 30_000,
   })
   const pendingById = useMethodPending(isMethod ? list.data : undefined, true)
   const items =
@@ -399,18 +389,6 @@ export function ContentListPage({
                 </p>
               ) : (
                 <>
-                  <SelectionBar
-                    countLabel={
-                      selection.items.length > 0
-                        ? kindLabels.selected(selection.items.length)
-                        : null
-                    }
-                    all={selection.all}
-                    some={selection.some}
-                    disabled={bulk.pending}
-                    onToggleAll={bulk.toggleAll}
-                    selectAllRef={bulk.selectAllRef}
-                  />
                   <ContentTable
                     kind={kind}
                     section={section}
@@ -418,7 +396,7 @@ export function ContentListPage({
                     now={list.dataUpdatedAt}
                     categories={categories.data}
                     levels={levels.data}
-                    counts={counts.data}
+                    selectAll={bulk.selectAll}
                     selected={bulk.checkedIds}
                     onSelect={bulk.toggle}
                     trashing={trash.isPending || bulk.pending}
@@ -575,7 +553,7 @@ function ContentTable({
   now,
   categories,
   levels,
-  counts,
+  selectAll,
   selected,
   onSelect,
   trashing,
@@ -586,10 +564,10 @@ function ContentTable({
   items: ContentListItem[]
   now: number
   categories: Category[] | undefined
-  // Méthodes : les formules, et la taille du plan de chacune (undefined : pas encore lus).
+  // Méthodes : les formules (undefined : pas encore lues).
   levels: AccessLevel[] | undefined
-  counts: MethodCounts | undefined
-  // Sélection en masse : les contenus cochés.
+  // Sélection en masse : « Tout sélectionner » et les contenus cochés.
+  selectAll: SelectAll
   selected: ReadonlySet<string>
   onSelect: (item: ContentListItem, checked: boolean) => void
   trashing: boolean
@@ -604,9 +582,7 @@ function ContentTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-0">
-            <span className="sr-only">{texts.selection.column}</span>
-          </TableHead>
+          <SelectAllHead {...selectAll} />
           {withCover && (
             <TableHead className="w-14">
               <span className="sr-only">{labels.columns.cover}</span>
@@ -614,10 +590,7 @@ function ContentTable({
           )}
           <TableHead>{labels.columns.title}</TableHead>
           {isMethod ? (
-            <>
-              <TableHead>{labels.columns.level}</TableHead>
-              <TableHead>{labels.columns.outline}</TableHead>
-            </>
+            <TableHead>{labels.columns.level}</TableHead>
           ) : (
             <TableHead>
               {withCategories
@@ -659,11 +632,7 @@ function ContentTable({
                 </Link>
               </TableCell>
               {isMethod ? (
-                <MethodCells
-                  item={item}
-                  levels={levels}
-                  count={counts?.get(item.id) ?? (counts ? EMPTY_COUNT : null)}
-                />
+                <LevelCell item={item} levels={levels} />
               ) : (
                 <TableCell className="max-w-64 text-muted-foreground">
                   {withCategories ? (
@@ -700,18 +669,13 @@ function ContentTable({
   )
 }
 
-const EMPTY_COUNT = { chapters: 0, lessons: 0 }
-
-/** Une méthode : son niveau d'accès ([D41] : « Pas encore choisi ») et la taille de son plan. */
-function MethodCells({
+/** Le niveau d'accès d'une méthode ([D41] : « Pas encore choisi »). */
+function LevelCell({
   item,
   levels,
-  count,
 }: {
   item: ContentListItem
   levels: AccessLevel[] | undefined
-  // null tant que les nombres ne sont pas lus.
-  count: { chapters: number; lessons: number } | null
 }) {
   const level = !item.access_chosen
     ? labels.levelNotChosen
@@ -722,24 +686,15 @@ function MethodCells({
           texts.publication.settings.access.deleted)
         : null
   return (
-    <>
-      <TableCell className="text-muted-foreground">
-        {level === null ? (
-          <Skeleton className="h-4 w-20" />
-        ) : item.access_chosen ? (
-          <Badge variant="outline">{level}</Badge>
-        ) : (
-          <span className="text-xs">{level}</span>
-        )}
-      </TableCell>
-      <TableCell className="text-muted-foreground tabular-nums">
-        {count ? (
-          labels.outlineCount(count.chapters, count.lessons)
-        ) : (
-          <Skeleton className="h-4 w-28" />
-        )}
-      </TableCell>
-    </>
+    <TableCell className="text-muted-foreground">
+      {level === null ? (
+        <Skeleton className="h-4 w-20" />
+      ) : item.access_chosen ? (
+        <Badge variant="outline">{level}</Badge>
+      ) : (
+        <span className="text-xs">{level}</span>
+      )}
+    </TableCell>
   )
 }
 

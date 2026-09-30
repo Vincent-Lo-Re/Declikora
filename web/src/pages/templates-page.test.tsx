@@ -362,7 +362,9 @@ describe("section Modèles", () => {
     fireEvent.click(
       await screen.findByRole("checkbox", { name: texts.selection.selectAll })
     )
-    expect(screen.getByText(labels.selected(3))).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: texts.selection.trash(3) })
+    ).toBeVisible()
     fireEvent.click(
       screen.getByRole("button", { name: texts.selection.trash(3) })
     )

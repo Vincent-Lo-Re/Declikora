@@ -1,7 +1,8 @@
 import { cn } from "cn"
-import { Unlink } from "lucide-react"
+import { Check, Link, Unlink, X } from "lucide-react"
 
-import { kindIcons } from "@/components/media/media-kinds"
+import { IconHint } from "@/components/icon-hint"
+import { kindIcons, rejectedText } from "@/components/media/media-kinds"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
 import { INTERRUPTED_AFTER_MS, type Media } from "@/lib/media/constants"
@@ -46,6 +47,14 @@ export function MediaThumbnail({
   )
 }
 
+/** Un envoi commencé il y a trop longtemps : « Envoi interrompu ». */
+function isInterrupted(media: Media, now: number): boolean {
+  return (
+    media.status === "pending" &&
+    now - new Date(media.status_changed_at).getTime() > INTERRUPTED_AFTER_MS
+  )
+}
+
 /** État d'un fichier : Envoi en cours…, Vérification…, Prêt ou Refusé. */
 export function MediaStatusBadge({
   media,
@@ -56,17 +65,14 @@ export function MediaStatusBadge({
   now: number
 }) {
   switch (media.status) {
-    case "pending": {
-      const interrupted =
-        now - new Date(media.status_changed_at).getTime() > INTERRUPTED_AFTER_MS
+    case "pending":
       return (
         <Badge variant="outline">
-          {interrupted
+          {isInterrupted(media, now)
             ? texts.media.status.interrupted
             : texts.media.status.pending}
         </Badge>
       )
-    }
     case "checking":
       return (
         <Badge variant="secondary">
@@ -79,6 +85,42 @@ export function MediaStatusBadge({
     case "rejected":
       return <Badge variant="destructive">{texts.media.status.rejected}</Badge>
   }
+}
+
+/**
+ * État d'un fichier dans la liste : une coche s'il est prêt, sinon une croix ; l'infobulle dit
+ * l'état exact (Envoi en cours…, Vérification…, ou la raison du refus).
+ */
+export function MediaStatusIcon({ media, now }: { media: Media; now: number }) {
+  if (media.status === "ready") {
+    return <IconHint icon={Check} label={texts.media.status.ready} />
+  }
+  const label =
+    media.status === "rejected"
+      ? rejectedText(media)
+      : media.status === "checking"
+        ? texts.media.status.checking
+        : isInterrupted(media, now)
+          ? texts.media.status.interrupted
+          : texts.media.status.pending
+  return (
+    <IconHint
+      icon={X}
+      label={label}
+      className={media.status === "rejected" ? "text-destructive" : undefined}
+    />
+  )
+}
+
+/** Utilisation d'un fichier dans la liste : un lien s'il sert, un lien coupé sinon. */
+export function MediaUseIcon({ media }: { media: Media }) {
+  // Seule la liste lit media_in_use : absent (fiche) ou null (hors équipe), rien à montrer.
+  if (media.media_in_use == null) return null
+  return media.media_in_use ? (
+    <IconHint icon={Link} label={texts.media.used} />
+  ) : (
+    <IconHint icon={Unlink} label={texts.media.unused} />
+  )
 }
 
 /** « Non utilisé » : le fichier n'est dans aucun brouillon ni aucune version en ligne. */
