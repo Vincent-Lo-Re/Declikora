@@ -1,6 +1,6 @@
 -- Modèles de blocs (étape 6) : règles tenues par la base (docs/ARCHITECTURE-CONTENUS.md, § 2.5,
 -- § 3.2, § 3.4, § 3.5, « Étape 6 », D11 et D42) : section d'un point de départ, sorte fixe, un
--- seul bloc dans un bloc identique partout (qui naît vide et ne s'insère pas tant qu'il l'est),
+-- seul bloc dans un bloc partagé (qui naît vide et ne s'insère pas tant qu'il l'est),
 -- pas de bloc lié dans un modèle ni dans un encadré, « Enregistrer comme modèle », mise à jour
 -- dans l'app (template_outdated ignore les id ; template_push part de la version en ligne et ne
 -- publie pas le reste du brouillon), détachement dans un contenu publié, « Détacher partout »
@@ -200,13 +200,13 @@ select throws_ok(
 );
 
 -- ---------------------------------------------------------------------------------------------
--- Bloc identique partout : un seul bloc ([D11])
+-- Bloc partagé : un seul bloc ([D11])
 -- ---------------------------------------------------------------------------------------------
 
 select pg_temp.as_person('editor');
 select lives_ok(
   $$select pg_temp.create_template('contact', 'Contact', 'shared')$$,
-  'un bloc identique partout est créé'
+  'un bloc partagé est créé'
 );
 select is(
   (select jsonb_array_length(draft -> 'blocks') from public.contents where id = pg_temp.cid('contact')),
@@ -219,13 +219,13 @@ select matches(
   pg_temp.error_of($$select pg_temp.save('p1', pg_temp.draft(jsonb_build_array(
     pg_temp.linked('00000000-0000-4000-8000-000000000d02', 'contact'))))$$),
   '^modele_vide \| .*Contact',
-  'un bloc identique partout vide ne s''insère pas (modele_vide, et il est nommé)'
+  'un bloc partagé vide ne s''insère pas (modele_vide, et il est nommé)'
 );
 select throws_ok(
   $$select pg_temp.save('contact', pg_temp.draft(jsonb_build_array(
     pg_temp.text_block('00000000-0000-4000-8000-000000000a02', 'Un'),
     pg_temp.text_block('00000000-0000-4000-8000-000000000a04', 'Deux')), 'Contact'))$$,
-  'P0001', 'modele_un_seul_bloc', 'deux blocs dans un bloc identique partout : refusé'
+  'P0001', 'modele_un_seul_bloc', 'deux blocs dans un bloc partagé : refusé'
 );
 select lives_ok(
   $$select pg_temp.save('contact', pg_temp.draft(jsonb_build_array(pg_temp.contact_block('Écris-nous',
@@ -238,15 +238,15 @@ select lives_ok(
     pg_temp.text_block('00000000-0000-4000-8000-000000000d01', 'Bonjour'),
     pg_temp.linked('00000000-0000-4000-8000-000000000d02', 'contact')), 'Accueil'),
     '{"slug": "accueil", "access_level_id": null}')$$,
-  'le bloc identique partout, maintenant rempli, s''insère'
+  'le bloc partagé, maintenant rempli, s''insère'
 );
 select matches(
   pg_temp.error_of($$select pg_temp.save('contact', pg_temp.draft('[]', 'Contact'))$$),
   '^modele_utilise \| .*Accueil',
-  'un bloc identique partout utilisé garde son bloc (modele_utilise, avec la liste)'
+  'un bloc partagé utilisé garde son bloc (modele_utilise, avec la liste)'
 );
 select lives_ok(
-  $$select pg_temp.create_template('libre', 'Libre', 'shared')$$, 'un autre bloc identique partout'
+  $$select pg_temp.create_template('libre', 'Libre', 'shared')$$, 'un autre bloc partagé'
 );
 select lives_ok(
   $$select pg_temp.save('libre', pg_temp.draft(jsonb_build_array(
@@ -333,7 +333,7 @@ select is(
 select lives_ok(
   $$insert into ids select 'encadre', (public.template_create_from(pg_temp.cid('source'),
     array['00000000-0000-4000-8000-000000000c02']::uuid[], 'Encadré', 'shared')).id$$,
-  'un bloc identique partout fait d''un seul bloc'
+  'un bloc partagé fait d''un seul bloc'
 );
 select lives_ok(
   $$insert into ids select 'depart_recette', (public.template_create_from(pg_temp.cid('source'),
@@ -349,7 +349,7 @@ select throws_ok(
   $$select public.template_create_from(pg_temp.cid('source'),
     array['00000000-0000-4000-8000-000000000c01', '00000000-0000-4000-8000-000000000c02']::uuid[],
     'Deux', 'shared')$$,
-  'P0001', 'modele_un_seul_bloc', 'un bloc identique partout de deux blocs : refusé'
+  'P0001', 'modele_un_seul_bloc', 'un bloc partagé de deux blocs : refusé'
 );
 select throws_ok(
   $$select public.template_create_from(pg_temp.cid('source'),
@@ -654,7 +654,7 @@ select lives_ok($$select public.trash(pg_temp.cid('p4'))$$, 'puis elle part à l
 select matches(
   pg_temp.error_of($$select public.trash(pg_temp.cid('contact'))$$),
   '^modele_utilise \| .*Accueil.*Deux.*Quatre',
-  'un bloc identique partout utilisé ne va pas à la corbeille (brouillon dans la corbeille compris)'
+  'un bloc partagé utilisé ne va pas à la corbeille (brouillon dans la corbeille compris)'
 );
 
 -- Un autre membre écrit « Deux » : « Détacher partout » est refusé, et le nomme.
@@ -741,7 +741,7 @@ select is(
 );
 select throws_ok(
   $$select public.template_push(pg_temp.cid('retenir'))$$, 'P0001', 'modele_introuvable',
-  'template_push : une mise en forme n''est pas un bloc identique partout'
+  'template_push : une mise en forme n''est pas un bloc partagé'
 );
 select throws_ok(
   $$select public.template_detach_all('20000000-0000-4000-8000-0000000000ff')$$, 'P0001',
@@ -761,7 +761,7 @@ select lives_ok(
 -- ---------------------------------------------------------------------------------------------
 
 select lives_ok(
-  $$select pg_temp.create_template('bandeau', 'Bandeau', 'shared')$$, 'un bloc identique partout « Bandeau »'
+  $$select pg_temp.create_template('bandeau', 'Bandeau', 'shared')$$, 'un bloc partagé « Bandeau »'
 );
 select lives_ok(
   $$select pg_temp.save('bandeau', pg_temp.draft(jsonb_build_array(

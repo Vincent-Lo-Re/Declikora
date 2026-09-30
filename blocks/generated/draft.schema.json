@@ -626,7 +626,7 @@
       }
     },
     "linkedBlock": {
-      "$comment": "Bloc identique partout (modèle « shared ») : au premier niveau d'un brouillon de contenu seulement.",
+      "$comment": "Bloc partagé (modèle « shared ») : au premier niveau d'un brouillon de contenu seulement.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -878,7 +878,7 @@
       }
     },
     "publishedTextBlock": {
-      "$comment": "Texte au premier niveau d'une version publiée. templateId : copie d'un bloc identique partout (modèle « shared »), résolue à la publication (§ 2.4).",
+      "$comment": "Texte au premier niveau d'une version publiée. templateId : copie d'un bloc partagé (modèle « shared »), résolue à la publication (§ 2.4).",
       "type": "object",
       "additionalProperties": false,
       "required": [

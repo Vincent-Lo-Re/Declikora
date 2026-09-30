@@ -11,7 +11,7 @@ select pg_temp.empty_media_library();
 select pg_temp.empty_contents();
 \ir aides/publication.inc
 
--- Deux blocs identiques partout (« Contact », « Horaires »), une page en ligne qui les utilise,
+-- Deux blocs partagés (« Contact », « Horaires »), une page en ligne qui les utilise,
 -- puis « Contact » corrigé : la page est à mettre à jour.
 select pg_temp.as_person('editor');
 select pg_temp.create_content('contact', 'template', content_title => 'Contact', sort => 'shared');
@@ -300,7 +300,7 @@ select lives_ok(
 );
 select lives_ok(
   $$select public.content_create('template', title => 'Rappel', template_sort => 'shared')$$,
-  'admin : un bloc identique partout se crée'
+  'admin : un bloc partagé se crée'
 );
 select pg_temp.as_postgres();
 update public.edit_locks set holder_id = null, holder_session = null, taken_at = null;

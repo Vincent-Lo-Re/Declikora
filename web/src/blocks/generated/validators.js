@@ -371,7 +371,7 @@ var schema11 = {
     },
     linkedBlock: {
       $comment:
-        "Bloc identique partout (mod\xE8le \xAB shared \xBB) : au premier niveau d'un brouillon de contenu seulement.",
+        "Bloc partag\xE9 (mod\xE8le \xAB shared \xBB) : au premier niveau d'un brouillon de contenu seulement.",
       type: "object",
       additionalProperties: false,
       required: ["id", "type", "templateId"],
@@ -493,7 +493,7 @@ var schema11 = {
     },
     publishedTextBlock: {
       $comment:
-        "Texte au premier niveau d'une version publi\xE9e. templateId : copie d'un bloc identique partout (mod\xE8le \xAB shared \xBB), r\xE9solue \xE0 la publication (\xA7 2.4).",
+        "Texte au premier niveau d'une version publi\xE9e. templateId : copie d'un bloc partag\xE9 (mod\xE8le \xAB shared \xBB), r\xE9solue \xE0 la publication (\xA7 2.4).",
       type: "object",
       additionalProperties: false,
       required: ["id", "type", "doc"],
@@ -5354,7 +5354,7 @@ var schema43 = {
     },
     linkedBlock: {
       $comment:
-        "Bloc identique partout (mod\xE8le \xAB shared \xBB) : au premier niveau d'un brouillon de contenu seulement.",
+        "Bloc partag\xE9 (mod\xE8le \xAB shared \xBB) : au premier niveau d'un brouillon de contenu seulement.",
       type: "object",
       additionalProperties: false,
       required: ["id", "type", "templateId"],
@@ -5476,7 +5476,7 @@ var schema43 = {
     },
     publishedTextBlock: {
       $comment:
-        "Texte au premier niveau d'une version publi\xE9e. templateId : copie d'un bloc identique partout (mod\xE8le \xAB shared \xBB), r\xE9solue \xE0 la publication (\xA7 2.4).",
+        "Texte au premier niveau d'une version publi\xE9e. templateId : copie d'un bloc partag\xE9 (mod\xE8le \xAB shared \xBB), r\xE9solue \xE0 la publication (\xA7 2.4).",
       type: "object",
       additionalProperties: false,
       required: ["id", "type", "doc"],
@@ -10335,7 +10335,7 @@ var schema73 = {
     },
     linkedBlock: {
       $comment:
-        "Bloc identique partout (mod\xE8le \xAB shared \xBB) : au premier niveau d'un brouillon de contenu seulement.",
+        "Bloc partag\xE9 (mod\xE8le \xAB shared \xBB) : au premier niveau d'un brouillon de contenu seulement.",
       type: "object",
       additionalProperties: false,
       required: ["id", "type", "templateId"],
@@ -10457,7 +10457,7 @@ var schema73 = {
     },
     publishedTextBlock: {
       $comment:
-        "Texte au premier niveau d'une version publi\xE9e. templateId : copie d'un bloc identique partout (mod\xE8le \xAB shared \xBB), r\xE9solue \xE0 la publication (\xA7 2.4).",
+        "Texte au premier niveau d'une version publi\xE9e. templateId : copie d'un bloc partag\xE9 (mod\xE8le \xAB shared \xBB), r\xE9solue \xE0 la publication (\xA7 2.4).",
       type: "object",
       additionalProperties: false,
       required: ["id", "type", "doc"],
