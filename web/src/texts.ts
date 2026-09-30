@@ -543,6 +543,47 @@ export const texts = {
       envoi_refuse: "Le stockage a refusé l'envoi. Réessaie dans un instant.",
       deja_envoye: "Ce fichier a déjà été envoyé.",
     },
+    // « Remplacer… » dans la fiche d'un fichier ([D48]) : un nouveau fichier du même type.
+    replace: {
+      title: "Remplacer ce fichier",
+      description:
+        "Envoie un nouveau fichier du même type : une fois prêt, il prend sa place dans tous les brouillons. Ce qui est en ligne ne change qu'à ta demande.",
+      action: "Remplacer…",
+      input: "Nouveau fichier",
+      uploading: "Envoi du nouveau fichier…",
+      checking: "Vérification du nouveau fichier…",
+      replacing: "Remplacement dans les brouillons…",
+      replaced: (count: number) =>
+        count === 0
+          ? "Aucun brouillon n'utilisait ce fichier."
+          : count === 1
+            ? "Remplacé dans 1 brouillon."
+            : `Remplacé dans ${count} brouillons.`,
+      kept: (count: number) =>
+        count === 1
+          ? "1 brouillon n'a pas changé : quelqu'un l'écrit en ce moment."
+          : `${count} brouillons n'ont pas changé : quelqu'un les écrit en ce moment.`,
+      keptItem: (title: string, holder: string) =>
+        `« ${title || "Sans titre"} » (${holder})`,
+      retryKept: "Réessayer pour ces brouillons",
+      live: (count: number) =>
+        count === 1
+          ? "1 contenu en ligne montre encore l'ancien fichier."
+          : `${count} contenus en ligne montrent encore l'ancien fichier.`,
+      push: (count: number) =>
+        count === 1
+          ? "Mettre à jour ce contenu dans l'app"
+          : `Mettre à jour ces ${count} contenus dans l'app`,
+      pushed: (count: number) =>
+        count === 1
+          ? "1 contenu mis à jour dans l'app."
+          : `${count} contenus mis à jour dans l'app.`,
+      oldTrashed:
+        "Plus rien n'utilise l'ancien fichier : il est dans la corbeille.",
+      openNew: "Ouvrir le nouveau fichier",
+      rejected: (reason: string) => `Le nouveau fichier est refusé : ${reason}`,
+      failed: "L'envoi du nouveau fichier a échoué.",
+    },
     detail: {
       noPreview: "Pas d'aperçu pour ce fichier.",
       openFile: "Ouvrir le fichier",
@@ -627,6 +668,9 @@ export const texts = {
       envoi_expire: "Cet envoi a expiré. Envoie le fichier de nouveau.",
       fichier_utilise:
         "Ce fichier est encore utilisé : retire-le d'abord des contenus.",
+      fichier_pas_pret:
+        "Le nouveau fichier n'est pas encore prêt : attends la fin de sa vérification.",
+      type_different: "Le nouveau fichier doit être du même type que l'ancien.",
       effacement_demande: "L'effacement de ce fichier est déjà en cours.",
       demande_invalide: "La demande n'est pas valide. Recharge la page.",
       reserve_aux_admins: "Cette action est réservée aux admins.",

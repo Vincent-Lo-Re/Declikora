@@ -81,7 +81,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 
 - [x] **Une médiathèque commune**, avec une recherche et des filtres par type. Un fichier peut servir dans plusieurs contenus. On voit où il est utilisé, et on ne peut pas supprimer un fichier encore utilisé.
 - [x] **Types de fichiers** : images, SVG, animations Lottie, audios, PDF. Pas de vidéo.
-- [ ] **Remplacer un fichier** (30/09/2026) : « Remplacer… » dans la fiche d'un fichier envoie un nouveau fichier du même type ; une fois prêt, il prend la place de l'ancien dans tous les brouillons (sauf ceux que quelqu'un écrit en ce moment, qui sont listés). Ce qui est en ligne garde l'ancien jusqu'à « Mettre à jour ces N contenus dans l'app ». L'ancien part à la corbeille quand plus rien ne l'utilise. (Base faite, admin à venir.)
+- [x] **Remplacer un fichier** (30/09/2026) : « Remplacer… » dans la fiche d'un fichier envoie un nouveau fichier du même type ; une fois prêt, il prend la place de l'ancien dans tous les brouillons (sauf ceux que quelqu'un écrit en ce moment, qui sont listés). Ce qui est en ligne garde l'ancien jusqu'à « Mettre à jour ces N contenus dans l'app ». L'ancien part à la corbeille quand plus rien ne l'utilise, et la fiche passe au nouveau. L'envoi se suit dans la fenêtre des envois.
 - [x] **Photos réduites automatiquement** avant l'envoi, à environ 300 Ko, sans différence visible. Les SVG, les animations Lottie, les audios et les PDF sont envoyés tels quels.
 - [x] **SVG nettoyés à l'envoi** : un SVG peut contenir du code caché, qui est retiré.
 - [x] **Informations sur un fichier** : un texte alternatif pour les images, une transcription pour les audios.

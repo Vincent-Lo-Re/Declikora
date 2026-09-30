@@ -26,7 +26,7 @@ import {
   type SelectAll,
 } from "@/components/bulk-selection"
 import { LoadState } from "@/components/load-state"
-import { kindIcons } from "@/components/media/media-kinds"
+import { acceptedFiles, kindIcons } from "@/components/media/media-kinds"
 import { MediaGrid, MediaTable } from "@/components/media/media-collection"
 import { MediaSheet } from "@/components/media/media-sheet"
 import { OrphansNotice } from "@/components/media/orphans-notice"
@@ -88,29 +88,6 @@ const viewChoices: { value: View; Icon: typeof LayoutGrid }[] = [
 // transcription d'un audio, le texte alternatif d'une image de présentation).
 const FILE_PARAM = "fichier"
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-// Ce que le sélecteur de fichiers propose (le navigateur en fait un filtre, pas une règle).
-const acceptedFiles = [
-  ".jpg",
-  ".jpeg",
-  ".png",
-  ".webp",
-  ".gif",
-  ".heic",
-  ".heif",
-  ".avif",
-  ".svg",
-  ".json",
-  ".mp3",
-  ".m4a",
-  ".pdf",
-  "image/*",
-  "audio/mpeg",
-  "audio/mp4",
-  "audio/x-m4a",
-  "application/pdf",
-  "application/json",
-].join(",")
 
 function readView(): View {
   try {
@@ -550,6 +527,18 @@ export function MediaPage() {
         now={media.dataUpdatedAt}
         onClose={closeSheet}
         onTrashed={onTrashed}
+        onReplaced={(newId) => {
+          // La fiche du nouveau fichier, par l'adresse (il n'est peut-être pas encore dans la
+          // liste relue).
+          setOpened(null)
+          setSearchParams(
+            (params) => {
+              params.set(FILE_PARAM, newId)
+              return params
+            },
+            { replace: true }
+          )
+        }}
         finalFocus={sheetFinalFocus}
       />
 
