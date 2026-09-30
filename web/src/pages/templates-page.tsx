@@ -12,12 +12,19 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
-import { EditingCell, SavedCell } from "@/components/contents/row-cells"
+import {
+  BulkTrashButton,
+  KeptNotice,
+  SelectionBar,
+} from "@/components/bulk-selection"
+import { SavedCell } from "@/components/contents/row-cells"
+import { useContentsSelection } from "@/components/contents/use-contents-selection"
 import { LoadState } from "@/components/load-state"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TemplateDialog } from "@/components/templates/template-dialog"
 import { UsesList } from "@/components/templates/uses-list"
+import { TrashDialog } from "@/components/trash-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   AlertDialog,
@@ -29,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,7 +88,8 @@ function nameOf(item: { title: string }) {
 /**
  * La section Modèles : les modèles rangés par sorte (ADMIN § 5), « Nouveau modèle » (nom,
  * sorte, section d'un point de départ), ouvrir, supprimer (corbeille ; un bloc identique partout
- * utilisé montre ses brouillons et « Détacher partout »).
+ * utilisé montre ses brouillons et « Détacher partout »), et sélection en masse vers la corbeille
+ * (un bloc identique partout encore utilisé est gardé).
  */
 export function TemplatesPage() {
   const { title, description } = texts.sections.templates
@@ -93,7 +102,6 @@ export function TemplatesPage() {
   const list = useQuery({
     queryKey: templateKeys.list,
     queryFn: listTemplates,
-    // Qui modifie quoi : relu toutes les 30 secondes.
     refetchInterval: 30_000,
   })
   const uses = useQuery({
@@ -130,16 +138,31 @@ export function TemplatesPage() {
   const bySort = (sort: TemplateSort) =>
     (list.data ?? []).filter((item) => item.sort === sort)
 
+  // Sélection en masse ; un bloc identique partout encore utilisé est gardé et listé.
+  const bulk = useContentsSelection({
+    shown: list.data ?? [],
+    words: labels,
+    nameOf,
+  })
+  const { selection } = bulk
+
   return (
     <>
       <PageHeader
         title={title}
         description={description}
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <Plus />
-            {labels.create}
-          </Button>
+          <>
+            <BulkTrashButton
+              count={selection.items.length}
+              pending={bulk.pending}
+              onClick={bulk.askConfirm}
+            />
+            <Button onClick={() => setCreating(true)}>
+              <Plus />
+              {labels.create}
+            </Button>
+          </>
         }
       />
 
@@ -168,12 +191,38 @@ export function TemplatesPage() {
               <AlertDescription>{labels.refreshFailed}</AlertDescription>
             </Alert>
           )}
+          <div className="space-y-4">
+            {bulk.kept.length > 0 && (
+              <KeptNotice
+                kept={bulk.kept}
+                nameOf={nameOf}
+                title={labels.keptTitle(bulk.kept.length)}
+                hint={labels.keptHint(bulk.kept.length)}
+                onClose={bulk.closeKept}
+              />
+            )}
+            <SelectionBar
+              countLabel={
+                selection.items.length > 0
+                  ? labels.selected(selection.items.length)
+                  : null
+              }
+              all={selection.all}
+              some={selection.some}
+              disabled={bulk.pending}
+              onToggleAll={bulk.toggleAll}
+              selectAllRef={bulk.selectAllRef}
+            />
+          </div>
           {templateSorts.map((sort) => (
             <SortSection
               key={sort}
               sort={sort}
               items={bySort(sort)}
               useCount={uses.data ? useCount : null}
+              selected={bulk.checkedIds}
+              onSelect={bulk.toggle}
+              selectionDisabled={bulk.pending}
               onTrash={setToTrash}
             />
           ))}
@@ -203,6 +252,24 @@ export function TemplatesPage() {
         }
       />
 
+      <TrashDialog
+        open={bulk.confirming && selection.items.length > 0}
+        title={
+          selection.items.length === 1
+            ? labels.confirmTrash.title
+            : labels.confirmTrashManyTitle(selection.items.length)
+        }
+        description={
+          selection.items.length === 1
+            ? labels.confirmTrash.description(nameOf(selection.items[0]))
+            : labels.confirmTrashMany
+        }
+        confirmLabel={labels.confirmTrash.confirm}
+        pending={bulk.pending}
+        onCancel={bulk.cancel}
+        onConfirm={bulk.confirm}
+      />
+
       {toTrash && (
         <TrashTemplateDialog
           template={toTrash}
@@ -218,12 +285,19 @@ function SortSection({
   sort,
   items,
   useCount,
+  selected,
+  onSelect,
+  selectionDisabled,
   onTrash,
 }: {
   sort: TemplateSort
   items: TemplateItem[]
   // null tant que les brouillons qui citent les modèles ne sont pas lus.
   useCount: Map<string, number> | null
+  // Sélection en masse : les modèles cochés (toutes sortes confondues).
+  selected: ReadonlySet<string>
+  onSelect: (item: TemplateItem, checked: boolean) => void
+  selectionDisabled: boolean
   onTrash: (item: TemplateItem) => void
 }) {
   const sortTexts = texts.templates.sorts[sort]
@@ -246,6 +320,9 @@ function SortSection({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-0">
+                <span className="sr-only">{texts.selection.column}</span>
+              </TableHead>
               <TableHead>{labels.columns.name}</TableHead>
               {sort === "shared" && (
                 <TableHead>{labels.columns.uses}</TableHead>
@@ -254,7 +331,6 @@ function SortSection({
                 <TableHead>{labels.columns.section}</TableHead>
               )}
               <TableHead>{labels.columns.savedAt}</TableHead>
-              <TableHead>{labels.columns.status}</TableHead>
               <TableHead className="w-0">
                 <span className="sr-only">{texts.common.actions}</span>
               </TableHead>
@@ -262,7 +338,19 @@ function SortSection({
           </TableHeader>
           <TableBody>
             {items.map((item) => (
-              <TableRow key={item.id} data-template={item.id}>
+              <TableRow
+                key={item.id}
+                data-template={item.id}
+                data-state={selected.has(item.id) ? "selected" : undefined}
+              >
+                <TableCell>
+                  <Checkbox
+                    aria-label={texts.selection.select(nameOf(item))}
+                    checked={selected.has(item.id)}
+                    disabled={selectionDisabled}
+                    onCheckedChange={(value) => onSelect(item, value)}
+                  />
+                </TableCell>
                 <TableCell className="font-medium">
                   <Link
                     to={editorPath("templates", item.id)}
@@ -285,14 +373,7 @@ function SortSection({
                       : null}
                   </TableCell>
                 )}
-                <SavedCell
-                  savedAt={item.draft_saved_at}
-                  savedByName={item.saved_by_name}
-                />
-                <EditingCell
-                  editingName={item.editing_name}
-                  label={labels.beingEdited}
-                />
+                <SavedCell savedAt={item.draft_saved_at} />
                 <TableCell>
                   <RowActions item={item} onTrash={() => onTrash(item)} />
                 </TableCell>

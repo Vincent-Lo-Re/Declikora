@@ -263,7 +263,7 @@ export async function revertToVersion(
   }
 }
 
-type Trashed = {
+export type Trashed = {
   batch: string
   trashed: number
   needsFileSync: boolean

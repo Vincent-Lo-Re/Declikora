@@ -4,7 +4,6 @@ import {
   LayoutGrid,
   List,
   Search,
-  Trash2,
   TriangleAlert,
   Unlink,
   Upload,
@@ -20,7 +19,11 @@ import {
 import { useSearchParams } from "react-router"
 import { toast } from "sonner"
 
-import { KeptNotice, SelectionBar } from "@/components/bulk-selection"
+import {
+  BulkTrashButton,
+  KeptNotice,
+  SelectionBar,
+} from "@/components/bulk-selection"
 import { LoadState } from "@/components/load-state"
 import { kindIcons } from "@/components/media/media-kinds"
 import { MediaGrid, MediaTable } from "@/components/media/media-collection"
@@ -42,7 +45,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Spinner } from "@/components/ui/spinner"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
@@ -345,17 +347,11 @@ export function MediaPage() {
               aria-label={texts.media.uploadInput}
               onChange={onInputChange}
             />
-            {selection.items.length > 0 && (
-              <Button
-                variant="outline"
-                className="text-destructive"
-                disabled={bulkTrash.isPending}
-                onClick={() => bulkTrash.mutate(selection.items)}
-              >
-                {bulkTrash.isPending ? <Spinner /> : <Trash2 />}
-                {texts.selection.trash(selection.items.length)}
-              </Button>
-            )}
+            <BulkTrashButton
+              count={selection.items.length}
+              pending={bulkTrash.isPending}
+              onClick={() => bulkTrash.mutate(selection.items)}
+            />
             <Button
               ref={uploadButton}
               onClick={() => fileInput.current?.click()}

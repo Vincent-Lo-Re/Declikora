@@ -1,4 +1,4 @@
-import { TriangleAlert, X } from "lucide-react"
+import { Trash2, TriangleAlert, X } from "lucide-react"
 import type { Ref } from "react"
 
 import {
@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Spinner } from "@/components/ui/spinner"
 import type { Kept } from "@/lib/bulk-trash"
 import { texts } from "@/texts"
 
@@ -51,6 +52,30 @@ export function SelectionBar({
   )
 }
 
+/** « Mettre à la corbeille (n) », en tête de page, quand des lignes sont cochées. */
+export function BulkTrashButton({
+  count,
+  pending,
+  onClick,
+}: {
+  count: number
+  pending: boolean
+  onClick: () => void
+}) {
+  if (count === 0) return null
+  return (
+    <Button
+      variant="outline"
+      className="text-destructive"
+      disabled={pending}
+      onClick={onClick}
+    >
+      {pending ? <Spinner /> : <Trash2 />}
+      {texts.selection.trash(count)}
+    </Button>
+  )
+}
+
 /** Les lignes gardées par une mise à la corbeille en masse, avec la raison de chacune. */
 export function KeptNotice<T extends { id: string }>({
   kept,
@@ -60,7 +85,7 @@ export function KeptNotice<T extends { id: string }>({
   onClose,
 }: {
   kept: Kept<T>[]
-  nameOf: (item: T) => string
+  nameOf: (item: NoInfer<T>) => string
   title: string
   hint: string
   onClose: () => void

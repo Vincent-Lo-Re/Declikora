@@ -1,40 +1,13 @@
 import { MediaThumbnail } from "@/components/media/media-visuals"
-import { Badge } from "@/components/ui/badge"
 import { TableCell } from "@/components/ui/table"
 import { formatDateTime } from "@/lib/dates"
 import type { Media } from "@/lib/media/constants"
-import { texts } from "@/texts"
 
-/**
- * « Dernière modification » d'une ligne de liste : la date, et qui l'a faite (Modèles de bloc ;
- * les listes de contenus ne montrent que la date).
- */
-export function SavedCell({
-  savedAt,
-  savedByName = null,
-}: {
-  savedAt: string
-  savedByName?: string | null
-}) {
+/** « Dernière modification » d'une ligne de liste : la date seulement. */
+export function SavedCell({ savedAt }: { savedAt: string }) {
   return (
     <TableCell className="text-muted-foreground">
       {formatDateTime(savedAt)}
-      {savedByName && <> {texts.common.savedBy(savedByName)}</>}
-    </TableCell>
-  )
-}
-
-/** « État » d'une ligne de liste : qui écrit le brouillon en ce moment, s'il y a quelqu'un. */
-export function EditingCell({
-  editingName,
-  label,
-}: {
-  editingName: string | null
-  label: (name: string) => string
-}) {
-  return (
-    <TableCell>
-      {editingName && <Badge variant="secondary">{label(editingName)}</Badge>}
     </TableCell>
   )
 }

@@ -12,29 +12,26 @@ import {
   Trash2,
   TriangleAlert,
 } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
-import { KeptNotice, SelectionBar } from "@/components/bulk-selection"
+import {
+  BulkTrashButton,
+  KeptNotice,
+  SelectionBar,
+} from "@/components/bulk-selection"
 import { CoverCell, SavedCell } from "@/components/contents/row-cells"
+import { useContentsSelection } from "@/components/contents/use-contents-selection"
 import { useCovers } from "@/components/contents/use-covers"
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
 import { LoadState } from "@/components/load-state"
 import { useMethodPending } from "@/components/methods/use-method-pending"
 import { PageHeader } from "@/components/page-header"
 import { SearchInput } from "@/components/search-input"
+import { TrashDialog } from "@/components/trash-dialog"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -83,14 +80,6 @@ import {
   type AccessLevel,
 } from "@/lib/access-levels"
 import {
-  restoreMany,
-  selectionOf,
-  toggleAll,
-  toggleSelected,
-  trashMany,
-  type Kept,
-} from "@/lib/bulk-trash"
-import {
   categoryNames,
   categorySectionOf,
   type Category,
@@ -99,7 +88,6 @@ import {
   ContentError,
   contentKeys,
   createContent,
-  keptContentDetail,
   listContents,
   type ContentListItem,
 } from "@/lib/contents/api"
@@ -119,6 +107,7 @@ import {
   type MethodCounts,
 } from "@/lib/contents/methods"
 import { restoreContent, trashContent } from "@/lib/contents/publication"
+import { coverRequired } from "@/lib/contents/requirements"
 import { listStarters, templateKeys } from "@/lib/contents/templates"
 import { useCategories } from "@/hooks/use-categories"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
@@ -190,13 +179,6 @@ export function ContentListPage({
         )
       : list.data
   const [toTrash, setToTrash] = useState<ContentListItem | null>(null)
-  // Sélection en masse : les contenus cochés, ceux que la base a gardés, et la confirmation.
-  const [checkedIds, setCheckedIds] = useState<ReadonlySet<string>>(
-    () => new Set()
-  )
-  const [kept, setKept] = useState<Kept<ContentListItem>[]>([])
-  const [confirmMany, setConfirmMany] = useState(false)
-  const selectAll = useRef<HTMLSpanElement>(null)
   const [filters, setFilters] = useState<ListFilters>(noFilters)
   const search = useDebouncedValue(filters.search, 150)
 
@@ -227,7 +209,13 @@ export function ContentListPage({
         : [],
     [items, list.dataUpdatedAt, filters, search, category, known]
   )
-  const selection = selectionOf(checkedIds, shown)
+  // Sélection en masse ; un contenu que quelqu'un d'autre écrit est gardé et listé.
+  const bulk = useContentsSelection({
+    shown,
+    words: { ...kindLabels, undo: labels.undo },
+    nameOf: titleOf,
+  })
+  const { selection } = bulk
   const filtering =
     filters.search.trim() !== "" ||
     filters.state !== "all" ||
@@ -254,7 +242,7 @@ export function ContentListPage({
     mutationFn: (item: ContentListItem) => trashContent(item.id),
     onSuccess: (result, item) => {
       setToTrash(null)
-      setCheckedIds((current) => toggleSelected(current, item.id, false))
+      bulk.toggle(item, false)
       toast.success(labels.trashed(titleOf(item)), {
         action: { label: labels.undo, onClick: () => void undo(item) },
       })
@@ -273,60 +261,6 @@ export function ContentListPage({
     },
     onSettled: refresh,
   })
-
-  // « Annuler » après une mise à la corbeille en masse : les contenus reviennent en brouillon.
-  const undoMany = async (items: ContentListItem[]) => {
-    const { restored, error } = await restoreMany(
-      items.map((item) => item.id),
-      restoreContent
-    )
-    if (restored.length > 0)
-      toast.success(kindLabels.restoredMany(restored.length))
-    restored.forEach(({ addressRemoved }, index) => {
-      if (addressRemoved)
-        toast.warning(texts.trash.restoredWithoutAddress(titleOf(items[index])))
-    })
-    if (error) toast.error(errorMessage(error))
-    await refresh()
-  }
-
-  // Les contenus cochés, un par un ; un contenu que quelqu'un d'autre écrit est gardé et listé.
-  const trashSelected = useMutation({
-    mutationFn: (items: ContentListItem[]) =>
-      trashMany(items, trashContent, keptContentDetail),
-    onSuccess: (result) => {
-      setConfirmMany(false)
-      setCheckedIds((current) => {
-        const next = new Set(current)
-        for (const item of result.trashed) next.delete(item.id)
-        return next
-      })
-      setKept(result.kept)
-      if (result.trashed.length > 0) {
-        toast.success(kindLabels.trashedMany(result.trashed.length), {
-          action: {
-            label: labels.undo,
-            onClick: () => void undoMany(result.trashed),
-          },
-        })
-        if (result.results.some((trashed) => trashed.needsFileSync))
-          void kickFiles()
-      }
-      if (result.error) {
-        toast.error(errorMessage(result.error))
-        checkAccess(result.error)
-      }
-      // Le bouton « Mettre à la corbeille » disparaît : le focus va sur « Tout sélectionner ».
-      if (result.kept.length === 0 && result.error === null)
-        selectAll.current?.focus()
-    },
-    onError: (error) => {
-      setConfirmMany(false)
-      toast.error(errorMessage(error))
-    },
-    onSettled: refresh,
-  })
-  const bulkPending = trashSelected.isPending
 
   useEffect(() => {
     if (list.error) checkAccess(list.error)
@@ -397,17 +331,11 @@ export function ContentListPage({
         description={description}
         actions={
           <>
-            {selection.items.length > 0 && (
-              <Button
-                variant="outline"
-                className="text-destructive"
-                disabled={bulkPending}
-                onClick={() => setConfirmMany(true)}
-              >
-                {bulkPending ? <Spinner /> : <Trash2 />}
-                {texts.selection.trash(selection.items.length)}
-              </Button>
-            )}
+            <BulkTrashButton
+              count={selection.items.length}
+              pending={bulk.pending}
+              onClick={bulk.askConfirm}
+            />
             {categorySection && (
               <Link
                 to={categoriesPath(categorySection)}
@@ -437,16 +365,13 @@ export function ContentListPage({
               <AlertDescription>{labels.refreshFailed}</AlertDescription>
             </Alert>
           )}
-          {kept.length > 0 && (
+          {bulk.kept.length > 0 && (
             <KeptNotice
-              kept={kept}
+              kept={bulk.kept}
               nameOf={titleOf}
-              title={kindLabels.keptTitle(kept.length)}
-              hint={kindLabels.keptHint(kept.length)}
-              onClose={() => {
-                setKept([])
-                selectAll.current?.focus()
-              }}
+              title={kindLabels.keptTitle(bulk.kept.length)}
+              hint={kindLabels.keptHint(bulk.kept.length)}
+              onClose={bulk.closeKept}
             />
           )}
           {list.data.length === 0 ? (
@@ -485,13 +410,9 @@ export function ContentListPage({
                     }
                     all={selection.all}
                     some={selection.some}
-                    disabled={bulkPending}
-                    onToggleAll={(checked) =>
-                      setCheckedIds((current) =>
-                        toggleAll(current, shown, checked)
-                      )
-                    }
-                    selectAllRef={selectAll}
+                    disabled={bulk.pending}
+                    onToggleAll={bulk.toggleAll}
+                    selectAllRef={bulk.selectAllRef}
                   />
                   <ContentTable
                     kind={kind}
@@ -501,13 +422,9 @@ export function ContentListPage({
                     categories={categories.data}
                     levels={levels.data}
                     counts={counts.data}
-                    selected={checkedIds}
-                    onSelect={(item, checked) =>
-                      setCheckedIds((current) =>
-                        toggleSelected(current, item.id, checked)
-                      )
-                    }
-                    trashing={trash.isPending || bulkPending}
+                    selected={bulk.checkedIds}
+                    onSelect={bulk.toggle}
+                    trashing={trash.isPending || bulk.pending}
                     onTrash={setToTrash}
                   />
                 </>
@@ -521,12 +438,13 @@ export function ContentListPage({
         open={toTrash !== null}
         title={kindLabels.confirmTrashTitle}
         description={toTrash ? kindLabels.confirmTrash(titleOf(toTrash)) : ""}
+        confirmLabel={labels.confirmTrash.confirm}
         pending={trash.isPending}
         onCancel={() => setToTrash(null)}
         onConfirm={() => toTrash && trash.mutate(toTrash)}
       />
       <TrashDialog
-        open={confirmMany && selection.items.length > 0}
+        open={bulk.confirming && selection.items.length > 0}
         title={
           selection.items.length === 1
             ? kindLabels.confirmTrashTitle
@@ -537,59 +455,12 @@ export function ContentListPage({
             ? kindLabels.confirmTrash(titleOf(selection.items[0]))
             : kindLabels.confirmTrashMany
         }
-        pending={bulkPending}
-        onCancel={() => setConfirmMany(false)}
-        onConfirm={() => trashSelected.mutate(selection.items)}
+        confirmLabel={labels.confirmTrash.confirm}
+        pending={bulk.pending}
+        onCancel={bulk.cancel}
+        onConfirm={bulk.confirm}
       />
     </>
-  )
-}
-
-/** Confirmation d'une mise à la corbeille (un contenu, ou les contenus cochés). */
-function TrashDialog({
-  open,
-  title,
-  description,
-  pending,
-  onCancel,
-  onConfirm,
-}: {
-  open: boolean
-  title: string
-  description: string
-  pending: boolean
-  onCancel: () => void
-  onConfirm: () => void
-}) {
-  return (
-    <AlertDialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!next && !pending) onCancel()
-      }}
-    >
-      {open && (
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{title}</AlertDialogTitle>
-            <AlertDialogDescription>{description}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>
-              {texts.common.cancel}
-            </AlertDialogCancel>
-            <Button
-              variant="destructive"
-              disabled={pending}
-              onClick={onConfirm}
-            >
-              {pending ? <Spinner /> : <Trash2 />}
-              {labels.confirmTrash.confirm}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      )}
-    </AlertDialog>
   )
 }
 
@@ -729,8 +600,8 @@ function ContentTable({
 }) {
   const withCategories = kind === "article" || kind === "episode"
   const isMethod = kind === "method"
-  // Le Fil : l'image de présentation de chaque article, en vignette.
-  const withCover = kind === "article"
+  // Le Fil, Radio Éclaircies, Méthodes : l'image de présentation de chacun, en vignette.
+  const withCover = coverRequired(kind)
   const coverFor = useCovers(withCover ? items : [])
   return (
     <Table>

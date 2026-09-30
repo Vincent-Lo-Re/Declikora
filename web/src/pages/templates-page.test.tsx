@@ -78,8 +78,6 @@ function item(
     templateFor: sort === "starter" ? "page" : null,
     draft: draftOf(title),
     draft_saved_at: "2026-09-27T12:30:00Z",
-    saved_by_name: "Anne Admin",
-    editing_name: null,
     ...changes,
   }
 }
@@ -115,7 +113,7 @@ const created: api.Content = {
 beforeEach(() => {
   vi.mocked(templatesApi.listTemplates).mockResolvedValue([
     item(RETENIR, "À retenir", "style"),
-    item(CONTACT, "Contact", "shared", { editing_name: "Claire Martin" }),
+    item(CONTACT, "Contact", "shared"),
     item(INTERVIEW, "Interview", "starter"),
   ])
   vi.mocked(templatesApi.listTemplateUses).mockImplementation(async (ids) =>
@@ -144,8 +142,9 @@ describe("section Modèles", () => {
       .getByRole("link", { name: "Contact" })
       .closest("tr")!
     expect(row).toHaveTextContent(labels.uses(2))
-    expect(row).toHaveTextContent(labels.beingEdited("Claire Martin"))
-    expect(row).toHaveTextContent("27 sept. 2026 à 14h30 par Anne Admin")
+    // La date seulement : ni qui a modifié, ni qui écrit en ce moment.
+    expect(row).toHaveTextContent("27 sept. 2026 à 14h30")
+    expect(row).not.toHaveTextContent("Anne Admin")
     expect(
       within(shared).getByRole("link", { name: "Contact" })
     ).toHaveAttribute("href", `/modeles/${CONTACT}`)
@@ -339,6 +338,51 @@ describe("section Modèles", () => {
     await waitFor(() =>
       expect(publicationApi.restoreContent).toHaveBeenCalledWith(RETENIR)
     )
+  })
+
+  it("« Tout sélectionner » met les modèles à la corbeille, et garde un bloc identique partout utilisé", async () => {
+    const used = "Ce modèle est utilisé dans : Accueil."
+    vi.mocked(publicationApi.trashContent).mockImplementation(async (id) => {
+      if (id === CONTACT) {
+        throw new api.ContentError("modele_utilise", { detail: used })
+      }
+      return { batch: "lot", trashed: 1, needsFileSync: false }
+    })
+    vi.mocked(publicationApi.restoreContent).mockResolvedValue({
+      restored: 1,
+      addressRemoved: false,
+    })
+    renderApp("/modeles")
+
+    fireEvent.click(
+      await screen.findByRole("checkbox", { name: texts.selection.selectAll })
+    )
+    expect(screen.getByText(labels.selected(3))).toBeVisible()
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.selection.trash(3) })
+    )
+    const dialog = await screen.findByRole("alertdialog")
+    expect(dialog).toHaveTextContent(labels.confirmTrashManyTitle(3))
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: labels.confirmTrash.confirm })
+    )
+
+    expect(await screen.findByText(labels.trashedMany(2))).toBeVisible()
+    expect(screen.getByText(labels.keptTitle(1))).toBeVisible()
+    expect(
+      screen.getByText(texts.selection.keptItem("Contact", used))
+    ).toBeVisible()
+    expect(
+      screen.getByRole("checkbox", { name: texts.selection.select("Contact") })
+    ).toBeChecked()
+
+    fireEvent.click(
+      within(screen.getByText(labels.trashedMany(2)).closest("li")!).getByRole(
+        "button",
+        { name: labels.undo }
+      )
+    )
+    expect(await screen.findByText(labels.restoredMany(2))).toBeVisible()
   })
 })
 

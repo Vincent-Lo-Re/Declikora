@@ -1282,7 +1282,6 @@ export const texts = {
         uses: "Utilisation",
         section: "Section",
         savedAt: "Dernière modification",
-        status: "En ce moment",
       },
       untitled: "Sans nom",
       empty: {
@@ -1301,7 +1300,6 @@ export const texts = {
       actions: (name: string) => `Actions pour ${name}`,
       open: "Ouvrir",
       trash: "Supprimer",
-      beingEdited: (name: string) => `${name} le modifie`,
       loadFailed: "La liste des modèles n'a pas pu être chargée.",
       refreshFailed:
         "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
@@ -1315,6 +1313,22 @@ export const texts = {
       trashed: (name: string) => `${name} est dans la corbeille.`,
       undo: "Annuler",
       restored: (name: string) => `${name} est restauré.`,
+      // Sélection en masse.
+      selected: (count: number) =>
+        count === 1 ? "1 modèle sélectionné" : `${count} modèles sélectionnés`,
+      confirmTrashManyTitle: (count: number) => `Supprimer ${count} modèles ?`,
+      confirmTrashMany:
+        "Ils vont dans la corbeille : tu pourras les restaurer pendant 30 jours. Les contenus où ils ont été insérés gardent leur copie. Un bloc identique partout encore utilisé est gardé.",
+      trashedMany: (count: number) =>
+        count === 1
+          ? "1 modèle mis à la corbeille."
+          : `${count} modèles mis à la corbeille.`,
+      restoredMany: (count: number) =>
+        count === 1 ? "1 modèle restauré." : `${count} modèles restaurés.`,
+      keptTitle: (count: number) =>
+        count === 1 ? "1 modèle gardé" : `${count} modèles gardés`,
+      keptHint: (count: number) =>
+        `Pour un bloc identique partout encore utilisé, « Supprimer » propose « Détacher partout ». ${count === 1 ? "Il reste sélectionné." : "Ils restent sélectionnés."}`,
       // Un bloc identique partout utilisé ne se supprime pas (ADMIN § 5).
       used: {
         title: "Ce modèle est encore utilisé",

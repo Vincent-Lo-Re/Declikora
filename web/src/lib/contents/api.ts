@@ -52,13 +52,22 @@ export class ContentError extends Error {
   }
 }
 
+// Refus attendus d'une mise à la corbeille en masse : la ligne est gardée, la suite continue.
+const keptCodes: ReadonlySet<string> = new Set([
+  "verrou_tenu", // quelqu'un d'autre écrit ce brouillon
+  "contenu_introuvable", // il n'existe plus
+  "modele_utilise", // un bloc identique partout encore utilisé (ADMIN § 5)
+])
+
 /**
- * Mise à la corbeille en masse : un contenu que quelqu'un d'autre écrit (ou qui n'existe plus)
- * est gardé, avec la raison de la base ; toute autre erreur arrête la suite.
+ * Mise à la corbeille en masse : un contenu que quelqu'un d'autre écrit, qui n'existe plus, ou
+ * un modèle encore utilisé est gardé, avec la raison de la base ; toute autre erreur arrête la
+ * suite.
  */
 export function keptContentDetail(error: unknown): string | null {
   return error instanceof ContentError &&
-    (error.code === "verrou_tenu" || error.code === "contenu_introuvable")
+    error.code !== null &&
+    keptCodes.has(error.code)
     ? (error.detail ?? error.message)
     : null
 }
