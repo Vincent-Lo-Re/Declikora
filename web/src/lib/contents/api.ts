@@ -171,6 +171,28 @@ function categoryIdsOf(
   return (rows ?? []).map((row) => row.category_id).sort()
 }
 
+/**
+ * La page (hors corbeille) qui a déjà cette adresse dans son brouillon, sauf exceptId : la même
+ * règle que la base (adresse_prise), vérifiée avant d'envoyer.
+ */
+export async function findPageBySlug(
+  slug: string,
+  exceptId: string | null = null
+): Promise<{ id: string; title: string } | null> {
+  let query = supabase
+    .from("contents")
+    .select("id, title")
+    .eq("kind", "page")
+    .eq("slug", slug)
+    .is("deleted_at", null)
+    .limit(1)
+  if (exceptId) query = query.neq("id", exceptId)
+  const { data, error, status } = await query
+  if (error) throw toContentError(error, status)
+  const found = data[0]
+  return found ? { id: found.id, title: found.title ?? "" } : null
+}
+
 /** Les contenus d'une sorte, hors corbeille, les derniers modifiés d'abord. */
 export async function listContents(
   kind: ContentKind

@@ -603,15 +603,8 @@ function ContentTable({
             </TableHead>
           )}
           <TableHead>{labels.columns.title}</TableHead>
-          {isMethod ? (
-            <TableHead>{labels.columns.level}</TableHead>
-          ) : (
-            <TableHead>
-              {withCategories
-                ? labels.columns.categories
-                : labels.columns.address}
-            </TableHead>
-          )}
+          {isMethod && <TableHead>{labels.columns.level}</TableHead>}
+          {withCategories && <TableHead>{labels.columns.categories}</TableHead>}
           <TableHead>{labels.columns.publication}</TableHead>
           <TableHead>{labels.columns.savedAt}</TableHead>
           <TableHead className="w-0">
@@ -645,19 +638,10 @@ function ContentTable({
                   {name}
                 </Link>
               </TableCell>
-              {isMethod ? (
-                <LevelCell item={item} levels={levels} />
-              ) : (
+              {isMethod && <LevelCell item={item} levels={levels} />}
+              {withCategories && (
                 <TableCell className="max-w-64 text-muted-foreground">
-                  {withCategories ? (
-                    <CategoriesCell ids={item.category_ids} all={categories} />
-                  ) : item.slug ? (
-                    <code className="font-mono text-xs break-all">
-                      {item.slug}
-                    </code>
-                  ) : (
-                    <span className="text-xs">{labels.noAddress}</span>
-                  )}
+                  <CategoriesCell ids={item.category_ids} all={categories} />
                 </TableCell>
               )}
               <TableCell>

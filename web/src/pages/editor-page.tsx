@@ -1912,6 +1912,7 @@ function ContentEditor({
             onOpenChange={setSettingsOpen}
             focus={settingsFocus}
             kind={kind}
+            contentId={contentId}
             title={title}
             onTitleChange={(value) =>
               setDraft((current) => ({ ...current, title: value }))

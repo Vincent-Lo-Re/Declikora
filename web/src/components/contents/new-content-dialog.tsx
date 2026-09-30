@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query"
 import { useState, type FormEvent } from "react"
 
 import {
@@ -23,8 +24,14 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import type { AccessLevel } from "@/lib/access-levels"
-import type { ContentSettings } from "@/lib/contents/api"
+import {
+  contentKeys,
+  findPageBySlug,
+  type ContentSettings,
+} from "@/lib/contents/api"
+import { slugFromTitle } from "@/lib/contents/slug"
 import type { SettingsChoices } from "@/lib/contents/settings"
 import { texts } from "@/texts"
 
@@ -87,6 +94,36 @@ export function NewContentDialog({
   const [settings, setSettings] = useState(emptyChoices)
   const [titleError, setTitleError] = useState<string | null>(null)
 
+  // Une page : son adresse vient du titre, et une adresse déjà prise bloque la création.
+  const isPage = kind === "page"
+  const wantedSlug = isPage ? slugFromTitle(title) : ""
+  const checkedSlug = useDebouncedValue(wantedSlug, 300)
+  const slugCheck = useQuery({
+    queryKey: [...contentKeys.all, "adresse", checkedSlug],
+    queryFn: () => findPageBySlug(checkedSlug),
+    enabled: isPage && checkedSlug !== "",
+    staleTime: 0,
+  })
+  const slugPending =
+    isPage &&
+    wantedSlug !== "" &&
+    (wantedSlug !== checkedSlug || slugCheck.isPending)
+  const takenBy = isPage && !slugPending ? (slugCheck.data ?? null) : null
+  const addressMessage = !isPage
+    ? null
+    : title.trim() === ""
+      ? null
+      : wantedSlug === ""
+        ? { error: true, text: labels.newContent.addressEmpty }
+        : slugPending
+          ? { error: false, text: texts.publication.settings.slug.checking }
+          : takenBy
+            ? {
+                error: true,
+                text: labels.newContent.addressTaken(takenBy.title),
+              }
+            : { error: false, text: labels.newContent.address(wantedSlug) }
+
   // Chaque ouverture repart d'une fenêtre vide.
   const [wasOpen, setWasOpen] = useState(open)
   if (open !== wasOpen) {
@@ -114,13 +151,14 @@ export function NewContentDialog({
       setTitleError(texts.publication.settings.titleRequired)
       return
     }
+    if (isPage && (wantedSlug === "" || slugPending || takenBy)) return
     onSubmit({
       title: trimmed,
       starterId: starter === BLANK ? null : starter,
       choices: {
         accessChosen: settings.accessChosen,
         accessLevelId: settings.accessLevelId,
-        slug: settings.slug,
+        slug: isPage ? wantedSlug : settings.slug,
         categoryIds: settings.categoryIds,
       },
     })
@@ -145,6 +183,8 @@ export function NewContentDialog({
                 setTitleError(null)
               }}
               titleError={titleError}
+              autoFocusTitle
+              slugField={false}
               settings={settings}
               editable={!pending}
               levels={levels}
@@ -154,35 +194,49 @@ export function NewContentDialog({
               categories={categories}
               onChange={setSettings}
               afterTitle={
-                starters.length > 0 && (
-                  <>
-                    <Separator />
-                    <Field>
-                      <FieldLabel htmlFor="nouveau-depart">
-                        {labels.newContent.starter}
-                      </FieldLabel>
-                      <Select
-                        items={starterItems}
-                        value={starter}
-                        onValueChange={(value) => setStarter(value ?? BLANK)}
-                      >
-                        <SelectTrigger id="nouveau-depart" className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {starterItems.map((item) => (
-                            <SelectItem key={item.value} value={item.value}>
-                              {item.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FieldDescription>
-                        {labels.newContent.starterHint}
-                      </FieldDescription>
-                    </Field>
-                  </>
-                )
+                <>
+                  {addressMessage && (
+                    <p
+                      role={addressMessage.error ? "alert" : "status"}
+                      className={
+                        addressMessage.error
+                          ? "text-sm text-destructive"
+                          : "text-sm text-muted-foreground"
+                      }
+                    >
+                      {addressMessage.text}
+                    </p>
+                  )}
+                  {starters.length > 0 && (
+                    <>
+                      <Separator />
+                      <Field>
+                        <FieldLabel htmlFor="nouveau-depart">
+                          {labels.newContent.starter}
+                        </FieldLabel>
+                        <Select
+                          items={starterItems}
+                          value={starter}
+                          onValueChange={(value) => setStarter(value ?? BLANK)}
+                        >
+                          <SelectTrigger id="nouveau-depart" className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {starterItems.map((item) => (
+                              <SelectItem key={item.value} value={item.value}>
+                                {item.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FieldDescription>
+                          {labels.newContent.starterHint}
+                        </FieldDescription>
+                      </Field>
+                    </>
+                  )}
+                </>
               }
             />
             {error && (
@@ -192,7 +246,12 @@ export function NewContentDialog({
             )}
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
+            <Button
+              type="submit"
+              disabled={
+                pending || Boolean(addressMessage?.error) || slugPending
+              }
+            >
               {pending && <Spinner />}
               {kindLabels.submit}
             </Button>

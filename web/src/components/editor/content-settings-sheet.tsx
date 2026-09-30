@@ -1,4 +1,5 @@
-import { Tags } from "lucide-react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Plus, Tags } from "lucide-react"
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { Link } from "react-router"
 
@@ -24,11 +25,23 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import type { AccessLevel } from "@/lib/access-levels"
-import type { Category, CategorySection } from "@/lib/categories"
-import type { ContentKind, ContentSettings } from "@/lib/contents/api"
+import {
+  categoryKeys,
+  createCategory,
+  type Category,
+  type CategorySection,
+} from "@/lib/categories"
+import {
+  findPageBySlug,
+  type ContentKind,
+  type ContentSettings,
+} from "@/lib/contents/api"
 import type { LiveVersion } from "@/lib/contents/publication"
 import { checkSlug, slugFromTitle } from "@/lib/contents/slug"
+import { errorMessage } from "@/lib/errors"
+import { categoryNameSchema } from "@/lib/schemas"
 import { categoriesPath } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -119,11 +132,17 @@ export function ContentSettingsSheet({
 
 type SettingsFieldsProps = {
   kind: ContentKind
+  // Le contenu réglé (null à la création) : une adresse déjà prise par une AUTRE page est refusée.
+  contentId?: string | null
+  // Faux dans la fenêtre de création : l'adresse d'une page y vient du titre.
+  slugField?: boolean
   title: string
   // Le titre comme champ (fenêtre de création, réglages) : sinon, il ne sert qu'à proposer
   // l'adresse d'une page.
   onTitleChange?: (title: string) => void
   titleError?: string | null
+  // Fenêtre de création : le curseur est dans le titre dès l'ouverture.
+  autoFocusTitle?: boolean
   // Sous le titre (fenêtre de création : le point de départ).
   afterTitle?: ReactNode
   settings: ContentSettings
@@ -147,9 +166,12 @@ type SettingsFieldsProps = {
  */
 export function ContentSettingsFields({
   kind,
+  contentId = null,
+  slugField = true,
   title,
   onTitleChange,
   titleError = null,
+  autoFocusTitle = false,
   afterTitle,
   settings,
   editable,
@@ -172,6 +194,7 @@ export function ContentSettingsFields({
           <FieldLabel htmlFor="reglages-titre">{labels.titleLabel}</FieldLabel>
           <Input
             id="reglages-titre"
+            autoFocus={autoFocusTitle}
             value={title}
             readOnly={!editable}
             maxLength={TITLE_MAX}
@@ -220,10 +243,11 @@ export function ContentSettingsFields({
           />
         </>
       )}
-      {kind === "page" && (
+      {kind === "page" && slugField && (
         <>
           <Separator />
           <SlugField
+            contentId={contentId}
             inputRef={slugRef ?? ownSlugRef}
             slug={settings.slug}
             title={title}
@@ -323,6 +347,12 @@ function CategoriesSection({
           ))}
         </ul>
       )}
+      {editable && list !== undefined && (
+        <AddCategory
+          section={categories.section}
+          onAdded={(category) => onChange([...chosen, category.id].sort())}
+        />
+      )}
       <Link
         to={categoriesPath(categories.section)}
         className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -331,6 +361,79 @@ function CategoriesSection({
         {words.manage}
       </Link>
     </section>
+  )
+}
+
+/**
+ * Une nouvelle catégorie, créée tout de suite dans la section (comme depuis la page Catégories),
+ * puis cochée. Entrée l'ajoute sans envoyer le formulaire autour (fenêtre de création).
+ */
+function AddCategory({
+  section,
+  onAdded,
+}: {
+  section: CategorySection
+  onAdded: (category: Category) => void
+}) {
+  const queryClient = useQueryClient()
+  const [name, setName] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const add = useMutation({
+    mutationFn: (value: string) => createCategory(section, value),
+    onSuccess: (category) => {
+      queryClient.setQueryData<Category[]>(
+        categoryKeys.list(section),
+        (list) => [...(list ?? []), category]
+      )
+      void queryClient.invalidateQueries({ queryKey: categoryKeys.all })
+      setName("")
+      onAdded(category)
+    },
+    onError: (failure) => setError(errorMessage(failure)),
+  })
+  const submit = () => {
+    const parsed = categoryNameSchema.safeParse({ name })
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? null)
+      return
+    }
+    add.mutate(parsed.data.name)
+  }
+  return (
+    <Field data-invalid={error !== null}>
+      <FieldLabel htmlFor="reglages-nouvelle-categorie">
+        {texts.categories.name}
+      </FieldLabel>
+      <div className="flex gap-2">
+        <Input
+          id="reglages-nouvelle-categorie"
+          value={name}
+          autoComplete="off"
+          placeholder={texts.categories.namePlaceholder}
+          aria-invalid={error !== null}
+          onChange={(event) => {
+            setName(event.target.value)
+            setError(null)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault()
+              submit()
+            }
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          disabled={add.isPending}
+          onClick={submit}
+        >
+          {add.isPending ? <Spinner /> : <Plus />}
+          {texts.categories.add}
+        </Button>
+      </div>
+      <FieldError>{error}</FieldError>
+    </Field>
   )
 }
 
@@ -462,6 +565,7 @@ function AccessSection({
 }
 
 function SlugField({
+  contentId,
   inputRef,
   slug,
   title,
@@ -471,6 +575,7 @@ function SlugField({
   refused,
   onCommit,
 }: {
+  contentId: string | null
   inputRef: React.RefObject<HTMLInputElement | null>
   slug: string | null
   title: string
@@ -484,6 +589,7 @@ function SlugField({
     refused ? (refused.slug ?? "") : (slug ?? "")
   )
   const [error, setError] = useState<string | null>(null)
+  const [checking, setChecking] = useState(false)
   // L'adresse a changé ailleurs (relecture du brouillon) ou vient d'être refusée : le champ
   // reprend celle du brouillon, ou garde celle qui a été refusée.
   const [shown, setShown] = useState({ slug, refused })
@@ -493,7 +599,7 @@ function SlugField({
     setError(null)
   }
 
-  const commit = (value: string) => {
+  const commit = async (value: string) => {
     const checked = checkSlug(value)
     if (!checked.ok) {
       setError(
@@ -505,13 +611,30 @@ function SlugField({
     }
     setError(null)
     setText(checked.slug ?? "")
-    if (checked.slug !== slug) onCommit(checked.slug)
+    if (checked.slug === slug) return
+    // Déjà prise par une autre page : refusée tout de suite (la base refuse aussi, à
+    // l'enregistrement, si une autre page la prend entre-temps).
+    if (checked.slug) {
+      setChecking(true)
+      try {
+        const other = await findPageBySlug(checked.slug, contentId)
+        if (other) {
+          setError(labels.slug.taken(other.title))
+          return
+        }
+      } catch {
+        // Vérification impossible (réseau) : la base tranchera à l'enregistrement.
+      } finally {
+        setChecking(false)
+      }
+    }
+    onCommit(checked.slug)
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault()
-      commit(event.currentTarget.value)
+      void commit(event.currentTarget.value)
     }
   }
 
@@ -545,12 +668,12 @@ function SlugField({
               (refused && event.target.value === (refused.slug ?? ""))
             )
               return
-            commit(event.target.value)
+            void commit(event.target.value)
           }}
           onKeyDown={onKeyDown}
         />
         <FieldDescription id="reglages-adresse-aide">
-          {labels.slug.description}
+          {checking ? labels.slug.checking : labels.slug.description}
         </FieldDescription>
         <FieldError>{message}</FieldError>
       </Field>
@@ -560,7 +683,7 @@ function SlugField({
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => commit(suggestion)}
+            onClick={() => void commit(suggestion)}
           >
             {labels.slug.fromTitle}
           </Button>

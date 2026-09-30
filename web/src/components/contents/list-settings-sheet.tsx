@@ -128,6 +128,7 @@ export function ListSettingsSheet({
       }}
       focus={null}
       kind={kind}
+      contentId={item.id}
       title={title}
       onTitleChange={setTitle}
       titleError={

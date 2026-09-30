@@ -31,5 +31,8 @@ export async function createFromDialog(
     fireEvent.click(choice)
     await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull())
   }
-  fireEvent.click(within(dialog).getByRole("button", { name: words.submit }))
+  // Une page : « Créer » attend la vérification de son adresse.
+  const submit = within(dialog).getByRole("button", { name: words.submit })
+  await waitFor(() => expect(submit).toBeEnabled())
+  fireEvent.click(submit)
 }

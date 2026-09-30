@@ -881,7 +881,6 @@ export const texts = {
       title: "Titre",
       publication: "Publication",
       categories: "Catégories",
-      address: "Adresse",
       level: "Niveau d'accès",
       savedAt: "Dernière modification",
     },
@@ -908,7 +907,6 @@ export const texts = {
           ? "1 élément"
           : `${total} éléments`
         : `${shown} sur ${total}`,
-    noAddress: "Pas d'adresse",
     // Méthodes : le niveau de la fiche.
     levelNotChosen: "Pas encore choisi",
     noCategory: "Aucune",
@@ -926,6 +924,12 @@ export const texts = {
       description:
         "Le titre suffit pour commencer : tout se modifie ensuite dans les réglages.",
       starter: "Point de départ",
+      // Une page : l'adresse vient du titre ; déjà prise, la création est bloquée.
+      address: (slug: string) => `Adresse de la page : ${slug}`,
+      addressTaken: (title: string) =>
+        `La page « ${title || "Sans titre"} » a déjà cette adresse : change le titre.`,
+      addressEmpty:
+        "Ce titre ne donne pas d'adresse : ajoute des lettres ou des chiffres.",
       starterHint: "Une structure déjà en place, au lieu d'un contenu vide.",
       settingsFailed: (message: string) =>
         `Créé, mais ses réglages n'ont pas été enregistrés : ${message} Corrige-les dans les réglages.`,
@@ -2106,6 +2110,9 @@ export const texts = {
         fromTitle: "Reprendre le titre",
         live: (slug: string) => `En ligne : ${slug}`,
         missing: "Choisis l'adresse de la page avant de la publier.",
+        taken: (title: string) =>
+          `La page « ${title || "Sans titre"} » a déjà cette adresse : choisis-en une autre.`,
+        checking: "Vérification de l'adresse…",
       },
       categories: {
         label: "Catégories",

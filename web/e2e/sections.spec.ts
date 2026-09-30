@@ -582,9 +582,7 @@ test("Pages : recherche (accents, casse, adresse) et filtre par état dans la li
   const search = page.getByRole("searchbox", { name: list.kinds.page.search })
   const liveRow = page.getByRole("row").filter({ hasText: livePage })
   const draftRow = page.getByRole("row").filter({ hasText: draftPage })
-  await expect(liveRow).toContainText(slug)
   await expect(liveRow).toContainText(publication.status.live)
-  await expect(draftRow).toContainText(list.noAddress)
   await expect(draftRow).toContainText(publication.status.draft)
 
   // Les deux par leur repère commun.

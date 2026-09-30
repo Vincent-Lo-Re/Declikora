@@ -158,8 +158,14 @@ export async function createFromDialog(
   await expect(page.getByLabel(texts.editor.title.label)).toBeEditable()
 }
 
-/** « Nouvelle page » dans la liste des Pages, jusqu'à l'éditeur d'une page vide. */
-export async function createBlankPage(page: Page, title = "Page d'essai") {
+/**
+ * « Nouvelle page » dans la liste des Pages, jusqu'à l'éditeur d'une page vide. Son adresse vient
+ * du titre, et deux pages ne peuvent pas avoir la même : le titre par défaut est donc unique.
+ */
+export async function createBlankPage(
+  page: Page,
+  title = `Page d'essai ${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+) {
   await createFromDialog(page, "page", title)
   await expect(page).toHaveURL(/\/pages\/[0-9a-f-]{36}$/)
 }

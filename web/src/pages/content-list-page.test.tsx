@@ -18,6 +18,7 @@ vi.mock("@/lib/contents/api", async (importOriginal) => {
   const actual = await importOriginal<typeof api>()
   return {
     ...actual,
+    findPageBySlug: vi.fn(async () => null),
     listContents: vi.fn(),
     getMediaByIds: vi.fn(async () => []),
     createContent: vi.fn(),
@@ -51,7 +52,7 @@ vi.mock("@/lib/contents/templates", async (importOriginal) => {
 
 vi.mock("@/lib/categories", async (importOriginal) => {
   const actual = await importOriginal<typeof categoriesApi>()
-  return { ...actual, listCategories: vi.fn() }
+  return { ...actual, listCategories: vi.fn(), createCategory: vi.fn() }
 })
 
 vi.mock("@/lib/access-levels", async (importOriginal) => {
@@ -353,6 +354,46 @@ describe("Blog", () => {
     )
   })
 
+  it("« Nouvel article » : une catégorie se crée dans la fenêtre, et elle est cochée", async () => {
+    vi.mocked(api.listContents).mockResolvedValue([])
+    const created = {
+      id: "00000000-0000-4000-8000-00000000c009",
+      name: "Respiration",
+      position: 2,
+      uses: 0,
+    }
+    // Créée dans la base : la relecture de la liste la contient.
+    vi.mocked(categoriesApi.createCategory).mockImplementation(async () => {
+      vi.mocked(categoriesApi.listCategories).mockResolvedValue([
+        { id: SOMMEIL, name: "Sommeil", position: 0, uses: 1 },
+        { id: STRESS, name: "Stress", position: 1, uses: 2 },
+        created,
+      ])
+      return created
+    })
+    renderApp("/blog")
+    fireEvent.click(
+      await screen.findByRole("button", { name: labels.kinds.article.create })
+    )
+    const dialog = await screen.findByRole("dialog", {
+      name: labels.kinds.article.create,
+    })
+    const name = await within(dialog).findByLabelText(texts.categories.name)
+    fireEvent.change(name, { target: { value: "Respiration" } })
+    // Entrée ajoute la catégorie, sans envoyer la fenêtre.
+    fireEvent.keyDown(name, { key: "Enter" })
+    await waitFor(() =>
+      expect(categoriesApi.createCategory).toHaveBeenCalledWith(
+        "blog",
+        "Respiration"
+      )
+    )
+    expect(
+      await within(dialog).findByRole("checkbox", { name: "Respiration" })
+    ).toBeChecked()
+    expect(api.createContent).not.toHaveBeenCalled()
+  })
+
   it("« Réglages » depuis la liste : le titre et les réglages, enregistrés d'un coup", async () => {
     vi.mocked(api.listContents).mockResolvedValue([articles[2]])
     vi.mocked(api.lockStatus).mockResolvedValue(lockRow({}))
@@ -561,7 +602,61 @@ describe("Podcasts", () => {
 })
 
 describe("Pages", () => {
-  it("montre l'adresse de chaque page, sans filtre par catégorie", async () => {
+  it("« Nouvelle page » : l'adresse vient du titre, et une adresse déjà prise bloque la création", async () => {
+    vi.mocked(api.listContents).mockResolvedValue([])
+    vi.mocked(api.findPageBySlug).mockImplementation(async (slug) =>
+      slug === "accueil" ? { id: "autre", title: "Accueil" } : null
+    )
+    vi.mocked(api.createContent).mockResolvedValue({
+      ...newArticle,
+      kind: "page",
+      title: "Été serein",
+      draft: { v: 1, title: "Été serein", blocks: [] },
+    })
+    vi.mocked(api.lockTake).mockResolvedValue(lockRow({ mine: true }))
+    renderApp("/pages")
+    fireEvent.click(
+      await screen.findByRole("button", { name: labels.kinds.page.create })
+    )
+    const dialog = await screen.findByRole("dialog", {
+      name: labels.kinds.page.create,
+    })
+    const title = within(dialog).getByLabelText(
+      texts.publication.settings.titleLabel
+    )
+    const submit = within(dialog).getByRole("button", {
+      name: labels.kinds.page.submit,
+    })
+    // Pas de champ d'adresse : elle se lit sous le titre.
+    expect(
+      within(dialog).queryByLabelText(texts.publication.settings.slug.label)
+    ).toBeNull()
+
+    fireEvent.change(title, { target: { value: "Accueil" } })
+    expect(
+      await within(dialog).findByText(labels.newContent.addressTaken("Accueil"))
+    ).toBeVisible()
+    expect(submit).toBeDisabled()
+
+    fireEvent.change(title, { target: { value: "Été serein" } })
+    expect(
+      await within(dialog).findByText(labels.newContent.address("ete-serein"))
+    ).toBeVisible()
+    await waitFor(() => expect(submit).toBeEnabled())
+    fireEvent.click(submit)
+    await waitFor(() =>
+      expect(api.saveDraft).toHaveBeenCalledWith(
+        ARTICLE,
+        1,
+        { v: 1, title: "Été serein", blocks: [] },
+        expect.any(String),
+        { slug: "ete-serein" }
+      )
+    )
+    expect(api.createContent).toHaveBeenCalledWith("page", "Été serein", null)
+  })
+
+  it("liste les pages sans colonne Adresse ni filtre par catégorie", async () => {
     vi.mocked(api.listContents).mockResolvedValue([
       row("00000000-0000-4000-8000-0000000000b1", "Mentions légales", {
         slug: "mentions-legales",
@@ -570,11 +665,7 @@ describe("Pages", () => {
     ])
     renderApp("/pages")
     await screen.findByRole("link", { name: "Mentions légales" })
-    expect(
-      screen.getByRole("columnheader", { name: labels.columns.address })
-    ).toBeVisible()
-    expect(screen.getByText("mentions-legales")).toBeVisible()
-    expect(screen.getByText(labels.noAddress)).toBeVisible()
+    expect(screen.queryByText("mentions-legales")).toBeNull()
     expect(
       screen.queryByRole("combobox", { name: labels.filters.category })
     ).toBeNull()

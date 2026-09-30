@@ -17,6 +17,7 @@ vi.mock("@/lib/contents/api", async (importOriginal) => {
   const actual = await importOriginal<typeof api>()
   return {
     ...actual,
+    findPageBySlug: vi.fn(async () => null),
     listContents: vi.fn(async () => []),
     createContent: vi.fn(),
     getContent: vi.fn(async () => null),
