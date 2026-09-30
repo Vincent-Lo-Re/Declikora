@@ -26,7 +26,7 @@ export type SelectAll = {
   disabled: boolean
   onToggleAll: (checked: boolean) => void
   // Le focus y revient quand le bouton « Mettre à la corbeille » disparaît.
-  checkboxRef: Ref<HTMLSpanElement>
+  checkboxRef?: Ref<HTMLSpanElement>
 }
 
 /** La case « Tout sélectionner », sans texte : son nom est dans l'infobulle. */

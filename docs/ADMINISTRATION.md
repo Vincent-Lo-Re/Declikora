@@ -70,8 +70,8 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Quand un bloc partagé est modifié**, l'admin liste les contenus publiés qui l'utilisent et propose « Mettre à jour ces N contenus dans l'app ». Rien ne change dans l'app avant ce clic.
 - [x] **Détacher** : dans un contenu, un bloc partagé peut devenir une copie ordinaire, modifiable, qui ne suit plus le modèle. Les autres contenus restent liés.
 - [x] **Supprimer** : un bloc partagé ne peut pas être supprimé tant qu'il est utilisé. L'admin montre les contenus concernés, et « Détacher partout » en fait des copies ordinaires. On peut ensuite supprimer le modèle. Les deux autres sortes se suppriment librement, puisque les contenus n'en gardent que des copies.
-- [x] **La liste** : un onglet « Tous les blocs » (avec la sorte de chaque modèle), puis un onglet par sorte (Mises en forme, Blocs partagés, Points de départ), avec leur nom et leur dernière modification ; « Tout sélectionner » met les modèles de l'onglet à la corbeille (un bloc partagé encore utilisé est gardé).
-- [x] **Création** : dans la section Modèles, ou depuis un contenu (on sélectionne des blocs, puis « Enregistrer comme modèle »).
+- [x] **La liste** : un onglet « Tous les blocs » (avec le type de chaque modèle), puis un onglet par type (Mises en forme, Blocs partagés, Points de départ), avec leur nom et leur dernière modification ; « Tout sélectionner » met les modèles de l'onglet à la corbeille (un bloc partagé encore utilisé est gardé).
+- [x] **Création** : dans la section Modèles de bloc, ou depuis un contenu (on sélectionne des blocs, puis « Enregistrer comme modèle »).
 - [x] **Droits** : admin et éditeur.
 
 ## 6. Médiathèque

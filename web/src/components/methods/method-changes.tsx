@@ -37,7 +37,7 @@ function rowLabel(row: PreviewRow): string {
       : labels.method.reordered
   }
   const title = row.title.trim() || texts.common.untitled
-  return `${labels.kinds[row.kind]} « ${title} »`
+  return labels.row(labels.kinds[row.kind], title)
 }
 
 /**

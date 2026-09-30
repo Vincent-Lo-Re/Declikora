@@ -223,7 +223,7 @@ describe("Corbeille : contenus", () => {
       within(filters)
         .getAllByRole("button")
         .map((button) => button.textContent)
-    ).toEqual(["Tout", "Pages", "Méthodes", "Fichiers"])
+    ).toEqual(["Tout", "Méthodes", "Pages", "Médiathèque"])
     // La leçon partie avec sa méthode n'a pas sa propre ligne.
     expect(screen.getAllByRole("row")).toHaveLength(4)
     expect(screen.getByText(texts.trash.batch(1))).toBeVisible()
@@ -272,10 +272,14 @@ describe("Corbeille : contenus", () => {
     renderApp("/corbeille")
     await screen.findByText(page.title!)
     fireEvent.click(
-      screen.getByRole("checkbox", { name: texts.trash.select(page.title!) })
+      screen.getByRole("checkbox", {
+        name: texts.selection.select(page.title!),
+      })
     )
     fireEvent.click(
-      screen.getByRole("checkbox", { name: texts.trash.select(method.title!) })
+      screen.getByRole("checkbox", {
+        name: texts.selection.select(method.title!),
+      })
     )
     fireEvent.click(
       screen.getByRole("button", { name: texts.trash.eraseSelection(2) })

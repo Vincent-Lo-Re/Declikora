@@ -44,7 +44,7 @@ export const texts = {
   nav: {
     label: "Menu principal",
     description: "Les sections de l'administration.",
-    footerLabel: "Équipe et paramètres",
+    footerLabel: "Équipe et Paramètres",
     open: "Ouvrir la navigation",
     close: "Refermer la navigation",
     groups: {
@@ -77,16 +77,17 @@ export const texts = {
     },
     templates: {
       title: "Modèles de bloc",
-      description: "Les modèles de blocs, à réutiliser dans les contenus.",
+      description: "Les modèles de bloc, à réutiliser dans les contenus.",
     },
     media: {
       title: "Médiathèque",
       description:
-        "JPG, PNG, WebP, GIF, HEIC, AVIF, SVG, Lottie, MP3, M4A et PDF.",
+        "JPEG, PNG, WebP, GIF, HEIC, AVIF, SVG, Lottie, MP3, M4A et PDF.",
     },
     trash: {
       title: "Corbeille",
-      description: "Ce qui a été supprimé, restaurable pendant 30 jours.",
+      description:
+        "Ce qui a été mis à la corbeille, restaurable pendant 30 jours.",
     },
     team: {
       title: "Équipe",
@@ -203,7 +204,7 @@ export const texts = {
     title: "Réservé aux admins",
     description:
       "Cette section est réservée aux admins de l'équipe. Demande à un admin si tu as besoin d'y accéder.",
-    back: "Retour à l'accueil",
+    back: "Retour au tableau de bord",
   },
 
   account: {
@@ -416,7 +417,7 @@ export const texts = {
     empty: {
       title: "Aucun fichier pour l'instant",
       description:
-        "Envoie des images, des sons, des animations ou des PDF : ils serviront dans les contenus.",
+        "Envoie des images, des audios, des animations ou des PDF : ils serviront dans les contenus.",
     },
     noResults: {
       title: "Aucun fichier trouvé",
@@ -507,7 +508,7 @@ export const texts = {
     // Refus avant l'envoi (préparation dans le navigateur).
     prepareErrors: {
       type_refuse:
-        "Format refusé. Envoie une image (JPEG, PNG, WebP, GIF, HEIC), un SVG, une animation Lottie (.json), un audio (MP3, M4A) ou un PDF.",
+        "Format refusé. Envoie une image (JPEG, PNG, WebP, GIF, HEIC, AVIF), un SVG, une animation Lottie (.json), un audio (MP3, M4A) ou un PDF.",
       video_refusee:
         "Les vidéos ne sont pas acceptées. Pour un son, envoie un MP3 ou un M4A.",
       fichier_vide: "Ce fichier est vide.",
@@ -555,7 +556,8 @@ export const texts = {
       altTooLong: "Le texte alternatif ne doit pas dépasser 1 000 caractères.",
       transcript: "Transcription",
       transcriptHint: "Le texte de l'audio, pour qui ne peut pas l'écouter.",
-      transcriptTooLong: "La transcription est trop longue.",
+      transcriptTooLong:
+        "La transcription ne doit pas dépasser 200 000 caractères.",
       saved: "Fiche enregistrée.",
       info: "Informations",
       kind: "Type",
@@ -637,14 +639,15 @@ export const texts = {
 
   trash: {
     filters: {
+      // Les sections d'où viennent les éléments, avec leurs noms du menu.
       label: "Type d'élément",
       all: "Tout",
-      file: "Fichiers",
+      file: "Médiathèque",
       page: "Pages",
-      article: "Articles",
-      episode: "Épisodes",
+      article: "Le Fil",
+      episode: "Radio Éclaircies",
       method: "Méthodes",
-      template: "Modèles",
+      template: "Modèles de bloc",
     },
     itemTypes: {
       file: "Fichier",
@@ -658,17 +661,18 @@ export const texts = {
       chapter: "Chapitre",
       lesson: "Leçon",
       page: "Page",
-      template: "Modèle",
+      template: "Modèle de bloc",
     },
     // Ce qui est parti avec une méthode (même lot) : restauré ou effacé avec elle.
     batch: (count: number) =>
       count === 1 ? "avec 1 élément" : `avec ${count} éléments`,
-    batchList: (names: string) => `Parti avec lui : ${names}.`,
-    select: (name: string) => `Sélectionner ${name}`,
-    selectAll: "Tout sélectionner",
-    eraseSelection: (count: number) => `Effacer la sélection (${count})`,
+    batchList: (names: string) => `Dans le même lot : ${names}.`,
+    eraseSelection: (count: number) => `Effacer définitivement (${count})`,
     confirmSelection: {
-      title: "Effacer la sélection ?",
+      title: (count: number) =>
+        count === 1
+          ? "Effacer définitivement cet élément ?"
+          : "Effacer définitivement ces éléments ?",
       description: (count: number) =>
         count === 1
           ? "L'élément sélectionné sera effacé définitivement. Tu ne pourras pas revenir en arrière."
@@ -678,13 +682,12 @@ export const texts = {
     // Seules les pages ont une adresse.
     restoredWithoutAddress: (name: string) =>
       `La page « ${name} » est restaurée, mais sans adresse : une autre page a pris la sienne entre-temps. Choisis-en une autre avant de la publier.`,
-    restoredDraft:
-      "Il revient en brouillon : il n'est pas republié dans l'app.",
+    restoredDraft: "Retour en brouillon : rien n'est republié dans l'app.",
     open: "Ouvrir",
     columns: {
       name: "Nom",
       type: "Type",
-      deletedAt: "Supprimé le",
+      deletedAt: "Mis à la corbeille le",
       purgeAt: "Effacement automatique",
     },
     deletedBy: (name: string) => `par ${name}`,
@@ -714,15 +717,15 @@ export const texts = {
     confirmErase: {
       title: "Effacer définitivement ?",
       description: (name: string) =>
-        `${name} sera effacé définitivement. Tu ne pourras pas revenir en arrière.`,
+        `« ${name} » sera effacé définitivement. Tu ne pourras pas revenir en arrière.`,
       confirm: "Effacer définitivement",
     },
     retention:
-      "Ce qui est supprimé reste ici 30 jours, puis est effacé automatiquement.",
+      "Ce qui est mis à la corbeille reste ici 30 jours, puis est effacé automatiquement.",
     emptyState: {
       title: "La corbeille est vide",
       description:
-        "Ce que tu supprimes arrive ici. Tu peux le restaurer pendant 30 jours.",
+        "Ce que tu mets à la corbeille arrive ici. Tu peux le restaurer pendant 30 jours.",
     },
     emptyFilter: "Aucun élément de ce type dans la corbeille.",
     loadFailed: "La corbeille n'a pas pu être chargée.",
@@ -739,12 +742,14 @@ export const texts = {
         createFailed: "La page n'a pas pu être créée.",
         // « Nouvelle page » quand des points de départ existent pour les Pages ([D42]).
         blank: "Page vide",
-        confirmTrashTitle: "Supprimer cette page ?",
+        confirmTrashTitle: "Mettre cette page à la corbeille ?",
         confirmTrash: (title: string) =>
-          `${title} va dans la corbeille. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
-        restored: (title: string) => `${title} est restaurée, en brouillon.`,
+          `« ${title} » va dans la corbeille. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
+        restored: (title: string) =>
+          `« ${title} » est restaurée, en brouillon.`,
         // Sélection en masse.
-        confirmTrashManyTitle: (count: number) => `Supprimer ${count} pages ?`,
+        confirmTrashManyTitle: (count: number) =>
+          `Mettre ${count} pages à la corbeille ?`,
         confirmTrashMany:
           "Elles vont dans la corbeille. Celles qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
         trashedMany: (count: number) =>
@@ -771,13 +776,13 @@ export const texts = {
         create: "Nouvel article",
         createFailed: "L'article n'a pas pu être créé.",
         blank: "Article vide",
-        confirmTrashTitle: "Supprimer cet article ?",
+        confirmTrashTitle: "Mettre cet article à la corbeille ?",
         confirmTrash: (title: string) =>
-          `${title} va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras le restaurer pendant 30 jours.`,
-        restored: (title: string) => `${title} est restauré, en brouillon.`,
+          `« ${title} » va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras le restaurer pendant 30 jours.`,
+        restored: (title: string) => `« ${title} » est restauré, en brouillon.`,
         // Sélection en masse.
         confirmTrashManyTitle: (count: number) =>
-          `Supprimer ${count} articles ?`,
+          `Mettre ${count} articles à la corbeille ?`,
         confirmTrashMany:
           "Ils vont dans la corbeille. Ceux qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
         trashedMany: (count: number) =>
@@ -803,13 +808,13 @@ export const texts = {
         create: "Nouvel épisode",
         createFailed: "L'épisode n'a pas pu être créé.",
         blank: "Épisode vide",
-        confirmTrashTitle: "Supprimer cet épisode ?",
+        confirmTrashTitle: "Mettre cet épisode à la corbeille ?",
         confirmTrash: (title: string) =>
-          `${title} va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras le restaurer pendant 30 jours.`,
-        restored: (title: string) => `${title} est restauré, en brouillon.`,
+          `« ${title} » va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras le restaurer pendant 30 jours.`,
+        restored: (title: string) => `« ${title} » est restauré, en brouillon.`,
         // Sélection en masse.
         confirmTrashManyTitle: (count: number) =>
-          `Supprimer ${count} épisodes ?`,
+          `Mettre ${count} épisodes à la corbeille ?`,
         confirmTrashMany:
           "Ils vont dans la corbeille. Ceux qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
         trashedMany: (count: number) =>
@@ -835,14 +840,14 @@ export const texts = {
         create: "Nouvelle méthode",
         createFailed: "La méthode n'a pas pu être créée.",
         blank: "Méthode vide",
-        confirmTrashTitle: "Supprimer cette méthode ?",
+        confirmTrashTitle: "Mettre cette méthode à la corbeille ?",
         confirmTrash: (title: string) =>
-          `${title} va dans la corbeille, avec ses chapitres et ses leçons. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
+          `« ${title} » va dans la corbeille, avec ses chapitres et ses leçons. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
         restored: (title: string) =>
-          `${title} est restaurée, en brouillon, avec ses chapitres et ses leçons.`,
+          `« ${title} » est restaurée, en brouillon, avec ses chapitres et ses leçons.`,
         // Sélection en masse.
         confirmTrashManyTitle: (count: number) =>
-          `Supprimer ${count} méthodes ?`,
+          `Mettre ${count} méthodes à la corbeille ?`,
         confirmTrashMany:
           "Elles vont dans la corbeille, avec leurs chapitres et leurs leçons. Celles qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
         trashedMany: (count: number) =>
@@ -906,11 +911,11 @@ export const texts = {
     manageCategories: "Catégories",
     actions: (title: string) => `Actions pour ${title}`,
     open: "Ouvrir",
-    trash: "Supprimer",
+    trash: "Mettre à la corbeille",
     confirmTrash: {
       confirm: "Mettre à la corbeille",
     },
-    trashed: (title: string) => `${title} est dans la corbeille.`,
+    trashed: (title: string) => `« ${title} » est dans la corbeille.`,
     undo: "Annuler",
     // Colonne Catégories : la première, puis « +2 » pour les autres.
     moreCategories: (count: number) => `+${count}`,
@@ -963,7 +968,7 @@ export const texts = {
       moveUp: "Monter",
       moveDown: "Descendre",
       unpublish: "Retirer de l'app",
-      trash: "Supprimer",
+      trash: "Mettre à la corbeille",
       states: {
         live: "En ligne",
         modified: "Modifié depuis la publication",
@@ -1014,14 +1019,14 @@ export const texts = {
       },
       unpublished: (label: string) => `Retiré de l'app : ${label}.`,
       confirmTrash: {
-        title: (label: string) => `Supprimer ${label} ?`,
+        title: (label: string) => `Mettre ${label} à la corbeille ?`,
         chapter:
           "Le chapitre et ses leçons vont dans la corbeille. S'ils sont en ligne, ils disparaissent aussi de l'app. Tu pourras les restaurer pendant 30 jours.",
         lesson:
           "La leçon va dans la corbeille. Si elle est en ligne, elle disparaît aussi de l'app. Tu pourras la restaurer pendant 30 jours.",
         confirm: "Mettre à la corbeille",
       },
-      trashed: (label: string) => `Dans la corbeille : ${label}.`,
+      trashed: (label: string) => `${upperFirst(label)} est dans la corbeille.`,
       undo: "Annuler",
       restored: (label: string) =>
         `De retour en fin de liste, caché de l'app : ${label}.`,
@@ -1065,8 +1070,8 @@ export const texts = {
       submit: "Créer",
       openAfter: "Créer et ouvrir",
       created: {
-        chapter: (title: string) => `Chapitre créé : ${title}.`,
-        lesson: (title: string) => `Leçon créée : ${title}.`,
+        chapter: (title: string) => `Chapitre « ${title} » créé.`,
+        lesson: (title: string) => `Leçon « ${title} » créée.`,
       },
       open: "Ouvrir",
       failed: "L'élément n'a pas pu être créé.",
@@ -1075,7 +1080,7 @@ export const texts = {
     },
     // L'éditeur d'un chapitre ou d'une leçon : il n'a pas de bouton Publier ([D29]).
     element: {
-      back: (method: string) => `Retour à la méthode ${method}`,
+      back: (method: string) => `Retour à la méthode « ${method} »`,
       reminder: {
         chapter:
           "Ce chapitre part dans l'app avec sa méthode : il n'a pas de bouton Publier. Son introduction est affichée avant ses leçons.",
@@ -1130,6 +1135,8 @@ export const texts = {
         chapter: "Chapitre",
         lesson: "Leçon",
       },
+      // « Leçon « Respirer » » : la sorte, puis le titre.
+      row: (kind: string, title: string) => `${kind} « ${title} »`,
       changes: {
         new: "Neuf",
         modified: "Modifié",
@@ -1156,11 +1163,11 @@ export const texts = {
       podcasts:
         "Elles servent à filtrer les épisodes dans l'app. Un épisode peut en avoir une, plusieurs ou aucune.",
     },
-    back: (section: string) => `Retour à ${section}`,
+    back: (section: string) => `Retour à la section ${section}`,
     order:
       "L'app les montre dans cet ordre. Range-les avec la poignée, à la souris ou au clavier.",
     listLabel: (section: string) =>
-      `Catégories ${section}, dans l'ordre de l'app`,
+      `Catégories de la section ${section}, dans l'ordre de l'app`,
     empty:
       "Aucune catégorie pour l'instant. Les catégories sont facultatives : ajoutes-en si tu veux que l'app puisse filtrer.",
     name: "Nom de la nouvelle catégorie",
@@ -1266,7 +1273,7 @@ export const texts = {
       },
       // Les onglets : « Tous les blocs », puis un par sorte (texts.templates.sorts.*.tab).
       tabs: {
-        label: "Sortes de modèles",
+        label: "Types de modèles",
         all: "Tous les blocs",
       },
       untitled: "Sans nom",
@@ -1275,26 +1282,27 @@ export const texts = {
         description:
           "Crée un modèle ici, ou depuis un contenu : choisis des blocs dans le plan, puis « Enregistrer comme modèle ».",
       },
-      emptySort: "Aucun modèle de cette sorte pour l'instant.",
+      emptySort: "Aucun modèle de ce type pour l'instant.",
       usesLoading: "Recherche des brouillons…",
       actions: (name: string) => `Actions pour ${name}`,
       open: "Ouvrir",
-      trash: "Supprimer",
+      trash: "Mettre à la corbeille",
       loadFailed: "La liste des modèles n'a pas pu être chargée.",
       refreshFailed:
         "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
       createFailed: "Le modèle n'a pas pu être créé.",
       confirmTrash: {
-        title: "Supprimer ce modèle ?",
+        title: "Mettre ce modèle à la corbeille ?",
         description: (name: string) =>
-          `${name} va dans la corbeille : tu pourras le restaurer pendant 30 jours. Les contenus où il a été inséré gardent leur copie.`,
+          `« ${name} » va dans la corbeille : tu pourras le restaurer pendant 30 jours. Les contenus où il a été inséré gardent leur copie.`,
         confirm: "Mettre à la corbeille",
       },
-      trashed: (name: string) => `${name} est dans la corbeille.`,
+      trashed: (name: string) => `« ${name} » est dans la corbeille.`,
       undo: "Annuler",
-      restored: (name: string) => `${name} est restauré.`,
+      restored: (name: string) => `« ${name} » est restauré.`,
       // Sélection en masse.
-      confirmTrashManyTitle: (count: number) => `Supprimer ${count} modèles ?`,
+      confirmTrashManyTitle: (count: number) =>
+        `Mettre ${count} modèles à la corbeille ?`,
       confirmTrashMany:
         "Ils vont dans la corbeille : tu pourras les restaurer pendant 30 jours. Les contenus où ils ont été insérés gardent leur copie. Un bloc partagé encore utilisé est gardé.",
       trashedMany: (count: number) =>
@@ -1306,7 +1314,7 @@ export const texts = {
       keptTitle: (count: number) =>
         count === 1 ? "1 modèle gardé" : `${count} modèles gardés`,
       keptHint: (count: number) =>
-        `Pour un bloc partagé encore utilisé, « Supprimer » propose « Détacher partout ». ${count === 1 ? "Il reste sélectionné." : "Ils restent sélectionnés."}`,
+        `Pour un bloc partagé encore utilisé, « Mettre à la corbeille » propose « Détacher partout ». ${count === 1 ? "Il reste sélectionné." : "Ils restent sélectionnés."}`,
       // Un bloc partagé utilisé ne se supprime pas (ADMIN § 5).
       used: {
         title: "Ce modèle est encore utilisé",
@@ -1326,16 +1334,16 @@ export const texts = {
     create: {
       title: "Nouveau modèle",
       description:
-        "Choisis la sorte du modèle : elle ne changera plus. Tu écriras ensuite ses blocs dans l'éditeur.",
+        "Choisis le type du modèle : il ne changera plus. Tu écriras ensuite ses blocs dans l'éditeur.",
       name: "Nom",
       namePlaceholder: "Par exemple : Contact",
       nameRequired: "Donne un nom au modèle.",
-      nameTooLong: "Le nom fait 200 caractères au plus.",
-      sort: "Sorte",
+      nameTooLong: "Le nom ne doit pas dépasser 200 caractères.",
+      sort: "Type",
       section: "Section",
       sectionPlaceholder: "Choisis une section",
       sectionHint:
-        "Le point de départ ne sera proposé que dans cette section : « Nouvelle page » ne propose que ceux des Pages.",
+        "Le point de départ ne sera proposé que dans cette section : « Nouvelle page » ne propose que ceux des pages.",
       sectionRequired: "Choisis la section du point de départ.",
       submit: "Créer le modèle",
     },
@@ -1388,19 +1396,19 @@ export const texts = {
     },
     // Un bloc lié (bloc partagé) dans l'éditeur d'un contenu.
     linked: {
-      label: (name: string) => `Modèle : ${name}`,
+      label: (name: string) => `Modèle « ${name} »`,
       loading: "Chargement du modèle…",
       missing:
         "Ce modèle n'existe plus ou est dans la corbeille : supprime ce bloc, ou restaure le modèle.",
       empty: "Ce modèle est vide.",
       edit: "Modifier le modèle",
-      editLabel: (name: string) => `Modifier le modèle ${name}`,
+      editLabel: (name: string) => `Modifier le modèle « ${name} »`,
       detach: "Détacher",
-      detachLabel: (name: string) => `Détacher du modèle ${name}`,
+      detachLabel: (name: string) => `Détacher du modèle « ${name} »`,
       detached: (name: string) =>
-        `Bloc détaché de ${name} : c'est maintenant une copie ordinaire, que tu peux modifier ici.`,
+        `Bloc détaché de « ${name} » : c'est maintenant une copie ordinaire, que tu peux modifier ici.`,
       settings: (name: string) =>
-        `Ce bloc est partagé : il vient du modèle ${name}. Pour le corriger, modifie le modèle : la correction apparaîtra dans tous les brouillons qui l'utilisent.`,
+        `Ce bloc est partagé : il vient du modèle « ${name} ». Pour le corriger, modifie le modèle : la correction apparaîtra dans tous les brouillons qui l'utilisent.`,
       detachHint:
         "« Détacher » en fait une copie ordinaire, modifiable ici, qui ne suit plus le modèle. Les autres contenus restent liés.",
     },
@@ -1411,13 +1419,13 @@ export const texts = {
       description:
         "Une mise en forme s'insère en copie, que tu modifies ici. Un bloc partagé reste lié à son modèle.",
       empty:
-        "Aucun modèle à insérer pour l'instant. Crée-en un dans la section Modèles.",
+        "Aucun modèle à insérer pour l'instant. Crée-en un dans Modèles de bloc.",
       insert: "Insérer",
       insertLabel: (name: string) => `Insérer ${name}`,
-      emptyTemplate: "Vide : ajoute-lui son bloc dans Modèles.",
+      emptyTemplate: "Vide : ajoute-lui son bloc dans Modèles de bloc.",
       loadFailed: "Les modèles n'ont pas pu être chargés.",
       manage: "Gérer les modèles",
-      inserted: (name: string) => `Modèle inséré : ${name}.`,
+      inserted: (name: string) => `Modèle « ${name} » inséré.`,
     },
     // « Enregistrer comme modèle » : une sélection de blocs (plan, ou bloc choisi).
     saveAs: {
@@ -1438,14 +1446,14 @@ export const texts = {
       sharedReplaced:
         "Le bloc est maintenant lié au modèle : le corriger dans le modèle le corrigera ici aussi.",
       submit: "Enregistrer le modèle",
-      saved: (name: string) => `Modèle enregistré : ${name}.`,
+      saved: (name: string) => `Modèle « ${name} » enregistré.`,
       open: "Ouvrir",
     },
   },
 
   // Éditeur de blocs (plein écran) : docs/ARCHITECTURE-CONTENUS.md, § 2.7 et § 3.3.
   editor: {
-    back: (section: string) => `Retour à ${section}`,
+    back: (section: string) => `Retour à la section ${section}`,
     loading: "Ouverture du brouillon…",
     notFound: {
       title: "Contenu introuvable",
@@ -1545,9 +1553,9 @@ export const texts = {
       choose: "Choisir une image",
       replace: "Changer d'image",
       none: "Aucune image choisie",
-      missing: "Fichier supprimé, choisis-en un autre.",
+      missing: "Image supprimée : choisis-en une autre.",
       loadFailed: "L'image n'a pas pu être chargée.",
-      notReady: "Ce fichier n'est pas prêt. Choisis-en un autre.",
+      notReady: "Cette image n'est pas prête : choisis-en une autre.",
       captionLabel: "Légende",
       captionPlaceholder: "Ajoute une légende (facultatif)",
       altWarning:
@@ -1566,13 +1574,13 @@ export const texts = {
       loadFailed: "Les images n'ont pas pu être chargées.",
       upload: "Envoyer une image",
       uploadInput: "Image à envoyer",
-      uploading: (name: string) => `Envoi de ${name}…`,
+      uploading: (name: string) => `Envoi de « ${name} »…`,
       uploadingProgress: (name: string, percent: string) =>
-        `Envoi de ${name}… ${percent}`,
+        `Envoi de « ${name} »… ${percent}`,
       uploadFailed: (name: string, error: string) =>
-        `Échec de l'envoi de ${name}. ${error}`,
+        `Échec de l'envoi de « ${name} ». ${error}`,
       notImage: (name: string) =>
-        `${name} est dans la Médiathèque, mais le bloc Image n'accepte que les photos et les images (JPEG, PNG, WebP, GIF, HEIC).`,
+        `« ${name} » est dans la médiathèque, mais le bloc Image n'accepte que les photos et les images (JPEG, PNG, WebP, GIF, HEIC).`,
     },
     // Le choix de l'audio d'un épisode : mêmes libellés que le choix d'une image, sauf ceux-ci.
     audioPicker: {
@@ -1588,7 +1596,7 @@ export const texts = {
       upload: "Envoyer un audio",
       uploadInput: "Audio à envoyer",
       notImage: (name: string) =>
-        `${name} est dans la Médiathèque, mais un épisode n'accepte qu'un audio (MP3 ou M4A).`,
+        `« ${name} » est dans la médiathèque, mais un épisode n'accepte qu'un audio (MP3 ou M4A).`,
       noTranscript: "Sans transcription",
     },
     // Présentation d'un article ou d'un épisode (étape 7) : image de présentation, résumé,
@@ -1645,7 +1653,7 @@ export const texts = {
         transcriptOk: "Transcription renseignée dans la médiathèque.",
         transcriptMissing:
           "Pas de transcription : ajoute-la dans la fiche du fichier, pour les personnes qui ne peuvent pas écouter. Elle est conseillée, pas obligatoire.",
-        openFile: "Ouvrir sa fiche dans la Médiathèque",
+        openFile: "Ouvrir sa fiche dans la médiathèque",
       },
       categories: {
         label: "Catégories",
@@ -1767,7 +1775,7 @@ export const texts = {
         "Ta session ne donne plus accès à l'éditeur. Reconnecte-toi.",
       demande_invalide: "La demande n'est pas valide. Recharge la page.",
       sorte_invalide:
-        "Cette sorte de contenu ou de modèle n'est pas valide. Recharge la page.",
+        "Ce type de contenu ou de modèle n'est pas valide. Recharge la page.",
       parent_invalide: "Ce contenu ne peut pas être rangé à cet endroit.",
       contenu_introuvable: "Ce contenu n'existe plus.",
       dans_la_corbeille:
@@ -1819,7 +1827,7 @@ export const texts = {
         "Restaure d'abord le chapitre ou la méthode qui le contient.",
       // Étape 6 : modèles de blocs.
       modele_vide:
-        "Ce bloc partagé est encore vide : ajoute-lui son bloc dans Modèles avant de l'insérer.",
+        "Ce bloc partagé est encore vide : ajoute-lui son bloc dans Modèles de bloc avant de l'insérer.",
       modele_un_seul_bloc:
         "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
       bloc_introuvable:
@@ -1883,7 +1891,7 @@ export const texts = {
         waitingMineHint:
           "Si tu as modifié la fiche depuis la programmation, elle ne part pas tant que ton éditeur reste ouvert, même sans écrire. Si c'est un chapitre ou une leçon, elle attend que la personne qui l'écrit le quitte. Au bout d'une heure, elle échouera.",
       },
-      failed: "La publication programmée a échoué",
+      failed: "La publication programmée a échoué.",
       failedReason: (reason: string) => `Raison : ${reason}`,
       failedBy: (name: string) => `Elle avait été programmée par ${name}.`,
     },
@@ -1932,7 +1940,7 @@ export const texts = {
       chooseCover: "Choisir l'image",
       chooseAudio: "Choisir l'audio",
       transcript:
-        "Conseillé : l'audio n'a pas de transcription. Tu peux publier quand même, et l'ajouter ensuite dans sa fiche de la Médiathèque.",
+        "Conseillé : l'audio n'a pas de transcription. Tu peux publier quand même, et l'ajouter ensuite dans sa fiche de la médiathèque.",
     },
     levelRequired:
       "Il n'y a pas de niveau d'accès par défaut : choisis Gratuit ou une formule.",
@@ -1979,7 +1987,7 @@ export const texts = {
         required: "Choisis un jour et une heure.",
         invalid: "Ce jour ou cette heure n'existe pas.",
         nonexistent:
-          "Cette heure n'existe pas ce jour-là : à 2 h, on passe directement à 3 h (heure d'été). Choisis une autre heure.",
+          "Cette heure n'existe pas ce jour-là : à 02h00, on passe directement à 03h00 (heure d'été). Choisis une autre heure.",
         past: "Ce moment est déjà passé. Choisis un jour et une heure à venir.",
       },
     },
@@ -2055,7 +2063,7 @@ export const texts = {
           "Pour les abonnés de cette formule et des formules plus complètes.",
         notChosen: "Pas encore choisi : « Publier » le demandera.",
         noLevels:
-          "Aucune formule d'abonnement pour l'instant : un admin peut en créer dans les Paramètres.",
+          "Aucune formule d'abonnement pour l'instant : un admin peut en créer dans les paramètres.",
         loadFailed: "Les formules d'abonnement n'ont pas pu être chargées.",
         live: (name: string) => `En ligne : ${name}`,
         deleted: "formule supprimée",
@@ -2110,7 +2118,7 @@ export const texts = {
       empty:
         "Aucune formule pour l'instant. Sans formule, un contenu ne peut être que gratuit.",
       name: "Nom de la nouvelle formule",
-      namePlaceholder: "Essentiel",
+      namePlaceholder: "Par exemple : Essentiel",
       nameRequired: "Donne un nom à la formule.",
       nameTooLong: "Le nom ne doit pas dépasser 100 caractères.",
       add: "Ajouter",
@@ -2126,7 +2134,7 @@ export const texts = {
         title: "Supprimer cette formule ?",
         description: (name: string) =>
           `La formule « ${name} » sera supprimée. C'est possible seulement si aucun contenu, aucune version publiée et aucun abonné ne s'en sert.`,
-        confirm: "Supprimer",
+        confirm: "Supprimer définitivement",
       },
       removed: (name: string) => `Formule « ${name} » supprimée.`,
       handle: (name: string) => `Déplacer ${name}`,
@@ -2193,7 +2201,7 @@ export const texts = {
     title: "Page introuvable",
     description:
       "Cette adresse ne correspond à aucune page de l'administration.",
-    back: "Retour à l'accueil",
+    back: "Retour au tableau de bord",
   },
 
   error: {
