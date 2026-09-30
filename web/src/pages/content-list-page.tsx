@@ -16,25 +16,26 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
-import { EditingCell, SavedCell } from "@/components/contents/row-cells"
+import {
+  BulkTrashButton,
+  KeptNotice,
+  SelectAllHead,
+  type SelectAll,
+} from "@/components/bulk-selection"
+import { CoverCell, SavedCell } from "@/components/contents/row-cells"
+import { useContentsSelection } from "@/components/contents/use-contents-selection"
+import { useCovers } from "@/components/contents/use-covers"
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
 import { LoadState } from "@/components/load-state"
 import { useMethodPending } from "@/components/methods/use-method-pending"
 import { PageHeader } from "@/components/page-header"
 import { SearchInput } from "@/components/search-input"
+import { TrashDialog } from "@/components/trash-dialog"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,6 +71,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   accessLevelsKey,
   listAccessLevels,
   type AccessLevel,
@@ -96,12 +102,8 @@ import {
   stateFilters,
   type ListFilters,
 } from "@/lib/contents/list-filters"
-import {
-  listMethodCounts,
-  methodKeys,
-  type MethodCounts,
-} from "@/lib/contents/methods"
 import { restoreContent, trashContent } from "@/lib/contents/publication"
+import { coverRequired } from "@/lib/contents/requirements"
 import { listStarters, templateKeys } from "@/lib/contents/templates"
 import { useCategories } from "@/hooks/use-categories"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
@@ -112,6 +114,11 @@ import { categoriesPath, editorPath, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.contentList
+
+/** Le titre d'un contenu, ou « Sans titre ». */
+function titleOf(item: ContentListItem): string {
+  return item.title.trim() || texts.common.untitled
+}
 
 /** Les sortes de contenu qui ont une liste. */
 type ListKind = "page" | "article" | "episode" | "method"
@@ -139,24 +146,18 @@ export function ContentListPage({
   const list = useQuery({
     queryKey: contentKeys.list(kind),
     queryFn: () => listContents(kind),
-    // Qui écrit quoi, et les publications programmées : relu toutes les 30 secondes.
+    // Les publications programmées : relu toutes les 30 secondes.
     refetchInterval: 30_000,
   })
   const categories = useCategories(categorySection)
   const isMethod = kind === "method"
-  // Méthodes : les formules (niveau d'accès), le nombre de chapitres et de leçons, et, pour
+  // Méthodes : les formules (niveau d'accès) et, pour
   // celles qui sont en ligne, s'il y a quelque chose à publier (la fiche ne suffit pas : une
   // leçon modifiée ne change pas la fiche, [D29]).
   const levels = useQuery({
     queryKey: accessLevelsKey,
     queryFn: listAccessLevels,
     enabled: isMethod,
-  })
-  const counts = useQuery({
-    queryKey: methodKeys.counts,
-    queryFn: listMethodCounts,
-    enabled: isMethod,
-    refetchInterval: 30_000,
   })
   const pendingById = useMethodPending(isMethod ? list.data : undefined, true)
   const items =
@@ -198,6 +199,13 @@ export function ContentListPage({
         : [],
     [items, list.dataUpdatedAt, filters, search, category, known]
   )
+  // Sélection en masse ; un contenu que quelqu'un d'autre écrit est gardé et listé.
+  const bulk = useContentsSelection({
+    shown,
+    words: { ...kindLabels, undo: labels.undo },
+    nameOf: titleOf,
+  })
+  const { selection } = bulk
   const filtering =
     filters.search.trim() !== "" ||
     filters.state !== "all" ||
@@ -207,7 +215,7 @@ export function ContentListPage({
 
   // « Annuler » dans le message : le contenu revient en brouillon, sans être republié.
   const undo = async (item: ContentListItem) => {
-    const name = item.title.trim() || texts.common.untitled
+    const name = titleOf(item)
     try {
       const { addressRemoved } = await restoreContent(item.id)
       if (addressRemoved)
@@ -224,12 +232,10 @@ export function ContentListPage({
     mutationFn: (item: ContentListItem) => trashContent(item.id),
     onSuccess: (result, item) => {
       setToTrash(null)
-      toast.success(
-        labels.trashed(item.title.trim() || texts.common.untitled),
-        {
-          action: { label: labels.undo, onClick: () => void undo(item) },
-        }
-      )
+      bulk.toggle(item, false)
+      toast.success(labels.trashed(titleOf(item)), {
+        action: { label: labels.undo, onClick: () => void undo(item) },
+      })
       // Ses fichiers redeviennent peut-être protégés : tout de suite.
       if (result.needsFileSync) void kickFiles()
     },
@@ -245,6 +251,7 @@ export function ContentListPage({
     },
     onSettled: refresh,
   })
+
   useEffect(() => {
     if (list.error) checkAccess(list.error)
   }, [list.error, checkAccess])
@@ -314,6 +321,11 @@ export function ContentListPage({
         description={description}
         actions={
           <>
+            <BulkTrashButton
+              count={selection.items.length}
+              pending={bulk.pending}
+              onClick={bulk.askConfirm}
+            />
             {categorySection && (
               <Link
                 to={categoriesPath(categorySection)}
@@ -343,6 +355,12 @@ export function ContentListPage({
               <AlertDescription>{labels.refreshFailed}</AlertDescription>
             </Alert>
           )}
+          <KeptNotice
+            kept={bulk.kept}
+            nameOf={titleOf}
+            words={kindLabels}
+            onClose={bulk.closeKept}
+          />
           {list.data.length === 0 ? (
             <Empty className="border border-dashed">
               <EmptyHeader>
@@ -370,57 +388,53 @@ export function ContentListPage({
                   {kindLabels.noResults}
                 </p>
               ) : (
-                <ContentTable
-                  kind={kind}
-                  section={section}
-                  items={shown}
-                  now={list.dataUpdatedAt}
-                  categories={categories.data}
-                  levels={levels.data}
-                  counts={counts.data}
-                  trashing={trash.isPending}
-                  onTrash={setToTrash}
-                />
+                <>
+                  <ContentTable
+                    kind={kind}
+                    section={section}
+                    items={shown}
+                    now={list.dataUpdatedAt}
+                    categories={categories.data}
+                    levels={levels.data}
+                    selectAll={bulk.selectAll}
+                    selected={bulk.checkedIds}
+                    onSelect={bulk.toggle}
+                    trashing={trash.isPending || bulk.pending}
+                    onTrash={setToTrash}
+                  />
+                </>
               )}
             </>
           )}
         </div>
       )}
 
-      <AlertDialog
+      <TrashDialog
         open={toTrash !== null}
-        onOpenChange={(open) => {
-          if (!open && !trash.isPending) setToTrash(null)
-        }}
-      >
-        {toTrash && (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {kindLabels.confirmTrashTitle}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {kindLabels.confirmTrash(
-                  toTrash.title.trim() || texts.common.untitled
-                )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={trash.isPending}>
-                {texts.common.cancel}
-              </AlertDialogCancel>
-              <Button
-                variant="destructive"
-                disabled={trash.isPending}
-                onClick={() => trash.mutate(toTrash)}
-              >
-                {trash.isPending ? <Spinner /> : <Trash2 />}
-                {labels.confirmTrash.confirm}
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
-      </AlertDialog>
+        title={kindLabels.confirmTrashTitle}
+        description={toTrash ? kindLabels.confirmTrash(titleOf(toTrash)) : ""}
+        confirmLabel={labels.confirmTrash.confirm}
+        pending={trash.isPending}
+        onCancel={() => setToTrash(null)}
+        onConfirm={() => toTrash && trash.mutate(toTrash)}
+      />
+      <TrashDialog
+        open={bulk.confirming && selection.items.length > 0}
+        title={
+          selection.items.length === 1
+            ? kindLabels.confirmTrashTitle
+            : kindLabels.confirmTrashManyTitle(selection.items.length)
+        }
+        description={
+          selection.items.length === 1
+            ? kindLabels.confirmTrash(titleOf(selection.items[0]))
+            : kindLabels.confirmTrashMany
+        }
+        confirmLabel={labels.confirmTrash.confirm}
+        pending={bulk.pending}
+        onCancel={bulk.cancel}
+        onConfirm={bulk.confirm}
+      />
     </>
   )
 }
@@ -539,7 +553,9 @@ function ContentTable({
   now,
   categories,
   levels,
-  counts,
+  selectAll,
+  selected,
+  onSelect,
   trashing,
   onTrash,
 }: {
@@ -548,24 +564,33 @@ function ContentTable({
   items: ContentListItem[]
   now: number
   categories: Category[] | undefined
-  // Méthodes : les formules, et la taille du plan de chacune (undefined : pas encore lus).
+  // Méthodes : les formules (undefined : pas encore lues).
   levels: AccessLevel[] | undefined
-  counts: MethodCounts | undefined
+  // Sélection en masse : « Tout sélectionner » et les contenus cochés.
+  selectAll: SelectAll
+  selected: ReadonlySet<string>
+  onSelect: (item: ContentListItem, checked: boolean) => void
   trashing: boolean
   onTrash: (item: ContentListItem) => void
 }) {
   const withCategories = kind === "article" || kind === "episode"
   const isMethod = kind === "method"
+  // Le Fil, Radio Éclaircies, Méthodes : l'image de présentation de chacun, en vignette.
+  const withCover = coverRequired(kind)
+  const coverFor = useCovers(withCover ? items : [])
   return (
     <Table>
       <TableHeader>
         <TableRow>
+          <SelectAllHead {...selectAll} />
+          {withCover && (
+            <TableHead className="w-14">
+              <span className="sr-only">{labels.columns.cover}</span>
+            </TableHead>
+          )}
           <TableHead>{labels.columns.title}</TableHead>
           {isMethod ? (
-            <>
-              <TableHead>{labels.columns.level}</TableHead>
-              <TableHead>{labels.columns.outline}</TableHead>
-            </>
+            <TableHead>{labels.columns.level}</TableHead>
           ) : (
             <TableHead>
               {withCategories
@@ -575,7 +600,6 @@ function ContentTable({
           )}
           <TableHead>{labels.columns.publication}</TableHead>
           <TableHead>{labels.columns.savedAt}</TableHead>
-          <TableHead>{labels.columns.status}</TableHead>
           <TableHead className="w-0">
             <span className="sr-only">{texts.common.actions}</span>
           </TableHead>
@@ -584,9 +608,21 @@ function ContentTable({
       <TableBody>
         {items.map((item) => {
           const status = itemStatus(item, now)
-          const name = item.title.trim() || texts.common.untitled
+          const name = titleOf(item)
           return (
-            <TableRow key={item.id}>
+            <TableRow
+              key={item.id}
+              data-state={selected.has(item.id) ? "selected" : undefined}
+            >
+              <TableCell>
+                <Checkbox
+                  aria-label={texts.selection.select(name)}
+                  checked={selected.has(item.id)}
+                  disabled={trashing}
+                  onCheckedChange={(value) => onSelect(item, value)}
+                />
+              </TableCell>
+              {withCover && <CoverCell {...coverFor(item)} />}
               <TableCell className="max-w-80 font-medium">
                 <Link
                   to={editorPath(section, item.id)}
@@ -596,11 +632,7 @@ function ContentTable({
                 </Link>
               </TableCell>
               {isMethod ? (
-                <MethodCells
-                  item={item}
-                  levels={levels}
-                  count={counts?.get(item.id) ?? (counts ? EMPTY_COUNT : null)}
-                />
+                <LevelCell item={item} levels={levels} />
               ) : (
                 <TableCell className="max-w-64 text-muted-foreground">
                   {withCategories ? (
@@ -620,14 +652,7 @@ function ContentTable({
                   <ScheduleBadge schedule={status.schedule} />
                 </div>
               </TableCell>
-              <SavedCell
-                savedAt={item.draft_saved_at}
-                savedByName={item.saved_by_name}
-              />
-              <EditingCell
-                editingName={item.editing_name}
-                label={labels.beingEdited}
-              />
+              <SavedCell savedAt={item.draft_saved_at} />
               <TableCell>
                 <RowActions
                   title={name}
@@ -644,18 +669,13 @@ function ContentTable({
   )
 }
 
-const EMPTY_COUNT = { chapters: 0, lessons: 0 }
-
-/** Une méthode : son niveau d'accès ([D41] : « Pas encore choisi ») et la taille de son plan. */
-function MethodCells({
+/** Le niveau d'accès d'une méthode ([D41] : « Pas encore choisi »). */
+function LevelCell({
   item,
   levels,
-  count,
 }: {
   item: ContentListItem
   levels: AccessLevel[] | undefined
-  // null tant que les nombres ne sont pas lus.
-  count: { chapters: number; lessons: number } | null
 }) {
   const level = !item.access_chosen
     ? labels.levelNotChosen
@@ -666,28 +686,22 @@ function MethodCells({
           texts.publication.settings.access.deleted)
         : null
   return (
-    <>
-      <TableCell className="text-muted-foreground">
-        {level === null ? (
-          <Skeleton className="h-4 w-20" />
-        ) : item.access_chosen ? (
-          <Badge variant="outline">{level}</Badge>
-        ) : (
-          <span className="text-xs">{level}</span>
-        )}
-      </TableCell>
-      <TableCell className="text-muted-foreground tabular-nums">
-        {count ? (
-          labels.outlineCount(count.chapters, count.lessons)
-        ) : (
-          <Skeleton className="h-4 w-28" />
-        )}
-      </TableCell>
-    </>
+    <TableCell className="text-muted-foreground">
+      {level === null ? (
+        <Skeleton className="h-4 w-20" />
+      ) : item.access_chosen ? (
+        <Badge variant="outline">{level}</Badge>
+      ) : (
+        <span className="text-xs">{level}</span>
+      )}
+    </TableCell>
   )
 }
 
-/** Les catégories d'une ligne, dans l'ordre de la section ; les supprimées sont ignorées. */
+/**
+ * Les catégories d'une ligne, dans l'ordre de la section : la première, et le nombre des autres.
+ * Les supprimées sont ignorées.
+ */
 function CategoriesCell({
   ids,
   all,
@@ -706,13 +720,23 @@ function CategoriesCell({
   if (names.length === 0) {
     return <span className="text-xs">{labels.noCategory}</span>
   }
+  // La première, puis « +2 » : les autres dans l'infobulle (et pour les lecteurs d'écran).
+  const [first, ...others] = names
   return (
-    <div className="flex flex-wrap gap-1">
-      {names.map((name) => (
-        <Badge key={name} variant="outline">
-          {name}
-        </Badge>
-      ))}
+    <div className="flex items-center gap-1">
+      <Badge variant="outline">{first}</Badge>
+      {others.length > 0 && (
+        <Tooltip>
+          <TooltipTrigger render={<Badge variant="secondary" />}>
+            {labels.moreCategories(others.length)}
+            <span className="sr-only">
+              {" "}
+              {labels.otherCategories(others.join(", "))}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{others.join(", ")}</TooltipContent>
+        </Tooltip>
+      )}
     </div>
   )
 }

@@ -65,7 +65,6 @@ vi.mock("@/lib/contents/methods", async (importOriginal) => {
     reorderOutline: vi.fn(async () => {}),
     setElementFlags: vi.fn(async () => {}),
     getElementContext: vi.fn(),
-    listMethodCounts: vi.fn(),
   }
 })
 
@@ -308,9 +307,6 @@ beforeEach(() => {
     method: { id: METHOD, title: "Mieux respirer", deleted: false },
     chapter: { id: BASES, title: "Les bases" },
   })
-  vi.mocked(methodsApi.listMethodCounts).mockResolvedValue(
-    new Map([[METHOD, { chapters: 2, lessons: 3 }]])
-  )
   vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([
     { id: LEVEL, name: "Essentiel", rank: 1 },
   ])
@@ -351,17 +347,16 @@ async function openMethod() {
 }
 
 describe("liste des méthodes", () => {
-  it("montre le niveau d'accès, la taille du plan et « modifié » d'après les changements", async () => {
+  it("montre le niveau d'accès et « modifié » d'après les changements", async () => {
     vi.mocked(api.listContents).mockResolvedValue([
       {
         id: METHOD,
         title: "Mieux respirer",
         slug: null,
+        cover_id: null,
         category_ids: [],
         draft_rev: 4,
         draft_saved_at: "2026-09-28T12:30:00Z",
-        saved_by_name: "Anne Admin",
-        editing_name: null,
         // La fiche n'a pas changé depuis la publication…
         live_draft_rev: 4,
         first_published_at: "2026-09-27T08:00:00Z",
@@ -375,9 +370,6 @@ describe("liste des méthodes", () => {
     const link = await screen.findByRole("link", { name: "Mieux respirer" })
     expect(link).toHaveAttribute("href", `/methodes/${METHOD}`)
     expect(await screen.findByText("Essentiel")).toBeVisible()
-    expect(
-      await screen.findByText(texts.contentList.outlineCount(2, 3))
-    ).toBeVisible()
     // … mais une leçon a changé : publish_preview n'est pas vide.
     expect(
       await screen.findByText(texts.publication.status.modified)

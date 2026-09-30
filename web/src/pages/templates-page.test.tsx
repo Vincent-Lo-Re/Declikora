@@ -78,8 +78,6 @@ function item(
     templateFor: sort === "starter" ? "page" : null,
     draft: draftOf(title),
     draft_saved_at: "2026-09-27T12:30:00Z",
-    saved_by_name: "Anne Admin",
-    editing_name: null,
     ...changes,
   }
 }
@@ -115,7 +113,7 @@ const created: api.Content = {
 beforeEach(() => {
   vi.mocked(templatesApi.listTemplates).mockResolvedValue([
     item(RETENIR, "À retenir", "style"),
-    item(CONTACT, "Contact", "shared", { editing_name: "Claire Martin" }),
+    item(CONTACT, "Contact", "shared"),
     item(INTERVIEW, "Interview", "starter"),
   ])
   vi.mocked(templatesApi.listTemplateUses).mockImplementation(async (ids) =>
@@ -135,31 +133,37 @@ afterEach(() => {
 const labels = texts.templates.list
 
 describe("section Modèles", () => {
-  it("range les modèles par sorte, avec leur utilisation et la section d'un point de départ", async () => {
+  it("montre tous les modèles avec leur type, puis un onglet par sorte", async () => {
+    const sorts = texts.templates.sorts
     renderApp("/modeles")
-    const shared = await screen.findByRole("region", {
-      name: texts.templates.sorts.shared.title,
-    })
-    const row = within(shared)
-      .getByRole("link", { name: "Contact" })
-      .closest("tr")!
-    expect(row).toHaveTextContent(labels.uses(2))
-    expect(row).toHaveTextContent(labels.beingEdited("Claire Martin"))
-    expect(row).toHaveTextContent("27 sept. 2026 à 14h30 par Anne Admin")
-    expect(
-      within(shared).getByRole("link", { name: "Contact" })
-    ).toHaveAttribute("href", `/modeles/${CONTACT}`)
 
-    const style = screen.getByRole("region", {
-      name: texts.templates.sorts.style.title,
-    })
-    expect(within(style).getByText("À retenir")).toBeInTheDocument()
-    const starter = screen.getByRole("region", {
-      name: texts.templates.sorts.starter.title,
-    })
+    // « Tous les blocs » : chaque modèle, avec sa sorte, et la date seule.
     expect(
-      within(starter).getByText("Interview").closest("tr")
-    ).toHaveTextContent(texts.templates.sections.page)
+      await screen.findByRole("tab", { name: labels.tabs.all, selected: true })
+    ).toBeInTheDocument()
+    const row = screen.getByRole("link", { name: "Contact" }).closest("tr")!
+    expect(row).toHaveTextContent(sorts.shared.title)
+    expect(row).toHaveTextContent("27 sept. 2026 à 14h30")
+    expect(row).not.toHaveTextContent("Anne Admin")
+    expect(screen.getByRole("link", { name: "Contact" })).toHaveAttribute(
+      "href",
+      `/modeles/${CONTACT}`
+    )
+    expect(
+      screen.getAllByRole("link", { name: /À retenir|Interview/ })
+    ).toHaveLength(2)
+
+    // Un onglet par sorte : ses modèles seulement, sans la colonne Type.
+    fireEvent.click(screen.getByRole("tab", { name: sorts.starter.tab }))
+    const panel = await screen.findByRole("tabpanel")
+    expect(
+      within(panel).getByText(sorts.starter.description, { exact: false })
+    ).toBeVisible()
+    expect(within(panel).getByRole("link", { name: "Interview" })).toBeVisible()
+    expect(within(panel).queryByRole("link", { name: "Contact" })).toBeNull()
+    expect(
+      within(panel).queryByRole("columnheader", { name: labels.columns.type })
+    ).toBeNull()
   })
 
   it("« Nouveau modèle » : nom et sorte, puis l'éditeur du modèle s'ouvre", async () => {
@@ -339,6 +343,53 @@ describe("section Modèles", () => {
     await waitFor(() =>
       expect(publicationApi.restoreContent).toHaveBeenCalledWith(RETENIR)
     )
+  })
+
+  it("« Tout sélectionner » met les modèles à la corbeille, et garde un bloc identique partout utilisé", async () => {
+    const used = "Ce modèle est utilisé dans : Accueil."
+    vi.mocked(publicationApi.trashContent).mockImplementation(async (id) => {
+      if (id === CONTACT) {
+        throw new api.ContentError("modele_utilise", { detail: used })
+      }
+      return { batch: "lot", trashed: 1, needsFileSync: false }
+    })
+    vi.mocked(publicationApi.restoreContent).mockResolvedValue({
+      restored: 1,
+      addressRemoved: false,
+    })
+    renderApp("/modeles")
+
+    fireEvent.click(
+      await screen.findByRole("checkbox", { name: texts.selection.selectAll })
+    )
+    expect(
+      screen.getByRole("button", { name: texts.selection.trash(3) })
+    ).toBeVisible()
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.selection.trash(3) })
+    )
+    const dialog = await screen.findByRole("alertdialog")
+    expect(dialog).toHaveTextContent(labels.confirmTrashManyTitle(3))
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: labels.confirmTrash.confirm })
+    )
+
+    expect(await screen.findByText(labels.trashedMany(2))).toBeVisible()
+    expect(screen.getByText(labels.keptTitle(1))).toBeVisible()
+    expect(
+      screen.getByText(texts.selection.keptItem("Contact", used))
+    ).toBeVisible()
+    expect(
+      screen.getByRole("checkbox", { name: texts.selection.select("Contact") })
+    ).toBeChecked()
+
+    fireEvent.click(
+      within(screen.getByText(labels.trashedMany(2)).closest("li")!).getByRole(
+        "button",
+        { name: labels.undo }
+      )
+    )
+    expect(await screen.findByText(labels.restoredMany(2))).toBeVisible()
   })
 })
 

@@ -1,25 +1,29 @@
 import { cn } from "cn"
-import { Unlink } from "lucide-react"
+import { Check, Link, Unlink, X } from "lucide-react"
 
-import { kindIcons } from "@/components/media/media-kinds"
+import { IconBadge } from "@/components/icon-badge"
+import { kindIcons, rejectedText } from "@/components/media/media-kinds"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
 import { INTERRUPTED_AFTER_MS, type Media } from "@/lib/media/constants"
 import { texts } from "@/texts"
 
-/** Vignette : l'image ou le SVG (dans un <img>, qui n'exécute jamais de script), sinon l'icône. */
+/**
+ * Vignette : l'image ou le SVG (dans un <img>, qui n'exécute jamais de script), sinon l'icône
+ * (celle d'une image quand il n'y a pas de fichier : une image de présentation pas choisie).
+ */
 export function MediaThumbnail({
   media,
   url,
   className,
   iconClassName,
 }: {
-  media: Media
+  media: Media | undefined
   url: string | undefined
   className?: string
   iconClassName?: string
 }) {
-  const Icon = kindIcons[media.kind]
+  const Icon = kindIcons[media?.kind ?? "image"]
   return (
     <div
       className={cn(
@@ -27,7 +31,7 @@ export function MediaThumbnail({
         className
       )}
     >
-      {url && (media.kind === "image" || media.kind === "svg") ? (
+      {url && (media?.kind === "image" || media?.kind === "svg") ? (
         <img
           src={url}
           alt=""
@@ -43,6 +47,14 @@ export function MediaThumbnail({
   )
 }
 
+/** Un envoi commencé il y a trop longtemps : « Envoi interrompu ». */
+function isInterrupted(media: Media, now: number): boolean {
+  return (
+    media.status === "pending" &&
+    now - new Date(media.status_changed_at).getTime() > INTERRUPTED_AFTER_MS
+  )
+}
+
 /** État d'un fichier : Envoi en cours…, Vérification…, Prêt ou Refusé. */
 export function MediaStatusBadge({
   media,
@@ -53,17 +65,14 @@ export function MediaStatusBadge({
   now: number
 }) {
   switch (media.status) {
-    case "pending": {
-      const interrupted =
-        now - new Date(media.status_changed_at).getTime() > INTERRUPTED_AFTER_MS
+    case "pending":
       return (
         <Badge variant="outline">
-          {interrupted
+          {isInterrupted(media, now)
             ? texts.media.status.interrupted
             : texts.media.status.pending}
         </Badge>
       )
-    }
     case "checking":
       return (
         <Badge variant="secondary">
@@ -78,14 +87,47 @@ export function MediaStatusBadge({
   }
 }
 
-/** « Non utilisé » : le fichier n'est dans aucun brouillon ni aucune version en ligne. */
-export function MediaUnusedBadge({ media }: { media: Media }) {
+/**
+ * État d'un fichier (grille et liste) : une coche s'il est prêt, sinon une croix ; l'infobulle
+ * dit l'état exact (Envoi en cours…, Vérification…, ou la raison du refus).
+ */
+export function MediaStatusIcon({ media, now }: { media: Media; now: number }) {
+  switch (media.status) {
+    case "ready":
+      return (
+        <IconBadge
+          icon={Check}
+          label={texts.media.status.ready}
+          variant="secondary"
+        />
+      )
+    case "rejected":
+      return (
+        <IconBadge icon={X} label={rejectedText(media)} variant="destructive" />
+      )
+    case "checking":
+      return <IconBadge icon={X} label={texts.media.status.checking} />
+    case "pending":
+      return (
+        <IconBadge
+          icon={X}
+          label={
+            isInterrupted(media, now)
+              ? texts.media.status.interrupted
+              : texts.media.status.pending
+          }
+        />
+      )
+  }
+}
+
+/** Utilisation d'un fichier (grille et liste) : un lien s'il sert, un lien coupé sinon. */
+export function MediaUseIcon({ media }: { media: Media }) {
   // Seule la liste lit media_in_use : absent (fiche) ou null (hors équipe), rien à montrer.
-  if (media.media_in_use !== false) return null
-  return (
-    <Badge variant="outline">
-      <Unlink aria-hidden />
-      {texts.media.unused}
-    </Badge>
+  if (media.media_in_use == null) return null
+  return media.media_in_use ? (
+    <IconBadge icon={Link} label={texts.media.used} />
+  ) : (
+    <IconBadge icon={Unlink} label={texts.media.unused} />
   )
 }

@@ -10,10 +10,7 @@ import {
   type Content,
   type ContentKind,
 } from "@/lib/contents/api"
-import { isLockAlive } from "@/lib/editor/edit-lock"
-import { displayName, type PersonName } from "@/lib/people"
 import { supabase } from "@/lib/supabase"
-import { texts } from "@/texts"
 
 /** style : mise en forme réutilisable ; shared : bloc identique partout ; starter : point de départ. */
 export type TemplateSort = "style" | "shared" | "starter"
@@ -74,33 +71,20 @@ export type TemplateItem = {
   templateFor: TemplateFor | null
   draft: Draft
   draft_saved_at: string
-  saved_by_name: string | null
-  // Le membre qui écrit ce modèle en ce moment (verrou actif), s'il y en a un.
-  editing_name: string | null
 }
 
 /** Tous les modèles hors corbeille, par nom. */
 export async function listTemplates(): Promise<TemplateItem[]> {
   const { data, error, status } = await supabase
     .from("contents")
-    .select(
-      "id, title, template_sort, template_for, draft, draft_saved_at, saved_by:profiles!contents_draft_saved_by_fkey(full_name, email), edit_locks(holder_id, heartbeat_at, holder:profiles(full_name, email))"
-    )
+    .select("id, title, template_sort, template_for, draft, draft_saved_at")
     .eq("kind", "template")
     .is("deleted_at", null)
     .order("title")
     .limit(500)
   if (error) throw toContentError(error, status)
-  const now = Date.now()
   return data.flatMap((row) => {
     if (!isTemplateSort(row.template_sort)) return []
-    const lock = row.edit_locks as {
-      holder_id: string | null
-      heartbeat_at: string
-      holder: PersonName | null
-    } | null
-    const active =
-      lock?.holder_id != null && isLockAlive(lock.heartbeat_at, now)
     return [
       {
         id: row.id,
@@ -109,10 +93,6 @@ export async function listTemplates(): Promise<TemplateItem[]> {
         templateFor: isTemplateFor(row.template_for) ? row.template_for : null,
         draft: row.draft as unknown as Draft,
         draft_saved_at: row.draft_saved_at,
-        saved_by_name: displayName(row.saved_by as PersonName | null),
-        editing_name: active
-          ? (displayName(lock.holder) ?? texts.editor.lock.someone)
-          : null,
       },
     ]
   })

@@ -221,11 +221,10 @@ describe("liste des pages", () => {
         id: PAGE_ID,
         title: "Mentions légales",
         slug: "mentions-legales",
+        cover_id: null,
         category_ids: [],
         draft_rev: 4,
         draft_saved_at: "2026-09-27T12:30:00Z",
-        saved_by_name: "Anne Admin",
-        editing_name: "Claire Martin",
         live_draft_rev: null,
         first_published_at: null,
         scheduled_at: null,
@@ -239,12 +238,8 @@ describe("liste des pages", () => {
 
     const link = await screen.findByRole("link", { name: "Mentions légales" })
     expect(link).toHaveAttribute("href", `/pages/${PAGE_ID}`)
-    expect(
-      screen.getByText(/27 sept\. 2026 à 14h30 par Anne Admin/)
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(texts.contentList.beingEdited("Claire Martin"))
-    ).toBeInTheDocument()
+    // La date seulement : ni qui a modifié, ni qui écrit en ce moment.
+    expect(screen.getByText("27 sept. 2026 à 14h30")).toBeInTheDocument()
 
     fireEvent.click(
       screen.getByRole("button", { name: texts.contentList.kinds.page.create })
@@ -268,11 +263,10 @@ describe("liste des pages : publication et corbeille", () => {
     id: PAGE_ID,
     title: "Mentions légales",
     slug: null,
+    cover_id: null,
     category_ids: [],
     draft_rev: 4,
     draft_saved_at: "2026-09-27T12:30:00Z",
-    saved_by_name: null,
-    editing_name: null,
     live_draft_rev: null,
     first_published_at: null,
     scheduled_at: null,

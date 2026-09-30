@@ -1,35 +1,33 @@
-import { Badge } from "@/components/ui/badge"
+import { MediaThumbnail } from "@/components/media/media-visuals"
 import { TableCell } from "@/components/ui/table"
 import { formatDateTime } from "@/lib/dates"
-import { texts } from "@/texts"
+import type { Media } from "@/lib/media/constants"
 
-/** « Dernière modification » d'une ligne de liste : la date, et qui l'a faite. */
-export function SavedCell({
-  savedAt,
-  savedByName,
-}: {
-  savedAt: string
-  savedByName: string | null
-}) {
+/** « Dernière modification » d'une ligne de liste : la date seulement. */
+export function SavedCell({ savedAt }: { savedAt: string }) {
   return (
     <TableCell className="text-muted-foreground">
       {formatDateTime(savedAt)}
-      {savedByName && <> {texts.common.savedBy(savedByName)}</>}
     </TableCell>
   )
 }
 
-/** « État » d'une ligne de liste : qui écrit le brouillon en ce moment, s'il y a quelqu'un. */
-export function EditingCell({
-  editingName,
-  label,
+/** L'image de présentation d'une ligne de liste, en vignette (l'icône d'une image s'il n'y en a pas). */
+export function CoverCell({
+  media,
+  url,
 }: {
-  editingName: string | null
-  label: (name: string) => string
+  media: Media | undefined
+  url?: string
 }) {
   return (
     <TableCell>
-      {editingName && <Badge variant="secondary">{label(editingName)}</Badge>}
+      <MediaThumbnail
+        media={media}
+        url={url}
+        className="size-10 rounded-md"
+        iconClassName="size-4"
+      />
     </TableCell>
   )
 }

@@ -431,7 +431,9 @@ test("Podcasts : épisode refusé sans audio, audio de la médiathèque, durée,
       { name: audioName, mimeType: "audio/mpeg", buffer: silentMp3(65) },
     ])
   const card = page.getByRole("button", { name: texts.media.open(audioName) })
-  await expect(card).toContainText(texts.media.status.ready, {
+  await expect(
+    card.getByRole("img", { name: texts.media.status.ready })
+  ).toBeVisible({
     timeout: 60_000,
   })
 

@@ -37,7 +37,6 @@ export const methodKeys = {
     ["contents", "methods", "preview", methodId] as const,
   context: (elementId: string) =>
     ["contents", "methods", "context", elementId] as const,
-  counts: ["contents", "methods", "counts"] as const,
 }
 
 const ELEMENT_COLUMNS =
@@ -276,33 +275,4 @@ export async function getElementContext(
     },
     chapter: { id: parent.id, title: parent.title ?? "" },
   }
-}
-
-/** Le nombre de chapitres et de leçons (hors corbeille) de chaque méthode. */
-export type MethodCounts = Map<string, { chapters: number; lessons: number }>
-
-export async function listMethodCounts(): Promise<MethodCounts> {
-  const { data, error, status } = await supabase
-    .from("contents")
-    .select("id, kind, parent_id")
-    .in("kind", ["chapter", "lesson"])
-    .is("deleted_at", null)
-    .limit(10_000)
-  if (error) throw toContentError(error, status)
-  const methodOf = new Map<string, string>()
-  const counts: MethodCounts = new Map()
-  for (const row of data) {
-    if (row.kind !== "chapter" || !row.parent_id) continue
-    methodOf.set(row.id, row.parent_id)
-    const entry = counts.get(row.parent_id) ?? { chapters: 0, lessons: 0 }
-    entry.chapters += 1
-    counts.set(row.parent_id, entry)
-  }
-  for (const row of data) {
-    if (row.kind !== "lesson" || !row.parent_id) continue
-    const methodId = methodOf.get(row.parent_id)
-    const entry = methodId ? counts.get(methodId) : undefined
-    if (entry) entry.lessons += 1
-  }
-  return counts
 }

@@ -1,10 +1,10 @@
 import { cn } from "cn"
 
-import { rejectedText } from "@/components/media/media-kinds"
+import { SelectAllHead, type SelectAll } from "@/components/bulk-selection"
 import {
-  MediaStatusBadge,
+  MediaStatusIcon,
   MediaThumbnail,
-  MediaUnusedBadge,
+  MediaUseIcon,
 } from "@/components/media/media-visuals"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/tooltip"
 import { formatDateTime } from "@/lib/dates"
 import type { Media } from "@/lib/media/constants"
-import { formatBytes, formatMediaDetails } from "@/lib/media/format"
+import { formatBytes } from "@/lib/media/format"
 import { texts } from "@/texts"
 
 type CollectionProps = {
@@ -31,7 +31,9 @@ type CollectionProps = {
   onOpen: (media: Media) => void
   // Heure de la liste chargée : l'état « Envoi interrompu » ne dépend pas du rendu.
   now: number
-  // Sélection en masse : les fichiers cochés, et le changement d'une case.
+  // Sélection en masse : « Tout sélectionner » (en-tête de la liste), les fichiers cochés, et le
+  // changement d'une case.
+  selectAll: SelectAll
   selected: ReadonlySet<string>
   onSelect: (media: Media, checked: boolean) => void
   // Pendant une mise à la corbeille en masse, les cases ne bougent plus.
@@ -64,7 +66,7 @@ export function MediaGrid({
               )}
             >
               <Checkbox
-                aria-label={texts.media.selection.select(media.name)}
+                aria-label={texts.selection.select(media.name)}
                 checked={checked}
                 disabled={selectionDisabled}
                 onCheckedChange={(value) => onSelect(media, value)}
@@ -79,7 +81,7 @@ export function MediaGrid({
               // Pendant une sélection, la vignette entière coche ou décoche le fichier.
               aria-label={
                 selecting
-                  ? texts.media.selection.select(media.name)
+                  ? texts.selection.select(media.name)
                   : texts.media.open(media.name)
               }
               aria-pressed={selecting ? checked : undefined}
@@ -110,16 +112,10 @@ export function MediaGrid({
                   {texts.media.kinds[media.kind]} ·{" "}
                   {formatBytes(media.size_bytes)}
                 </p>
-                {media.status === "rejected" ? (
-                  <p className="text-xs text-destructive">
-                    {rejectedText(media)}
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    <MediaStatusBadge media={media} now={now} />
-                    <MediaUnusedBadge media={media} />
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-1.5">
+                  <MediaStatusIcon media={media} now={now} />
+                  <MediaUseIcon media={media} />
+                </div>
               </div>
             </button>
           </li>
@@ -135,6 +131,7 @@ export function MediaTable({
   urlFor,
   onOpen,
   now,
+  selectAll,
   selected,
   onSelect,
   selectionDisabled,
@@ -143,16 +140,13 @@ export function MediaTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-0">
-            <span className="sr-only">{texts.media.selection.column}</span>
-          </TableHead>
+          <SelectAllHead {...selectAll} />
           <TableHead className="w-14">
             <span className="sr-only">{texts.media.columns.preview}</span>
           </TableHead>
           <TableHead>{texts.media.columns.name}</TableHead>
           <TableHead>{texts.media.columns.kind}</TableHead>
           <TableHead>{texts.media.columns.size}</TableHead>
-          <TableHead>{texts.media.columns.details}</TableHead>
           <TableHead>{texts.media.columns.createdAt}</TableHead>
           <TableHead>{texts.media.columns.status}</TableHead>
         </TableRow>
@@ -165,7 +159,7 @@ export function MediaTable({
           >
             <TableCell>
               <Checkbox
-                aria-label={texts.media.selection.select(media.name)}
+                aria-label={texts.selection.select(media.name)}
                 checked={selected.has(media.id)}
                 disabled={selectionDisabled}
                 onCheckedChange={(value) => onSelect(media, value)}
@@ -199,19 +193,12 @@ export function MediaTable({
             </TableCell>
             <TableCell>{texts.media.kinds[media.kind]}</TableCell>
             <TableCell>{formatBytes(media.size_bytes)}</TableCell>
-            <TableCell>{formatMediaDetails(media) ?? "—"}</TableCell>
             <TableCell>{formatDateTime(media.created_at)}</TableCell>
             <TableCell>
-              {media.status === "rejected" ? (
-                <span className="text-xs whitespace-normal text-destructive">
-                  {rejectedText(media)}
-                </span>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  <MediaStatusBadge media={media} now={now} />
-                  <MediaUnusedBadge media={media} />
-                </div>
-              )}
+              <div className="flex items-center gap-1.5">
+                <MediaStatusIcon media={media} now={now} />
+                <MediaUseIcon media={media} />
+              </div>
             </TableCell>
           </TableRow>
         ))}

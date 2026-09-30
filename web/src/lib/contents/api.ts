@@ -6,9 +6,7 @@ import type { PostgrestError } from "@supabase/supabase-js"
 
 import type { Draft } from "@/blocks/types"
 import type { Json, Tables } from "@/lib/database.types"
-import { isLockAlive } from "@/lib/editor/edit-lock"
 import type { Media } from "@/lib/media/constants"
-import { displayName, type PersonName } from "@/lib/people"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
 
@@ -52,6 +50,26 @@ export class ContentError extends Error {
     this.hint = hint
     this.retryable = retryable
   }
+}
+
+// Refus attendus d'une mise à la corbeille en masse : la ligne est gardée, la suite continue.
+const keptCodes: ReadonlySet<string> = new Set([
+  "verrou_tenu", // quelqu'un d'autre écrit ce brouillon
+  "contenu_introuvable", // il n'existe plus
+  "modele_utilise", // un bloc identique partout encore utilisé (ADMIN § 5)
+])
+
+/**
+ * Mise à la corbeille en masse : un contenu que quelqu'un d'autre écrit, qui n'existe plus, ou
+ * un modèle encore utilisé est gardé, avec la raison de la base ; toute autre erreur arrête la
+ * suite.
+ */
+export function keptContentDetail(error: unknown): string | null {
+  return error instanceof ContentError &&
+    error.code !== null &&
+    keptCodes.has(error.code)
+    ? (error.detail ?? error.message)
+    : null
 }
 
 /**
@@ -127,13 +145,12 @@ export type ContentListItem = {
   title: string
   // Adresse de la page dans le brouillon (pages seulement).
   slug: string | null
+  // Image de présentation du brouillon (id du fichier), s'il y en a une.
+  cover_id: string | null
   // Catégories du brouillon (articles et épisodes), dans aucun ordre particulier.
   category_ids: string[]
   draft_rev: number
   draft_saved_at: string
-  saved_by_name: string | null
-  // Le membre qui écrit en ce moment (verrou actif), s'il y en a un.
-  editing_name: string | null
   // Publication : la révision du brouillon publiée (version en ligne), la programmation.
   live_draft_rev: number | null
   first_published_at: string | null
@@ -161,34 +178,23 @@ export async function listContents(
   const { data, error, status } = await supabase
     .from("contents")
     .select(
-      "id, title, slug, draft_rev, draft_saved_at, first_published_at, scheduled_at, schedule_error, access_chosen, access_level_id, saved_by:profiles!contents_draft_saved_by_fkey(full_name, email), edit_locks(holder_id, heartbeat_at, holder:profiles(full_name, email)), live:versions!contents_live_version_fkey(draft_rev), content_categories(category_id)"
+      "id, title, slug, cover_id:draft->cover->>mediaId, draft_rev, draft_saved_at, first_published_at, scheduled_at, schedule_error, access_chosen, access_level_id, live:versions!contents_live_version_fkey(draft_rev), content_categories(category_id)"
     )
     .eq("kind", kind)
     .is("deleted_at", null)
     .order("draft_saved_at", { ascending: false })
     .limit(500)
   if (error) throw toContentError(error, status)
-  const now = Date.now()
   return data.map((row) => {
-    const lock = row.edit_locks as {
-      holder_id: string | null
-      heartbeat_at: string
-      holder: PersonName | null
-    } | null
-    const active =
-      lock?.holder_id != null && isLockAlive(lock.heartbeat_at, now)
     const live = row.live as { draft_rev: number } | null
     return {
       id: row.id,
       title: row.title ?? "",
       slug: row.slug,
+      cover_id: row.cover_id ?? null,
       category_ids: categoryIdsOf(row.content_categories),
       draft_rev: row.draft_rev,
       draft_saved_at: row.draft_saved_at,
-      saved_by_name: displayName(row.saved_by as PersonName | null),
-      editing_name: active
-        ? (displayName(lock.holder) ?? texts.editor.lock.someone)
-        : null,
       live_draft_rev: live?.draft_rev ?? null,
       first_published_at: row.first_published_at,
       scheduled_at: row.scheduled_at,

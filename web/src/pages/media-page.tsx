@@ -1,10 +1,9 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import {
-  Files,
+  GalleryHorizontalEnd,
   LayoutGrid,
   List,
   Search,
-  Trash2,
   TriangleAlert,
   Unlink,
   Upload,
@@ -20,10 +19,15 @@ import {
 import { useSearchParams } from "react-router"
 import { toast } from "sonner"
 
+import {
+  BulkTrashButton,
+  KeptNotice,
+  SelectAllCheckbox,
+  type SelectAll,
+} from "@/components/bulk-selection"
 import { LoadState } from "@/components/load-state"
 import { kindIcons } from "@/components/media/media-kinds"
 import { MediaGrid, MediaTable } from "@/components/media/media-collection"
-import { KeptNotice, SelectionBar } from "@/components/media/media-selection"
 import { MediaSheet } from "@/components/media/media-sheet"
 import { OrphansNotice } from "@/components/media/orphans-notice"
 import { StorageUsage } from "@/components/media/storage-usage"
@@ -42,7 +46,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Spinner } from "@/components/ui/spinner"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
@@ -52,18 +55,18 @@ import {
 } from "@/components/ui/tooltip"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import {
+  selectionOf,
+  toggleAll,
+  toggleSelected,
+  type Kept,
+} from "@/lib/bulk-trash"
+import {
   getMedia,
   listMedia,
   MEDIA_LIST_LIMIT,
   mediaKeys,
   type MediaFilters,
 } from "@/lib/media/api"
-import {
-  selectionOf,
-  toggleAll,
-  toggleSelected,
-  type KeptMedia,
-} from "@/lib/media/bulk-trash"
 import {
   INTERRUPTED_AFTER_MS,
   mediaKinds,
@@ -163,7 +166,7 @@ export function MediaPage() {
   const [checkedIds, setCheckedIds] = useState<ReadonlySet<string>>(
     () => new Set()
   )
-  const [kept, setKept] = useState<KeptMedia[]>([])
+  const [kept, setKept] = useState<Kept<Media>[]>([])
   const selectAll = useRef<HTMLSpanElement>(null)
 
   const filters: MediaFilters = { kind, search: debouncedSearch, unused }
@@ -321,7 +324,16 @@ export function MediaPage() {
     return neighbor ?? uploadButton.current
   }
 
+  const selectAllProps: SelectAll = {
+    all: selection.all,
+    some: selection.some,
+    disabled: bulkTrash.isPending,
+    onToggleAll: (checked) =>
+      setCheckedIds((current) => toggleAll(current, shownItems, checked)),
+    checkboxRef: selectAll,
+  }
   const collectionSelection = {
+    selectAll: selectAllProps,
     selected: checkedIds,
     onSelect: (item: Media, checked: boolean) =>
       setCheckedIds((current) => toggleSelected(current, item.id, checked)),
@@ -345,17 +357,11 @@ export function MediaPage() {
               aria-label={texts.media.uploadInput}
               onChange={onInputChange}
             />
-            {selection.items.length > 0 && (
-              <Button
-                variant="outline"
-                className="text-destructive"
-                disabled={bulkTrash.isPending}
-                onClick={() => bulkTrash.mutate(selection.items)}
-              >
-                {bulkTrash.isPending ? <Spinner /> : <Trash2 />}
-                {texts.media.selection.trash(selection.items.length)}
-              </Button>
-            )}
+            <BulkTrashButton
+              count={selection.items.length}
+              pending={bulkTrash.isPending}
+              onClick={() => bulkTrash.mutate(selection.items)}
+            />
             <Button
               ref={uploadButton}
               onClick={() => fileInput.current?.click()}
@@ -391,7 +397,7 @@ export function MediaPage() {
           }}
         >
           <ToggleGroupItem value="all">
-            <Files />
+            <GalleryHorizontalEnd />
             {texts.media.filters.all}
           </ToggleGroupItem>
           {/* Une icône par type : son nom dans une infobulle et pour les lecteurs d'écran. */}
@@ -502,24 +508,15 @@ export function MediaPage() {
               {kept.length > 0 && (
                 <KeptNotice
                   kept={kept}
+                  nameOf={(item) => item.name}
+                  words={texts.media.selection}
                   onClose={() => {
                     setKept([])
                     selectAll.current?.focus()
                   }}
                 />
               )}
-              <SelectionBar
-                count={selection.items.length}
-                all={selection.all}
-                some={selection.some}
-                disabled={bulkTrash.isPending}
-                onToggleAll={(checked) =>
-                  setCheckedIds((current) =>
-                    toggleAll(current, media.data ?? [], checked)
-                  )
-                }
-                selectAllRef={selectAll}
-              />
+              {view === "grid" && <SelectAllCheckbox {...selectAllProps} />}
               {view === "grid" ? (
                 <MediaGrid
                   items={media.data}

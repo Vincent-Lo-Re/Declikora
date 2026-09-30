@@ -144,8 +144,6 @@ function templateItem(
     templateFor: sort === "starter" ? "page" : null,
     draft: draftOf(blocks, title),
     draft_saved_at: "2026-09-27T12:30:00Z",
-    saved_by_name: null,
-    editing_name: null,
   }
 }
 
