@@ -39,6 +39,13 @@ export class MediaError extends Error {
   }
 }
 
+/** Mise à la corbeille en masse : un fichier encore utilisé est gardé, avec la liste des contenus. */
+export function usedFileDetail(error: unknown): string | null {
+  return error instanceof MediaError && error.code === "fichier_utilise"
+    ? (error.detail ?? error.message)
+    : null
+}
+
 /** Traduit une erreur de la base (RPC ou table). */
 function toMediaError(error: PostgrestError): MediaError {
   const code = isMediaErrorCode(error.message) ? error.message : null

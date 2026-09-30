@@ -20,10 +20,10 @@ import {
 import { useSearchParams } from "react-router"
 import { toast } from "sonner"
 
+import { KeptNotice, SelectionBar } from "@/components/bulk-selection"
 import { LoadState } from "@/components/load-state"
 import { kindIcons } from "@/components/media/media-kinds"
 import { MediaGrid, MediaTable } from "@/components/media/media-collection"
-import { KeptNotice, SelectionBar } from "@/components/media/media-selection"
 import { MediaSheet } from "@/components/media/media-sheet"
 import { OrphansNotice } from "@/components/media/orphans-notice"
 import { StorageUsage } from "@/components/media/storage-usage"
@@ -52,18 +52,18 @@ import {
 } from "@/components/ui/tooltip"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import {
+  selectionOf,
+  toggleAll,
+  toggleSelected,
+  type Kept,
+} from "@/lib/bulk-trash"
+import {
   getMedia,
   listMedia,
   MEDIA_LIST_LIMIT,
   mediaKeys,
   type MediaFilters,
 } from "@/lib/media/api"
-import {
-  selectionOf,
-  toggleAll,
-  toggleSelected,
-  type KeptMedia,
-} from "@/lib/media/bulk-trash"
 import {
   INTERRUPTED_AFTER_MS,
   mediaKinds,
@@ -163,7 +163,7 @@ export function MediaPage() {
   const [checkedIds, setCheckedIds] = useState<ReadonlySet<string>>(
     () => new Set()
   )
-  const [kept, setKept] = useState<KeptMedia[]>([])
+  const [kept, setKept] = useState<Kept<Media>[]>([])
   const selectAll = useRef<HTMLSpanElement>(null)
 
   const filters: MediaFilters = { kind, search: debouncedSearch, unused }
@@ -353,7 +353,7 @@ export function MediaPage() {
                 onClick={() => bulkTrash.mutate(selection.items)}
               >
                 {bulkTrash.isPending ? <Spinner /> : <Trash2 />}
-                {texts.media.selection.trash(selection.items.length)}
+                {texts.selection.trash(selection.items.length)}
               </Button>
             )}
             <Button
@@ -502,6 +502,9 @@ export function MediaPage() {
               {kept.length > 0 && (
                 <KeptNotice
                   kept={kept}
+                  nameOf={(item) => item.name}
+                  title={texts.media.selection.kept.title(kept.length)}
+                  hint={texts.media.selection.kept.hint}
                   onClose={() => {
                     setKept([])
                     selectAll.current?.focus()
@@ -509,7 +512,11 @@ export function MediaPage() {
                 />
               )}
               <SelectionBar
-                count={selection.items.length}
+                countLabel={
+                  selection.items.length > 0
+                    ? texts.media.selection.count(selection.items.length)
+                    : null
+                }
                 all={selection.all}
                 some={selection.some}
                 disabled={bulkTrash.isPending}

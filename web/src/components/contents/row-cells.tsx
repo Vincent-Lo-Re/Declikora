@@ -5,13 +5,16 @@ import { formatDateTime } from "@/lib/dates"
 import type { Media } from "@/lib/media/constants"
 import { texts } from "@/texts"
 
-/** « Dernière modification » d'une ligne de liste : la date, et qui l'a faite. */
+/**
+ * « Dernière modification » d'une ligne de liste : la date, et qui l'a faite (Modèles de bloc ;
+ * les listes de contenus ne montrent que la date).
+ */
 export function SavedCell({
   savedAt,
-  savedByName,
+  savedByName = null,
 }: {
   savedAt: string
-  savedByName: string | null
+  savedByName?: string | null
 }) {
   return (
     <TableCell className="text-muted-foreground">

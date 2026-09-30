@@ -512,7 +512,7 @@ describe("Médiathèque", () => {
 })
 
 describe("Sélection en masse", () => {
-  const selection = texts.media.selection
+  const selection = { ...texts.selection, ...texts.media.selection }
   const box = (name: string) =>
     screen.getByRole("checkbox", { name: selection.select(name) })
 
@@ -593,7 +593,7 @@ describe("Sélection en masse", () => {
     expect(screen.getByText(selection.kept.title(1))).toBeVisible()
     expect(
       screen.getByText(
-        selection.kept.item(
+        selection.keptItem(
           logo.name,
           "Ce fichier est utilisé dans : Recette du pain."
         )
@@ -616,7 +616,7 @@ describe("Sélection en masse", () => {
       voice.id,
     ])
 
-    fireEvent.click(screen.getByRole("button", { name: selection.kept.close }))
+    fireEvent.click(screen.getByRole("button", { name: selection.closeKept }))
     expect(screen.queryByText(selection.kept.title(1))).toBeNull()
     expect(document.activeElement).toBe(
       screen.getByRole("checkbox", { name: selection.selectAll })

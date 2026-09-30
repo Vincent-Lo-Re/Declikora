@@ -9,19 +9,22 @@ import {
 } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import type { KeptMedia } from "@/lib/media/bulk-trash"
+import type { Kept } from "@/lib/bulk-trash"
 import { texts } from "@/texts"
 
-/** Au-dessus des fichiers : « Tout sélectionner » et le nombre de fichiers cochés. */
+/**
+ * Au-dessus d'une liste (Médiathèque, listes de contenus) : « Tout sélectionner » et le nombre
+ * de lignes cochées (countLabel, vide si rien n'est coché).
+ */
 export function SelectionBar({
-  count,
+  countLabel,
   all,
   some,
   disabled,
   onToggleAll,
   selectAllRef,
 }: {
-  count: number
+  countLabel: string | null
   all: boolean
   some: boolean
   disabled: boolean
@@ -39,35 +42,40 @@ export function SelectionBar({
           disabled={disabled}
           onCheckedChange={(value) => onToggleAll(value)}
         />
-        {texts.media.selection.selectAll}
+        {texts.selection.selectAll}
       </label>
-      {count > 0 && (
-        <p className="text-sm text-muted-foreground">
-          {texts.media.selection.count(count)}
-        </p>
+      {countLabel && (
+        <p className="text-sm text-muted-foreground">{countLabel}</p>
       )}
     </div>
   )
 }
 
-/** Les fichiers gardés par une mise à la corbeille en masse, parce qu'ils sont utilisés. */
-export function KeptNotice({
+/** Les lignes gardées par une mise à la corbeille en masse, avec la raison de chacune. */
+export function KeptNotice<T extends { id: string }>({
   kept,
+  nameOf,
+  title,
+  hint,
   onClose,
 }: {
-  kept: KeptMedia[]
+  kept: Kept<T>[]
+  nameOf: (item: T) => string
+  title: string
+  hint: string
   onClose: () => void
 }) {
-  const labels = texts.media.selection.kept
   return (
     <Alert variant="destructive">
       <TriangleAlert />
-      <AlertTitle>{labels.title(kept.length)}</AlertTitle>
+      <AlertTitle>{title}</AlertTitle>
       <AlertDescription>
-        <p>{labels.hint}</p>
+        <p>{hint}</p>
         <ul className="list-disc pl-4">
-          {kept.map(({ media, detail }) => (
-            <li key={media.id}>{labels.item(media.name, detail)}</li>
+          {kept.map(({ item, detail }) => (
+            <li key={item.id}>
+              {texts.selection.keptItem(nameOf(item), detail)}
+            </li>
           ))}
         </ul>
       </AlertDescription>
@@ -75,7 +83,7 @@ export function KeptNotice({
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label={labels.close}
+          aria-label={texts.selection.closeKept}
           onClick={onClose}
         >
           <X />

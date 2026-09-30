@@ -397,7 +397,7 @@ test("un membre envoie les autres formats, filtre, cherche, en met deux à la co
   await unusedFilter.click()
 
   // Sélection en masse : le GIF et l'animation partent ensemble à la corbeille.
-  const selection = texts.media.selection
+  const selection = { ...texts.selection, ...texts.media.selection }
   await page
     .getByRole("checkbox", { name: selection.select(names.gif) })
     .check()

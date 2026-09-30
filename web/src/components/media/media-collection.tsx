@@ -64,7 +64,7 @@ export function MediaGrid({
               )}
             >
               <Checkbox
-                aria-label={texts.media.selection.select(media.name)}
+                aria-label={texts.selection.select(media.name)}
                 checked={checked}
                 disabled={selectionDisabled}
                 onCheckedChange={(value) => onSelect(media, value)}
@@ -79,7 +79,7 @@ export function MediaGrid({
               // Pendant une sélection, la vignette entière coche ou décoche le fichier.
               aria-label={
                 selecting
-                  ? texts.media.selection.select(media.name)
+                  ? texts.selection.select(media.name)
                   : texts.media.open(media.name)
               }
               aria-pressed={selecting ? checked : undefined}
@@ -144,7 +144,7 @@ export function MediaTable({
       <TableHeader>
         <TableRow>
           <TableHead className="w-0">
-            <span className="sr-only">{texts.media.selection.column}</span>
+            <span className="sr-only">{texts.selection.column}</span>
           </TableHead>
           <TableHead className="w-14">
             <span className="sr-only">{texts.media.columns.preview}</span>
@@ -165,7 +165,7 @@ export function MediaTable({
           >
             <TableCell>
               <Checkbox
-                aria-label={texts.media.selection.select(media.name)}
+                aria-label={texts.selection.select(media.name)}
                 checked={selected.has(media.id)}
                 disabled={selectionDisabled}
                 onCheckedChange={(value) => onSelect(media, value)}

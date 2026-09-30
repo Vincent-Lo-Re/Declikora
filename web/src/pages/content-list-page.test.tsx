@@ -79,8 +79,6 @@ function row(
     category_ids: [],
     draft_rev: 3,
     draft_saved_at: "2026-09-27T12:30:00Z",
-    saved_by_name: "Anne Admin",
-    editing_name: null,
     live_draft_rev: null,
     first_published_at: null,
     scheduled_at: null,
@@ -99,7 +97,6 @@ const articles = [
   }),
   row("00000000-0000-4000-8000-0000000000a2", "Le stress au travail", {
     category_ids: [STRESS],
-    editing_name: "Claire Martin",
   }),
   row("00000000-0000-4000-8000-0000000000a3", "Sans rangement"),
 ]
@@ -142,21 +139,20 @@ describe("Blog", () => {
     expect(api.listContents).toHaveBeenCalledWith("article")
     expect(categoriesApi.listCategories).toHaveBeenCalledWith("blog")
     const first = link.closest("tr")!
+    // La première catégorie de la section, puis « +1 » pour l'autre (nommée pour les lecteurs
+    // d'écran).
     await waitFor(() =>
-      expect(
-        within(first)
-          .getAllByText(/Sommeil|Stress/)
-          .map((badge) => badge.textContent)
-      ).toEqual(["Sommeil", "Stress"])
+      expect(within(first).getByText("Sommeil")).toBeVisible()
     )
+    expect(
+      within(first).getByText(labels.otherCategories("Stress"))
+    ).toBeInTheDocument()
+    expect(first).toHaveTextContent(labels.moreCategories(1))
     expect(within(first).getByText(texts.publication.status.live)).toBeVisible()
     const last = screen
       .getByRole("link", { name: "Sans rangement" })
       .closest("tr")!
     expect(within(last).getByText(labels.noCategory)).toBeVisible()
-    expect(
-      screen.getByText(labels.beingEdited("Claire Martin"))
-    ).toBeInTheDocument()
     expect(screen.getByText(labels.count(3, 3))).toBeVisible()
     // Les catégories se gèrent sur leur propre écran.
     expect(
@@ -320,6 +316,68 @@ describe("Blog", () => {
     expect(
       await screen.findByText(labels.kinds.article.restored("Sans rangement"))
     ).toBeVisible()
+  })
+
+  it("« Tout sélectionner » met les articles affichés à la corbeille, et garde celui qu'on écrit", async () => {
+    const article = labels.kinds.article
+    const writing = "Claire Martin écrit ce brouillon."
+    vi.mocked(api.listContents).mockResolvedValue(articles)
+    vi.mocked(publicationApi.trashContent).mockImplementation(async (id) => {
+      if (id === articles[1].id) {
+        throw new api.ContentError("verrou_tenu", { detail: writing })
+      }
+      return { batch: "lot", trashed: 1, needsFileSync: false }
+    })
+    vi.mocked(publicationApi.restoreContent).mockResolvedValue({
+      restored: 1,
+      addressRemoved: false,
+    })
+    renderApp("/blog")
+
+    // Une case par article, puis « Tout sélectionner ».
+    fireEvent.click(
+      await screen.findByRole("checkbox", {
+        name: texts.selection.select("Sans rangement"),
+      })
+    )
+    expect(screen.getByText(article.selected(1))).toBeVisible()
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: texts.selection.selectAll })
+    )
+    expect(screen.getByText(article.selected(3))).toBeVisible()
+
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.selection.trash(3) })
+    )
+    const dialog = await screen.findByRole("alertdialog")
+    expect(dialog).toHaveTextContent(article.confirmTrashManyTitle(3))
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: labels.confirmTrash.confirm })
+    )
+
+    // Deux partent ; celui que Claire écrit est gardé, coché, et listé.
+    expect(await screen.findByText(article.trashedMany(2))).toBeVisible()
+    expect(publicationApi.trashContent).toHaveBeenCalledTimes(3)
+    expect(screen.getByText(article.keptTitle(1))).toBeVisible()
+    expect(
+      screen.getByText(
+        texts.selection.keptItem("Le stress au travail", writing)
+      )
+    ).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: texts.selection.trash(1) })
+    ).toBeVisible()
+
+    // « Annuler » : les deux reviennent en brouillon.
+    fireEvent.click(
+      within(screen.getByText(article.trashedMany(2)).closest("li")!).getByRole(
+        "button",
+        { name: labels.undo }
+      )
+    )
+    expect(await screen.findByText(article.restoredMany(2))).toBeVisible()
+    expect(publicationApi.restoreContent).toHaveBeenCalledWith(articles[0].id)
+    expect(publicationApi.restoreContent).toHaveBeenCalledWith(articles[2].id)
   })
 })
 

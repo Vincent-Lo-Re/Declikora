@@ -361,8 +361,6 @@ describe("liste des méthodes", () => {
         category_ids: [],
         draft_rev: 4,
         draft_saved_at: "2026-09-28T12:30:00Z",
-        saved_by_name: "Anne Admin",
-        editing_name: null,
         // La fiche n'a pas changé depuis la publication…
         live_draft_rev: 4,
         first_published_at: "2026-09-27T08:00:00Z",

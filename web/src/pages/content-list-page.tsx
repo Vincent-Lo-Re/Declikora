@@ -12,15 +12,12 @@ import {
   Trash2,
   TriangleAlert,
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
-import {
-  CoverCell,
-  EditingCell,
-  SavedCell,
-} from "@/components/contents/row-cells"
+import { KeptNotice, SelectionBar } from "@/components/bulk-selection"
+import { CoverCell, SavedCell } from "@/components/contents/row-cells"
 import { useCovers } from "@/components/contents/use-covers"
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
 import { LoadState } from "@/components/load-state"
@@ -40,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,10 +73,23 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   accessLevelsKey,
   listAccessLevels,
   type AccessLevel,
 } from "@/lib/access-levels"
+import {
+  restoreMany,
+  selectionOf,
+  toggleAll,
+  toggleSelected,
+  trashMany,
+  type Kept,
+} from "@/lib/bulk-trash"
 import {
   categoryNames,
   categorySectionOf,
@@ -88,6 +99,7 @@ import {
   ContentError,
   contentKeys,
   createContent,
+  keptContentDetail,
   listContents,
   type ContentListItem,
 } from "@/lib/contents/api"
@@ -118,6 +130,11 @@ import { texts } from "@/texts"
 
 const labels = texts.contentList
 
+/** Le titre d'un contenu, ou « Sans titre ». */
+function titleOf(item: ContentListItem): string {
+  return item.title.trim() || texts.common.untitled
+}
+
 /** Les sortes de contenu qui ont une liste. */
 type ListKind = "page" | "article" | "episode" | "method"
 
@@ -144,7 +161,7 @@ export function ContentListPage({
   const list = useQuery({
     queryKey: contentKeys.list(kind),
     queryFn: () => listContents(kind),
-    // Qui écrit quoi, et les publications programmées : relu toutes les 30 secondes.
+    // Les publications programmées : relu toutes les 30 secondes.
     refetchInterval: 30_000,
   })
   const categories = useCategories(categorySection)
@@ -173,6 +190,13 @@ export function ContentListPage({
         )
       : list.data
   const [toTrash, setToTrash] = useState<ContentListItem | null>(null)
+  // Sélection en masse : les contenus cochés, ceux que la base a gardés, et la confirmation.
+  const [checkedIds, setCheckedIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  )
+  const [kept, setKept] = useState<Kept<ContentListItem>[]>([])
+  const [confirmMany, setConfirmMany] = useState(false)
+  const selectAll = useRef<HTMLSpanElement>(null)
   const [filters, setFilters] = useState<ListFilters>(noFilters)
   const search = useDebouncedValue(filters.search, 150)
 
@@ -203,6 +227,7 @@ export function ContentListPage({
         : [],
     [items, list.dataUpdatedAt, filters, search, category, known]
   )
+  const selection = selectionOf(checkedIds, shown)
   const filtering =
     filters.search.trim() !== "" ||
     filters.state !== "all" ||
@@ -212,7 +237,7 @@ export function ContentListPage({
 
   // « Annuler » dans le message : le contenu revient en brouillon, sans être republié.
   const undo = async (item: ContentListItem) => {
-    const name = item.title.trim() || texts.common.untitled
+    const name = titleOf(item)
     try {
       const { addressRemoved } = await restoreContent(item.id)
       if (addressRemoved)
@@ -229,12 +254,10 @@ export function ContentListPage({
     mutationFn: (item: ContentListItem) => trashContent(item.id),
     onSuccess: (result, item) => {
       setToTrash(null)
-      toast.success(
-        labels.trashed(item.title.trim() || texts.common.untitled),
-        {
-          action: { label: labels.undo, onClick: () => void undo(item) },
-        }
-      )
+      setCheckedIds((current) => toggleSelected(current, item.id, false))
+      toast.success(labels.trashed(titleOf(item)), {
+        action: { label: labels.undo, onClick: () => void undo(item) },
+      })
       // Ses fichiers redeviennent peut-être protégés : tout de suite.
       if (result.needsFileSync) void kickFiles()
     },
@@ -250,6 +273,61 @@ export function ContentListPage({
     },
     onSettled: refresh,
   })
+
+  // « Annuler » après une mise à la corbeille en masse : les contenus reviennent en brouillon.
+  const undoMany = async (items: ContentListItem[]) => {
+    const { restored, error } = await restoreMany(
+      items.map((item) => item.id),
+      restoreContent
+    )
+    if (restored.length > 0)
+      toast.success(kindLabels.restoredMany(restored.length))
+    restored.forEach(({ addressRemoved }, index) => {
+      if (addressRemoved)
+        toast.warning(texts.trash.restoredWithoutAddress(titleOf(items[index])))
+    })
+    if (error) toast.error(errorMessage(error))
+    await refresh()
+  }
+
+  // Les contenus cochés, un par un ; un contenu que quelqu'un d'autre écrit est gardé et listé.
+  const trashSelected = useMutation({
+    mutationFn: (items: ContentListItem[]) =>
+      trashMany(items, trashContent, keptContentDetail),
+    onSuccess: (result) => {
+      setConfirmMany(false)
+      setCheckedIds((current) => {
+        const next = new Set(current)
+        for (const item of result.trashed) next.delete(item.id)
+        return next
+      })
+      setKept(result.kept)
+      if (result.trashed.length > 0) {
+        toast.success(kindLabels.trashedMany(result.trashed.length), {
+          action: {
+            label: labels.undo,
+            onClick: () => void undoMany(result.trashed),
+          },
+        })
+        if (result.results.some((trashed) => trashed.needsFileSync))
+          void kickFiles()
+      }
+      if (result.error) {
+        toast.error(errorMessage(result.error))
+        checkAccess(result.error)
+      }
+      // Le bouton « Mettre à la corbeille » disparaît : le focus va sur « Tout sélectionner ».
+      if (result.kept.length === 0 && result.error === null)
+        selectAll.current?.focus()
+    },
+    onError: (error) => {
+      setConfirmMany(false)
+      toast.error(errorMessage(error))
+    },
+    onSettled: refresh,
+  })
+  const bulkPending = trashSelected.isPending
+
   useEffect(() => {
     if (list.error) checkAccess(list.error)
   }, [list.error, checkAccess])
@@ -319,6 +397,17 @@ export function ContentListPage({
         description={description}
         actions={
           <>
+            {selection.items.length > 0 && (
+              <Button
+                variant="outline"
+                className="text-destructive"
+                disabled={bulkPending}
+                onClick={() => setConfirmMany(true)}
+              >
+                {bulkPending ? <Spinner /> : <Trash2 />}
+                {texts.selection.trash(selection.items.length)}
+              </Button>
+            )}
             {categorySection && (
               <Link
                 to={categoriesPath(categorySection)}
@@ -348,6 +437,18 @@ export function ContentListPage({
               <AlertDescription>{labels.refreshFailed}</AlertDescription>
             </Alert>
           )}
+          {kept.length > 0 && (
+            <KeptNotice
+              kept={kept}
+              nameOf={titleOf}
+              title={kindLabels.keptTitle(kept.length)}
+              hint={kindLabels.keptHint(kept.length)}
+              onClose={() => {
+                setKept([])
+                selectAll.current?.focus()
+              }}
+            />
+          )}
           {list.data.length === 0 ? (
             <Empty className="border border-dashed">
               <EmptyHeader>
@@ -375,58 +476,120 @@ export function ContentListPage({
                   {kindLabels.noResults}
                 </p>
               ) : (
-                <ContentTable
-                  kind={kind}
-                  section={section}
-                  items={shown}
-                  now={list.dataUpdatedAt}
-                  categories={categories.data}
-                  levels={levels.data}
-                  counts={counts.data}
-                  trashing={trash.isPending}
-                  onTrash={setToTrash}
-                />
+                <>
+                  <SelectionBar
+                    countLabel={
+                      selection.items.length > 0
+                        ? kindLabels.selected(selection.items.length)
+                        : null
+                    }
+                    all={selection.all}
+                    some={selection.some}
+                    disabled={bulkPending}
+                    onToggleAll={(checked) =>
+                      setCheckedIds((current) =>
+                        toggleAll(current, shown, checked)
+                      )
+                    }
+                    selectAllRef={selectAll}
+                  />
+                  <ContentTable
+                    kind={kind}
+                    section={section}
+                    items={shown}
+                    now={list.dataUpdatedAt}
+                    categories={categories.data}
+                    levels={levels.data}
+                    counts={counts.data}
+                    selected={checkedIds}
+                    onSelect={(item, checked) =>
+                      setCheckedIds((current) =>
+                        toggleSelected(current, item.id, checked)
+                      )
+                    }
+                    trashing={trash.isPending || bulkPending}
+                    onTrash={setToTrash}
+                  />
+                </>
               )}
             </>
           )}
         </div>
       )}
 
-      <AlertDialog
+      <TrashDialog
         open={toTrash !== null}
-        onOpenChange={(open) => {
-          if (!open && !trash.isPending) setToTrash(null)
-        }}
-      >
-        {toTrash && (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {kindLabels.confirmTrashTitle}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {kindLabels.confirmTrash(
-                  toTrash.title.trim() || texts.common.untitled
-                )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={trash.isPending}>
-                {texts.common.cancel}
-              </AlertDialogCancel>
-              <Button
-                variant="destructive"
-                disabled={trash.isPending}
-                onClick={() => trash.mutate(toTrash)}
-              >
-                {trash.isPending ? <Spinner /> : <Trash2 />}
-                {labels.confirmTrash.confirm}
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
-      </AlertDialog>
+        title={kindLabels.confirmTrashTitle}
+        description={toTrash ? kindLabels.confirmTrash(titleOf(toTrash)) : ""}
+        pending={trash.isPending}
+        onCancel={() => setToTrash(null)}
+        onConfirm={() => toTrash && trash.mutate(toTrash)}
+      />
+      <TrashDialog
+        open={confirmMany && selection.items.length > 0}
+        title={
+          selection.items.length === 1
+            ? kindLabels.confirmTrashTitle
+            : kindLabels.confirmTrashManyTitle(selection.items.length)
+        }
+        description={
+          selection.items.length === 1
+            ? kindLabels.confirmTrash(titleOf(selection.items[0]))
+            : kindLabels.confirmTrashMany
+        }
+        pending={bulkPending}
+        onCancel={() => setConfirmMany(false)}
+        onConfirm={() => trashSelected.mutate(selection.items)}
+      />
     </>
+  )
+}
+
+/** Confirmation d'une mise à la corbeille (un contenu, ou les contenus cochés). */
+function TrashDialog({
+  open,
+  title,
+  description,
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean
+  title: string
+  description: string
+  pending: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !pending) onCancel()
+      }}
+    >
+      {open && (
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{title}</AlertDialogTitle>
+            <AlertDialogDescription>{description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending}>
+              {texts.common.cancel}
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={pending}
+              onClick={onConfirm}
+            >
+              {pending ? <Spinner /> : <Trash2 />}
+              {labels.confirmTrash.confirm}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      )}
+    </AlertDialog>
   )
 }
 
@@ -545,6 +708,8 @@ function ContentTable({
   categories,
   levels,
   counts,
+  selected,
+  onSelect,
   trashing,
   onTrash,
 }: {
@@ -556,6 +721,9 @@ function ContentTable({
   // Méthodes : les formules, et la taille du plan de chacune (undefined : pas encore lus).
   levels: AccessLevel[] | undefined
   counts: MethodCounts | undefined
+  // Sélection en masse : les contenus cochés.
+  selected: ReadonlySet<string>
+  onSelect: (item: ContentListItem, checked: boolean) => void
   trashing: boolean
   onTrash: (item: ContentListItem) => void
 }) {
@@ -568,6 +736,9 @@ function ContentTable({
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead className="w-0">
+            <span className="sr-only">{texts.selection.column}</span>
+          </TableHead>
           {withCover && (
             <TableHead className="w-14">
               <span className="sr-only">{labels.columns.cover}</span>
@@ -588,7 +759,6 @@ function ContentTable({
           )}
           <TableHead>{labels.columns.publication}</TableHead>
           <TableHead>{labels.columns.savedAt}</TableHead>
-          <TableHead>{labels.columns.status}</TableHead>
           <TableHead className="w-0">
             <span className="sr-only">{texts.common.actions}</span>
           </TableHead>
@@ -597,9 +767,20 @@ function ContentTable({
       <TableBody>
         {items.map((item) => {
           const status = itemStatus(item, now)
-          const name = item.title.trim() || texts.common.untitled
+          const name = titleOf(item)
           return (
-            <TableRow key={item.id}>
+            <TableRow
+              key={item.id}
+              data-state={selected.has(item.id) ? "selected" : undefined}
+            >
+              <TableCell>
+                <Checkbox
+                  aria-label={texts.selection.select(name)}
+                  checked={selected.has(item.id)}
+                  disabled={trashing}
+                  onCheckedChange={(value) => onSelect(item, value)}
+                />
+              </TableCell>
               {withCover && <CoverCell {...coverFor(item)} />}
               <TableCell className="max-w-80 font-medium">
                 <Link
@@ -634,14 +815,7 @@ function ContentTable({
                   <ScheduleBadge schedule={status.schedule} />
                 </div>
               </TableCell>
-              <SavedCell
-                savedAt={item.draft_saved_at}
-                savedByName={item.saved_by_name}
-              />
-              <EditingCell
-                editingName={item.editing_name}
-                label={labels.beingEdited}
-              />
+              <SavedCell savedAt={item.draft_saved_at} />
               <TableCell>
                 <RowActions
                   title={name}
@@ -701,7 +875,10 @@ function MethodCells({
   )
 }
 
-/** Les catégories d'une ligne, dans l'ordre de la section ; les supprimées sont ignorées. */
+/**
+ * Les catégories d'une ligne, dans l'ordre de la section : la première, et le nombre des autres.
+ * Les supprimées sont ignorées.
+ */
 function CategoriesCell({
   ids,
   all,
@@ -720,13 +897,23 @@ function CategoriesCell({
   if (names.length === 0) {
     return <span className="text-xs">{labels.noCategory}</span>
   }
+  // La première, puis « +2 » : les autres dans l'infobulle (et pour les lecteurs d'écran).
+  const [first, ...others] = names
   return (
-    <div className="flex flex-wrap gap-1">
-      {names.map((name) => (
-        <Badge key={name} variant="outline">
-          {name}
-        </Badge>
-      ))}
+    <div className="flex items-center gap-1">
+      <Badge variant="outline">{first}</Badge>
+      {others.length > 0 && (
+        <Tooltip>
+          <TooltipTrigger render={<Badge variant="secondary" />}>
+            {labels.moreCategories(others.length)}
+            <span className="sr-only">
+              {" "}
+              {labels.otherCategories(others.join(", "))}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{others.join(", ")}</TooltipContent>
+        </Tooltip>
+      )}
     </div>
   )
 }

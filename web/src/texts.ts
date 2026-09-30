@@ -27,6 +27,16 @@ export const texts = {
       "Un problème est survenu. Vérifie ta connexion, puis réessaie dans un instant.",
   },
 
+  // Sélection en masse (Médiathèque, listes de contenus) : les mots qui ne dépendent pas de la page.
+  selection: {
+    select: (name: string) => `Sélectionner ${name}`,
+    selectAll: "Tout sélectionner",
+    column: "Sélection",
+    trash: (count: number) => `Mettre à la corbeille (${count})`,
+    keptItem: (name: string, detail: string) => `${name} — ${detail}`,
+    closeKept: "Fermer ce message",
+  },
+
   roles: {
     admin: "Admin",
     editor: "Éditeur",
@@ -389,14 +399,10 @@ export const texts = {
     open: (name: string) => `Ouvrir la fiche de ${name}`,
     // Sélection en masse (cases des vignettes et de la liste).
     selection: {
-      select: (name: string) => `Sélectionner ${name}`,
-      selectAll: "Tout sélectionner",
-      column: "Sélection",
       count: (count: number) =>
         count === 1
           ? "1 fichier sélectionné"
           : `${count} fichiers sélectionnés`,
-      trash: (count: number) => `Mettre à la corbeille (${count})`,
       trashed: (count: number) =>
         count === 1
           ? "1 fichier mis à la corbeille."
@@ -409,8 +415,6 @@ export const texts = {
             ? "1 fichier gardé : il est encore utilisé"
             : `${count} fichiers gardés : ils sont encore utilisés`,
         hint: "Retire-les d'abord des contenus. Ils restent sélectionnés.",
-        item: (name: string, detail: string) => `${name} — ${detail}`,
-        close: "Fermer ce message",
       },
     },
     empty: {
@@ -743,6 +747,26 @@ export const texts = {
         confirmTrash: (title: string) =>
           `${title} va dans la corbeille. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
         restored: (title: string) => `${title} est restaurée, en brouillon.`,
+        // Sélection en masse.
+        selected: (count: number) =>
+          count === 1 ? "1 page sélectionnée" : `${count} pages sélectionnées`,
+        confirmTrashManyTitle: (count: number) => `Supprimer ${count} pages ?`,
+        confirmTrashMany:
+          "Elles vont dans la corbeille. Celles qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
+        trashedMany: (count: number) =>
+          count === 1
+            ? "1 page mise à la corbeille."
+            : `${count} pages mises à la corbeille.`,
+        restoredMany: (count: number) =>
+          count === 1
+            ? "1 page restaurée, en brouillon."
+            : `${count} pages restaurées, en brouillon.`,
+        keptTitle: (count: number) =>
+          count === 1 ? "1 page gardée" : `${count} pages gardées`,
+        keptHint: (count: number) =>
+          count === 1
+            ? "Elle reste sélectionnée."
+            : "Elles restent sélectionnées.",
         emptyTitle: "Aucune page pour l'instant",
         emptyDescription:
           "Crée une page : elle s'ouvre aussitôt dans l'éditeur, et tout ce que tu écris est enregistré au fur et à mesure.",
@@ -757,6 +781,27 @@ export const texts = {
         confirmTrash: (title: string) =>
           `${title} va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras le restaurer pendant 30 jours.`,
         restored: (title: string) => `${title} est restauré, en brouillon.`,
+        // Sélection en masse.
+        selected: (count: number) =>
+          count === 1
+            ? "1 article sélectionné"
+            : `${count} articles sélectionnés`,
+        confirmTrashManyTitle: (count: number) =>
+          `Supprimer ${count} articles ?`,
+        confirmTrashMany:
+          "Ils vont dans la corbeille. Ceux qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
+        trashedMany: (count: number) =>
+          count === 1
+            ? "1 article mis à la corbeille."
+            : `${count} articles mis à la corbeille.`,
+        restoredMany: (count: number) =>
+          count === 1
+            ? "1 article restauré, en brouillon."
+            : `${count} articles restaurés, en brouillon.`,
+        keptTitle: (count: number) =>
+          count === 1 ? "1 article gardé" : `${count} articles gardés`,
+        keptHint: (count: number) =>
+          count === 1 ? "Il reste sélectionné." : "Ils restent sélectionnés.",
         emptyTitle: "Aucun article pour l'instant",
         emptyDescription:
           "Crée un article : il s'ouvre aussitôt dans l'éditeur, et tout ce que tu écris est enregistré au fur et à mesure.",
@@ -772,6 +817,27 @@ export const texts = {
         confirmTrash: (title: string) =>
           `${title} va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras le restaurer pendant 30 jours.`,
         restored: (title: string) => `${title} est restauré, en brouillon.`,
+        // Sélection en masse.
+        selected: (count: number) =>
+          count === 1
+            ? "1 épisode sélectionné"
+            : `${count} épisodes sélectionnés`,
+        confirmTrashManyTitle: (count: number) =>
+          `Supprimer ${count} épisodes ?`,
+        confirmTrashMany:
+          "Ils vont dans la corbeille. Ceux qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
+        trashedMany: (count: number) =>
+          count === 1
+            ? "1 épisode mis à la corbeille."
+            : `${count} épisodes mis à la corbeille.`,
+        restoredMany: (count: number) =>
+          count === 1
+            ? "1 épisode restauré, en brouillon."
+            : `${count} épisodes restaurés, en brouillon.`,
+        keptTitle: (count: number) =>
+          count === 1 ? "1 épisode gardé" : `${count} épisodes gardés`,
+        keptHint: (count: number) =>
+          count === 1 ? "Il reste sélectionné." : "Ils restent sélectionnés.",
         emptyTitle: "Aucun épisode pour l'instant",
         emptyDescription:
           "Crée un épisode : il s'ouvre aussitôt dans l'éditeur. Choisis ensuite son image de présentation et son audio.",
@@ -788,6 +854,29 @@ export const texts = {
           `${title} va dans la corbeille, avec ses chapitres et ses leçons. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
         restored: (title: string) =>
           `${title} est restaurée, en brouillon, avec ses chapitres et ses leçons.`,
+        // Sélection en masse.
+        selected: (count: number) =>
+          count === 1
+            ? "1 méthode sélectionnée"
+            : `${count} méthodes sélectionnées`,
+        confirmTrashManyTitle: (count: number) =>
+          `Supprimer ${count} méthodes ?`,
+        confirmTrashMany:
+          "Elles vont dans la corbeille, avec leurs chapitres et leurs leçons. Celles qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
+        trashedMany: (count: number) =>
+          count === 1
+            ? "1 méthode mise à la corbeille."
+            : `${count} méthodes mises à la corbeille.`,
+        restoredMany: (count: number) =>
+          count === 1
+            ? "1 méthode restaurée, en brouillon."
+            : `${count} méthodes restaurées, en brouillon.`,
+        keptTitle: (count: number) =>
+          count === 1 ? "1 méthode gardée" : `${count} méthodes gardées`,
+        keptHint: (count: number) =>
+          count === 1
+            ? "Elle reste sélectionnée."
+            : "Elles restent sélectionnées.",
         emptyTitle: "Aucune méthode pour l'instant",
         emptyDescription:
           "Crée une méthode : elle s'ouvre aussitôt, avec sa fiche et son plan. Ajoute-lui ensuite ses chapitres et ses leçons.",
@@ -805,7 +894,6 @@ export const texts = {
       level: "Niveau d'accès",
       outline: "Plan",
       savedAt: "Dernière modification",
-      status: "En ce moment",
     },
     searchPlaceholder: "Rechercher par titre…",
     filters: {
@@ -845,7 +933,9 @@ export const texts = {
     },
     trashed: (title: string) => `${title} est dans la corbeille.`,
     undo: "Annuler",
-    beingEdited: (name: string) => `${name} écrit`,
+    // Colonne Catégories : la première, puis « +2 » pour les autres.
+    moreCategories: (count: number) => `+${count}`,
+    otherCategories: (names: string) => `Aussi : ${names}`,
     loadFailed: "La liste n'a pas pu être chargée.",
     refreshFailed:
       "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
