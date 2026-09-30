@@ -230,7 +230,7 @@ select lives_ok(
       pg_temp.image_block('00000000-0000-4000-8000-0000000001a2', pg_temp.mid('photo')),
       pg_temp.linked_block('00000000-0000-4000-8000-0000000001a3', 'tpl')), 'Souffle'),
     '{"in_app": true, "is_free": true}')$$,
-  'leçon 1 cochée, gratuite : texte, image qui suit la médiathèque, bloc identique partout'
+  'leçon 1 cochée, gratuite : texte, image qui suit la médiathèque, bloc partagé'
 );
 select lives_ok(
   $$select pg_temp.save('l2', pg_temp.draft(jsonb_build_array(
@@ -283,7 +283,7 @@ select is(
   'leçon gratuite : niveau null, isFree, ses trois blocs, sa méthode'
 );
 select is(
-  pg_temp.app_text('l1', 2), 'Écris-nous', 'le bloc identique partout est recopié dans la version de la leçon'
+  pg_temp.app_text('l1', 2), 'Écris-nous', 'le bloc partagé est recopié dans la version de la leçon'
 );
 select is(
   array[public.app_content(pg_temp.cid('l2')) -> 'locked', public.app_content(pg_temp.cid('l2')) #> '{level,name}',

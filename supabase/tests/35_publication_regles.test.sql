@@ -67,7 +67,7 @@ select is(
 );
 select lives_ok($$select pg_temp.create_content('method', 'method')$$, 'une méthode');
 select lives_ok($$select pg_temp.create_content('ch', 'chapter', 'method')$$, 'un chapitre');
-select lives_ok($$select pg_temp.create_content('tpl', 'template', sort => 'shared')$$, 'un modèle « bloc identique partout »');
+select lives_ok($$select pg_temp.create_content('tpl', 'template', sort => 'shared')$$, 'un modèle « bloc partagé »');
 select throws_ok(
   $$select pg_temp.save('ch', pg_temp.draft('[]'), '{"access_level_id": null}')$$,
   'P0001', 'reglages_invalides', 'niveau : refusé sur un chapitre (seulement les sortes racines)'
@@ -830,7 +830,7 @@ select is(
 -- « retiré » (le bloc lié ne cite aucun fichier, le modèle le cite toujours).
 select lives_ok(
   $$select pg_temp.create_content('tpl_img', 'template', content_title => 'Bandeau', sort => 'shared')$$,
-  'un modèle « bloc identique partout » avec une image'
+  'un modèle « bloc partagé » avec une image'
 );
 select lives_ok(
   $$select pg_temp.save('tpl_img', pg_temp.draft(jsonb_build_array(

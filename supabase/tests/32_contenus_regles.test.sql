@@ -250,7 +250,7 @@ select lives_ok(
 );
 select lives_ok(
   $$select pg_temp.create_content('shared', 'template', sort => 'shared')$$,
-  'un modèle « bloc identique partout » est créé'
+  'un modèle « bloc partagé » est créé'
 );
 select lives_ok(
   $$select pg_temp.create_content('starter', 'template', content_title => 'Interview', sort => 'starter', for_kind => 'article')$$,
@@ -406,14 +406,14 @@ select lives_ok(
   $$select pg_temp.save('shared', pg_temp.draft(jsonb_build_array(
     pg_temp.text_block('00000000-0000-4000-8000-000000000001', 'Écris-nous')
   ), 'Contact'))$$,
-  'le modèle « bloc identique partout » reçoit son bloc'
+  'le modèle « bloc partagé » reçoit son bloc'
 );
 select lives_ok(
   $$select pg_temp.save('article', pg_temp.draft(jsonb_build_array(
     jsonb_build_object('id', '00000000-0000-4000-8000-000000000001', 'type', 'linked',
       'templateId', pg_temp.cid('shared'))
   ), 'Café'))$$,
-  'bloc lié à un modèle « bloc identique partout » accepté'
+  'bloc lié à un modèle « bloc partagé » accepté'
 );
 select is(
   (select draft_template_ids from public.contents where id = pg_temp.cid('article')),

@@ -280,7 +280,7 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------------------------
--- Modèle « bloc identique partout » utilisé
+-- Modèle « bloc partagé » utilisé
 -- ---------------------------------------------------------------------------------------------
 
 select pg_temp.create_content('tpl', 'template', content_title => 'Contact', sort => 'shared');
@@ -295,7 +295,7 @@ select pg_temp.save(
 select is(
   pg_temp.error_of(format('select public.trash(%L)', pg_temp.cid('tpl'))),
   'modele_utilise | Ce modèle est utilisé dans : Avec contact. | ',
-  'un modèle « bloc identique partout » cité par un brouillon ne part pas à la corbeille'
+  'un modèle « bloc partagé » cité par un brouillon ne part pas à la corbeille'
 );
 select public.trash(pg_temp.cid('lie'));
 select throws_ok(
