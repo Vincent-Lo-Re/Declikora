@@ -38,6 +38,8 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 
 ## 3. Contenus et publication
 
+- [x] **Créer** (30/09/2026) : « Nouvel article », « Nouvel épisode », « Nouvelle méthode » ou « Nouvelle page » ouvre une fenêtre : le titre (obligatoire), un point de départ s'il en existe, et les mêmes réglages que dans l'éditeur (niveau d'accès, qui peut rester « Pas encore choisi », et catégories, qu'on peut aussi créer sur place). L'**adresse d'une page** vient de son titre : si une autre page l'a déjà, la fenêtre le dit et bloque la création. Elle ne suit plus le titre ensuite (les liens de l'app ne cassent pas) ; elle reste modifiable dans les réglages, avec la même vérification. La liste des Pages n'a pas de colonne Adresse. « Créer » ouvre l'éditeur.
+- [x] **Réglages** : la glissière « Réglages » (titre, niveau d'accès, catégories, adresse) s'ouvre dans l'éditeur, et aussi depuis le menu « … » d'une ligne des listes, avec « Enregistrer ». Si quelqu'un écrit ce contenu en ce moment, elle s'ouvre en lecture seule, avec son nom.
 - [x] **Brouillon, puis publication.** « Publier » envoie une copie figée dans l'app. On peut ensuite modifier le brouillon sans toucher à ce que voient les lecteurs, jusqu'à la publication suivante.
 - [x] **Programmer** une publication à une date et une heure.
 - [x] **Historique** des versions publiées, avec leur auteur et leur date. « Revenir à cette version » la recopie dans le brouillon.

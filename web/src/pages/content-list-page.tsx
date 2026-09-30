@@ -1,12 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  ChevronDown,
   Ellipsis,
-  File,
   FilePlus2,
   FileText,
   FilterX,
-  LayoutTemplate,
+  Settings2,
   SquarePen,
   Tags,
   Trash2,
@@ -24,6 +22,12 @@ import {
 } from "@/components/bulk-selection"
 import { CoverCell, SavedCell } from "@/components/contents/row-cells"
 import { useContentsSelection } from "@/components/contents/use-contents-selection"
+import { ListSettingsSheet } from "@/components/contents/list-settings-sheet"
+import {
+  NewContentDialog,
+  type ListKind,
+  type NewContent,
+} from "@/components/contents/new-content-dialog"
 import { useCovers } from "@/components/contents/use-covers"
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
 import { LoadState } from "@/components/load-state"
@@ -39,9 +43,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -61,7 +63,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
   TableBody,
@@ -88,7 +89,6 @@ import {
 import {
   ContentError,
   contentKeys,
-  createContent,
   listContents,
   type ContentListItem,
 } from "@/lib/contents/api"
@@ -103,6 +103,7 @@ import {
   type ListFilters,
 } from "@/lib/contents/list-filters"
 import { restoreContent, trashContent } from "@/lib/contents/publication"
+import { createWithSettings } from "@/lib/contents/settings"
 import { coverRequired } from "@/lib/contents/requirements"
 import { listStarters, templateKeys } from "@/lib/contents/templates"
 import { useCategories } from "@/hooks/use-categories"
@@ -119,9 +120,6 @@ const labels = texts.contentList
 function titleOf(item: ContentListItem): string {
   return item.title.trim() || texts.common.untitled
 }
-
-/** Les sortes de contenu qui ont une liste. */
-type ListKind = "page" | "article" | "episode" | "method"
 
 /**
  * Liste des contenus d'une section (Pages, Blog, Podcasts, Méthodes) : recherche, filtres par
@@ -154,10 +152,10 @@ export function ContentListPage({
   // Méthodes : les formules (niveau d'accès) et, pour
   // celles qui sont en ligne, s'il y a quelque chose à publier (la fiche ne suffit pas : une
   // leçon modifiée ne change pas la fiche, [D29]).
+  // Les formules : colonne des méthodes, fenêtre de création et réglages.
   const levels = useQuery({
     queryKey: accessLevelsKey,
     queryFn: listAccessLevels,
-    enabled: isMethod,
   })
   const pendingById = useMethodPending(isMethod ? list.data : undefined, true)
   const items =
@@ -265,54 +263,34 @@ export function ContentListPage({
     enabled: !isMethod,
   })
 
+  // « Nouvel article » (…) : une fenêtre (titre, point de départ, réglages), puis l'éditeur.
+  const [creating, setCreating] = useState(false)
   const create = useMutation({
-    mutationFn: (fromTemplateId: string | null) =>
-      createContent(kind, "", fromTemplateId),
-    onSuccess: (content) => {
+    mutationFn: ({ title, starterId, choices }: NewContent) =>
+      createWithSettings(kind, title, starterId, choices),
+    onSuccess: ({ content, settingsError }) => {
       queryClient.setQueryData(contentKeys.detail(content.id), content)
       void queryClient.invalidateQueries({ queryKey: contentKeys.list(kind) })
+      setCreating(false)
+      if (settingsError) {
+        toast.error(
+          labels.newContent.settingsFailed(errorMessage(settingsError))
+        )
+      }
       void navigate(editorPath(section, content.id))
     },
-    onError: (error) => {
-      checkAccess(error)
-      toast.error(`${kindLabels.createFailed} ${error.message}`)
-    },
+    onError: (error) => checkAccess(error),
   })
-
-  const createButton =
-    starters.data && starters.data.length > 0 ? (
-      <DropdownMenu>
-        <DropdownMenuTrigger disabled={create.isPending} render={<Button />}>
-          {create.isPending ? <Spinner /> : <FilePlus2 />}
-          {kindLabels.create}
-          <ChevronDown />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuItem onClick={() => create.mutate(null)}>
-            <File />
-            {kindLabels.blank}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>{labels.starters}</DropdownMenuLabel>
-            {starters.data.map((starter) => (
-              <DropdownMenuItem
-                key={starter.id}
-                onClick={() => create.mutate(starter.id)}
-              >
-                <LayoutTemplate />
-                {starter.title.trim() || texts.templates.list.untitled}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ) : (
-      <Button onClick={() => create.mutate(null)} disabled={create.isPending}>
-        {create.isPending ? <Spinner /> : <FilePlus2 />}
-        {kindLabels.create}
-      </Button>
-    )
+  // « Réglages » depuis le menu d'une ligne.
+  const [settingsFor, setSettingsFor] = useState<ContentListItem | null>(null)
+  const sectionCategories = categorySection
+    ? {
+        section: categorySection,
+        list: categories.data,
+        failed: categories.isError,
+        retry: () => void categories.refetch(),
+      }
+    : undefined
 
   return (
     <>
@@ -335,7 +313,10 @@ export function ContentListPage({
                 {labels.manageCategories}
               </Link>
             )}
-            {createButton}
+            <Button onClick={() => setCreating(true)}>
+              <FilePlus2 />
+              {kindLabels.create}
+            </Button>
           </>
         }
       />
@@ -401,6 +382,7 @@ export function ContentListPage({
                     onSelect={bulk.toggle}
                     trashing={trash.isPending || bulk.pending}
                     onTrash={setToTrash}
+                    onSettings={setSettingsFor}
                   />
                 </>
               )}
@@ -409,6 +391,36 @@ export function ContentListPage({
         </div>
       )}
 
+      <NewContentDialog
+        open={creating}
+        onOpenChange={(open) => {
+          setCreating(open)
+          if (!open) create.reset()
+        }}
+        kind={kind}
+        starters={starters.data ?? []}
+        categories={sectionCategories}
+        levels={levels.data}
+        levelsFailed={levels.isError}
+        pending={create.isPending}
+        error={
+          create.error
+            ? `${kindLabels.createFailed} ${errorMessage(create.error)}`
+            : null
+        }
+        onSubmit={(created) => create.mutate(created)}
+      />
+      {settingsFor && (
+        <ListSettingsSheet
+          key={settingsFor.id}
+          item={settingsFor}
+          kind={kind}
+          categories={sectionCategories}
+          levels={levels.data}
+          levelsFailed={levels.isError}
+          onClose={() => setSettingsFor(null)}
+        />
+      )}
       <TrashDialog
         open={toTrash !== null}
         title={kindLabels.confirmTrashTitle}
@@ -558,6 +570,7 @@ function ContentTable({
   onSelect,
   trashing,
   onTrash,
+  onSettings,
 }: {
   kind: ListKind
   section: SectionKey
@@ -572,6 +585,7 @@ function ContentTable({
   onSelect: (item: ContentListItem, checked: boolean) => void
   trashing: boolean
   onTrash: (item: ContentListItem) => void
+  onSettings: (item: ContentListItem) => void
 }) {
   const withCategories = kind === "article" || kind === "episode"
   const isMethod = kind === "method"
@@ -589,15 +603,8 @@ function ContentTable({
             </TableHead>
           )}
           <TableHead>{labels.columns.title}</TableHead>
-          {isMethod ? (
-            <TableHead>{labels.columns.level}</TableHead>
-          ) : (
-            <TableHead>
-              {withCategories
-                ? labels.columns.categories
-                : labels.columns.address}
-            </TableHead>
-          )}
+          {isMethod && <TableHead>{labels.columns.level}</TableHead>}
+          {withCategories && <TableHead>{labels.columns.categories}</TableHead>}
           <TableHead>{labels.columns.publication}</TableHead>
           <TableHead>{labels.columns.savedAt}</TableHead>
           <TableHead className="w-0">
@@ -631,19 +638,10 @@ function ContentTable({
                   {name}
                 </Link>
               </TableCell>
-              {isMethod ? (
-                <LevelCell item={item} levels={levels} />
-              ) : (
+              {isMethod && <LevelCell item={item} levels={levels} />}
+              {withCategories && (
                 <TableCell className="max-w-64 text-muted-foreground">
-                  {withCategories ? (
-                    <CategoriesCell ids={item.category_ids} all={categories} />
-                  ) : item.slug ? (
-                    <code className="font-mono text-xs break-all">
-                      {item.slug}
-                    </code>
-                  ) : (
-                    <span className="text-xs">{labels.noAddress}</span>
-                  )}
+                  <CategoriesCell ids={item.category_ids} all={categories} />
                 </TableCell>
               )}
               <TableCell>
@@ -659,6 +657,7 @@ function ContentTable({
                   editPath={editorPath(section, item.id)}
                   disabled={trashing}
                   onTrash={() => onTrash(item)}
+                  onSettings={() => onSettings(item)}
                 />
               </TableCell>
             </TableRow>
@@ -746,11 +745,13 @@ function RowActions({
   editPath,
   disabled,
   onTrash,
+  onSettings,
 }: {
   title: string
   editPath: string
   disabled: boolean
   onTrash: () => void
+  onSettings: () => void
 }) {
   const navigate = useNavigate()
   return (
@@ -766,6 +767,10 @@ function RowActions({
         <DropdownMenuItem onClick={() => void navigate(editPath)}>
           <SquarePen />
           {labels.open}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onSettings}>
+          <Settings2 />
+          {labels.settings.action}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={onTrash}>

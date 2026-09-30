@@ -8,6 +8,7 @@ import * as publicationApi from "@/lib/contents/publication"
 import * as templatesApi from "@/lib/contents/templates"
 import * as mediaApi from "@/lib/media/api"
 import type { Media } from "@/lib/media/constants"
+import { createFromDialog } from "@/test/new-content"
 import { renderApp, testProfile } from "@/test/render"
 import { texts } from "@/texts"
 
@@ -16,6 +17,7 @@ vi.mock("@/lib/contents/api", async (importOriginal) => {
   const actual = await importOriginal<typeof api>()
   return {
     ...actual,
+    findPageBySlug: vi.fn(async () => null),
     listContents: vi.fn(),
     createContent: vi.fn(),
     getContent: vi.fn(),
@@ -241,13 +243,15 @@ describe("liste des pages", () => {
     // La date seulement : ni qui a modifié, ni qui écrit en ce moment.
     expect(screen.getByText("27 sept. 2026 à 14h30")).toBeInTheDocument()
 
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.contentList.kinds.page.create })
-    )
+    await createFromDialog("page", "Mentions légales")
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/pages/${PAGE_ID}`)
     )
-    expect(api.createContent).toHaveBeenCalledWith("page", "", null)
+    expect(api.createContent).toHaveBeenCalledWith(
+      "page",
+      "Mentions légales",
+      null
+    )
     // Plein écran : le menu de l'admin est caché, « ← Pages » ramène à la liste.
     expect(
       await screen.findByRole("link", { name: texts.editor.back("Pages") })

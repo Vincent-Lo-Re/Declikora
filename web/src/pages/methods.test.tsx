@@ -16,6 +16,7 @@ import * as templatesApi from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
 import * as mediaApi from "@/lib/media/api"
 import type { Media } from "@/lib/media/constants"
+import { createFromDialog } from "@/test/new-content"
 import { renderApp, testProfile } from "@/test/render"
 import { texts } from "@/texts"
 
@@ -27,6 +28,7 @@ vi.mock("@/lib/contents/api", async (importOriginal) => {
   const actual = await importOriginal<typeof api>()
   return {
     ...actual,
+    findPageBySlug: vi.fn(async () => null),
     listContents: vi.fn(),
     createContent: vi.fn(),
     getContent: vi.fn(),
@@ -385,13 +387,13 @@ describe("liste des méthodes", () => {
     vi.mocked(methodsApi.getMethodTree).mockResolvedValue([])
     vi.mocked(methodsApi.getMethodPreview).mockResolvedValue([])
     renderApp("/methodes")
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: texts.contentList.kinds.method.create,
-      })
-    )
+    await createFromDialog("method", "Mieux respirer")
     await waitFor(() =>
-      expect(api.createContent).toHaveBeenCalledWith("method", "", null)
+      expect(api.createContent).toHaveBeenCalledWith(
+        "method",
+        "Mieux respirer",
+        null
+      )
     )
     expect(await screen.findByText(outline.emptyTitle)).toBeVisible()
     expect(

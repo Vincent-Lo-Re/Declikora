@@ -82,6 +82,20 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+// Collé en bas de la glissière, même quand son contenu défile (boutons d'un formulaire).
+function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="sheet-footer"
+      className={cn(
+        "sticky bottom-0 mt-auto flex justify-end gap-2 border-t bg-background p-4",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
 function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
   return (
     <SheetPrimitive.Title
@@ -108,4 +122,11 @@ function SheetDescription({
   )
 }
 
-export { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription }
+export {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
+}

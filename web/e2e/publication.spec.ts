@@ -17,6 +17,7 @@
 
 import type { Page } from "@playwright/test"
 
+import { slugFromTitle } from "../src/lib/contents/slug.ts"
 import { texts } from "../src/texts.ts"
 import type { Account } from "./support/accounts.ts"
 import {
@@ -61,8 +62,7 @@ async function openPages(page: Page, account: Account) {
 }
 
 async function newPage(page: Page, title: string) {
-  await createBlankPage(page)
-  await page.getByLabel(texts.editor.title.label).fill(title)
+  await createBlankPage(page, title)
 }
 
 async function addText(page: Page, text: string) {
@@ -195,7 +195,18 @@ test("publier une page, la modifier sans toucher à l'app, republier, revenir à
   await saved(page)
   await expect(liveBadge(page)).toHaveText(labels.status.draft)
 
-  // Pas d'adresse : « Publier » ouvre les réglages, sur l'adresse.
+  // L'adresse vient du titre ; sans adresse (effacée), « Publier » ouvre les réglages, sur
+  // l'adresse.
+  await page.getByRole("button", { name: labels.actions.settings }).click()
+  const cleared = page.getByRole("dialog", { name: labels.settings.title })
+  await expect(cleared.getByLabel(labels.settings.slug.label)).toHaveValue(
+    slugFromTitle(title)
+  )
+  await cleared.getByLabel(labels.settings.slug.label).fill("")
+  await cleared.getByLabel(labels.settings.slug.label).press("Enter")
+  await saved(page)
+  await page.keyboard.press("Escape")
+  await expect(cleared).toHaveCount(0)
   await page
     .getByRole("button", { name: labels.actions.publish, exact: true })
     .click()

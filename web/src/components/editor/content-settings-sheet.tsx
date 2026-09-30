@@ -1,7 +1,10 @@
-import { Tags } from "lucide-react"
-import { useRef, useState, type KeyboardEvent } from "react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Plus, Tags } from "lucide-react"
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { Link } from "react-router"
 
+import { singleLine } from "@/blocks/components/fields"
+import { TITLE_MAX } from "@/blocks/draft"
 import { AccessLevelChoice } from "@/components/editor/access-level-choice"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -17,22 +20,35 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import type { AccessLevel } from "@/lib/access-levels"
-import type { Category, CategorySection } from "@/lib/categories"
-import type { ContentKind, ContentSettings } from "@/lib/contents/api"
+import {
+  categoryKeys,
+  createCategory,
+  type Category,
+  type CategorySection,
+} from "@/lib/categories"
+import {
+  findPageBySlug,
+  type ContentKind,
+  type ContentSettings,
+} from "@/lib/contents/api"
 import type { LiveVersion } from "@/lib/contents/publication"
 import { checkSlug, slugFromTitle } from "@/lib/contents/slug"
+import { errorMessage } from "@/lib/errors"
+import { categoryNameSchema } from "@/lib/schemas"
 import { categoriesPath } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.publication.settings
 
 /** Les catégories de la section d'un article ou d'un épisode, telles que l'éditeur les lit. */
-type SectionCategories = {
+export type SectionCategories = {
   section: CategorySection
   // undefined tant qu'elles ne sont pas lues.
   list: Category[] | undefined
@@ -59,23 +75,76 @@ export function ContentSettingsSheet({
   open,
   onOpenChange,
   focus,
-  kind,
-  title,
-  settings,
-  editable,
-  levels,
-  levelsFailed,
-  live,
-  refusedSlug,
-  categories,
-  onChange,
+  footer,
+  notice,
+  ...fields
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   // Le champ à mettre en avant à l'ouverture (adresse manquante ou déjà prise, catégories).
   focus: SettingsFocus
+  // Depuis une liste : « Enregistrer » et « Annuler » (dans l'éditeur, tout part tout seul).
+  footer?: ReactNode
+  // À la place de « Lecture seule… » : pourquoi on ne peut pas modifier (quelqu'un écrit ce
+  // contenu), ou ce qui se vérifie encore.
+  notice?: string
+} & Omit<SettingsFieldsProps, "slugRef" | "categoriesRef" | "highlightSlug">) {
+  const slugRef = useRef<HTMLInputElement>(null)
+  const categoriesRef = useRef<HTMLHeadingElement>(null)
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        className="w-full gap-0 overflow-y-auto sm:max-w-md"
+        initialFocus={
+          focus === "slug"
+            ? slugRef
+            : focus === "categories" && fields.categories
+              ? categoriesRef
+              : undefined
+        }
+      >
+        <SheetHeader className="pr-12">
+          <SheetTitle>{labels.title}</SheetTitle>
+          <SheetDescription>{labels.description}</SheetDescription>
+        </SheetHeader>
+        <div className="space-y-6 px-4 pb-6">
+          {notice ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              {notice}
+            </p>
+          ) : (
+            !fields.editable && (
+              <p className="text-sm text-muted-foreground">{labels.readOnly}</p>
+            )
+          )}
+          <ContentSettingsFields
+            {...fields}
+            slugRef={slugRef}
+            categoriesRef={categoriesRef}
+            highlightSlug={focus === "slug"}
+          />
+        </div>
+        {footer && <SheetFooter>{footer}</SheetFooter>}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+type SettingsFieldsProps = {
   kind: ContentKind
+  // Le contenu réglé (null à la création) : une adresse déjà prise par une AUTRE page est refusée.
+  contentId?: string | null
+  // Faux dans la fenêtre de création : l'adresse d'une page y vient du titre.
+  slugField?: boolean
   title: string
+  // Le titre comme champ (fenêtre de création, réglages) : sinon, il ne sert qu'à proposer
+  // l'adresse d'une page.
+  onTitleChange?: (title: string) => void
+  titleError?: string | null
+  // Fenêtre de création : le curseur est dans le titre dès l'ouverture.
+  autoFocusTitle?: boolean
+  // Sous le titre (fenêtre de création : le point de départ).
+  afterTitle?: ReactNode
   settings: ContentSettings
   editable: boolean
   levels: AccessLevel[] | undefined
@@ -86,80 +155,111 @@ export function ContentSettingsSheet({
   // Article ou épisode : les catégories de sa section.
   categories?: SectionCategories
   onChange: (next: ContentSettings) => void
-}) {
-  const slugRef = useRef<HTMLInputElement>(null)
-  const categoriesRef = useRef<HTMLHeadingElement>(null)
+  slugRef?: React.RefObject<HTMLInputElement | null>
+  categoriesRef?: React.RefObject<HTMLHeadingElement | null>
+  highlightSlug?: boolean
+}
+
+/**
+ * Les réglages d'un contenu (titre, niveau d'accès, catégories, adresse) : dans la glissière
+ * « Réglages » et dans la fenêtre de création.
+ */
+export function ContentSettingsFields({
+  kind,
+  contentId = null,
+  slugField = true,
+  title,
+  onTitleChange,
+  titleError = null,
+  autoFocusTitle = false,
+  afterTitle,
+  settings,
+  editable,
+  levels,
+  levelsFailed,
+  live,
+  refusedSlug,
+  categories,
+  onChange,
+  slugRef,
+  categoriesRef,
+  highlightSlug = false,
+}: SettingsFieldsProps) {
+  const ownSlugRef = useRef<HTMLInputElement>(null)
+  const ownCategoriesRef = useRef<HTMLHeadingElement>(null)
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        className="w-full gap-0 overflow-y-auto sm:max-w-md"
-        initialFocus={
-          focus === "slug"
-            ? slugRef
-            : focus === "categories"
-              ? categoriesRef
-              : undefined
-        }
-      >
-        <SheetHeader className="pr-12">
-          <SheetTitle>{labels.title}</SheetTitle>
-          <SheetDescription>{labels.description}</SheetDescription>
-        </SheetHeader>
-        <div className="space-y-6 px-4 pb-6">
-          {!editable && (
-            <p className="text-sm text-muted-foreground">{labels.readOnly}</p>
-          )}
-          {kind === "chapter" || kind === "lesson" ? (
-            <ElementSection
-              kind={kind}
-              settings={settings}
-              editable={editable}
-              onChange={onChange}
-            />
-          ) : (
-            <AccessSection
-              settings={settings}
-              editable={editable}
-              levels={levels}
-              levelsFailed={levelsFailed}
-              live={live}
-              onChange={(accessLevelId) =>
-                onChange({ ...settings, accessChosen: true, accessLevelId })
-              }
-            />
-          )}
-          {categories && (
-            <>
-              <Separator />
-              <CategoriesSection
-                headingRef={categoriesRef}
-                categories={categories}
-                chosen={settings.categoryIds}
-                editable={editable}
-                onChange={(categoryIds) =>
-                  onChange({ ...settings, categoryIds })
-                }
-              />
-            </>
-          )}
-          {kind === "page" && (
-            <>
-              <Separator />
-              <SlugField
-                inputRef={slugRef}
-                slug={settings.slug}
-                title={title}
-                editable={editable}
-                live={live}
-                highlight={focus === "slug"}
-                refused={refusedSlug}
-                onCommit={(slug) => onChange({ ...settings, slug })}
-              />
-            </>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+    <>
+      {onTitleChange && (
+        <Field data-invalid={titleError !== null}>
+          <FieldLabel htmlFor="reglages-titre">{labels.titleLabel}</FieldLabel>
+          <Input
+            id="reglages-titre"
+            autoFocus={autoFocusTitle}
+            value={title}
+            readOnly={!editable}
+            maxLength={TITLE_MAX}
+            autoComplete="off"
+            placeholder={texts.editor.title.placeholder}
+            aria-invalid={titleError !== null}
+            onChange={(event) =>
+              onTitleChange(singleLine(event.target.value).slice(0, TITLE_MAX))
+            }
+          />
+          <FieldError>{titleError}</FieldError>
+        </Field>
+      )}
+      {afterTitle}
+      {kind === "chapter" || kind === "lesson" ? (
+        <ElementSection
+          kind={kind}
+          settings={settings}
+          editable={editable}
+          onChange={onChange}
+        />
+      ) : (
+        <>
+          {onTitleChange && <Separator />}
+          <AccessSection
+            settings={settings}
+            editable={editable}
+            levels={levels}
+            levelsFailed={levelsFailed}
+            live={live}
+            onChange={(accessLevelId) =>
+              onChange({ ...settings, accessChosen: true, accessLevelId })
+            }
+          />
+        </>
+      )}
+      {categories && (
+        <>
+          <Separator />
+          <CategoriesSection
+            headingRef={categoriesRef ?? ownCategoriesRef}
+            categories={categories}
+            chosen={settings.categoryIds}
+            editable={editable}
+            onChange={(categoryIds) => onChange({ ...settings, categoryIds })}
+          />
+        </>
+      )}
+      {kind === "page" && slugField && (
+        <>
+          <Separator />
+          <SlugField
+            contentId={contentId}
+            inputRef={slugRef ?? ownSlugRef}
+            slug={settings.slug}
+            title={title}
+            editable={editable}
+            live={live}
+            highlight={highlightSlug}
+            refused={refusedSlug}
+            onCommit={(slug) => onChange({ ...settings, slug })}
+          />
+        </>
+      )}
+    </>
   )
 }
 
@@ -247,6 +347,12 @@ function CategoriesSection({
           ))}
         </ul>
       )}
+      {editable && list !== undefined && (
+        <AddCategory
+          section={categories.section}
+          onAdded={(category) => onChange([...chosen, category.id].sort())}
+        />
+      )}
       <Link
         to={categoriesPath(categories.section)}
         className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -255,6 +361,79 @@ function CategoriesSection({
         {words.manage}
       </Link>
     </section>
+  )
+}
+
+/**
+ * Une nouvelle catégorie, créée tout de suite dans la section (comme depuis la page Catégories),
+ * puis cochée. Entrée l'ajoute sans envoyer le formulaire autour (fenêtre de création).
+ */
+function AddCategory({
+  section,
+  onAdded,
+}: {
+  section: CategorySection
+  onAdded: (category: Category) => void
+}) {
+  const queryClient = useQueryClient()
+  const [name, setName] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const add = useMutation({
+    mutationFn: (value: string) => createCategory(section, value),
+    onSuccess: (category) => {
+      queryClient.setQueryData<Category[]>(
+        categoryKeys.list(section),
+        (list) => [...(list ?? []), category]
+      )
+      void queryClient.invalidateQueries({ queryKey: categoryKeys.all })
+      setName("")
+      onAdded(category)
+    },
+    onError: (failure) => setError(errorMessage(failure)),
+  })
+  const submit = () => {
+    const parsed = categoryNameSchema.safeParse({ name })
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? null)
+      return
+    }
+    add.mutate(parsed.data.name)
+  }
+  return (
+    <Field data-invalid={error !== null}>
+      <FieldLabel htmlFor="reglages-nouvelle-categorie">
+        {texts.categories.name}
+      </FieldLabel>
+      <div className="flex gap-2">
+        <Input
+          id="reglages-nouvelle-categorie"
+          value={name}
+          autoComplete="off"
+          placeholder={texts.categories.namePlaceholder}
+          aria-invalid={error !== null}
+          onChange={(event) => {
+            setName(event.target.value)
+            setError(null)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault()
+              submit()
+            }
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          disabled={add.isPending}
+          onClick={submit}
+        >
+          {add.isPending ? <Spinner /> : <Plus />}
+          {texts.categories.add}
+        </Button>
+      </div>
+      <FieldError>{error}</FieldError>
+    </Field>
   )
 }
 
@@ -386,6 +565,7 @@ function AccessSection({
 }
 
 function SlugField({
+  contentId,
   inputRef,
   slug,
   title,
@@ -395,6 +575,7 @@ function SlugField({
   refused,
   onCommit,
 }: {
+  contentId: string | null
   inputRef: React.RefObject<HTMLInputElement | null>
   slug: string | null
   title: string
@@ -408,6 +589,7 @@ function SlugField({
     refused ? (refused.slug ?? "") : (slug ?? "")
   )
   const [error, setError] = useState<string | null>(null)
+  const [checking, setChecking] = useState(false)
   // L'adresse a changé ailleurs (relecture du brouillon) ou vient d'être refusée : le champ
   // reprend celle du brouillon, ou garde celle qui a été refusée.
   const [shown, setShown] = useState({ slug, refused })
@@ -417,7 +599,7 @@ function SlugField({
     setError(null)
   }
 
-  const commit = (value: string) => {
+  const commit = async (value: string) => {
     const checked = checkSlug(value)
     if (!checked.ok) {
       setError(
@@ -429,13 +611,30 @@ function SlugField({
     }
     setError(null)
     setText(checked.slug ?? "")
-    if (checked.slug !== slug) onCommit(checked.slug)
+    if (checked.slug === slug) return
+    // Déjà prise par une autre page : refusée tout de suite (la base refuse aussi, à
+    // l'enregistrement, si une autre page la prend entre-temps).
+    if (checked.slug) {
+      setChecking(true)
+      try {
+        const other = await findPageBySlug(checked.slug, contentId)
+        if (other) {
+          setError(labels.slug.taken(other.title))
+          return
+        }
+      } catch {
+        // Vérification impossible (réseau) : la base tranchera à l'enregistrement.
+      } finally {
+        setChecking(false)
+      }
+    }
+    onCommit(checked.slug)
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault()
-      commit(event.currentTarget.value)
+      void commit(event.currentTarget.value)
     }
   }
 
@@ -469,12 +668,12 @@ function SlugField({
               (refused && event.target.value === (refused.slug ?? ""))
             )
               return
-            commit(event.target.value)
+            void commit(event.target.value)
           }}
           onKeyDown={onKeyDown}
         />
         <FieldDescription id="reglages-adresse-aide">
-          {labels.slug.description}
+          {checking ? labels.slug.checking : labels.slug.description}
         </FieldDescription>
         <FieldError>{message}</FieldError>
       </Field>
@@ -484,7 +683,7 @@ function SlugField({
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => commit(suggestion)}
+            onClick={() => void commit(suggestion)}
           >
             {labels.slug.fromTitle}
           </Button>
