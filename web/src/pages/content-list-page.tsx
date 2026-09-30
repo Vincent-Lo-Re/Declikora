@@ -365,15 +365,12 @@ export function ContentListPage({
               <AlertDescription>{labels.refreshFailed}</AlertDescription>
             </Alert>
           )}
-          {bulk.kept.length > 0 && (
-            <KeptNotice
-              kept={bulk.kept}
-              nameOf={titleOf}
-              title={kindLabels.keptTitle(bulk.kept.length)}
-              hint={kindLabels.keptHint(bulk.kept.length)}
-              onClose={bulk.closeKept}
-            />
-          )}
+          <KeptNotice
+            kept={bulk.kept}
+            nameOf={titleOf}
+            words={kindLabels}
+            onClose={bulk.closeKept}
+          />
           {list.data.length === 0 ? (
             <Empty className="border border-dashed">
               <EmptyHeader>

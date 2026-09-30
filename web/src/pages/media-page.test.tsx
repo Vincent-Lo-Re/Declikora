@@ -590,7 +590,7 @@ describe("Sélection en masse", () => {
     ])
     expect(api.kickFiles).toHaveBeenCalled()
     // Le fichier utilisé est gardé, reste coché, et le message dit où il sert.
-    expect(screen.getByText(selection.kept.title(1))).toBeVisible()
+    expect(screen.getByText(selection.keptTitle(1))).toBeVisible()
     expect(
       screen.getByText(
         selection.keptItem(
@@ -617,7 +617,7 @@ describe("Sélection en masse", () => {
     ])
 
     fireEvent.click(screen.getByRole("button", { name: selection.closeKept }))
-    expect(screen.queryByText(selection.kept.title(1))).toBeNull()
+    expect(screen.queryByText(selection.keptTitle(1))).toBeNull()
     expect(document.activeElement).toBe(
       screen.getByRole("checkbox", { name: selection.selectAll })
     )

@@ -186,15 +186,12 @@ export function TemplatesPage() {
               <AlertDescription>{labels.refreshFailed}</AlertDescription>
             </Alert>
           )}
-          {bulk.kept.length > 0 && (
-            <KeptNotice
-              kept={bulk.kept}
-              nameOf={nameOf}
-              title={labels.keptTitle(bulk.kept.length)}
-              hint={labels.keptHint(bulk.kept.length)}
-              onClose={bulk.closeKept}
-            />
-          )}
+          <KeptNotice
+            kept={bulk.kept}
+            nameOf={nameOf}
+            words={labels}
+            onClose={bulk.closeKept}
+          />
           <Tabs
             value={tab}
             onValueChange={(value: TemplateTab) => setTab(value)}

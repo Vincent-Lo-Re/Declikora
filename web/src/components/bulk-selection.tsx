@@ -80,22 +80,25 @@ export function BulkTrashButton({
 export function KeptNotice<T extends { id: string }>({
   kept,
   nameOf,
-  title,
-  hint,
+  words,
   onClose,
 }: {
   kept: Kept<T>[]
   nameOf: (item: NoInfer<T>) => string
-  title: string
-  hint: string
+  // Les textes de la page : titre et conseil, selon le nombre de lignes gardées.
+  words: {
+    keptTitle: (count: number) => string
+    keptHint: (count: number) => string
+  }
   onClose: () => void
 }) {
+  if (kept.length === 0) return null
   return (
     <Alert variant="destructive">
       <TriangleAlert />
-      <AlertTitle>{title}</AlertTitle>
+      <AlertTitle>{words.keptTitle(kept.length)}</AlertTitle>
       <AlertDescription>
-        <p>{hint}</p>
+        <p>{words.keptHint(kept.length)}</p>
         <ul className="list-disc pl-4">
           {kept.map(({ item, detail }) => (
             <li key={item.id}>

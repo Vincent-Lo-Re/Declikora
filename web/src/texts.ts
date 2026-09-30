@@ -409,13 +409,14 @@ export const texts = {
           : `${count} fichiers mis à la corbeille.`,
       restored: (count: number) =>
         count === 1 ? "1 fichier restauré." : `${count} fichiers restaurés.`,
-      kept: {
-        title: (count: number) =>
-          count === 1
-            ? "1 fichier gardé : il est encore utilisé"
-            : `${count} fichiers gardés : ils sont encore utilisés`,
-        hint: "Retire-les d'abord des contenus. Ils restent sélectionnés.",
-      },
+      keptTitle: (count: number) =>
+        count === 1
+          ? "1 fichier gardé : il est encore utilisé"
+          : `${count} fichiers gardés : ils sont encore utilisés`,
+      keptHint: (count: number) =>
+        count === 1
+          ? "Retire-le d'abord des contenus. Il reste sélectionné."
+          : "Retire-les d'abord des contenus. Ils restent sélectionnés.",
     },
     empty: {
       title: "Aucun fichier pour l'instant",

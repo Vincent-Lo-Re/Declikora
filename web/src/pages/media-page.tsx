@@ -499,8 +499,7 @@ export function MediaPage() {
                 <KeptNotice
                   kept={kept}
                   nameOf={(item) => item.name}
-                  title={texts.media.selection.kept.title(kept.length)}
-                  hint={texts.media.selection.kept.hint}
+                  words={texts.media.selection}
                   onClose={() => {
                     setKept([])
                     selectAll.current?.focus()
