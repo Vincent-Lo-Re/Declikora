@@ -934,6 +934,28 @@ export const texts = {
       settingsFailed: (message: string) =>
         `Créé, mais ses réglages n'ont pas été enregistrés : ${message} Corrige-les dans les réglages.`,
     },
+    // Ordre des listes (Le Fil, Radio Éclaircies, Méthodes, [D47]) : glisser-déposer.
+    order: {
+      column: "Ordre",
+      handle: (title: string) => `Déplacer « ${title} »`,
+      filtering:
+        "Pour ranger la liste, efface d'abord la recherche et les filtres.",
+      saved: "Nouvel ordre enregistré.",
+      failed:
+        "Le nouvel ordre n'a pas été enregistré : la liste reprend son ordre.",
+      dnd: {
+        roleDescription: "contenu déplaçable",
+        instructions:
+          "Pour déplacer un contenu, appuie sur Espace ou Entrée sur sa poignée. Déplace-le avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour le déposer, ou sur Échap pour annuler.",
+        start: (title: string) => `Tu as pris « ${title} ».`,
+        over: (title: string, position: number, count: number) =>
+          `« ${title} » est à la place n° ${position} sur ${count}.`,
+        end: (title: string, position: number, count: number) =>
+          `« ${title} » déposé à la place n° ${position} sur ${count}.`,
+        cancel: (title: string) =>
+          `Déplacement annulé : « ${title} » reprend sa place.`,
+      },
+    },
     // « Réglages » dans le menu d'une ligne : les mêmes réglages que dans l'éditeur.
     settings: {
       action: "Réglages",

@@ -210,6 +210,58 @@ async function chooseInPicker(
   await expect(picker).toHaveCount(0)
 }
 
+test("Le Fil : un article neuf arrive en tête ; rangé au clavier, l'ordre tient", async ({
+  page,
+  team,
+}) => {
+  const id = uniqueId()
+  const admin = await team.createAdmin("Rita Rangement")
+  const first = `Premier ${id}`
+  const second = `Second ${id}`
+  // Les titres de ce test, dans l'ordre de la liste.
+  const order = async () =>
+    (await page.locator("tbody tr a").allTextContents()).filter((title) =>
+      title.endsWith(id)
+    )
+
+  await open(page, "/blog", admin)
+  for (const title of [first, second]) {
+    await createFromDialog(page, "article", title)
+    await page
+      .getByRole("link", { name: editor.back(texts.sections.blog.title) })
+      .click()
+    await expect(page).toHaveURL(/\/blog$/)
+  }
+  await expect.poll(order).toEqual([second, first])
+
+  // Au clavier : « Second » descend sous « Premier » (contents_reorder).
+  const handle = page.getByRole("button", { name: list.order.handle(second) })
+  const announced = page.locator('[id^="DndLiveRegion"]')
+  await handle.focus()
+  await page.keyboard.press("Space")
+  await expect(announced).toContainText(list.order.dnd.start(second))
+  // dnd-kit n'écoute les flèches qu'au tour suivant de la boucle d'événements.
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)))
+  await page.keyboard.press("ArrowDown")
+  await expect(announced).toContainText(
+    list.order.dnd.over(second, 2, await page.locator("tbody tr").count())
+  )
+  await page.keyboard.press("Space")
+  await expect(page.getByText(list.order.saved)).toBeVisible()
+  await expect.poll(order).toEqual([first, second])
+  await page.reload()
+  await expect.poll(order).toEqual([first, second])
+
+  // Pendant une recherche, la liste ne se range pas.
+  await page
+    .getByRole("searchbox", { name: list.kinds.article.search })
+    .fill(id)
+  await expect(page.getByText(list.order.filtering)).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: list.order.handle(first) })
+  ).toBeDisabled()
+})
+
 test("Blog : catégories rangées, article refusé sans image de présentation, publié, filtré, catégorie supprimée", async ({
   page,
   team,

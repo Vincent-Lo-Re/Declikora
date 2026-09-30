@@ -28,14 +28,16 @@ import {
   type ListKind,
   type NewContent,
 } from "@/components/contents/new-content-dialog"
+import { SortableRow } from "@/components/contents/sortable-rows"
 import { useCovers } from "@/components/contents/use-covers"
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
+import { SortableList } from "@/components/list-sorting"
 import { LoadState } from "@/components/load-state"
 import { useMethodPending } from "@/components/methods/use-method-pending"
 import { PageHeader } from "@/components/page-header"
 import { SearchInput } from "@/components/search-input"
-import { TrashDialog } from "@/components/trash-dialog"
 import { useAccessCheck } from "@/components/team/use-access-check"
+import { TrashDialog } from "@/components/trash-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -89,7 +91,9 @@ import {
 import {
   ContentError,
   contentKeys,
+  isOrderedKind,
   listContents,
+  reorderContents,
   type ContentListItem,
 } from "@/lib/contents/api"
 import {
@@ -281,6 +285,39 @@ export function ContentListPage({
     },
     onError: (error) => checkAccess(error),
   })
+  // Le Fil, Radio Éclaircies, Méthodes : ranger par glisser-déposer ([D47]). La liste change
+  // tout de suite ; si l'enregistrement échoue, elle reprend son ordre.
+  const reorder = useMutation({
+    mutationFn: (ids: string[]) =>
+      isOrderedKind(kind) ? reorderContents(kind, ids) : Promise.resolve(),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: contentKeys.list(kind) })
+      const previous = queryClient.getQueryData<ContentListItem[]>(
+        contentKeys.list(kind)
+      )
+      queryClient.setQueryData<ContentListItem[]>(
+        contentKeys.list(kind),
+        (list) => {
+          if (!list) return list
+          const byId = new Map(list.map((item) => [item.id, item]))
+          return ids.flatMap((id, index) => {
+            const item = byId.get(id)
+            return item ? [{ ...item, list_position: index }] : []
+          })
+        }
+      )
+      return { previous }
+    },
+    onSuccess: () => toast.success(labels.order.saved),
+    onError: (error, _ids, context) => {
+      queryClient.setQueryData(contentKeys.list(kind), context?.previous)
+      toast.error(labels.order.failed, { description: errorMessage(error) })
+      checkAccess(error)
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: contentKeys.list(kind) }),
+  })
+
   // « Réglages » depuis le menu d'une ligne.
   const [settingsFor, setSettingsFor] = useState<ContentListItem | null>(null)
   const sectionCategories = categorySection
@@ -370,6 +407,11 @@ export function ContentListPage({
                 </p>
               ) : (
                 <>
+                  {isOrderedKind(kind) && filtering && (
+                    <p className="text-sm text-muted-foreground">
+                      {labels.order.filtering}
+                    </p>
+                  )}
                   <ContentTable
                     kind={kind}
                     section={section}
@@ -383,6 +425,15 @@ export function ContentListPage({
                     trashing={trash.isPending || bulk.pending}
                     onTrash={setToTrash}
                     onSettings={setSettingsFor}
+                    order={
+                      isOrderedKind(kind)
+                        ? {
+                            disabled:
+                              filtering || reorder.isPending || bulk.pending,
+                            onReorder: (ids) => reorder.mutate(ids),
+                          }
+                        : undefined
+                    }
                   />
                 </>
               )}
@@ -569,6 +620,7 @@ function ContentTable({
   trashing,
   onTrash,
   onSettings,
+  order,
 }: {
   kind: ListKind
   section: SectionKey
@@ -584,16 +636,24 @@ function ContentTable({
   trashing: boolean
   onTrash: (item: ContentListItem) => void
   onSettings: (item: ContentListItem) => void
+  // Le Fil, Radio Éclaircies, Méthodes : le glisser-déposer ([D47]) ; disabled pendant une
+  // recherche, un filtre ou un enregistrement (on ne range que la liste complète).
+  order?: { disabled: boolean; onReorder: (ids: string[]) => void }
 }) {
   const withCategories = kind === "article" || kind === "episode"
   const isMethod = kind === "method"
   // Le Fil, Radio Éclaircies, Méthodes : l'image de présentation de chacun, en vignette.
   const withCover = coverRequired(kind)
   const coverFor = useCovers(withCover ? items : [])
-  return (
+  const table = (
     <Table>
       <TableHeader>
         <TableRow>
+          {order && (
+            <TableHead className="w-0">
+              <span className="sr-only">{labels.order.column}</span>
+            </TableHead>
+          )}
           <SelectAllHead {...selectAll} />
           {withCover && (
             <TableHead className="w-14">
@@ -614,11 +674,8 @@ function ContentTable({
         {items.map((item) => {
           const status = itemStatus(item, now)
           const name = titleOf(item)
-          return (
-            <TableRow
-              key={item.id}
-              data-state={selected.has(item.id) ? "selected" : undefined}
-            >
+          const cells = (
+            <>
               <TableCell>
                 <Checkbox
                   aria-label={texts.selection.select(name)}
@@ -658,11 +715,38 @@ function ContentTable({
                   onSettings={() => onSettings(item)}
                 />
               </TableCell>
+            </>
+          )
+          const state = selected.has(item.id) ? "selected" : undefined
+          return order ? (
+            <SortableRow
+              key={item.id}
+              id={item.id}
+              name={name}
+              disabled={order.disabled}
+              data-state={state}
+            >
+              {cells}
+            </SortableRow>
+          ) : (
+            <TableRow key={item.id} data-state={state}>
+              {cells}
             </TableRow>
           )
         })}
       </TableBody>
     </Table>
+  )
+  return order ? (
+    <SortableList
+      items={items.map((item) => ({ id: item.id, name: titleOf(item) }))}
+      words={labels.order.dnd}
+      onReorder={order.onReorder}
+    >
+      {table}
+    </SortableList>
+  ) : (
+    table
   )
 }
 

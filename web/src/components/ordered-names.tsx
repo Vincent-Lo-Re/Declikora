@@ -1,21 +1,4 @@
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type Announcements,
-  type DragEndEvent,
-  type UniqueIdentifier,
-} from "@dnd-kit/core"
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable"
+import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
@@ -31,6 +14,7 @@ import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
 import type { z } from "zod"
 
+import { SortableList } from "@/components/list-sorting"
 import { LoadState } from "@/components/load-state"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import {
@@ -276,31 +260,6 @@ export function OrderedNames<T extends Named>({
   )
 }
 
-/** Annonces du glisser-déposer, en français, pour les lecteurs d'écran. */
-function announcements(
-  items: Named[],
-  dnd: OrderedNamesLabels["dnd"]
-): Announcements {
-  const nameOf = (id: UniqueIdentifier) =>
-    items.find((item) => item.id === id)?.name ?? ""
-  const placeOf = (id: UniqueIdentifier) =>
-    items.findIndex((item) => item.id === id) + 1
-  return {
-    onDragStart: ({ active }) => dnd.start(nameOf(active.id)),
-    // Au-dessus de sa propre place (au début du déplacement) : rien de neuf à dire, et « Tu
-    // as pris… » n'est pas écrasé.
-    onDragOver: ({ active, over }) =>
-      over && over.id !== active.id
-        ? dnd.over(nameOf(active.id), placeOf(over.id), items.length)
-        : undefined,
-    onDragEnd: ({ active, over }) =>
-      over
-        ? dnd.end(nameOf(active.id), placeOf(over.id), items.length)
-        : dnd.cancel(nameOf(active.id)),
-    onDragCancel: ({ active }) => dnd.cancel(nameOf(active.id)),
-  }
-}
-
 type RowOptions<T extends Named> = Pick<
   OrderedNamesProps<T>,
   "labels" | "schema" | "inputId" | "rename" | "refresh" | "before" | "after"
@@ -326,51 +285,25 @@ function SortableNames<T extends Named>({
     setRenaming(null)
     focusSoon(() => renameButtonOf(id))
   }
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
-  const ids = items.map((item) => item.id)
-
-  const onDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over || active.id === over.id) return
-    const from = ids.indexOf(String(active.id))
-    const to = ids.indexOf(String(over.id))
-    if (from < 0 || to < 0) return
-    onReorder(arrayMove(ids, from, to))
-  }
-
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      accessibility={{
-        announcements: announcements(items, labels.dnd),
-        screenReaderInstructions: { draggable: labels.dnd.instructions },
-      }}
-      onDragEnd={onDragEnd}
-    >
-      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <ol className="space-y-2" aria-label={labels.listLabel}>
-          {items.map((item, index) => (
-            <SortableName
-              key={item.id}
-              {...options}
-              item={item}
-              position={index + 1}
-              disabled={disabled}
-              renaming={renaming === item.id}
-              onRename={(open) =>
-                open ? setRenaming(item.id) : endRename(item.id)
-              }
-              onRemove={() => onRemove(item)}
-            />
-          ))}
-        </ol>
-      </SortableContext>
-    </DndContext>
+    <SortableList items={items} words={labels.dnd} onReorder={onReorder}>
+      <ol className="space-y-2" aria-label={labels.listLabel}>
+        {items.map((item, index) => (
+          <SortableName
+            key={item.id}
+            {...options}
+            item={item}
+            position={index + 1}
+            disabled={disabled}
+            renaming={renaming === item.id}
+            onRename={(open) =>
+              open ? setRenaming(item.id) : endRename(item.id)
+            }
+            onRemove={() => onRemove(item)}
+          />
+        ))}
+      </ol>
+    </SortableList>
   )
 }
 
