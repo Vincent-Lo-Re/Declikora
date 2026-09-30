@@ -1,7 +1,7 @@
 // Parcours des modèles de blocs (étape 6), contre le Supabase local. Ce que voit l'app est lu
 // par la RPC app_page, comme un anonyme.
 //
-// Un encadré « Contact » créé comme bloc identique partout est inséré dans deux pages ; corrigé
+// Un encadré « Contact » créé comme bloc partagé est inséré dans deux pages ; corrigé
 // dans le modèle, il change dans les deux brouillons. Une des pages est publiée ; le modèle est
 // corrigé encore, et « Mettre à jour ce contenu dans l'app » change l'app sans rien publier
 // d'autre. Le bloc est détaché dans l'autre page, puis le modèle est supprimé après
@@ -43,7 +43,7 @@ function nav(page: Page, title: string) {
     .click()
 }
 
-/** Le bloc lié (bloc identique partout) d'un brouillon ouvert dans l'éditeur. */
+/** Le bloc lié (bloc partagé) d'un brouillon ouvert dans l'éditeur. */
 function linkedBlock(page: Page) {
   return page.locator('[data-block-type="linked"]')
 }
@@ -101,7 +101,7 @@ async function appendText(page: Page, text: string) {
   await saved(page)
 }
 
-test("bloc identique partout : deux pages, correction, mise à jour de l'app, détacher, supprimer", async ({
+test("bloc partagé : deux pages, correction, mise à jour de l'app, détacher, supprimer", async ({
   page,
   team,
 }) => {
@@ -114,7 +114,7 @@ test("bloc identique partout : deux pages, correction, mise à jour de l'app, d�
   const pagesTitle = texts.sections.pages.title
   const templatesTitle = texts.sections.templates.title
 
-  // 1. Le modèle : un encadré « Contact », bloc identique partout.
+  // 1. Le modèle : un encadré « Contact », bloc partagé.
   await openTemplates(page, admin)
   await page.getByRole("button", { name: labels.list.create }).click()
   const create = page.getByRole("dialog", { name: labels.create.title })
@@ -140,8 +140,9 @@ test("bloc identique partout : deux pages, correction, mise à jour de l'app, d�
   ).toBeDisabled()
   await expect(page.getByText(labels.editor.sharedLimit)).toBeVisible()
   await leave(page, templatesTitle)
+  // « Tous les blocs » : le modèle, avec sa sorte.
   await expect(page.locator(`[data-template="${templateId}"]`)).toContainText(
-    labels.list.uses(0)
+    labels.sorts.shared.title
   )
 
   // 2. Le modèle inséré dans deux pages : un bloc lié, montré tel qu'il est dans le modèle.
@@ -236,7 +237,7 @@ test("bloc identique partout : deux pages, correction, mise à jour de l'app, d�
   //    la corbeille. L'app garde la page telle quelle.
   await nav(page, templatesTitle)
   const row = page.locator(`[data-template="${templateId}"]`)
-  await expect(row).toContainText(labels.list.uses(1))
+  await expect(row).toBeVisible()
   await row.getByRole("button", { name: labels.list.actions(name) }).click()
   await page.getByRole("menuitem", { name: labels.list.trash }).click()
   const dialog = page.getByRole("alertdialog", { name: labels.list.used.title })

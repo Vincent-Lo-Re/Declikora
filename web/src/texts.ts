@@ -1248,13 +1248,15 @@ export const texts = {
   templates: {
     sorts: {
       style: {
-        title: "Mise en forme réutilisable",
+        title: "Mise en forme",
+        tab: "Mises en forme",
         description:
           "On insère une copie déjà mise en forme, puis on y écrit son propre texte. Modifier le modèle ne change pas les contenus déjà écrits.",
         example: "Exemple : un encadré « À retenir ».",
       },
       shared: {
-        title: "Bloc identique partout",
+        title: "Bloc partagé",
+        tab: "Blocs partagés",
         description:
           "Le même bloc, avec le même texte, dans plusieurs contenus. On le corrige une seule fois dans le modèle, et il est corrigé dans tous les brouillons qui l'utilisent.",
         example:
@@ -1262,6 +1264,7 @@ export const texts = {
       },
       starter: {
         title: "Point de départ",
+        tab: "Points de départ",
         description:
           "Un nouveau contenu s'ouvre avec une structure déjà en place, au lieu d'une page vide.",
         example: "Exemple : « Interview ».",
@@ -1279,9 +1282,13 @@ export const texts = {
       create: "Nouveau modèle",
       columns: {
         name: "Nom",
-        uses: "Utilisation",
-        section: "Section",
+        type: "Type",
         savedAt: "Dernière modification",
+      },
+      // Les onglets : « Tous les blocs », puis un par sorte (texts.templates.sorts.*.tab).
+      tabs: {
+        label: "Sortes de modèles",
+        all: "Tous les blocs",
       },
       untitled: "Sans nom",
       empty: {
@@ -1290,12 +1297,6 @@ export const texts = {
           "Crée un modèle ici, ou depuis un contenu : choisis des blocs dans le plan, puis « Enregistrer comme modèle ».",
       },
       emptySort: "Aucun modèle de cette sorte pour l'instant.",
-      uses: (count: number) =>
-        count === 0
-          ? "Utilisé nulle part"
-          : count === 1
-            ? "Utilisé dans 1 brouillon"
-            : `Utilisé dans ${count} brouillons`,
       usesLoading: "Recherche des brouillons…",
       actions: (name: string) => `Actions pour ${name}`,
       open: "Ouvrir",
@@ -1318,7 +1319,7 @@ export const texts = {
         count === 1 ? "1 modèle sélectionné" : `${count} modèles sélectionnés`,
       confirmTrashManyTitle: (count: number) => `Supprimer ${count} modèles ?`,
       confirmTrashMany:
-        "Ils vont dans la corbeille : tu pourras les restaurer pendant 30 jours. Les contenus où ils ont été insérés gardent leur copie. Un bloc identique partout encore utilisé est gardé.",
+        "Ils vont dans la corbeille : tu pourras les restaurer pendant 30 jours. Les contenus où ils ont été insérés gardent leur copie. Un bloc partagé encore utilisé est gardé.",
       trashedMany: (count: number) =>
         count === 1
           ? "1 modèle mis à la corbeille."
@@ -1328,12 +1329,12 @@ export const texts = {
       keptTitle: (count: number) =>
         count === 1 ? "1 modèle gardé" : `${count} modèles gardés`,
       keptHint: (count: number) =>
-        `Pour un bloc identique partout encore utilisé, « Supprimer » propose « Détacher partout ». ${count === 1 ? "Il reste sélectionné." : "Ils restent sélectionnés."}`,
-      // Un bloc identique partout utilisé ne se supprime pas (ADMIN § 5).
+        `Pour un bloc partagé encore utilisé, « Supprimer » propose « Détacher partout ». ${count === 1 ? "Il reste sélectionné." : "Ils restent sélectionnés."}`,
+      // Un bloc partagé utilisé ne se supprime pas (ADMIN § 5).
       used: {
         title: "Ce modèle est encore utilisé",
         description:
-          "Un bloc identique partout ne se supprime pas tant qu'un brouillon l'utilise. « Détacher partout » en fait une copie ordinaire dans chacun d'eux, corbeille comprise : ils ne suivront plus le modèle. Ce qui est en ligne dans l'app ne change pas.",
+          "Un bloc partagé ne se supprime pas tant qu'un brouillon l'utilise. « Détacher partout » en fait une copie ordinaire dans chacun d'eux, corbeille comprise : ils ne suivront plus le modèle. Ce qui est en ligne dans l'app ne change pas.",
         list: "Brouillons qui l'utilisent",
         inTrash: "dans la corbeille",
         detachAll: "Détacher partout",
@@ -1367,7 +1368,7 @@ export const texts = {
       namePlaceholder: "Nom du modèle",
       starterFor: (section: string) => `Point de départ : ${section}`,
       sharedLimit:
-        "Un bloc identique partout contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
+        "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
       empty: {
         title: "Modèle vide",
         description:
@@ -1408,7 +1409,7 @@ export const texts = {
           "La liste des contenus à mettre à jour dans l'app n'a pas pu être chargée.",
       },
     },
-    // Un bloc lié (bloc identique partout) dans l'éditeur d'un contenu.
+    // Un bloc lié (bloc partagé) dans l'éditeur d'un contenu.
     linked: {
       label: (name: string) => `Modèle : ${name}`,
       loading: "Chargement du modèle…",
@@ -1422,7 +1423,7 @@ export const texts = {
       detached: (name: string) =>
         `Bloc détaché de ${name} : c'est maintenant une copie ordinaire, que tu peux modifier ici.`,
       settings: (name: string) =>
-        `Ce bloc est identique partout : il vient du modèle ${name}. Pour le corriger, modifie le modèle : la correction apparaîtra dans tous les brouillons qui l'utilisent.`,
+        `Ce bloc est partagé : il vient du modèle ${name}. Pour le corriger, modifie le modèle : la correction apparaîtra dans tous les brouillons qui l'utilisent.`,
       detachHint:
         "« Détacher » en fait une copie ordinaire, modifiable ici, qui ne suit plus le modèle. Les autres contenus restent liés.",
     },
@@ -1431,7 +1432,7 @@ export const texts = {
       menu: "Un modèle…",
       title: "Insérer un modèle",
       description:
-        "Une mise en forme s'insère en copie, que tu modifies ici. Un bloc identique partout reste lié à son modèle.",
+        "Une mise en forme s'insère en copie, que tu modifies ici. Un bloc partagé reste lié à son modèle.",
       empty:
         "Aucun modèle à insérer pour l'instant. Crée-en un dans la section Modèles.",
       insert: "Insérer",
@@ -1456,7 +1457,7 @@ export const texts = {
           ? "Le bloc choisi devient un nouveau modèle."
           : `Les ${count} blocs choisis deviennent un nouveau modèle, dans l'ordre du contenu.`,
       sharedOne:
-        "Pour un bloc identique partout, choisis un seul bloc (un encadré peut en regrouper plusieurs).",
+        "Pour un bloc partagé, choisis un seul bloc (un encadré peut en regrouper plusieurs).",
       sharedReplaced:
         "Le bloc est maintenant lié au modèle : le corriger dans le modèle le corrigera ici aussi.",
       submit: "Enregistrer le modèle",
@@ -1495,7 +1496,7 @@ export const texts = {
             ? "Encadré (1 bloc)"
             : `Encadré (${count} blocs)`,
       linked: (name: string | null) =>
-        name ? `Bloc identique « ${name} »` : "Bloc identique partout",
+        name ? `Bloc partagé « ${name} »` : "Bloc partagé",
     },
     textPlaceholder: "Écris ici…",
     add: {
@@ -1841,13 +1842,13 @@ export const texts = {
         "Restaure d'abord le chapitre ou la méthode qui le contient.",
       // Étape 6 : modèles de blocs.
       modele_vide:
-        "Ce bloc identique partout est encore vide : ajoute-lui son bloc dans Modèles avant de l'insérer.",
+        "Ce bloc partagé est encore vide : ajoute-lui son bloc dans Modèles avant de l'insérer.",
       modele_un_seul_bloc:
-        "Un bloc identique partout contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
+        "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
       bloc_introuvable:
         "Un des blocs choisis n'est pas encore enregistré. Attends la fin de l'enregistrement, puis réessaie.",
       modele_introuvable:
-        "Ce modèle n'existe plus, ou ce n'est pas un bloc identique partout. Recharge la page.",
+        "Ce modèle n'existe plus, ou ce n'est pas un bloc partagé. Recharge la page.",
       // Étape 7, partie 7b : méthodes.
       plan_perime:
         "Le plan a changé entre-temps : relis-le, puis range-le de nouveau.",

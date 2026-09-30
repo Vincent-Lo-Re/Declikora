@@ -133,32 +133,37 @@ afterEach(() => {
 const labels = texts.templates.list
 
 describe("section Modèles", () => {
-  it("range les modèles par sorte, avec leur utilisation et la section d'un point de départ", async () => {
+  it("montre tous les modèles avec leur type, puis un onglet par sorte", async () => {
+    const sorts = texts.templates.sorts
     renderApp("/modeles")
-    const shared = await screen.findByRole("region", {
-      name: texts.templates.sorts.shared.title,
-    })
-    const row = within(shared)
-      .getByRole("link", { name: "Contact" })
-      .closest("tr")!
-    expect(row).toHaveTextContent(labels.uses(2))
-    // La date seulement : ni qui a modifié, ni qui écrit en ce moment.
+
+    // « Tous les blocs » : chaque modèle, avec sa sorte, et la date seule.
+    expect(
+      await screen.findByRole("tab", { name: labels.tabs.all, selected: true })
+    ).toBeInTheDocument()
+    const row = screen.getByRole("link", { name: "Contact" }).closest("tr")!
+    expect(row).toHaveTextContent(sorts.shared.title)
     expect(row).toHaveTextContent("27 sept. 2026 à 14h30")
     expect(row).not.toHaveTextContent("Anne Admin")
+    expect(screen.getByRole("link", { name: "Contact" })).toHaveAttribute(
+      "href",
+      `/modeles/${CONTACT}`
+    )
     expect(
-      within(shared).getByRole("link", { name: "Contact" })
-    ).toHaveAttribute("href", `/modeles/${CONTACT}`)
+      screen.getAllByRole("link", { name: /À retenir|Interview/ })
+    ).toHaveLength(2)
 
-    const style = screen.getByRole("region", {
-      name: texts.templates.sorts.style.title,
-    })
-    expect(within(style).getByText("À retenir")).toBeInTheDocument()
-    const starter = screen.getByRole("region", {
-      name: texts.templates.sorts.starter.title,
-    })
+    // Un onglet par sorte : ses modèles seulement, sans la colonne Type.
+    fireEvent.click(screen.getByRole("tab", { name: sorts.starter.tab }))
+    const panel = await screen.findByRole("tabpanel")
     expect(
-      within(starter).getByText("Interview").closest("tr")
-    ).toHaveTextContent(texts.templates.sections.page)
+      within(panel).getByText(sorts.starter.description, { exact: false })
+    ).toBeVisible()
+    expect(within(panel).getByRole("link", { name: "Interview" })).toBeVisible()
+    expect(within(panel).queryByRole("link", { name: "Contact" })).toBeNull()
+    expect(
+      within(panel).queryByRole("columnheader", { name: labels.columns.type })
+    ).toBeNull()
   })
 
   it("« Nouveau modèle » : nom et sorte, puis l'éditeur du modèle s'ouvre", async () => {

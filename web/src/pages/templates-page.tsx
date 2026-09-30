@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
@@ -60,6 +61,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ContentError, contentKeys } from "@/lib/contents/api"
 import { restoreContent, trashContent } from "@/lib/contents/publication"
 import {
@@ -80,6 +82,11 @@ import { editorPath } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.templates.list
+
+// Les onglets : « Tous les blocs », puis une sorte de modèle par onglet.
+const ALL = "all"
+type TemplateTab = typeof ALL | TemplateSort
+const tabs: TemplateTab[] = [ALL, ...templateSorts]
 
 function nameOf(item: { title: string }) {
   return item.title.trim() || labels.untitled
@@ -104,25 +111,9 @@ export function TemplatesPage() {
     queryFn: listTemplates,
     refetchInterval: 30_000,
   })
-  const uses = useQuery({
-    queryKey: templateKeys.uses,
-    queryFn: () => listTemplateUses(),
-    refetchInterval: 30_000,
-  })
   useEffect(() => {
     if (list.error) checkAccess(list.error)
   }, [list.error, checkAccess])
-
-  // Nombre de brouillons (corbeille comprise) qui citent chaque modèle.
-  const useCount = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const use of uses.data ?? []) {
-      for (const id of use.templateIds) {
-        counts.set(id, (counts.get(id) ?? 0) + 1)
-      }
-    }
-    return counts
-  }, [uses.data])
 
   const create = useMutation({
     mutationFn: (template: NewTemplate) => createTemplate(template),
@@ -135,12 +126,16 @@ export function TemplatesPage() {
     onError: (error) => checkAccess(error),
   })
 
-  const bySort = (sort: TemplateSort) =>
-    (list.data ?? []).filter((item) => item.sort === sort)
+  // L'onglet ouvert : « Tous les blocs », ou une sorte de modèle.
+  const [tab, setTab] = useState<TemplateTab>(ALL)
+  const shown = useMemo(
+    () => (list.data ?? []).filter((item) => tab === ALL || item.sort === tab),
+    [list.data, tab]
+  )
 
   // Sélection en masse ; un bloc identique partout encore utilisé est gardé et listé.
   const bulk = useContentsSelection({
-    shown: list.data ?? [],
+    shown,
     words: labels,
     nameOf,
   })
@@ -184,48 +179,71 @@ export function TemplatesPage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-4">
           {list.isError && (
             <Alert variant="destructive">
               <TriangleAlert />
               <AlertDescription>{labels.refreshFailed}</AlertDescription>
             </Alert>
           )}
-          <div className="space-y-4">
-            {bulk.kept.length > 0 && (
-              <KeptNotice
-                kept={bulk.kept}
-                nameOf={nameOf}
-                title={labels.keptTitle(bulk.kept.length)}
-                hint={labels.keptHint(bulk.kept.length)}
-                onClose={bulk.closeKept}
-              />
-            )}
-            <SelectionBar
-              countLabel={
-                selection.items.length > 0
-                  ? labels.selected(selection.items.length)
-                  : null
-              }
-              all={selection.all}
-              some={selection.some}
-              disabled={bulk.pending}
-              onToggleAll={bulk.toggleAll}
-              selectAllRef={bulk.selectAllRef}
+          {bulk.kept.length > 0 && (
+            <KeptNotice
+              kept={bulk.kept}
+              nameOf={nameOf}
+              title={labels.keptTitle(bulk.kept.length)}
+              hint={labels.keptHint(bulk.kept.length)}
+              onClose={bulk.closeKept}
             />
-          </div>
-          {templateSorts.map((sort) => (
-            <SortSection
-              key={sort}
-              sort={sort}
-              items={bySort(sort)}
-              useCount={uses.data ? useCount : null}
-              selected={bulk.checkedIds}
-              onSelect={bulk.toggle}
-              selectionDisabled={bulk.pending}
-              onTrash={setToTrash}
-            />
-          ))}
+          )}
+          <Tabs
+            value={tab}
+            onValueChange={(value: TemplateTab) => setTab(value)}
+          >
+            <TabsList aria-label={labels.tabs.label}>
+              {tabs.map((value) => (
+                <TabsTrigger key={value} value={value}>
+                  {value === ALL
+                    ? labels.tabs.all
+                    : texts.templates.sorts[value].tab}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {tabs.map((value) => (
+              <TabsContent
+                key={value}
+                value={value}
+                className="space-y-4"
+                data-template-tab={value}
+              >
+                {value !== ALL && (
+                  <p className="text-muted-foreground">
+                    {texts.templates.sorts[value].description}{" "}
+                    {texts.templates.sorts[value].example}
+                  </p>
+                )}
+                <SelectionBar
+                  countLabel={
+                    selection.items.length > 0
+                      ? labels.selected(selection.items.length)
+                      : null
+                  }
+                  all={selection.all}
+                  some={selection.some}
+                  disabled={bulk.pending}
+                  onToggleAll={bulk.toggleAll}
+                  selectAllRef={bulk.selectAllRef}
+                />
+                <TemplateTable
+                  items={shown}
+                  withType={value === ALL}
+                  selected={bulk.checkedIds}
+                  onSelect={bulk.toggle}
+                  selectionDisabled={bulk.pending}
+                  onTrash={setToTrash}
+                />
+              </TabsContent>
+            ))}
+          </Tabs>
         </div>
       )}
 
@@ -280,109 +298,83 @@ export function TemplatesPage() {
   )
 }
 
-/** Les modèles d'une sorte, avec sa présentation. */
-function SortSection({
-  sort,
+/** Les modèles d'un onglet ; dans « Tous les blocs », avec leur sorte (colonne Type). */
+function TemplateTable({
   items,
-  useCount,
+  withType,
   selected,
   onSelect,
   selectionDisabled,
   onTrash,
 }: {
-  sort: TemplateSort
   items: TemplateItem[]
-  // null tant que les brouillons qui citent les modèles ne sont pas lus.
-  useCount: Map<string, number> | null
-  // Sélection en masse : les modèles cochés (toutes sortes confondues).
+  withType: boolean
+  // Sélection en masse : les modèles cochés.
   selected: ReadonlySet<string>
   onSelect: (item: TemplateItem, checked: boolean) => void
   selectionDisabled: boolean
   onTrash: (item: TemplateItem) => void
 }) {
-  const sortTexts = texts.templates.sorts[sort]
-  const headingId = `modeles-${sort}`
+  if (items.length === 0) {
+    return (
+      <p className="rounded-lg border border-dashed p-4 text-muted-foreground">
+        {labels.emptySort}
+      </p>
+    )
+  }
   return (
-    <section aria-labelledby={headingId} data-template-sort={sort}>
-      <div className="mb-3 space-y-1">
-        <h2 id={headingId} className="text-lg font-semibold">
-          {sortTexts.title}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {sortTexts.description} {sortTexts.example}
-        </p>
-      </div>
-      {items.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-          {labels.emptySort}
-        </p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-0">
-                <span className="sr-only">{texts.selection.column}</span>
-              </TableHead>
-              <TableHead>{labels.columns.name}</TableHead>
-              {sort === "shared" && (
-                <TableHead>{labels.columns.uses}</TableHead>
-              )}
-              {sort === "starter" && (
-                <TableHead>{labels.columns.section}</TableHead>
-              )}
-              <TableHead>{labels.columns.savedAt}</TableHead>
-              <TableHead className="w-0">
-                <span className="sr-only">{texts.common.actions}</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow
-                key={item.id}
-                data-template={item.id}
-                data-state={selected.has(item.id) ? "selected" : undefined}
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-0">
+            <span className="sr-only">{texts.selection.column}</span>
+          </TableHead>
+          <TableHead>{labels.columns.name}</TableHead>
+          {withType && <TableHead>{labels.columns.type}</TableHead>}
+          <TableHead>{labels.columns.savedAt}</TableHead>
+          <TableHead className="w-0">
+            <span className="sr-only">{texts.common.actions}</span>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <TableRow
+            key={item.id}
+            data-template={item.id}
+            data-state={selected.has(item.id) ? "selected" : undefined}
+          >
+            <TableCell>
+              <Checkbox
+                aria-label={texts.selection.select(nameOf(item))}
+                checked={selected.has(item.id)}
+                disabled={selectionDisabled}
+                onCheckedChange={(value) => onSelect(item, value)}
+              />
+            </TableCell>
+            <TableCell className="font-medium">
+              <Link
+                to={editorPath("templates", item.id)}
+                className="underline-offset-4 hover:underline"
               >
-                <TableCell>
-                  <Checkbox
-                    aria-label={texts.selection.select(nameOf(item))}
-                    checked={selected.has(item.id)}
-                    disabled={selectionDisabled}
-                    onCheckedChange={(value) => onSelect(item, value)}
-                  />
-                </TableCell>
-                <TableCell className="font-medium">
-                  <Link
-                    to={editorPath("templates", item.id)}
-                    className="underline-offset-4 hover:underline"
-                  >
-                    {nameOf(item)}
-                  </Link>
-                </TableCell>
-                {sort === "shared" && (
-                  <TableCell className="text-muted-foreground">
-                    {useCount
-                      ? labels.uses(useCount.get(item.id) ?? 0)
-                      : labels.usesLoading}
-                  </TableCell>
-                )}
-                {sort === "starter" && (
-                  <TableCell>
-                    {item.templateFor
-                      ? texts.templates.sections[item.templateFor]
-                      : null}
-                  </TableCell>
-                )}
-                <SavedCell savedAt={item.draft_saved_at} />
-                <TableCell>
-                  <RowActions item={item} onTrash={() => onTrash(item)} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </section>
+                {nameOf(item)}
+              </Link>
+            </TableCell>
+            {withType && (
+              <TableCell>
+                <Badge variant="outline">
+                  {texts.templates.sorts[item.sort].title}
+                </Badge>
+              </TableCell>
+            )}
+            <SavedCell savedAt={item.draft_saved_at} />
+            <TableCell>
+              <RowActions item={item} onTrash={() => onTrash(item)} />
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   )
 }
 
