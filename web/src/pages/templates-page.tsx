@@ -1,12 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Ellipsis,
+  Layers,
   LayoutTemplate,
+  Link2,
+  Paintbrush,
   Plus,
   SquarePen,
   Trash2,
   TriangleAlert,
   Unlink,
+  type LucideIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
@@ -88,6 +92,12 @@ const labels = texts.templates.list
 const ALL = "all"
 type TemplateTab = typeof ALL | TemplateSort
 const tabs: TemplateTab[] = [ALL, ...templateSorts]
+const tabIcons: Record<TemplateTab, LucideIcon> = {
+  all: Layers, // comme Modèles de bloc dans le menu
+  style: Paintbrush,
+  shared: Link2, // un bloc lié à son modèle (« Détacher » : le lien coupé)
+  starter: LayoutTemplate, // comme les points de départ de « Nouvel article »
+}
 
 function nameOf(item: { title: string }) {
   return item.title.trim() || labels.untitled
@@ -198,13 +208,17 @@ export function TemplatesPage() {
             onValueChange={(value: TemplateTab) => setTab(value)}
           >
             <TabsList aria-label={labels.tabs.label}>
-              {tabs.map((value) => (
-                <TabsTrigger key={value} value={value}>
-                  {value === ALL
-                    ? labels.tabs.all
-                    : texts.templates.sorts[value].tab}
-                </TabsTrigger>
-              ))}
+              {tabs.map((value) => {
+                const Icon = tabIcons[value]
+                return (
+                  <TabsTrigger key={value} value={value}>
+                    <Icon />
+                    {value === ALL
+                      ? labels.tabs.all
+                      : texts.templates.sorts[value].tab}
+                  </TabsTrigger>
+                )
+              })}
             </TabsList>
             {tabs.map((value) => (
               <TabsContent
