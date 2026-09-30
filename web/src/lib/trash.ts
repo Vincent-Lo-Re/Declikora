@@ -5,11 +5,12 @@ import { isMediaKind } from "@/lib/media/constants"
 import { texts } from "@/texts"
 
 // Filtre par type : les chapitres et les leçons sont rangés avec les méthodes.
+// Dans l'ordre du menu : Le Fil, Radio Éclaircies, Méthodes, Pages, Modèles de bloc, Médiathèque.
 const trashFilterOrder = [
-  "page",
   "article",
   "episode",
   "method",
+  "page",
   "template",
   "file",
 ] as const

@@ -11,6 +11,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 import { toast } from "sonner"
 
+import { SelectAllHead } from "@/components/bulk-selection"
 import { LoadState } from "@/components/load-state"
 import { kindIcons } from "@/components/media/media-kinds"
 import { PageHeader } from "@/components/page-header"
@@ -287,25 +288,22 @@ export function TrashPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-0">
-                    <Checkbox
-                      aria-label={texts.trash.selectAll}
-                      checked={allChecked}
-                      indeterminate={selection.length > 0 && !allChecked}
-                      disabled={busy}
-                      onCheckedChange={(checked) =>
-                        setSelected((current) => {
-                          const next = new Set(
-                            [...current].filter((key) => !shownKeys.has(key))
-                          )
-                          if (checked) {
-                            for (const key of shownKeys) next.add(key)
-                          }
-                          return next
-                        })
-                      }
-                    />
-                  </TableHead>
+                  <SelectAllHead
+                    all={allChecked}
+                    some={selection.length > 0 && !allChecked}
+                    disabled={busy}
+                    onToggleAll={(checked) =>
+                      setSelected((current) => {
+                        const next = new Set(
+                          [...current].filter((key) => !shownKeys.has(key))
+                        )
+                        if (checked) {
+                          for (const key of shownKeys) next.add(key)
+                        }
+                        return next
+                      })
+                    }
+                  />
                   <TableHead>{texts.trash.columns.name}</TableHead>
                   <TableHead>{texts.trash.columns.type}</TableHead>
                   <TableHead>{texts.trash.columns.deletedAt}</TableHead>
@@ -375,7 +373,7 @@ function ConfirmationText({ confirmation }: { confirmation: Confirmation }) {
       confirmation.entries.length
     )
   } else if (confirmation.scope === "selection") {
-    title = texts.trash.confirmSelection.title
+    title = texts.trash.confirmSelection.title(confirmation.entries.length)
     description = texts.trash.confirmSelection.description(
       confirmation.entries.length
     )
@@ -418,7 +416,7 @@ function TrashRow({
     <TableRow data-state={checked ? "selected" : undefined}>
       <TableCell>
         <Checkbox
-          aria-label={texts.trash.select(name)}
+          aria-label={texts.selection.select(name)}
           checked={checked}
           disabled={disabled}
           onCheckedChange={(value) => onCheck(value)}

@@ -60,8 +60,8 @@ describe("corbeille", () => {
     expect(trashFilters([])).toEqual(["all"])
     expect(trashFilters([photo, lesson, page])).toEqual([
       "all",
-      "page",
       "method",
+      "page",
       "file",
     ])
   })
