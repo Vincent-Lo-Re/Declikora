@@ -113,7 +113,9 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
 
   // Les deux passent à « Prêt » (le SVG après la vérification du serveur).
   for (const name of [photoName, svgName]) {
-    await expect(card(page, name)).toContainText(texts.media.status.ready, {
+    await expect(
+      card(page, name).getByRole("img", { name: texts.media.status.ready })
+    ).toBeVisible({
       timeout: 60_000,
     })
   }
@@ -186,7 +188,9 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
   await expect(card(page, photoName)).toHaveCount(0)
   await trashed.getByRole("button", { name: texts.media.detail.undo }).click()
   await expect(page.getByText(texts.media.detail.restored)).toBeVisible()
-  await expect(card(page, photoName)).toContainText(texts.media.status.ready)
+  await expect(
+    card(page, photoName).getByRole("img", { name: texts.media.status.ready })
+  ).toBeVisible()
 
   // Corbeille de nouveau : le fichier quitte la médiathèque, son objet reste.
   await trashFromSheet(page, photoName)
@@ -205,7 +209,9 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
   await expect(row).toHaveCount(0)
 
   await page.goto("/mediatheque")
-  await expect(card(page, photoName)).toContainText(texts.media.status.ready)
+  await expect(
+    card(page, photoName).getByRole("img", { name: texts.media.status.ready })
+  ).toBeVisible()
   expect(await readMedia(photoName)).toMatchObject({
     id: photo!.id,
     alt: "Un dégradé coloré",
@@ -280,9 +286,11 @@ test("un SVG piégé envoyé sans passer par l'admin est refusé par le serveur"
     texts.media.rejectReasons[
       refused!.reject_reason as keyof typeof texts.media.rejectReasons
     ]
-  await expect(card(page, svgName)).toContainText(
-    texts.media.rejectedBecause(reason)
-  )
+  await expect(
+    card(page, svgName).getByRole("img", {
+      name: texts.media.rejectedBecause(reason),
+    })
+  ).toBeVisible()
 })
 
 test("un membre envoie les autres formats, filtre, cherche, en met deux à la corbeille d'un coup et efface un seul fichier", async ({
@@ -347,7 +355,9 @@ test("un membre envoie les autres formats, filtre, cherche, en met deux à la co
     .click()
   await expect(uploadWindow(page)).toHaveCount(0)
   for (const name of [names.gif, names.lottie, names.pdf, names.audio]) {
-    await expect(card(page, name)).toContainText(texts.media.status.ready, {
+    await expect(
+      card(page, name).getByRole("img", { name: texts.media.status.ready })
+    ).toBeVisible({
       timeout: 60_000,
     })
   }
@@ -387,7 +397,9 @@ test("un membre envoie les autres formats, filtre, cherche, en met deux à la co
 
   // Aucun de ces fichiers ne sert encore : badge « Non utilisé », et le filtre « Non utilisés »
   // (colonne calculée par la base) les garde.
-  await expect(card(page, names.audio)).toContainText(texts.media.unused)
+  await expect(
+    card(page, names.audio).getByRole("img", { name: texts.media.unused })
+  ).toBeVisible()
   const unusedFilter = page.getByRole("button", {
     name: texts.media.filters.unused,
   })

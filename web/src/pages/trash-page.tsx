@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Eraser,
   FileText,
+  GalleryHorizontalEnd,
   RotateCcw,
   Trash2,
   TriangleAlert,
@@ -239,6 +240,7 @@ export function TrashPage() {
         >
           {filters.map((option) => (
             <ToggleGroupItem key={option} value={option}>
+              {option === "all" && <GalleryHorizontalEnd />}
               {texts.trash.filters[option]}
             </ToggleGroupItem>
           ))}

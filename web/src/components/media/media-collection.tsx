@@ -1,12 +1,9 @@
 import { cn } from "cn"
 
 import { SelectAllHead, type SelectAll } from "@/components/bulk-selection"
-import { rejectedText } from "@/components/media/media-kinds"
 import {
-  MediaStatusBadge,
   MediaStatusIcon,
   MediaThumbnail,
-  MediaUnusedBadge,
   MediaUseIcon,
 } from "@/components/media/media-visuals"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -115,16 +112,10 @@ export function MediaGrid({
                   {texts.media.kinds[media.kind]} ·{" "}
                   {formatBytes(media.size_bytes)}
                 </p>
-                {media.status === "rejected" ? (
-                  <p className="text-xs text-destructive">
-                    {rejectedText(media)}
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    <MediaStatusBadge media={media} now={now} />
-                    <MediaUnusedBadge media={media} />
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-1.5">
+                  <MediaStatusIcon media={media} now={now} />
+                  <MediaUseIcon media={media} />
+                </div>
               </div>
             </button>
           </li>
@@ -204,7 +195,7 @@ export function MediaTable({
             <TableCell>{formatBytes(media.size_bytes)}</TableCell>
             <TableCell>{formatDateTime(media.created_at)}</TableCell>
             <TableCell>
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-1.5">
                 <MediaStatusIcon media={media} now={now} />
                 <MediaUseIcon media={media} />
               </div>

@@ -327,13 +327,13 @@ export const texts = {
       // Ni dans un brouillon ni dans une version en ligne : la règle de la corbeille.
       unused: "Non utilisés",
     },
-    // Badge (grille) ou icône (liste) d'un fichier qui ne sert dans aucun contenu, ou qui sert.
+    // Pastille d'un fichier qui ne sert dans aucun contenu, ou qui sert.
     unused: "Non utilisé",
     used: "Utilisé",
     kinds: {
       image: "Image",
       svg: "SVG",
-      lottie: "Animation Lottie",
+      lottie: "Animation",
       audio: "Audio",
       pdf: "PDF",
     },

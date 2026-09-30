@@ -119,14 +119,21 @@ describe("Médiathèque", () => {
   it("montre chaque fichier avec son état", async () => {
     renderApp("/mediatheque", fakeAuth({ role: "editor" }))
 
+    // L'état en pastille : une coche ou une croix, l'état exact dans l'infobulle.
     expect(await screen.findByText(photo.name)).toBeVisible()
-    expect(screen.getByText(texts.media.status.checking)).toBeVisible()
     expect(
-      screen.getByText(
-        texts.media.rejectedBecause(texts.media.rejectReasons.lottie_invalide)
-      )
+      screen.getByRole("img", { name: texts.media.status.checking })
     ).toBeVisible()
-    expect(screen.getAllByText(texts.media.status.ready)).toHaveLength(2)
+    expect(
+      screen.getByRole("img", {
+        name: texts.media.rejectedBecause(
+          texts.media.rejectReasons.lottie_invalide
+        ),
+      })
+    ).toBeVisible()
+    expect(
+      screen.getAllByRole("img", { name: texts.media.status.ready })
+    ).toHaveLength(2)
     expect(
       screen.getByText(`${texts.media.kinds.audio} · 245 Ko`)
     ).toBeVisible()
@@ -169,7 +176,7 @@ describe("Médiathèque", () => {
     )
   })
 
-  it("« Non utilisés » : filtre dans la base et badge sur chaque fichier non utilisé", async () => {
+  it("« Non utilisés » : filtre dans la base, et pastille d'utilisation sur chaque fichier", async () => {
     vi.mocked(api.listMedia).mockResolvedValue([
       { ...photo, media_in_use: true },
       { ...voice, media_in_use: false },
@@ -177,12 +184,15 @@ describe("Médiathèque", () => {
     renderApp("/mediatheque")
     await screen.findByText(photo.name)
 
-    // Le badge ne se montre que pour le fichier qui ne sert nulle part.
-    const unusedBadges = screen.getAllByText(texts.media.unused)
-    expect(unusedBadges).toHaveLength(1)
+    // Une pastille « Non utilisé » pour le fichier qui ne sert nulle part, « Utilisé » sinon.
+    const unused = screen.getAllByRole("img", { name: texts.media.unused })
+    expect(unused).toHaveLength(1)
     expect(
       screen.getByRole("button", { name: texts.media.open(voice.name) })
-    ).toContainElement(unusedBadges[0])
+    ).toContainElement(unused[0])
+    expect(
+      screen.getByRole("button", { name: texts.media.open(photo.name) })
+    ).toContainElement(screen.getByRole("img", { name: texts.media.used }))
 
     vi.mocked(api.listMedia).mockResolvedValue([])
     const toggle = screen.getByRole("button", {

@@ -312,7 +312,9 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
       { name: fileName, mimeType: "image/png", buffer: photoPng(640, 480) },
     ])
   const card = page.getByRole("button", { name: texts.media.open(fileName) })
-  await expect(card).toContainText(texts.media.status.ready, {
+  await expect(
+    card.getByRole("img", { name: texts.media.status.ready })
+  ).toBeVisible({
     timeout: 60_000,
   })
 

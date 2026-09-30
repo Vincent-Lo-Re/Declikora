@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import {
-  Files,
+  GalleryHorizontalEnd,
   LayoutGrid,
   List,
   Search,
@@ -397,7 +397,7 @@ export function MediaPage() {
           }}
         >
           <ToggleGroupItem value="all">
-            <Files />
+            <GalleryHorizontalEnd />
             {texts.media.filters.all}
           </ToggleGroupItem>
           {/* Une icône par type : son nom dans une infobulle et pour les lecteurs d'écran. */}
