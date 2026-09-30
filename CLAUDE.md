@@ -100,7 +100,7 @@ npm run db:stop
   - `web/src/components/load-state.tsx` : une liste pas encore chargée (lignes grises, ou message d'échec et « Réessayer ») ;
   - `web/src/components/ordered-names.tsx` : une liste de noms rangée par glisser-déposer, renommée, complétée, avec suppression confirmée (Catégories, Formules) ;
   - `web/src/blocks/components/media-state.tsx` : une image à ses proportions, et un fichier choisi qui ne s'affiche pas (bloc Image, présentation) ;
-  - `web/src/components/contents/row-cells.tsx` : les cellules « Dernière modification » et « État » des listes ;
+  - `web/src/components/contents/row-cells.tsx` : les cellules « Dernière modification », « État » et l'image de présentation des listes (vignette de la Médiathèque ; images lues par `use-covers.ts`) ;
   - `web/src/components/search-input.tsx` (recherche avec notre bouton « Effacer la recherche »), `date-time-fields.tsx` (jour « 25/10/2099 » avec le calendrier, heure « 08h00 » ; lus par `parseDayInput` et `parseTimeInput` de `lib/dates.ts`), `media/audio-player.tsx` (lecteur audio) ;
   - `web/src/lib/auth.ts` (tous les appels de Supabase Auth des pages), `lib/people.ts` (nom affiché, initiale), `lib/errors.ts` (`errorMessage`), `lib/focus.ts` (`focusSoon`), `lib/refresh.ts` (relecture après une corbeille) ;
   - dans `texts.common`, les mots qui ne dépendent pas de la page (Réessayer, Enregistrer, Sans titre, Actions, « par … ») ; dans `web/src/index.css`, les jetons (`text-warning`, `bg-status-*`) et les utilitaires nommés (`grid-cols-media`, `grid-cols-label-value`, `max-h-picker`, `pb-page`).
