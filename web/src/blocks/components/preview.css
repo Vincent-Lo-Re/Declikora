@@ -217,3 +217,23 @@
   outline-offset: 4px;
   border-radius: 4px;
 }
+
+/* « Mes blocs » (éditeur du Fil) : l'aperçu réduit d'un bloc enregistré, avec les mesures de
+   l'app ramenées à un peu plus de la moitié, coupé au-delà d'une dizaine de lignes. */
+.blocks-mini {
+  display: flex;
+  flex-direction: column;
+  gap: var(--blocks-space-block-gap);
+  max-height: 16rem;
+  overflow: hidden;
+  zoom: 0.55;
+  pointer-events: none;
+  border-radius: var(--blocks-radius-image);
+  padding: var(--blocks-space-page-padding);
+  background: var(--blocks-color-background);
+  color: var(--blocks-color-text);
+  font-family: var(--blocks-font-family), "Inter Variable", sans-serif;
+  font-size: var(--blocks-font-body-size);
+  line-height: var(--blocks-font-body-line-height);
+  font-weight: var(--blocks-font-regular-weight);
+}

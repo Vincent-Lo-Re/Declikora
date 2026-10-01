@@ -82,19 +82,34 @@ async function createBlank(page: Page, kind: "article" | "episode") {
 }
 
 /**
- * Le panneau de droite : « Présentation de l'article » (ou de l'épisode) quand aucun bloc n'est
- * choisi, « Réglages du bloc » sinon.
+ * Le panneau de droite d'un épisode : « Présentation de l'épisode » quand aucun bloc n'est
+ * choisi, « Réglages du bloc » sinon (un article a ses onglets, articleTab).
  */
 function panel(page: Page) {
   return page.getByRole("region", {
     name: new RegExp(
-      `^(${[
-        editor.settings.label,
-        editor.presentation.panelTitle.article,
-        editor.presentation.panelTitle.episode,
-      ].join("|")})$`
+      `^(${[editor.settings.label, editor.presentation.panelTitle.episode].join(
+        "|"
+      )})$`
     ),
   })
+}
+
+/** L'onglet « Article » de l'éditeur du Fil : image, résumé, niveau d'accès, catégories. */
+function articleTab(page: Page) {
+  return page.getByRole("tabpanel", { name: editor.columns.article })
+}
+
+/** Éditeur du Fil : niveau d'accès « Gratuit », dans l'onglet « Article ». */
+async function articleFree(page: Page) {
+  await articleTab(page).getByRole("combobox").click()
+  await page
+    .getByRole("option", { name: publication.settings.access.free })
+    .click()
+  await expect(
+    articleTab(page).getByText(publication.settings.access.freeHint)
+  ).toBeVisible()
+  await saved(page)
 }
 
 /** Les noms des catégories du Blog affichées, dans l'ordre. */
@@ -333,16 +348,17 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     const title = `Bien dormir ${id}`
     const summary = "Cinq gestes simples pour les nuits chaudes."
     await page.getByLabel(editor.title.label).fill(title)
-    await page.getByLabel(words.summary.label).fill(summary)
-    await page.getByRole("button", { name: words.categories.edit }).click()
-    const settings = page.getByRole("dialog", {
-      name: publication.settings.title,
+    // Éditeur du Fil : le résumé et les catégories sont dans l'onglet « Article ».
+    await articleTab(page)
+      .getByLabel(/^Résumé/)
+      .fill(summary)
+    const pill = articleTab(page).getByRole("button", {
+      name: sommeil,
+      exact: true,
     })
-    await settings.getByRole("checkbox", { name: sommeil }).click()
+    await pill.click()
+    await expect(pill).toHaveAttribute("aria-pressed", "true")
     await saved(page)
-    await page.keyboard.press("Escape")
-    await expect(settings).toHaveCount(0)
-    await expect(panel(page).getByText(sommeil, { exact: true })).toBeVisible()
 
     // « Publier » sans image de présentation : refusé, avec l'explication ([D45]).
     const refused = await openPublish(page)
@@ -361,7 +377,11 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     await uploadInImagePicker(page, `nuit-${id}.png`)
     // L'aperçu la montre en tête, comme l'app.
     await expect(page.locator('[data-presentation="cover"] img')).toBeVisible()
-    await expect(panel(page)).toContainText(`nuit-${id}`)
+    await expect(
+      articleTab(page).getByRole("button", {
+        name: editor.article.feed.replaceLabel,
+      })
+    ).toBeVisible()
     await saved(page)
     expect(await appFeed("blog")).not.toContainEqual(
       expect.objectContaining({ id: articleId })
@@ -723,13 +743,21 @@ test("Accueil : brouillon récent, publication programmée et programmation éch
   await createBlank(page, "article")
   const articleId = contentIdFromUrl(page.url())
   await page.getByLabel(editor.title.label).fill(articleTitle)
-  await panel(page).getByRole("button", { name: words.cover.choose }).click()
+  await articleTab(page)
+    .getByRole("button", { name: editor.article.feed.chooseLabel })
+    .click()
   await chooseInPicker(page, "image", coverName)
   await expect(page.locator('[data-presentation="cover"] img')).toBeVisible()
-  await settingsFree(page)
+  await articleFree(page)
   await scheduleInTwoDays(page)
-  await panel(page).getByRole("button", { name: words.cover.remove }).click()
-  await expect(panel(page)).toContainText(words.cover.none)
+  await articleTab(page)
+    .getByRole("button", { name: words.cover.remove })
+    .click()
+  await expect(
+    articleTab(page).getByRole("button", {
+      name: editor.article.feed.chooseLabel,
+    })
+  ).toBeVisible()
   await saved(page)
   // L'éditeur quitté (verrou rendu), l'heure arrive : la tâche refuse, faute d'image.
   await page

@@ -362,12 +362,15 @@ function CategoriesSection({
  * Une nouvelle catégorie, créée tout de suite dans la section (comme depuis la page Catégories),
  * puis cochée. Entrée l'ajoute sans envoyer le formulaire autour (fenêtre de création).
  */
-function AddCategory({
+export function AddCategory({
   section,
   onAdded,
+  autoFocus = false,
 }: {
   section: CategorySection
   onAdded: (category: Category) => void
+  // Ouvert par « Nouvelle » (éditeur du Fil) : le curseur va dans le champ.
+  autoFocus?: boolean
 }) {
   const queryClient = useQueryClient()
   const [name, setName] = useState("")
@@ -401,6 +404,7 @@ function AddCategory({
       <div className="flex gap-2">
         <Input
           id="reglages-nouvelle-categorie"
+          autoFocus={autoFocus}
           value={name}
           autoComplete="off"
           placeholder={texts.categories.namePlaceholder}

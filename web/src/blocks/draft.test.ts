@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 
 import { validateDraft } from "@/blocks/generated/validators"
-import { DRAFT_MAX_BYTES, prepareDraft } from "@/blocks/draft"
-import type { Doc, Draft, TextBlock } from "@/blocks/types"
+import { DRAFT_MAX_BYTES, prepareDraft, readingStats } from "@/blocks/draft"
+import type { Block, Doc, Draft, TextBlock } from "@/blocks/types"
 
 const TEXT_ID = "00000000-0000-4000-8000-000000000001"
 const BOX_ID = "00000000-0000-4000-8000-000000000002"
@@ -134,6 +134,49 @@ describe("prepareDraft", () => {
       ok: false,
       reason: "invalid",
       position: 2,
+    })
+  })
+})
+
+describe("readingStats", () => {
+  const paragraph = (text: string): Doc =>
+    ({
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+    }) as unknown as Doc
+  const text = (id: string, words: string): TextBlock => ({
+    id,
+    type: "text",
+    doc: paragraph(words),
+  })
+
+  it("compte les mots du titre et des blocs, encadrés compris, sans le résumé", () => {
+    const draft: Draft = {
+      v: 1,
+      title: "Bien dormir",
+      summary: "Un résumé qui ne compte pas",
+      blocks: [
+        text(TEXT_ID, "Se coucher à heure fixe, c'est bien."),
+        {
+          id: BOX_ID,
+          type: "box",
+          look: "fill",
+          blocks: [text(INNER_ID, "À retenir — trois mots")],
+        },
+      ],
+    }
+    // « — » n'est pas un mot.
+    expect(readingStats(draft)).toEqual({ words: 13, minutes: 1 })
+  })
+
+  it("lit un bloc partagé par son modèle, et arrondit à la minute supérieure", () => {
+    const shared: Block = { id: TEXT_ID, type: "linked", templateId: BOX_ID }
+    const draft: Draft = { v: 1, title: "", blocks: [shared] }
+    expect(readingStats(draft)).toEqual({ words: 0, minutes: 0 })
+    const long = Array.from({ length: 201 }, () => "mot").join(" ")
+    expect(readingStats(draft, () => text(INNER_ID, long))).toEqual({
+      words: 201,
+      minutes: 2,
     })
   })
 })

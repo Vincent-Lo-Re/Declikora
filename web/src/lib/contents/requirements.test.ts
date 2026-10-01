@@ -8,6 +8,7 @@ import {
   hasCategories,
   hasPresentation,
   publishChecks,
+  readyItems,
 } from "@/lib/contents/requirements"
 
 const IMAGE = "00000000-0000-4000-8000-0000000000f1"
@@ -152,5 +153,23 @@ describe("ce qui manque pour publier", () => {
         mediaFor({ [IMAGE]: readyImage })
       ).missing
     ).toEqual([{ key: "audio", state: "unavailable" }])
+  })
+})
+
+describe("prêt à publier (éditeur du Fil)", () => {
+  it("l'image de présentation, puis le niveau d'accès", () => {
+    expect(
+      readyItems(
+        { missing: [{ key: "cover", state: "missing" }], advice: [] },
+        false
+      )
+    ).toEqual([
+      { key: "cover", done: false },
+      { key: "access", done: false },
+    ])
+    expect(readyItems({ missing: [], advice: [] }, true)).toEqual([
+      { key: "cover", done: true },
+      { key: "access", done: true },
+    ])
   })
 })

@@ -26,6 +26,11 @@ export const TITLE_MAX = 200
 export const CAPTION_MAX = 300
 // Résumé d'un article ou d'un épisode (texte simple, facultatif) : même limite que le schéma.
 export const SUMMARY_MAX = 1000
+// Le résumé d'un article ne sert qu'à sa carte dans la liste du Fil (ADMIN § 4) : l'admin
+// s'arrête à 200 caractères ; le schéma garde 1 000 (la règle des blocs ne fait que s'élargir).
+export const FEED_SUMMARY_MAX = 200
+// Vitesse de lecture retenue pour « Environ n min de lecture » (mots par minute).
+const WORDS_PER_MINUTE = 200
 export const ALT_MAX = 1000
 
 export function newId(): string {
@@ -266,11 +271,15 @@ export function prepareDraft(draft: Draft): PreparedDraft {
   return { ok: true, draft: cleaned, bytes }
 }
 
-/** Le texte d'un brouillon, pour « Copier mon texte ». */
-export function draftToPlainText(draft: Draft): string {
+/**
+ * Les textes des blocs, dans l'ordre (textes, légendes, encadrés). Un bloc lié est lu par
+ * `resolve` (le bloc de son modèle), s'il est donné.
+ */
+function blockTexts(
+  blocks: Block[],
+  resolve?: (block: Block) => Block | null
+): string[] {
   const parts: string[] = []
-  if (draft.title.trim()) parts.push(draft.title.trim())
-  if (draft.summary?.trim()) parts.push(draft.summary.trim())
   const add = (block: Block) => {
     if (block.type === "text") {
       const text = textDocToPlainText(block.doc).trim()
@@ -279,8 +288,36 @@ export function draftToPlainText(draft: Draft): string {
       if (block.caption?.trim()) parts.push(block.caption.trim())
     } else if (block.type === "box") {
       block.blocks.forEach(add)
+    } else {
+      const shown = resolve?.(block)
+      if (shown) add(shown)
     }
   }
-  draft.blocks.forEach(add)
+  blocks.forEach(add)
+  return parts
+}
+
+/** Le texte d'un brouillon, pour « Copier mon texte ». */
+export function draftToPlainText(draft: Draft): string {
+  const parts: string[] = []
+  if (draft.title.trim()) parts.push(draft.title.trim())
+  if (draft.summary?.trim()) parts.push(draft.summary.trim())
+  parts.push(...blockTexts(draft.blocks))
   return parts.join("\n\n")
+}
+
+/**
+ * Le nombre de mots de ce qu'on lit dans l'article (titre et blocs, blocs partagés compris par
+ * `resolve` ; pas le résumé, qui n'est que dans la liste), et le temps de lecture arrondi à la
+ * minute supérieure (0 pour un article vide).
+ */
+export function readingStats(
+  draft: Draft,
+  resolve?: (block: Block) => Block | null
+): { words: number; minutes: number } {
+  const text = [draft.title, ...blockTexts(draft.blocks, resolve)].join(" ")
+  const words = text
+    .split(/\s+/)
+    .filter((word) => /[\p{L}\p{N}]/u.test(word)).length
+  return { words, minutes: Math.ceil(words / WORDS_PER_MINUTE) }
 }

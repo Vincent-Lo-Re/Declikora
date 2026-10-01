@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   FileQuestion,
   History,
+  LayoutGrid,
   LayoutTemplate,
   ListTree,
   PanelTop,
@@ -47,6 +48,7 @@ import {
   flattenBlocks,
   insertBlock,
   insertionPoint,
+  readingStats,
   removeBlock,
   shiftBlock,
   TITLE_MAX,
@@ -80,6 +82,8 @@ import { HistorySheet } from "@/components/editor/history-sheet"
 import { LockBanner } from "@/components/editor/lock-banner"
 import { MediaPicker } from "@/components/editor/media-picker"
 import { OutlinePanel } from "@/components/editor/outline-panel"
+import { ArticlePanel } from "@/components/editor/article-panel"
+import { BlocksLibrary } from "@/components/editor/blocks-library"
 import {
   AudioPreview,
   CoverPreview,
@@ -132,6 +136,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -189,6 +194,7 @@ import {
   hasAudio,
   hasPresentation,
   publishChecks,
+  readyItems,
   type Requirement,
 } from "@/lib/contents/requirements"
 import {
@@ -414,6 +420,10 @@ function presentationChooseButton(key: "cover" | "audio"): HTMLElement | null {
 
 const ADD_BLOCK_ID = "editeur-ajouter"
 
+// Les onglets des colonnes de l'éditeur du Fil.
+type LeftTab = "plan" | "blocks"
+type RightTab = "article" | "block"
+
 /** Met le curseur dans un bloc qui vient d'apparaître (l'éditeur Tiptap se crée juste après). */
 function focusBlockSoon(id: string, attempts = 20) {
   const element = document.querySelector<HTMLElement>(`[data-block-id="${id}"]`)
@@ -453,6 +463,9 @@ function ContentEditor({
   // Une méthode : sa fiche et son plan, sans blocs ([D4]). Un chapitre ou une leçon : l'éditeur
   // de blocs, sans barre de publication (tout part avec la méthode, [D29]).
   const isMethod = kind === "method"
+  // L'éditeur du Fil (ADMIN § 4) : plan et blocs à gauche, ouverts d'office ; « Article » et
+  // « Bloc choisi » à droite. Les autres éditeurs gardent leur mise en page.
+  const feed = kind === "article"
   const elementKind = kind === "chapter" || kind === "lesson" ? kind : null
   const isElement = elementKind !== null
   // Image de présentation et résumé (article, épisode, méthode, chapitre, leçon) ; catégories
@@ -476,8 +489,22 @@ function ContentEditor({
   // Change à chaque rechargement depuis la base : les blocs repartent du nouveau brouillon.
   const [viewKey, setViewKey] = useState(0)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [outlineOpen, setOutlineOpen] = useState(false)
+  const [outlineOpen, setOutlineOpen] = useState(feed)
+  // Éditeur du Fil : l'onglet de gauche, et celui de droite. Celui de droite suit le bloc choisi
+  // (« Bloc choisi » dès qu'un bloc l'est, « Article » sinon), sauf si on a changé d'onglet à la
+  // main depuis ce choix.
+  const [leftTab, setLeftTab] = useState<LeftTab>("plan")
+  const [rightChoice, setRightChoice] = useState<{
+    tab: RightTab
+    selectedId: string | null
+  } | null>(null)
   const [activeText, setActiveText] = useState<Editor | null>(null)
+  const rightTab: RightTab =
+    rightChoice && rightChoice.selectedId === selectedId
+      ? rightChoice.tab
+      : selectedId
+        ? "block"
+        : "article"
   const [pickerFor, setPickerFor] = useState<string | null>(null)
   // Le choix de l'image de présentation ou de l'audio : ce qui avait le focus à l'ouverture. Si
   // ce bouton a disparu à la fermeture (« Choisir… » de l'aperçu, remplacé par l'image, ou la
@@ -1472,6 +1499,16 @@ function ContentEditor({
   }
 
   const nearLimit = useMemo(() => draftBytes(draft) > DRAFT_WARN_BYTES, [draft])
+  // Éditeur du Fil : temps de lecture et nombre de mots (blocs partagés compris).
+  const stats = useMemo(
+    () =>
+      readingStats(draft, (block) => {
+        if (block.type !== "linked") return null
+        const state = templateFor(block.templateId)
+        return state.state === "ready" ? state.block : null
+      }),
+    [draft, templateFor]
+  )
 
   // En tête de l'aperçu : l'image de présentation, le titre, le résumé et l'audio, comme dans
   // l'app (et, pour une méthode, toute sa fiche).
@@ -1510,7 +1547,7 @@ function ContentEditor({
           if (event.key === "Enter") event.preventDefault()
         }}
       />
-      {presentationKind && (
+      {presentationKind && !feed && (
         <SummaryPreview
           summary={draft.summary ?? ""}
           editable={editable}
@@ -1548,6 +1585,96 @@ function ContentEditor({
       onEditCategories={() => openSettings("categories")}
     />
   ) : undefined
+  // Éditeur du Fil : l'onglet « Article » (tout ce qui concerne l'article) et « Bloc choisi ».
+  const articlePanel =
+    feed && categorySection ? (
+      <ArticlePanel
+        draft={draft}
+        editable={editable}
+        settings={settings}
+        onSettingsChange={setSettings}
+        onSummaryChange={(summary) =>
+          setDraft((current) => ({ ...current, summary }))
+        }
+        levels={levels.data}
+        levelsFailed={levels.isError}
+        live={pub.publication?.live ?? null}
+        categories={{
+          section: categorySection,
+          list: categories.data,
+          failed: categories.isError,
+          retry: () => void categories.refetch(),
+        }}
+        cover={mediaFor(draft.cover?.mediaId ?? null)}
+        coverUrl={(() => {
+          const cover = mediaFor(draft.cover?.mediaId ?? null)
+          return cover.state === "ready" ? cover.url : undefined
+        })()}
+        ready={readyItems(
+          checks ?? { missing: [], advice: [] },
+          settings.accessChosen
+        )}
+        stats={stats}
+        savedAt={autosave.state.savedAt}
+        onChooseCover={() => openPresentationPicker("cover")}
+        onRemoveCover={() => removePresentationFile("cover")}
+      />
+    ) : null
+  const blockSettings = (
+    <BlockSettings
+      empty={
+        <p className="text-sm text-muted-foreground">
+          {texts.editor.columns.noBlock}
+        </p>
+      }
+      draft={draft}
+      selectedId={selectedId}
+      editable={editable}
+      mediaFor={mediaFor}
+      onUpdate={onUpdateBlock}
+      onShift={onShift}
+      onRemove={onRemove}
+      onChooseImage={openPicker}
+      templateFor={templateFor}
+      onDetach={detachBlock}
+      removeBlocked={removeBlocked}
+      onSaveAsTemplate={(id) => openSaveAs([id])}
+    />
+  )
+
+  // Le plan : la colonne de gauche (onglet « Plan » de l'éditeur du Fil).
+  const outlinePanel = (
+    <OutlinePanel
+      draft={draft}
+      selectedId={selectedId}
+      onSelect={selectAndShow}
+      templateName={templateName}
+      selection={
+        !isTemplate && editable
+          ? {
+              active: choosing,
+              chosen,
+              onToggleActive: () => {
+                setChoosing((active) => !active)
+                setChosen(new Set())
+              },
+              onChoose: (id, checked) =>
+                setChosen((current) => {
+                  const next = new Set(current)
+                  if (checked) next.add(id)
+                  else next.delete(id)
+                  return next
+                }),
+              onSave: () => {
+                const ids = selectedRootIds(draft, new Set(chosen))
+                if (ids.length > 0) openSaveAs(ids)
+              },
+            }
+          : undefined
+      }
+    />
+  )
+
   const sectionTitle = texts.sections[section].title
   const untitled = isTemplate
     ? texts.templates.list.untitled
@@ -1604,13 +1731,15 @@ function ContentEditor({
           isShared && <SharedTemplateBar templateId={contentId} />
         ) : (
           <>
-            <HeaderIconButton
-              label={texts.publication.actions.settings}
-              expanded={settingsOpen}
-              onClick={() => openSettings(null)}
-            >
-              <Settings2 />
-            </HeaderIconButton>
+            {!feed && (
+              <HeaderIconButton
+                label={texts.publication.actions.settings}
+                expanded={settingsOpen}
+                onClick={() => openSettings(null)}
+              >
+                <Settings2 />
+              </HeaderIconButton>
+            )}
             <HeaderIconButton
               label={texts.publication.actions.history}
               expanded={historyOpen}
@@ -1620,7 +1749,7 @@ function ContentEditor({
             </HeaderIconButton>
           </>
         )}
-        {!isMethod && (
+        {!isMethod && !feed && (
           <AddBlockMenu
             id={ADD_BLOCK_ID}
             variant="outline"
@@ -1726,40 +1855,49 @@ function ContentEditor({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1">
-          {outlineOpen && (
+          {outlineOpen && feed && (
+            <aside
+              id="editeur-plan"
+              aria-label={texts.editor.columns.left}
+              className="flex w-72 shrink-0 flex-col border-r bg-background"
+            >
+              <Tabs
+                value={leftTab}
+                onValueChange={(value: LeftTab) => setLeftTab(value)}
+                className="min-h-0 flex-1 gap-0"
+              >
+                <div className="px-3 pt-3">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="plan">
+                      <ListTree />
+                      {texts.editor.columns.plan}
+                    </TabsTrigger>
+                    <TabsTrigger value="blocks">
+                      <LayoutGrid />
+                      {texts.editor.columns.blocks}
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                <TabsContent value="plan" className="min-h-0">
+                  {outlinePanel}
+                </TabsContent>
+                <TabsContent value="blocks" className="min-h-0">
+                  <BlocksLibrary
+                    editable={editable}
+                    canAdd={canAddRoot}
+                    onAdd={(type) => addBlock(type)}
+                    onInsert={onInsertTemplate}
+                  />
+                </TabsContent>
+              </Tabs>
+            </aside>
+          )}
+          {outlineOpen && !feed && (
             <aside
               id="editeur-plan"
               className="w-60 shrink-0 border-r bg-background"
             >
-              <OutlinePanel
-                draft={draft}
-                selectedId={selectedId}
-                onSelect={selectAndShow}
-                templateName={templateName}
-                selection={
-                  !isTemplate && editable
-                    ? {
-                        active: choosing,
-                        chosen,
-                        onToggleActive: () => {
-                          setChoosing((active) => !active)
-                          setChosen(new Set())
-                        },
-                        onChoose: (id, checked) =>
-                          setChosen((current) => {
-                            const next = new Set(current)
-                            if (checked) next.add(id)
-                            else next.delete(id)
-                            return next
-                          }),
-                        onSave: () => {
-                          const ids = selectedRootIds(draft, new Set(chosen))
-                          if (ids.length > 0) openSaveAs(ids)
-                        },
-                      }
-                    : undefined
-                }
-              />
+              {outlinePanel}
             </aside>
           )}
 
@@ -1790,6 +1928,19 @@ function ContentEditor({
                   !editable && "cursor-default"
                 )}
                 data-editable={editable || undefined}
+                // Éditeur du Fil : un clic hors d'un bloc revient sur l'onglet « Article ».
+                onClick={
+                  feed
+                    ? (event) => {
+                        if (
+                          event.target instanceof Element &&
+                          !event.target.closest("[data-block-id]")
+                        ) {
+                          setSelectedId(null)
+                        }
+                      }
+                    : undefined
+                }
               >
                 {phoneTop}
                 <BlocksEditorContext value={blocksValue}>
@@ -1818,9 +1969,12 @@ function ContentEditor({
                     </EmptyHeader>
                     {editable && (
                       <div className="flex flex-wrap justify-center gap-2">
-                        {insertableBlocks.map((definition) => (
+                        {insertableBlocks.map((definition, index) => (
                           <Button
                             key={definition.type}
+                            // Éditeur du Fil (sans « Ajouter un bloc » en haut) : là où va le
+                            // focus quand le dernier bloc est supprimé.
+                            id={feed && index === 0 ? ADD_BLOCK_ID : undefined}
                             variant="outline"
                             size="sm"
                             onClick={() => addBlock(definition.type)}
@@ -1865,43 +2019,78 @@ function ContentEditor({
             </div>
           </main>
 
-          <aside className="w-72 shrink-0 border-l bg-background">
-            <BlockSettings
-              header={
-                presentationKind && selectedId ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="self-start"
-                    onClick={showPresentation}
-                  >
-                    <PanelTop />
-                    {texts.editor.presentation.show}
-                  </Button>
-                ) : null
-              }
-              emptyLabel={
-                presentationKind
-                  ? texts.editor.presentation.panelTitle[presentationKind]
-                  : undefined
-              }
-              empty={presentationPanel}
-              draft={draft}
-              selectedId={selectedId}
-              editable={editable}
-              mediaFor={mediaFor}
-              onUpdate={onUpdateBlock}
-              onShift={onShift}
-              onRemove={onRemove}
-              onChooseImage={openPicker}
-              templateFor={templateFor}
-              onDetach={detachBlock}
-              removeBlocked={removeBlocked}
-              onSaveAsTemplate={
-                isTemplate ? undefined : (id) => openSaveAs([id])
-              }
-            />
-          </aside>
+          {feed ? (
+            <aside
+              aria-label={texts.editor.columns.right}
+              className="flex w-80 shrink-0 flex-col border-l bg-background"
+            >
+              <Tabs
+                value={rightTab}
+                onValueChange={(value: RightTab) =>
+                  setRightChoice({ tab: value, selectedId })
+                }
+                className="min-h-0 flex-1 gap-0"
+              >
+                <div className="px-3 pt-3">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="article">
+                      {texts.editor.columns.article}
+                    </TabsTrigger>
+                    <TabsTrigger value="block">
+                      {texts.editor.columns.block}
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                <TabsContent
+                  value="article"
+                  className="min-h-0 overflow-y-auto p-3"
+                >
+                  {articlePanel}
+                </TabsContent>
+                <TabsContent value="block" className="min-h-0">
+                  {blockSettings}
+                </TabsContent>
+              </Tabs>
+            </aside>
+          ) : (
+            <aside className="w-72 shrink-0 border-l bg-background">
+              <BlockSettings
+                header={
+                  presentationKind && selectedId ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="self-start"
+                      onClick={showPresentation}
+                    >
+                      <PanelTop />
+                      {texts.editor.presentation.show}
+                    </Button>
+                  ) : null
+                }
+                emptyLabel={
+                  presentationKind
+                    ? texts.editor.presentation.panelTitle[presentationKind]
+                    : undefined
+                }
+                empty={presentationPanel}
+                draft={draft}
+                selectedId={selectedId}
+                editable={editable}
+                mediaFor={mediaFor}
+                onUpdate={onUpdateBlock}
+                onShift={onShift}
+                onRemove={onRemove}
+                onChooseImage={openPicker}
+                templateFor={templateFor}
+                onDetach={detachBlock}
+                removeBlocked={removeBlocked}
+                onSaveAsTemplate={
+                  isTemplate ? undefined : (id) => openSaveAs([id])
+                }
+              />
+            </aside>
+          )}
         </div>
       )}
 
