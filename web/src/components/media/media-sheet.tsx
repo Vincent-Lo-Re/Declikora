@@ -15,6 +15,7 @@ import { toast } from "sonner"
 import { AudioPlayer } from "@/components/media/audio-player"
 import { kindIcons, rejectedText } from "@/components/media/media-kinds"
 import { MediaStatusBadge } from "@/components/media/media-visuals"
+import { ReplaceFile } from "@/components/media/replace-file"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -77,6 +78,7 @@ export function MediaSheet({
   now,
   onClose,
   onTrashed = onClose,
+  onReplaced,
   finalFocus,
 }: {
   media: Media | null
@@ -86,6 +88,8 @@ export function MediaSheet({
   // Après « Mettre à la corbeille » : le fichier va disparaître de la liste, avec le bouton
   // qui avait ouvert la fiche. La page dit où remettre le focus (finalFocus).
   onTrashed?: (media: Media) => void
+  // « Remplacer… » : la fiche passe au nouveau fichier (son identifiant).
+  onReplaced?: (newId: string) => void
   finalFocus?: ComponentProps<typeof SheetContent>["finalFocus"]
 }) {
   return (
@@ -106,6 +110,7 @@ export function MediaSheet({
             url={url}
             now={now}
             onTrashed={() => onTrashed(media)}
+            onReplaced={onReplaced}
           />
         )}
       </SheetContent>
@@ -118,11 +123,13 @@ function MediaSheetBody({
   url,
   now,
   onTrashed,
+  onReplaced,
 }: {
   media: Media
   url: string | undefined
   now: number
   onTrashed: () => void
+  onReplaced?: (newId: string) => void
 }) {
   return (
     <>
@@ -150,6 +157,12 @@ function MediaSheetBody({
         <Separator />
         <MediaUses media={media} />
         <Separator />
+        {onReplaced && media.status === "ready" && (
+          <>
+            <ReplaceFile media={media} onReplaced={onReplaced} />
+            <Separator />
+          </>
+        )}
         <TrashButton media={media} onTrashed={onTrashed} />
       </div>
     </>

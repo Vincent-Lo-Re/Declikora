@@ -287,6 +287,41 @@ export async function pushMediaTexts(mediaId: string): Promise<number> {
   return data.length
 }
 
+/** Un brouillon que media_replace n'a pas touché : quelqu'un l'écrit en ce moment. */
+export type KeptDraft = { id: string; title: string; holder: string }
+
+/**
+ * « Remplacer… » ([D48]) : le nouveau fichier (même type, prêt) prend la place de l'ancien dans
+ * les brouillons, sauf ceux que quelqu'un écrit en ce moment (rendus dans kept).
+ */
+export async function replaceMedia(
+  oldId: string,
+  newId: string
+): Promise<{ replaced: number; kept: KeptDraft[] }> {
+  const { data, error } = await supabase.rpc("media_replace", {
+    old_id: oldId,
+    new_id: newId,
+  })
+  if (error) throw toMediaError(error)
+  return data as { replaced: number; kept: KeptDraft[] }
+}
+
+/**
+ * Sur décision de l'équipe : le nouveau fichier remplace l'ancien dans ce qui est en ligne (une
+ * nouvelle version de chaque contenu). Renvoie le nombre de contenus mis à jour.
+ */
+export async function replaceMediaLive(
+  oldId: string,
+  newId: string
+): Promise<number> {
+  const { data, error } = await supabase.rpc("media_replace_live", {
+    old_id: oldId,
+    new_id: newId,
+  })
+  if (error) throw toMediaError(error)
+  return data.length
+}
+
 export type TrashItem = {
   item_type: "file" | "content"
   id: string

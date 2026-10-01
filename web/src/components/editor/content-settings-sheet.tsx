@@ -141,8 +141,9 @@ type SettingsFieldsProps = {
   // l'adresse d'une page.
   onTitleChange?: (title: string) => void
   titleError?: string | null
-  // Fenêtre de création : le curseur est dans le titre dès l'ouverture.
-  autoFocusTitle?: boolean
+  // Fenêtre de création : le curseur est dans le titre dès l'ouverture, sans niveau d'accès
+  // (il se choisit ensuite dans les réglages) ni lien vers la page des catégories.
+  creating?: boolean
   // Sous le titre (fenêtre de création : le point de départ).
   afterTitle?: ReactNode
   settings: ContentSettings
@@ -171,7 +172,7 @@ export function ContentSettingsFields({
   title,
   onTitleChange,
   titleError = null,
-  autoFocusTitle = false,
+  creating = false,
   afterTitle,
   settings,
   editable,
@@ -194,7 +195,7 @@ export function ContentSettingsFields({
           <FieldLabel htmlFor="reglages-titre">{labels.titleLabel}</FieldLabel>
           <Input
             id="reglages-titre"
-            autoFocus={autoFocusTitle}
+            autoFocus={creating}
             value={title}
             readOnly={!editable}
             maxLength={TITLE_MAX}
@@ -217,19 +218,21 @@ export function ContentSettingsFields({
           onChange={onChange}
         />
       ) : (
-        <>
-          {onTitleChange && <Separator />}
-          <AccessSection
-            settings={settings}
-            editable={editable}
-            levels={levels}
-            levelsFailed={levelsFailed}
-            live={live}
-            onChange={(accessLevelId) =>
-              onChange({ ...settings, accessChosen: true, accessLevelId })
-            }
-          />
-        </>
+        !creating && (
+          <>
+            {onTitleChange && <Separator />}
+            <AccessSection
+              settings={settings}
+              editable={editable}
+              levels={levels}
+              levelsFailed={levelsFailed}
+              live={live}
+              onChange={(accessLevelId) =>
+                onChange({ ...settings, accessChosen: true, accessLevelId })
+              }
+            />
+          </>
+        )
       )}
       {categories && (
         <>
@@ -239,6 +242,7 @@ export function ContentSettingsFields({
             categories={categories}
             chosen={settings.categoryIds}
             editable={editable}
+            manageLink={!creating}
             onChange={(categoryIds) => onChange({ ...settings, categoryIds })}
           />
         </>
@@ -273,12 +277,15 @@ function CategoriesSection({
   categories,
   chosen,
   editable,
+  manageLink,
   onChange,
 }: {
   headingRef: React.RefObject<HTMLHeadingElement | null>
   categories: SectionCategories
   chosen: string[]
   editable: boolean
+  // « Gérer les catégories » (pas dans la fenêtre de création).
+  manageLink: boolean
   onChange: (categoryIds: string[]) => void
 }) {
   const words = labels.categories
@@ -353,13 +360,15 @@ function CategoriesSection({
           onAdded={(category) => onChange([...chosen, category.id].sort())}
         />
       )}
-      <Link
-        to={categoriesPath(categories.section)}
-        className={buttonVariants({ variant: "outline", size: "sm" })}
-      >
-        <Tags />
-        {words.manage}
-      </Link>
+      {manageLink && (
+        <Link
+          to={categoriesPath(categories.section)}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          <Tags />
+          {words.manage}
+        </Link>
+      )}
     </section>
   )
 }

@@ -31,6 +31,8 @@ vi.mock("@/lib/media/api", async (importOriginal) => {
     discardUpload: vi.fn(),
     getMediaVerdicts: vi.fn(),
     getMedia: vi.fn(),
+    replaceMedia: vi.fn(),
+    replaceMediaLive: vi.fn(),
   }
 })
 vi.mock("@/lib/media/transfer", async (importOriginal) => ({
@@ -675,6 +677,108 @@ describe("Sélection en masse", () => {
     expect(
       screen.queryByRole("button", { name: selection.trash(1) })
     ).toBeNull()
+  })
+})
+
+describe("Remplacer un fichier", () => {
+  const words = texts.media.replace
+  const oldPdf = media({
+    id: "00000000-0000-4000-8000-0000000000f0",
+    kind: "pdf",
+    name: "ancien.pdf",
+    path: "00000000-0000-4000-8000-0000000000f0/ancien.pdf",
+    mime: "application/pdf",
+    width: null,
+    height: null,
+  })
+  const newPdf = media({
+    id: "00000000-0000-4000-8000-0000000000f1",
+    kind: "pdf",
+    name: "nouveau.pdf",
+    path: "00000000-0000-4000-8000-0000000000f1/nouveau.pdf",
+    mime: "application/pdf",
+    width: null,
+    height: null,
+    status: "pending",
+  })
+
+  // Ouvre la fiche de l'ancien PDF, puis choisit le nouveau fichier.
+  async function replaceWithNewPdf() {
+    vi.mocked(api.listMedia).mockResolvedValue([oldPdf])
+    vi.mocked(api.createMedia).mockResolvedValue(newPdf)
+    vi.mocked(sendFile).mockResolvedValue()
+    vi.mocked(api.confirmMedia).mockResolvedValue({
+      ...newPdf,
+      status: "ready",
+    })
+    vi.mocked(api.getMedia).mockResolvedValue({ ...newPdf, status: "ready" })
+    renderApp("/mediatheque")
+    fireEvent.click(
+      await screen.findByRole("button", { name: texts.media.open(oldPdf.name) })
+    )
+    const sheet = await screen.findByRole("dialog", { name: oldPdf.name })
+    fireEvent.change(within(sheet).getByLabelText(words.input), {
+      target: {
+        files: [
+          new File(["%PDF-1.7 nouveau"], "nouveau.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    })
+    return sheet
+  }
+
+  it("le nouveau fichier prend la place de l'ancien dans les brouillons ; l'ancien, inutilisé, part à la corbeille", async () => {
+    vi.mocked(api.replaceMedia).mockResolvedValue({ replaced: 2, kept: [] })
+    vi.mocked(api.trashMedia).mockResolvedValue({ ...oldPdf, deleted_at: "x" })
+    await replaceWithNewPdf()
+
+    await waitFor(() =>
+      expect(api.replaceMedia).toHaveBeenCalledWith(oldPdf.id, newPdf.id)
+    )
+    // Les messages (hors de la fiche, que la fiche ouverte rend inertes).
+    expect(await screen.findByText(words.replaced(2))).toBeInTheDocument()
+    await waitFor(() => expect(api.trashMedia).toHaveBeenCalledWith(oldPdf.id))
+    expect(await screen.findByText(words.oldTrashed)).toBeInTheDocument()
+    // La fiche passe au nouveau fichier.
+    expect(
+      await screen.findByRole("dialog", { name: newPdf.name })
+    ).toBeVisible()
+  })
+
+  it("ce qui est en ligne ne change que sur « Mettre à jour… » ; un brouillon qu'on écrit est gardé", async () => {
+    vi.mocked(api.replaceMedia).mockResolvedValue({
+      replaced: 1,
+      kept: [{ id: "c1", title: "Guide", holder: "Claire Martin" }],
+    })
+    vi.mocked(api.getMediaUses).mockResolvedValue([
+      {
+        content_id: "c2",
+        kind: "page",
+        title: "Aide",
+        parent_title: null,
+        in_draft: false,
+        in_app: true,
+      },
+    ])
+    vi.mocked(api.replaceMediaLive).mockResolvedValue(1)
+    const sheet = await replaceWithNewPdf()
+
+    expect(await within(sheet).findByText(words.kept(1))).toBeVisible()
+    expect(
+      within(sheet).getByText(words.keptItem("Guide", "Claire Martin"))
+    ).toBeVisible()
+    fireEvent.click(
+      await within(sheet).findByRole("button", { name: words.push(1) })
+    )
+    await waitFor(() =>
+      expect(api.replaceMediaLive).toHaveBeenCalledWith(oldPdf.id, newPdf.id)
+    )
+    expect(
+      (await screen.findAllByText(words.pushed(1))).length
+    ).toBeGreaterThan(0)
+    expect(api.trashMedia).not.toHaveBeenCalled()
   })
 })
 

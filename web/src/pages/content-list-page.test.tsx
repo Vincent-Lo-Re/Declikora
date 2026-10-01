@@ -96,6 +96,7 @@ function row(
     title,
     slug: null,
     cover_id: null,
+    list_position: null,
     category_ids: [],
     draft_rev: 3,
     draft_saved_at: "2026-09-27T12:30:00Z",
@@ -285,7 +286,7 @@ describe("Blog", () => {
     ).toBeVisible()
   })
 
-  it("« Nouvel article » : une fenêtre (titre, point de départ, catégories, niveau), puis l'éditeur", async () => {
+  it("« Nouvel article » : une fenêtre (titre, point de départ, catégories), puis l'éditeur", async () => {
     vi.mocked(api.listContents).mockResolvedValue([])
     vi.mocked(templatesApi.listStarters).mockResolvedValue([
       { id: INTERVIEW, title: "Interview" },
@@ -321,9 +322,15 @@ describe("Blog", () => {
     fireEvent.click(
       await within(dialog).findByRole("checkbox", { name: "Sommeil" })
     )
-    fireEvent.click(
-      await within(dialog).findByRole("radio", { name: /Essentiel/ })
-    )
+    // Ni niveau d'accès ni lien vers la page des catégories : ils se règlent ensuite.
+    expect(
+      within(dialog).queryByRole("radio", { name: /Essentiel/ })
+    ).toBeNull()
+    expect(
+      within(dialog).queryByRole("link", {
+        name: texts.publication.settings.categories.manage,
+      })
+    ).toBeNull()
     fireEvent.click(
       within(dialog).getByRole("button", { name: labels.kinds.article.submit })
     )
@@ -342,10 +349,7 @@ describe("Blog", () => {
         1,
         newArticle.draft,
         expect.any(String),
-        {
-          access_level_id: "00000000-0000-4000-8000-00000000f001",
-          category_ids: [SOMMEIL],
-        }
+        { category_ids: [SOMMEIL] }
       )
     )
     expect(api.lockRelease).toHaveBeenCalledWith(ARTICLE, expect.any(String))

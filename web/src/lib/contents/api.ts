@@ -147,6 +147,8 @@ export type ContentListItem = {
   slug: string | null
   // Image de présentation du brouillon (id du fichier), s'il y en a une.
   cover_id: string | null
+  // Article, épisode, méthode : sa place dans la liste de sa section ([D47]) ; null pour une page.
+  list_position: number | null
   // Catégories du brouillon (articles et épisodes), dans aucun ordre particulier.
   category_ids: string[]
   draft_rev: number
@@ -193,19 +195,48 @@ export async function findPageBySlug(
   return found ? { id: found.id, title: found.title ?? "" } : null
 }
 
-/** Les contenus d'une sorte, hors corbeille, les derniers modifiés d'abord. */
+/** Les sortes rangées à la main, dans l'ordre de leur liste ([D47]). */
+export function isOrderedKind(
+  kind: ContentKind
+): kind is "article" | "episode" | "method" {
+  return kind === "article" || kind === "episode" || kind === "method"
+}
+
+/**
+ * Range la liste d'une section : ids contient tous ses contenus hors corbeille, dans l'ordre
+ * voulu (contents_reorder, [D47]).
+ */
+export async function reorderContents(
+  kind: "article" | "episode" | "method",
+  ids: string[]
+): Promise<void> {
+  const { error, status } = await supabase.rpc("contents_reorder", {
+    kind,
+    ids,
+  })
+  if (error) throw toContentError(error, status)
+}
+
+/**
+ * Les contenus d'une sorte, hors corbeille : dans l'ordre de la liste pour Le Fil, Radio
+ * Éclaircies et les Méthodes, les derniers modifiés d'abord pour les pages.
+ */
 export async function listContents(
   kind: ContentKind
 ): Promise<ContentListItem[]> {
-  const { data, error, status } = await supabase
+  const query = supabase
     .from("contents")
     .select(
-      "id, title, slug, cover_id:draft->cover->>mediaId, draft_rev, draft_saved_at, first_published_at, scheduled_at, schedule_error, access_chosen, access_level_id, live:versions!contents_live_version_fkey(draft_rev), content_categories(category_id)"
+      "id, title, slug, cover_id:draft->cover->>mediaId, list_position, draft_rev, draft_saved_at, first_published_at, scheduled_at, schedule_error, access_chosen, access_level_id, live:versions!contents_live_version_fkey(draft_rev), content_categories(category_id)"
     )
     .eq("kind", kind)
     .is("deleted_at", null)
-    .order("draft_saved_at", { ascending: false })
-    .limit(500)
+  // Le Fil, Radio Éclaircies, Méthodes : dans l'ordre de la liste ([D47], comme l'app) ; les
+  // pages : les dernières modifiées d'abord.
+  const ordered = isOrderedKind(kind)
+    ? query.order("list_position").order("id")
+    : query.order("draft_saved_at", { ascending: false })
+  const { data, error, status } = await ordered.limit(500)
   if (error) throw toContentError(error, status)
   return data.map((row) => {
     const live = row.live as { draft_rev: number } | null
@@ -214,6 +245,7 @@ export async function listContents(
       title: row.title ?? "",
       slug: row.slug,
       cover_id: row.cover_id ?? null,
+      list_position: row.list_position,
       category_ids: categoryIdsOf(row.content_categories),
       draft_rev: row.draft_rev,
       draft_saved_at: row.draft_saved_at,

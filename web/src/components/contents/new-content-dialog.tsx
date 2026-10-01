@@ -25,7 +25,6 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
-import type { AccessLevel } from "@/lib/access-levels"
 import {
   contentKeys,
   findPageBySlug,
@@ -61,8 +60,8 @@ export type NewContent = {
 
 /**
  * « Nouvel article », « Nouvel épisode », « Nouvelle méthode », « Nouvelle page » : le titre, un
- * point de départ s'il y en a, et les mêmes réglages que dans l'éditeur (niveau d'accès,
- * catégories, adresse). Tout se modifie ensuite dans les réglages.
+ * point de départ s'il y en a, les catégories (qu'on peut créer sur place) et, pour une page,
+ * l'adresse tirée du titre. Le niveau d'accès et le reste se règlent ensuite dans les réglages.
  */
 export function NewContentDialog({
   open,
@@ -70,8 +69,6 @@ export function NewContentDialog({
   kind,
   starters,
   categories,
-  levels,
-  levelsFailed,
   pending,
   error,
   onSubmit,
@@ -82,8 +79,6 @@ export function NewContentDialog({
   // Les points de départ de cette sorte (vide pour une méthode).
   starters: { id: string; title: string }[]
   categories?: SectionCategories
-  levels: AccessLevel[] | undefined
-  levelsFailed: boolean
   pending: boolean
   error: string | null
   onSubmit: (created: NewContent) => void
@@ -183,12 +178,12 @@ export function NewContentDialog({
                 setTitleError(null)
               }}
               titleError={titleError}
-              autoFocusTitle
+              creating
               slugField={false}
               settings={settings}
               editable={!pending}
-              levels={levels}
-              levelsFailed={levelsFailed}
+              levels={undefined}
+              levelsFailed={false}
               live={null}
               refusedSlug={null}
               categories={categories}

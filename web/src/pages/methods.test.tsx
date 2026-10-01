@@ -356,6 +356,7 @@ describe("liste des méthodes", () => {
         title: "Mieux respirer",
         slug: null,
         cover_id: null,
+        list_position: null,
         category_ids: [],
         draft_rev: 4,
         draft_saved_at: "2026-09-28T12:30:00Z",
