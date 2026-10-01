@@ -147,7 +147,7 @@ select ok(
   not has_function_privilege('anon', 'private.check_publish_requirements(text,jsonb)', 'execute')
     and not has_function_privilege('authenticated', 'private.check_publish_requirements(text,jsonb)', 'execute')
     and not has_function_privilege('authenticated', 'private.cover_required(text)', 'execute')
-    and not has_function_privilege('authenticated', 'private.feed_cursor(timestamptz,uuid)', 'execute'),
+    and not has_function_privilege('authenticated', 'private.feed_cursor(integer,uuid)', 'execute'),
   'private : check_publish_requirements, cover_required et feed_cursor ne sont pas exécutables par l''API'
 );
 

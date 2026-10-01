@@ -5,7 +5,7 @@
 --     dont l'image a été retirée ensuite ;
 --   - catégories : [D44] facultatives, rangement (categories_reorder), suppression définitive
 --     ([D28]) que l'app ignore, catégorie de la bonne section ;
---   - app_feed : ordre par date de première publication ([D27]), pagination par curseur (égalités
+--   - app_feed : ordre de la liste (list_position, 30/09/2026), pagination par curseur (égalités
 --     comprises), filtre par catégorie, contenu réservé verrouillé mais listé avec sa vignette
 --     seule (jamais l'image de ses blocs ni son son), durée d'un épisode, brouillon, retrait et
 --     corbeille jamais listés ; app_categories.
@@ -82,20 +82,20 @@ begin
 end;
 $$;
 
--- Date de première publication fixée (ce que ferait le temps qui passe entre deux publications).
-create function pg_temp.first_published(content_name text, at timestamptz)
+-- Place dans la liste fixée (ce que ferait un rangement par glisser-déposer).
+create function pg_temp.place(content_name text, at integer)
 returns void
 language sql
 security definer
 as $$
-  update public.contents set first_published_at = at where id = pg_temp.cid(content_name)
+  update public.contents set list_position = at where id = pg_temp.cid(content_name)
 $$;
 
 grant execute on function
   pg_temp.names(jsonb),
   pg_temp.all_pages(text, integer, uuid),
   pg_temp.ready(text, text, text, jsonb, jsonb),
-  pg_temp.first_published(text, timestamptz)
+  pg_temp.place(text, integer)
 to public;
 
 -- ---------------------------------------------------------------------------------------------
@@ -340,27 +340,27 @@ select pg_temp.ready('jete', 'article', 'Jeté');
 select pg_temp.publish('jete');
 select public.trash(pg_temp.cid('jete'));
 
--- Dates de première publication : nu (le plus ancien), a1, a2 = a3 (égalité), r, a4.
-select pg_temp.first_published('nu', '2026-01-01 10:00+00');
-select pg_temp.first_published('a1', '2026-02-01 10:00+00');
-select pg_temp.first_published('a2', '2026-03-01 10:00+00');
-select pg_temp.first_published('a3', '2026-03-01 10:00+00');
-select pg_temp.first_published('r', '2026-04-01 10:00:00.123456+00');
-select pg_temp.first_published('a4', '2026-05-01 10:00+00');
+-- Places dans la liste (rangement de l'équipe) : a4 en tête, puis r, a2 = a3 (égalité), a1, nu.
+select pg_temp.place('a4', -3);
+select pg_temp.place('r', 0);
+select pg_temp.place('a2', 4);
+select pg_temp.place('a3', 4);
+select pg_temp.place('a1', 7);
+select pg_temp.place('nu', 9);
 
 select pg_temp.as_anon();
 select is(
   (select array[n[1], n[2], least(n[3], n[4]), greatest(n[3], n[4]), n[5], n[6], cardinality(n)::text]
     from pg_temp.names(public.app_feed('blog')) n),
   array['a4', 'r', 'a2', 'a3', 'a1', 'nu', '6'],
-  'du plus récent au plus ancien (première publication) ; ni brouillon, ni retiré, ni corbeille'
+  'dans l''ordre de la liste ; ni brouillon, ni retiré, ni corbeille'
 );
--- L'ordre à égalité suit l'identifiant (décroissant).
+-- À place égale : par identifiant (croissant).
 select is(
   (select array_agg(x ->> 'id') from jsonb_array_elements(public.app_feed('blog') -> 'items') with ordinality x (x, n)
     where n in (3, 4)),
-  (select array_agg(x::text order by x desc) from unnest(array[pg_temp.cid('a2'), pg_temp.cid('a3')]) x),
-  'à date égale : par identifiant'
+  (select array_agg(x::text order by x) from unnest(array[pg_temp.cid('a2'), pg_temp.cid('a3')]) x),
+  'à place égale : par identifiant'
 );
 select is(public.app_feed('blog') -> 'nextCursor', 'null'::jsonb, 'une seule page : pas de curseur');
 select is(
@@ -390,7 +390,7 @@ select is(
   'lim absent : 20 par défaut'
 );
 
--- Republier ne remonte pas un article ([D27]).
+-- Republier ne remonte pas un article : il garde sa place.
 select pg_temp.as_person('editor');
 select lives_ok($$select pg_temp.save('nu', pg_temp.draft('[]', 'Nu corrigé', pg_temp.cover()))$$, 'nu corrigé');
 select lives_ok($$select pg_temp.publish('nu')$$, 'et republié');
