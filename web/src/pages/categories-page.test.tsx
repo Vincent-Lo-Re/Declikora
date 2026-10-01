@@ -43,7 +43,12 @@ describe("Catégories du Blog", () => {
         .getAllByRole("listitem")
         .map((item) => item.getAttribute("data-item"))
     ).toEqual(["Sommeil", "Stress"])
-    expect(within(list).getByText(labels.uses(3))).toBeVisible()
+    expect(
+      within(list).getByRole("img", { name: labels.uses(3) })
+    ).toBeVisible()
+    expect(
+      within(list).getByRole("img", { name: labels.uses(0) })
+    ).toBeVisible()
     expect(
       screen.getByRole("heading", {
         level: 1,

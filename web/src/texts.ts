@@ -1281,12 +1281,9 @@ export const texts = {
     renamed: "Catégorie renommée.",
     remove: "Supprimer",
     removeItem: (name: string) => `Supprimer ${name}`,
+    // Pastille de chaque catégorie : le nombre de brouillons qui la citent, dans l'infobulle.
     uses: (count: number) =>
-      count === 0
-        ? "Dans aucun brouillon"
-        : count === 1
-          ? "Dans 1 brouillon"
-          : `Dans ${count} brouillons`,
+      count === 0 ? "Non utilisée" : `Utilisée ${count} fois`,
     confirmRemove: {
       title: "Supprimer cette catégorie ?",
       description: (name: string) =>
