@@ -8,7 +8,7 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query"
 import { cn } from "cn"
-import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react"
+import { Ellipsis, GripVertical, Pencil, Plus, Trash2 } from "lucide-react"
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -34,6 +34,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
@@ -54,11 +61,10 @@ type OrderedNamesLabels = {
   add: string
   added: (name: string) => string
   rename: string
-  renameItem: (name: string) => string
   renameLabel: (name: string) => string
   renamed: string
   remove: string
-  removeItem: (name: string) => string
+  actions: (name: string) => string
   confirmRemove: {
     title: string
     description: (name: string) => string
@@ -103,10 +109,10 @@ type OrderedNamesProps<T extends Named> = {
   confirmBusy?: boolean
 }
 
-/** Le bouton « Renommer » d'une ligne (là où le focus revient après un geste sur la ligne). */
-function renameButtonOf(id: string): HTMLElement | null {
+/** Le bouton « … » d'une ligne (là où le focus revient après un geste sur la ligne). */
+function menuButtonOf(id: string): HTMLElement | null {
   return document.querySelector<HTMLElement>(
-    `[data-item-id="${id}"] [data-rename]`
+    `[data-item-id="${id}"] [data-row-menu]`
   )
 }
 
@@ -190,7 +196,7 @@ export function OrderedNames<T extends Named>({
       const target = focusAfterRemove.current
       if (target === undefined) return
       focusSoon(() =>
-        target ? renameButtonOf(target) : document.getElementById(newInputId)
+        target ? menuButtonOf(target) : document.getElementById(newInputId)
       )
     },
   })
@@ -306,10 +312,10 @@ function SortableNames<T extends Named>({
   const { labels } = options
   const [renaming, setRenaming] = useState<string | null>(null)
   // Fin d'un renommage (Entrée, Enregistrer, Échap, Annuler) : le formulaire disparaît avec le
-  // focus ; il revient sur le bouton « Renommer » de la ligne.
+  // focus ; il revient sur le bouton « … » de la ligne.
   const endRename = (id: string) => {
     setRenaming(null)
-    focusSoon(() => renameButtonOf(id))
+    focusSoon(() => menuButtonOf(id))
   }
   return (
     <SortableList items={items} words={labels.dnd} onReorder={onReorder}>
@@ -397,28 +403,27 @@ function SortableName<T extends Named>({
             {item.name}
           </span>
           {after?.(item)}
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={disabled}
-            aria-label={labels.renameItem(item.name)}
-            data-rename
-            onClick={() => onRename(true)}
-          >
-            <Pencil />
-            {labels.rename}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive"
-            disabled={disabled}
-            aria-label={labels.removeItem(item.name)}
-            onClick={onRemove}
-          >
-            <Trash2 />
-            {labels.remove}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              disabled={disabled}
+              aria-label={labels.actions(item.name)}
+              data-row-menu
+              render={<Button variant="ghost" size="icon-sm" />}
+            >
+              <Ellipsis />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={() => onRename(true)}>
+                <Pencil />
+                {labels.rename}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={onRemove}>
+                <Trash2 />
+                {labels.remove}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </>
       )}
     </li>

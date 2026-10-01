@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { cn } from "cn"
-import { ArrowLeft, Tags } from "lucide-react"
+import { ArrowLeft, Link as LinkIcon, Tags, Unlink } from "lucide-react"
 import { Link } from "react-router"
 
+import { IconBadge } from "@/components/icon-badge"
 import { OrderedNames } from "@/components/ordered-names"
 import { PageHeader } from "@/components/page-header"
 import { buttonVariants } from "@/components/ui/button"
@@ -83,10 +84,12 @@ export function CategoriesPage({ section }: { section: CategorySection }) {
             queryClient.invalidateQueries({ queryKey: contentKeys.lists }),
           ])
         }
+        // Comme les fichiers de la Médiathèque : un lien si des brouillons la citent.
         after={(category) => (
-          <span className="shrink-0 text-sm text-muted-foreground">
-            {labels.uses(category.uses)}
-          </span>
+          <IconBadge
+            icon={category.uses > 0 ? LinkIcon : Unlink}
+            label={labels.uses(category.uses)}
+          />
         )}
         // Le nombre de brouillons qui la perdent est relu avant de confirmer ([D28]).
         onAskRemove={() => void categories.refetch()}

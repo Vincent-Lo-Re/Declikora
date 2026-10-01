@@ -1276,17 +1276,13 @@ export const texts = {
     add: "Ajouter",
     added: (name: string) => `Catégorie « ${name} » ajoutée.`,
     rename: "Renommer",
-    renameItem: (name: string) => `Renommer ${name}`,
     renameLabel: (name: string) => `Nouveau nom pour ${name}`,
     renamed: "Catégorie renommée.",
     remove: "Supprimer",
-    removeItem: (name: string) => `Supprimer ${name}`,
+    actions: (name: string) => `Actions pour ${name}`,
+    // Pastille de chaque catégorie : le nombre de brouillons qui la citent, dans l'infobulle.
     uses: (count: number) =>
-      count === 0
-        ? "Dans aucun brouillon"
-        : count === 1
-          ? "Dans 1 brouillon"
-          : `Dans ${count} brouillons`,
+      count === 0 ? "Non utilisée" : `Utilisée ${count} fois`,
     confirmRemove: {
       title: "Supprimer cette catégorie ?",
       description: (name: string) =>
@@ -2231,11 +2227,10 @@ export const texts = {
       added: (name: string) => `Formule « ${name} » ajoutée.`,
       rank: (position: number) => `n° ${position}`,
       rename: "Renommer",
-      renameItem: (name: string) => `Renommer ${name}`,
       renameLabel: (name: string) => `Nouveau nom pour ${name}`,
       renamed: "Formule renommée.",
       remove: "Supprimer",
-      removeItem: (name: string) => `Supprimer ${name}`,
+      actions: (name: string) => `Actions pour ${name}`,
       confirmRemove: {
         title: "Supprimer cette formule ?",
         description: (name: string) =>
