@@ -1,4 +1,5 @@
 import { useEditorState, type Editor } from "@tiptap/react"
+import { cn } from "cn"
 import {
   Bold,
   Heading2,
@@ -54,16 +55,28 @@ const none: Formats = {
 }
 
 /**
- * Barre de mise en forme, au-dessus du téléphone : elle agit sur le dernier bloc Texte qui a
- * eu le curseur. Désactivée en lecture seule ou sans texte choisi.
+ * Barre de mise en forme, au-dessus du téléphone (verticale à sa gauche dans l'éditeur du Fil) :
+ * elle agit sur le dernier bloc Texte qui a eu le curseur. Désactivée en lecture seule ou sans
+ * texte choisi.
  */
 export function FormatToolbar({
   editor,
   editable,
+  orientation = "horizontal",
 }: {
   editor: Editor | null
   editable: boolean
+  orientation?: "horizontal" | "vertical"
 }) {
+  const vertical = orientation === "vertical"
+  // Verticale : les infobulles s'ouvrent à droite, loin du texte qu'on met en forme.
+  const side = vertical ? "right" : "top"
+  const separator = (
+    <Separator
+      orientation={vertical ? "horizontal" : "vertical"}
+      className={vertical ? "my-1 w-5" : "mx-1 h-5"}
+    />
+  )
   const [linkOpen, setLinkOpen] = useState(false)
   const formats =
     useEditorState({
@@ -110,7 +123,7 @@ export function FormatToolbar({
       >
         <Icon />
       </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
+      <TooltipContent side={side}>{label}</TooltipContent>
     </Tooltip>
   )
 
@@ -118,7 +131,11 @@ export function FormatToolbar({
     <div
       role="toolbar"
       aria-label={labels.label}
-      className="flex flex-wrap items-center gap-0.5 rounded-lg border bg-background p-1 shadow-xs"
+      aria-orientation={orientation}
+      className={cn(
+        "flex items-center gap-0.5 rounded-lg border bg-background p-1 shadow-xs",
+        vertical ? "flex-col" : "flex-wrap"
+      )}
     >
       {toggle("paragraph", labels.paragraph, Pilcrow, () =>
         chain().setParagraph().run()
@@ -129,20 +146,20 @@ export function FormatToolbar({
       {toggle("h3", labels.h3, Heading3, () =>
         chain().toggleHeading({ level: 3 }).run()
       )}
-      <Separator orientation="vertical" className="mx-1 h-5" />
+      {separator}
       {toggle("bulletList", labels.bulletList, List, () =>
         chain().toggleBulletList().run()
       )}
       {toggle("orderedList", labels.orderedList, ListOrdered, () =>
         chain().toggleOrderedList().run()
       )}
-      <Separator orientation="vertical" className="mx-1 h-5" />
+      {separator}
       {toggle("bold", labels.bold, Bold, () => chain().toggleBold().run())}
       {toggle("italic", labels.italic, Italic, () =>
         chain().toggleItalic().run()
       )}
       {toggle("link", labels.link, Link2, () => setLinkOpen(true))}
-      <Separator orientation="vertical" className="mx-1 h-5" />
+      {separator}
       <Tooltip>
         <TooltipTrigger
           render={
@@ -158,7 +175,7 @@ export function FormatToolbar({
         >
           <Undo2 />
         </TooltipTrigger>
-        <TooltipContent>{labels.undo}</TooltipContent>
+        <TooltipContent side={side}>{labels.undo}</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger
@@ -175,10 +192,15 @@ export function FormatToolbar({
         >
           <Redo2 />
         </TooltipTrigger>
-        <TooltipContent>{labels.redo}</TooltipContent>
+        <TooltipContent side={side}>{labels.redo}</TooltipContent>
       </Tooltip>
       {!usable && editable && (
-        <span className="px-2 text-xs text-muted-foreground">
+        <span
+          className={cn(
+            "px-2 text-xs text-muted-foreground",
+            vertical && "sr-only"
+          )}
+        >
           {labels.unavailable}
         </span>
       )}

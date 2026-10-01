@@ -1,5 +1,6 @@
 /* Généré par web/scripts/blocks-generate.mjs (npm run blocks:generate) depuis blocks/. Ne pas modifier. */
-/* Aperçu des blocs dans l'admin : mêmes mesures que l'app (blocks/blocks.tokens.json). */
+/* Aperçu des blocs dans l'admin : mêmes mesures que l'app (blocks/blocks.tokens.json). Le
+   thème suit celui de l'admin, sauf dans un aperçu qui choisit le sien (data-blocks-theme). */
 :root {
   --blocks-phone-width: 390px;
   --blocks-font-family: Inter;
@@ -37,7 +38,8 @@
   --blocks-color-image-placeholder: #e5e5ea;
 }
 
-.dark {
+.dark,
+[data-blocks-theme="dark"] {
   --blocks-color-background: #000000;
   --blocks-color-text: #f2f2f7;
   --blocks-color-text-muted: #a1a1a8;
@@ -45,4 +47,14 @@
   --blocks-color-box-fill: #1c1c1e;
   --blocks-color-box-border: #3a3a3c;
   --blocks-color-image-placeholder: #2c2c2e;
+}
+
+[data-blocks-theme="light"] {
+  --blocks-color-background: #ffffff;
+  --blocks-color-text: #1c1c1e;
+  --blocks-color-text-muted: #6b6b70;
+  --blocks-color-link: #0b62d6;
+  --blocks-color-box-fill: #f2f2f5;
+  --blocks-color-box-border: #d4d4d8;
+  --blocks-color-image-placeholder: #e5e5ea;
 }

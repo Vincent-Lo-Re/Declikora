@@ -207,6 +207,7 @@ function panel() {
 
 const columns = texts.editor.columns
 const article = texts.editor.article
+const preview = texts.editor.preview
 
 /** L'onglet « Article » de la colonne de droite (éditeur du Fil). */
 function articleTab() {
@@ -413,6 +414,87 @@ describe("éditeur d'un article (Le Fil)", () => {
         screen.getByRole("tab", { name: columns.article })
       ).toHaveAttribute("aria-selected", "true")
     )
+  })
+
+  it("l'aperçu : la Lecture montre l'article comme dans l'app, sans ses blocs pour une personne sans la formule", async () => {
+    // jsdom n'a pas scrollIntoView (le bloc choisi dans le plan est montré).
+    Element.prototype.scrollIntoView = vi.fn()
+    const TEXT = "00000000-0000-4000-8000-0000000000d2"
+    const LEVEL = "00000000-0000-4000-8000-0000000000b1"
+    const doc = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Respire lentement." }],
+        },
+      ],
+    } as Doc
+    vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([
+      { id: LEVEL, name: "Essentiel", rank: 1 },
+    ])
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(
+        ARTICLE,
+        "article",
+        { blocks: [{ id: TEXT, type: "text", doc }] },
+        { access_level_id: LEVEL, category_ids: [SOMMEIL] }
+      )
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const tools = screen.getByRole("toolbar", { name: preview.tools })
+    expect(
+      screen.getByRole("toolbar", { name: texts.editor.toolbar.label })
+    ).toHaveAttribute("aria-orientation", "vertical")
+
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.mode.read })
+    )
+    const phone = screen.getByRole("region", { name: preview.screen.ios })
+    expect(
+      within(phone).getByRole("heading", { level: 1, name: "Bien dormir" })
+    ).toBeVisible()
+    expect(screen.queryByLabelText(texts.editor.title.label)).toBeNull()
+    expect(within(phone).getByText("Respire lentement.")).toBeVisible()
+    expect(
+      await within(phone).findByText(`Sommeil · ${preview.minutes(1)}`)
+    ).toBeVisible()
+
+    // Comme une personne sans la formule : l'app ne reçoit pas les blocs.
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.reader.visitor })
+    )
+    expect(
+      await within(phone).findByText(preview.locked.text("Essentiel"))
+    ).toBeVisible()
+    expect(within(phone).queryByText("Respire lentement.")).toBeNull()
+
+    // Sombre, Android, Grand texte : le téléphone change, l'article reste le même.
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.theme.dark })
+    )
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.device.android })
+    )
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.largeText })
+    )
+    const android = screen.getByRole("region", { name: preview.screen.android })
+    expect(android).toHaveAttribute("data-blocks-theme", "dark")
+    expect(android).toHaveAttribute("data-large-text")
+
+    // Un bloc choisi dans le plan ramène en Édition.
+    fireEvent.click(
+      within(screen.getByRole("tabpanel", { name: columns.plan })).getByRole(
+        "button",
+        { name: /Respire lentement/ }
+      )
+    )
+    expect(await screen.findByLabelText(texts.editor.title.label)).toBeVisible()
+    expect(
+      within(tools).queryByRole("button", { name: preview.reader.visitor })
+    ).toBeNull()
   })
 
   it("niveau d'accès et catégories en pastilles : ils partent avec le brouillon ([D41], [D44])", async () => {

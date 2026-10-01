@@ -77,6 +77,11 @@ import {
   type RefusedSlug,
   type SettingsFocus,
 } from "@/components/editor/content-settings-sheet"
+import {
+  FeedPreview,
+  ReadAppBar,
+  ReadView,
+} from "@/components/editor/feed-preview"
 import { FormatToolbar } from "@/components/editor/format-toolbar"
 import { HistorySheet } from "@/components/editor/history-sheet"
 import { LockBanner } from "@/components/editor/lock-banner"
@@ -206,6 +211,11 @@ import {
   type LinkedTemplate,
   type TemplateItem,
 } from "@/lib/contents/templates"
+import {
+  defaultPreview,
+  previewLocked,
+  type PreviewSettings,
+} from "@/lib/editor/preview"
 import { errorMessage } from "@/lib/errors"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
@@ -499,6 +509,8 @@ function ContentEditor({
     selectedId: string | null
   } | null>(null)
   const [activeText, setActiveText] = useState<Editor | null>(null)
+  // Éditeur du Fil : le téléphone montré, Édition ou Lecture, thème, taille du texte, lecteur.
+  const [phoneView, setPhoneView] = useState<PreviewSettings>(defaultPreview)
   const rightTab: RightTab =
     rightChoice && rightChoice.selectedId === selectedId
       ? rightChoice.tab
@@ -961,7 +973,18 @@ function ContentEditor({
     []
   )
 
+  // En Lecture, rien ne se choisit : on repasse en Édition pour montrer un bloc ou en ajouter un.
+  const toEdit = () =>
+    setPhoneView((current) =>
+      current.mode === "edit" ? current : { ...current, mode: "edit" }
+    )
+  const onPreviewChange = (next: PreviewSettings) => {
+    if (next.mode === "read") setSelectedId(null)
+    setPhoneView(next)
+  }
+
   const selectAndShow = (id: string) => {
+    toEdit()
     setSelectedId(id)
     requestAnimationFrame(() => focusBlockSoon(id, 0))
   }
@@ -1500,14 +1523,18 @@ function ContentEditor({
 
   const nearLimit = useMemo(() => draftBytes(draft) > DRAFT_WARN_BYTES, [draft])
   // Éditeur du Fil : temps de lecture et nombre de mots (blocs partagés compris).
+  // Le bloc d'un modèle partagé, tel qu'il est aujourd'hui (Lecture, temps de lecture).
+  const resolveLinked = useCallback(
+    (block: Block) => {
+      if (block.type !== "linked") return null
+      const state = templateFor(block.templateId)
+      return state.state === "ready" ? state.block : null
+    },
+    [templateFor]
+  )
   const stats = useMemo(
-    () =>
-      readingStats(draft, (block) => {
-        if (block.type !== "linked") return null
-        const state = templateFor(block.templateId)
-        return state.state === "ready" ? state.block : null
-      }),
-    [draft, templateFor]
+    () => readingStats(draft, resolveLinked),
+    [draft, resolveLinked]
   )
 
   // En tête de l'aperçu : l'image de présentation, le titre, le résumé et l'audio, comme dans
@@ -1673,6 +1700,125 @@ function ContentEditor({
           : undefined
       }
     />
+  )
+
+  // Au-dessus du téléphone : brouillon trop lourd, échec d'enregistrement.
+  const notices = (
+    <>
+      {nearLimit && (
+        <p
+          role="status"
+          className="mx-auto mb-3 max-w-(--blocks-phone-width) text-sm text-warning"
+        >
+          {texts.editor.save.nearLimit}
+        </p>
+      )}
+      {autosave.state.status === "failed" && autosave.state.error && (
+        <p
+          role="alert"
+          className="mx-auto mb-3 max-w-(--blocks-phone-width) text-sm text-destructive"
+        >
+          {autosave.state.error.message} {autosave.state.error.detail}
+        </p>
+      )}
+    </>
+  )
+  // Le téléphone en Édition : la présentation et les blocs, modifiables sur place.
+  const phone = (
+    <div
+      className={cn(
+        "blocks-phone",
+        // Éditeur du Fil : le cadre du téléphone l'entoure (FeedPreview).
+        !feed && "rounded-4xl border shadow-sm",
+        !editable && "cursor-default"
+      )}
+      data-editable={editable || undefined}
+      // Éditeur du Fil : un clic hors d'un bloc revient sur l'onglet « Article ».
+      onClick={
+        feed
+          ? (event) => {
+              if (
+                event.target instanceof Element &&
+                !event.target.closest("[data-block-id]")
+              ) {
+                setSelectedId(null)
+              }
+            }
+          : undefined
+      }
+    >
+      {phoneTop}
+      <BlocksEditorContext value={blocksValue}>
+        <BlockCanvas
+          key={viewKey}
+          draft={draft}
+          onChange={setDraft}
+          rootLimit={isShared ? SHARED_ROOT_LIMIT : undefined}
+        />
+      </BlocksEditorContext>
+      {draft.blocks.length === 0 && (
+        <Empty className="border border-dashed font-sans">
+          <EmptyHeader>
+            <EmptyTitle>
+              {isTemplate
+                ? texts.templates.editor.empty.title
+                : texts.editor.emptyPage.title}
+            </EmptyTitle>
+            <EmptyDescription>
+              {isShared
+                ? texts.templates.editor.empty.sharedDescription
+                : isTemplate
+                  ? texts.templates.editor.empty.description
+                  : texts.editor.emptyPage.description}
+            </EmptyDescription>
+          </EmptyHeader>
+          {editable && (
+            <div className="flex flex-wrap justify-center gap-2">
+              {insertableBlocks.map((definition, index) => (
+                <Button
+                  key={definition.type}
+                  // Éditeur du Fil (sans « Ajouter un bloc » en haut) : là où va le
+                  // focus quand le dernier bloc est supprimé.
+                  id={feed && index === 0 ? ADD_BLOCK_ID : undefined}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addBlock(definition.type)}
+                >
+                  <definition.icon />
+                  {definition.label}
+                </Button>
+              ))}
+              {!isTemplate && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTemplatePickerOpen(true)}
+                >
+                  <LayoutTemplate />
+                  {texts.templates.insert.menu}
+                </Button>
+              )}
+            </div>
+          )}
+        </Empty>
+      )}
+      {editable && draft.blocks.length > 0 && canAddRoot && (
+        <div className="mt-6 flex justify-center font-sans">
+          <AddBlockMenu
+            variant="ghost"
+            onAdd={(type) => addBlock(type, undefined)}
+            onTemplate={
+              isTemplate ? undefined : () => setTemplatePickerOpen(true)
+            }
+          />
+        </div>
+      )}
+      {editable && isShared && !canAddRoot && (
+        <p className="mt-6 text-center font-sans text-xs text-muted-foreground">
+          {texts.templates.editor.sharedLimit}
+        </p>
+      )}
+    </div>
   )
 
   const sectionTitle = texts.sections[section].title
@@ -1885,8 +2031,14 @@ function ContentEditor({
                   <BlocksLibrary
                     editable={editable}
                     canAdd={canAddRoot}
-                    onAdd={(type) => addBlock(type)}
-                    onInsert={onInsertTemplate}
+                    onAdd={(type) => {
+                      toEdit()
+                      addBlock(type)
+                    }}
+                    onInsert={(template) => {
+                      toEdit()
+                      onInsertTemplate(template)
+                    }}
                   />
                 </TabsContent>
               </Tabs>
@@ -1901,122 +2053,62 @@ function ContentEditor({
             </aside>
           )}
 
-          <main className="min-w-0 flex-1 overflow-y-auto">
-            <div className="sticky top-0 z-10 flex justify-center bg-muted/40 px-6 py-3 backdrop-blur">
-              <FormatToolbar editor={activeText} editable={editable} />
-            </div>
-            {nearLimit && (
-              <p
-                role="status"
-                className="mx-auto mb-3 max-w-(--blocks-phone-width) text-sm text-warning"
-              >
-                {texts.editor.save.nearLimit}
-              </p>
-            )}
-            {autosave.state.status === "failed" && autosave.state.error && (
-              <p
-                role="alert"
-                className="mx-auto mb-3 max-w-(--blocks-phone-width) text-sm text-destructive"
-              >
-                {autosave.state.error.message} {autosave.state.error.detail}
-              </p>
-            )}
-            <div className="flex justify-center px-6 pb-16">
-              <div
-                className={cn(
-                  "blocks-phone rounded-4xl border shadow-sm",
-                  !editable && "cursor-default"
-                )}
-                data-editable={editable || undefined}
-                // Éditeur du Fil : un clic hors d'un bloc revient sur l'onglet « Article ».
-                onClick={
-                  feed
-                    ? (event) => {
-                        if (
-                          event.target instanceof Element &&
-                          !event.target.closest("[data-block-id]")
-                        ) {
-                          setSelectedId(null)
-                        }
-                      }
-                    : undefined
+          <main
+            className={
+              feed
+                ? "flex min-w-0 flex-1 flex-col overflow-x-auto"
+                : "min-w-0 flex-1 overflow-y-auto"
+            }
+          >
+            {feed ? (
+              <FeedPreview
+                preview={phoneView}
+                onPreviewChange={onPreviewChange}
+                toolbar={
+                  <FormatToolbar
+                    editor={activeText}
+                    editable={editable}
+                    orientation="vertical"
+                  />
+                }
+                notices={notices}
+                appBar={
+                  phoneView.mode === "read" ? (
+                    <ReadAppBar section={sectionTitle} />
+                  ) : undefined
                 }
               >
-                {phoneTop}
-                <BlocksEditorContext value={blocksValue}>
-                  <BlockCanvas
-                    key={viewKey}
+                {phoneView.mode === "read" ? (
+                  <ReadView
                     draft={draft}
-                    onChange={setDraft}
-                    rootLimit={isShared ? SHARED_ROOT_LIMIT : undefined}
+                    title={title.trim() || untitled}
+                    cover={mediaFor(draft.cover?.mediaId ?? null)}
+                    meta={[
+                      ...(chosenCategoryNames ?? []).slice(0, 1),
+                      texts.editor.preview.minutes(stats.minutes),
+                    ].join(" · ")}
+                    locked={
+                      previewLocked(phoneView, settings)
+                        ? (levels.data?.find(
+                            (level) => level.id === settings.accessLevelId
+                          )?.name ?? null)
+                        : false
+                    }
+                    resolve={resolveLinked}
                   />
-                </BlocksEditorContext>
-                {draft.blocks.length === 0 && (
-                  <Empty className="border border-dashed font-sans">
-                    <EmptyHeader>
-                      <EmptyTitle>
-                        {isTemplate
-                          ? texts.templates.editor.empty.title
-                          : texts.editor.emptyPage.title}
-                      </EmptyTitle>
-                      <EmptyDescription>
-                        {isShared
-                          ? texts.templates.editor.empty.sharedDescription
-                          : isTemplate
-                            ? texts.templates.editor.empty.description
-                            : texts.editor.emptyPage.description}
-                      </EmptyDescription>
-                    </EmptyHeader>
-                    {editable && (
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {insertableBlocks.map((definition, index) => (
-                          <Button
-                            key={definition.type}
-                            // Éditeur du Fil (sans « Ajouter un bloc » en haut) : là où va le
-                            // focus quand le dernier bloc est supprimé.
-                            id={feed && index === 0 ? ADD_BLOCK_ID : undefined}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addBlock(definition.type)}
-                          >
-                            <definition.icon />
-                            {definition.label}
-                          </Button>
-                        ))}
-                        {!isTemplate && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setTemplatePickerOpen(true)}
-                          >
-                            <LayoutTemplate />
-                            {texts.templates.insert.menu}
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </Empty>
+                ) : (
+                  phone
                 )}
-                {editable && draft.blocks.length > 0 && canAddRoot && (
-                  <div className="mt-6 flex justify-center font-sans">
-                    <AddBlockMenu
-                      variant="ghost"
-                      onAdd={(type) => addBlock(type, undefined)}
-                      onTemplate={
-                        isTemplate
-                          ? undefined
-                          : () => setTemplatePickerOpen(true)
-                      }
-                    />
-                  </div>
-                )}
-                {editable && isShared && !canAddRoot && (
-                  <p className="mt-6 text-center font-sans text-xs text-muted-foreground">
-                    {texts.templates.editor.sharedLimit}
-                  </p>
-                )}
-              </div>
-            </div>
+              </FeedPreview>
+            ) : (
+              <>
+                <div className="sticky top-0 z-10 flex justify-center bg-muted/40 px-6 py-3 backdrop-blur">
+                  <FormatToolbar editor={activeText} editable={editable} />
+                </div>
+                {notices}
+                <div className="flex justify-center px-6 pb-16">{phone}</div>
+              </>
+            )}
           </main>
 
           {feed ? (
