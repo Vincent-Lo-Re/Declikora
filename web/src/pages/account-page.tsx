@@ -11,6 +11,13 @@ import { PageHeader } from "@/components/page-header"
 import { ThemeChoice } from "@/components/theme-choice"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
   Field,
   FieldError,
   FieldGroup,
@@ -24,6 +31,7 @@ import { profileSchema } from "@/lib/schemas"
 import { authPaths, sections } from "@/navigation"
 import { texts } from "@/texts"
 
+/** Mon compte : profil, double vérification, apparence et déconnexion, chacun dans sa carte. */
 export function AccountPage() {
   const { profile, factor } = useAuth()
   const { title, description } = texts.sections.account
@@ -35,7 +43,7 @@ export function AccountPage() {
         title={title}
         description={description}
       />
-      <div className="max-w-xl space-y-10">
+      <div className="grid items-start gap-6 xl:grid-cols-2">
         <Section
           title={texts.account.profile.title}
           description={texts.account.profile.description}
@@ -91,15 +99,15 @@ function Section({
   children: ReactNode
 }) {
   return (
-    <section className="space-y-3">
-      <div className="space-y-1">
-        <h2 className="font-medium">{title}</h2>
-        {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
-        )}
-      </div>
-      {children}
-    </section>
+    <Card>
+      <CardHeader>
+        <CardTitle role="heading" aria-level={2}>
+          {title}
+        </CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
+      <CardContent className="space-y-3">{children}</CardContent>
+    </Card>
   )
 }
 
