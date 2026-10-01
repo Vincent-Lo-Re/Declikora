@@ -263,14 +263,20 @@ if (!color?.light || !color?.dark)
 writeFileSync(
   `${outDir}tokens.css`,
   `/* ${BANNER} */
-/* Aperçu des blocs dans l'admin : mêmes mesures que l'app (blocks/blocks.tokens.json). */
+/* Aperçu des blocs dans l'admin : mêmes mesures que l'app (blocks/blocks.tokens.json). Le
+   thème suit celui de l'admin, sauf dans un aperçu qui choisit le sien (data-blocks-theme). */
 :root {
 ${cssVars(sizes, "--blocks").join("\n")}
 ${cssVars(color.light, "--blocks-color").join("\n")}
 }
 
-.dark {
+.dark,
+[data-blocks-theme="dark"] {
 ${cssVars(color.dark, "--blocks-color").join("\n")}
+}
+
+[data-blocks-theme="light"] {
+${cssVars(color.light, "--blocks-color").join("\n")}
 }
 `
 )

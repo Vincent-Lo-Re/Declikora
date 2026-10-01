@@ -1767,6 +1767,46 @@ export const texts = {
       block: "Bloc choisi",
       noBlock: "Clique sur un bloc dans le téléphone pour voir ses réglages.",
     },
+    // L'aperçu de l'éditeur du Fil : la barre d'outils à droite du téléphone, et ce que montre la
+    // Lecture (le rendu de l'app reste provisoire tant qu'elle n'est pas dessinée).
+    preview: {
+      tools: "Aperçu",
+      device: {
+        label: "Téléphone",
+        ios: "iPhone · 402 × 874",
+        android: "Android · 412 × 915",
+      },
+      mode: {
+        label: "Mode",
+        edit: "Édition",
+        read: "Lecture : l'article comme dans l'app",
+      },
+      theme: {
+        label: "Thème du téléphone",
+        light: "Clair",
+        dark: "Sombre",
+      },
+      largeText: "Grand texte",
+      reader: {
+        label: "Lecteur",
+        subscriber: "Lire comme un abonné à la bonne formule",
+        visitor: "Lire comme une personne sans la formule",
+      },
+      screen: { ios: "Aperçu sur iPhone", android: "Aperçu sur Android" },
+      // L'heure de la barre d'état, comme sur les photos des fabricants.
+      time: { ios: "9:41", android: "12:00" },
+      back: "Retour",
+      bookmark: "Garder",
+      share: "Partager",
+      minutes: (count: number) => `${count} min de lecture`,
+      locked: {
+        title: "La suite est réservée",
+        text: (level: string) =>
+          `Avec la formule ${level}, tu lis tout l'article.`,
+        textUnknown: "Avec la bonne formule, tu lis tout l'article.",
+        action: "Voir les formules",
+      },
+    },
     // L'onglet « Blocs » de l'éditeur du Fil, et le panneau « Mes blocs ».
     library: {
       hint: "Clique sur un bloc pour l'ajouter sous le bloc choisi, ou à la fin.",
@@ -1845,7 +1885,7 @@ export const texts = {
       title: (label: string) => `Réglages : ${label}`,
       none: "Choisis un bloc dans l'aperçu pour voir ses réglages.",
       readOnly: "Lecture seule : tu ne peux rien modifier.",
-      text: "Écris directement dans l'aperçu. Sélectionne des mots pour les mettre en forme avec la barre au-dessus du téléphone.",
+      text: "Écris directement dans l'aperçu. Sélectionne des mots pour les mettre en forme avec la barre de mise en forme.",
       image: {
         file: "Fichier",
         alt: "Texte alternatif",
