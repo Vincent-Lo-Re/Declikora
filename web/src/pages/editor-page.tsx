@@ -9,6 +9,7 @@ import { cn } from "cn"
 import {
   ArrowLeft,
   FileQuestion,
+  Focus,
   History,
   LayoutGrid,
   LayoutTemplate,
@@ -86,7 +87,10 @@ import { FormatToolbar } from "@/components/editor/format-toolbar"
 import { HistorySheet } from "@/components/editor/history-sheet"
 import { LockBanner } from "@/components/editor/lock-banner"
 import { MediaPicker } from "@/components/editor/media-picker"
-import { OutlinePanel } from "@/components/editor/outline-panel"
+import {
+  OutlinePanel,
+  type FeedOutline,
+} from "@/components/editor/outline-panel"
 import { ArticlePanel } from "@/components/editor/article-panel"
 import { BlocksLibrary } from "@/components/editor/blocks-library"
 import {
@@ -141,6 +145,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Separator } from "@/components/ui/separator"
+import { Kbd } from "@/components/ui/kbd"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -216,6 +221,20 @@ import {
   previewLocked,
   type PreviewSettings,
 } from "@/lib/editor/preview"
+import { isApple, isFocusShortcut } from "@/lib/editor/focus-mode"
+import { blockWarning, duplicateBlock } from "@/lib/editor/outline"
+import {
+  decodeLibraryDrag,
+  dropIndex,
+  LIBRARY_DRAG_TYPE,
+  type LibraryDrag,
+} from "@/lib/editor/library-drag"
+import {
+  isEmptyText,
+  replaceBlock,
+  slashChoices,
+  type SlashChoice,
+} from "@/lib/editor/slash"
 import { errorMessage } from "@/lib/errors"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
@@ -511,6 +530,16 @@ function ContentEditor({
   const [activeText, setActiveText] = useState<Editor | null>(null)
   // Éditeur du Fil : le téléphone montré, Édition ou Lecture, thème, taille du texte, lecteur.
   const [phoneView, setPhoneView] = useState<PreviewSettings>(defaultPreview)
+  // Éditeur du Fil : le panneau « Mes blocs » de l'onglet Blocs.
+  const [savedOpen, setSavedOpen] = useState(false)
+  // Éditeur du Fil : le bloc survolé, dans le plan ou dans l'aperçu (montré dans les deux).
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  useEffect(() => {
+    if (!hoveredId) return
+    const element = document.querySelector(`[data-block-id="${hoveredId}"]`)
+    element?.setAttribute("data-hovered", "")
+    return () => element?.removeAttribute("data-hovered")
+  }, [hoveredId])
   const rightTab: RightTab =
     rightChoice && rightChoice.selectedId === selectedId
       ? rightChoice.tab
@@ -539,6 +568,39 @@ function ContentEditor({
   const resume = useRef(false)
   // Annonce pour les lecteurs d'écran (bloc monté ou descendu).
   const [announcement, setAnnouncement] = useState("")
+  // Éditeur du Fil : le mode Concentration cache les deux colonnes (⌘ . ou Ctrl + ., Échap).
+  const [focusMode, setFocusMode] = useState(false)
+  const [apple] = useState(() => isApple(navigator.platform))
+  const showColumns = (on: boolean) => {
+    setFocusMode(!on)
+    setAnnouncement(on ? texts.editor.focusMode.off : texts.editor.focusMode.on)
+  }
+  const toggleFocusMode = () => showColumns(focusMode)
+  useEffect(() => {
+    if (!feed) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isFocusShortcut(event, apple)) {
+        event.preventDefault()
+        setFocusMode(!focusMode)
+        setAnnouncement(
+          focusMode ? texts.editor.focusMode.off : texts.editor.focusMode.on
+        )
+      } else if (
+        focusMode &&
+        event.key === "Escape" &&
+        !event.defaultPrevented &&
+        // Échap ferme d'abord une fenêtre ou un menu ouvert.
+        !document.querySelector(
+          '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]'
+        )
+      ) {
+        setFocusMode(false)
+        setAnnouncement(texts.editor.focusMode.off)
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [feed, apple, focusMode])
 
   // Méthode : le moment (dans ce navigateur) où sa fiche a été enregistrée pour la dernière fois.
   const [ficheSavedAt, setFicheSavedAt] = useState(0)
@@ -1008,6 +1070,20 @@ function ContentEditor({
     }
   }
 
+  // « Dupliquer » (plan de l'éditeur du Fil) : la copie juste après, choisie.
+  const onDuplicate = (id: string) => {
+    const place = findBlock(draft, id)
+    const result = duplicateBlock(draft, id)
+    if (!place || !result) return
+    setDraft(result.draft)
+    setSelectedId(result.id)
+    setAnnouncement(
+      texts.editor.outline.duplicated(
+        blockLabel(place.block, templateName(place.block))
+      )
+    )
+  }
+
   const onRemove = (id: string) => {
     const place = findBlock(draft, id)
     if (!place) return
@@ -1149,10 +1225,17 @@ function ContentEditor({
   // « Ajouter un bloc » › « Un modèle… » : une mise en forme devient une copie (nouveaux id),
   // un bloc identique partout un bloc lié, au premier niveau, après le bloc choisi.
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
-  const onInsertTemplate = (template: TemplateItem) => {
+  // at : la place au premier niveau d'un bloc glissé dans l'aperçu.
+  const onInsertTemplate = (template: TemplateItem, at?: number) => {
     setTemplatePickerOpen(false)
-    const result = insertTemplate(draft, template, selectedId)
+    const result = insertTemplate(draft, template, selectedId, at)
     if (!result) return
+    // Venu de « / » : le bloc enregistré prend la place du texte resté vide.
+    const target = slashTarget.current
+    slashTarget.current = null
+    if (target && target === selectedId && isEmptyText(result.draft, target)) {
+      result.draft = removeBlock(result.draft, target)
+    }
     if (template.sort === "shared") {
       setPickedTemplates((current) => ({
         ...current,
@@ -1177,6 +1260,86 @@ function ContentEditor({
     )
   }
 
+  // Éditeur du Fil : un bloc de l'onglet Blocs glissé dans l'aperçu, et le trait qui montre où
+  // il tombera (seulement au premier niveau, entre deux blocs).
+  const phoneRef = useRef<HTMLDivElement>(null)
+  const [dropLine, setDropLine] = useState<{
+    index: number
+    top: number
+  } | null>(null)
+  const dropPlace = (clientY: number) => {
+    const phone = phoneRef.current
+    const list = phone?.querySelector(".blocks-list")
+    if (!phone || !list) return null
+    const rows = [...list.children].map((row) => row.getBoundingClientRect())
+    const index = dropIndex(
+      rows.map((row) => row.top + row.height / 2),
+      clientY
+    )
+    const origin = phone.getBoundingClientRect().top
+    const gap = parseFloat(getComputedStyle(list).rowGap) || 0
+    const top =
+      rows.length === 0
+        ? list.getBoundingClientRect().top - origin
+        : index < rows.length
+          ? rows[index].top - origin - gap / 2
+          : rows[rows.length - 1].bottom - origin + gap / 2
+    return { index, top }
+  }
+  const libraryDrop = feed && editable && phoneView.mode === "edit"
+  const onLibraryDrop = (drag: LibraryDrag, index: number) => {
+    if (drag.kind === "template") {
+      const template = queryClient
+        .getQueryData<TemplateItem[]>(templateKeys.list)
+        ?.find((item) => item.id === drag.id)
+      if (template) onInsertTemplate(template, index)
+      return
+    }
+    const block = blockRegistry[drag.type].create()
+    setDraft((current) => insertBlock(current, block, ROOT, index) ?? current)
+    setSelectedId(block.id)
+    if (drag.type === "image") setPickerFor(block.id)
+    else requestAnimationFrame(() => focusBlockSoon(block.id))
+  }
+
+  // « / » au début d'un texte vide (éditeur du Fil) : le texte devient le bloc choisi, ou
+  // « Mes blocs » s'ouvre à gauche (le bloc enregistré prendra alors la place du texte vide).
+  const slashTarget = useRef<string | null>(null)
+  const onSlash = (blockId: string, choice: SlashChoice) => {
+    if (choice === "text") return
+    if (choice === "mine") {
+      slashTarget.current = blockId
+      setSelectedId(blockId)
+      setFocusMode(false)
+      setOutlineOpen(true)
+      setLeftTab("blocks")
+      setSavedOpen(true)
+      return
+    }
+    const block = blockRegistry[choice].create()
+    setDraft((current) => replaceBlock(current, blockId, block) ?? current)
+    setSelectedId(block.id)
+    if (choice === "image") setPickerFor(block.id)
+    else
+      requestAnimationFrame(() => focusOnceShown(() => blockHandle(block.id)))
+  }
+  const slashRef = useRef(onSlash)
+  useEffect(() => {
+    slashRef.current = onSlash
+  })
+  const draftRef = useRef(draft)
+  useEffect(() => {
+    draftRef.current = draft
+  })
+  const slash = useMemo(
+    () => ({
+      choices: (blockId: string) => slashChoices(draftRef.current, blockId),
+      choose: (blockId: string, choice: SlashChoice) =>
+        slashRef.current(blockId, choice),
+    }),
+    []
+  )
+
   const blocksValue = useMemo<BlocksEditorValue>(
     () => ({
       editable,
@@ -1189,8 +1352,11 @@ function ContentEditor({
       addToBox,
       templateFor,
       detachBlock,
+      slash: feed ? slash : undefined,
     }),
     [
+      feed,
+      slash,
       editable,
       selectedId,
       onUpdateBlock,
@@ -1670,12 +1836,48 @@ function ContentEditor({
   )
 
   // Le plan : la colonne de gauche (onglet « Plan » de l'éditeur du Fil).
+  // Éditeur du Fil : le plan montre aussi l'image de présentation, les intertitres et ce qui
+  // manque, avec un menu « … » par ligne.
+  const feedOutline: FeedOutline | undefined = feed
+    ? {
+        coverMissing: !draft.cover,
+        onCover: () => {
+          setSelectedId(null)
+          focusOnceShown(() => document.getElementById("article-image"))
+        },
+        hoveredId,
+        onHover: setHoveredId,
+        warningOf: (block) => blockWarning(block, mediaFor, templateFor),
+        onHeading: (id, index) => {
+          toEdit()
+          setSelectedId(id)
+          requestAnimationFrame(() => {
+            const headings = document.querySelectorAll(
+              `[data-block-text="${id}"] h2`
+            )
+            headings[index]?.scrollIntoView({
+              block: "center",
+              behavior: "smooth",
+            })
+          })
+        },
+        actions: editable
+          ? {
+              onDuplicate,
+              onSaveToMine: (id) => openSaveAs([id]),
+              onRemove,
+              removeBlocked: () => null,
+            }
+          : undefined,
+      }
+    : undefined
   const outlinePanel = (
     <OutlinePanel
       draft={draft}
       selectedId={selectedId}
       onSelect={selectAndShow}
       templateName={templateName}
+      feed={feedOutline}
       selection={
         !isTemplate && editable
           ? {
@@ -1726,10 +1928,12 @@ function ContentEditor({
   // Le téléphone en Édition : la présentation et les blocs, modifiables sur place.
   const phone = (
     <div
+      ref={phoneRef}
       className={cn(
         "blocks-phone",
-        // Éditeur du Fil : le cadre du téléphone l'entoure (FeedPreview).
-        !feed && "rounded-4xl border shadow-sm",
+        // Éditeur du Fil : le cadre du téléphone l'entoure (FeedPreview) ; le trait d'un bloc
+        // glissé se place par rapport à lui.
+        feed ? "relative" : "rounded-4xl border shadow-sm",
         !editable && "cursor-default"
       )}
       data-editable={editable || undefined}
@@ -1746,7 +1950,63 @@ function ContentEditor({
             }
           : undefined
       }
+      // Éditeur du Fil : le bloc survolé dans l'aperçu l'est aussi dans le plan.
+      onPointerOver={
+        feed
+          ? (event) => {
+              const block =
+                event.target instanceof Element
+                  ? event.target.closest<HTMLElement>("[data-block-id]")
+                  : null
+              setHoveredId(block?.dataset.blockId ?? null)
+            }
+          : undefined
+      }
+      onPointerLeave={feed ? () => setHoveredId(null) : undefined}
+      // En capture : le texte (Tiptap) ne reçoit pas un bloc glissé depuis l'onglet Blocs.
+      onDragOverCapture={
+        libraryDrop
+          ? (event) => {
+              if (!event.dataTransfer.types.includes(LIBRARY_DRAG_TYPE)) return
+              event.preventDefault()
+              event.stopPropagation()
+              event.dataTransfer.dropEffect = "copy"
+              setDropLine(dropPlace(event.clientY))
+            }
+          : undefined
+      }
+      onDragLeave={(event) => {
+        if (
+          !(event.relatedTarget instanceof Node) ||
+          !event.currentTarget.contains(event.relatedTarget)
+        ) {
+          setDropLine(null)
+        }
+      }}
+      onDropCapture={
+        libraryDrop
+          ? (event) => {
+              const drag = decodeLibraryDrag(
+                event.dataTransfer.getData(LIBRARY_DRAG_TYPE)
+              )
+              if (!drag) return
+              event.preventDefault()
+              event.stopPropagation()
+              const place = dropPlace(event.clientY)
+              setDropLine(null)
+              if (place) onLibraryDrop(drag, place.index)
+            }
+          : undefined
+      }
     >
+      {dropLine && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-5 z-10 h-0.5 -translate-y-1/2 rounded-full bg-primary"
+          // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer
+          style={{ top: dropLine.top }}
+        />
+      )}
       {phoneTop}
       <BlocksEditorContext value={blocksValue}>
         <BlockCanvas
@@ -1873,6 +2133,23 @@ function ContentEditor({
           state={autosave.state}
           visible={phase === "mine" || autosave.state.unsaved}
         />
+        {feed && (
+          <Button
+            variant={focusMode ? "secondary" : "ghost"}
+            size="sm"
+            aria-pressed={focusMode}
+            aria-keyshortcuts={apple ? "Meta+." : "Control+."}
+            onClick={toggleFocusMode}
+          >
+            <Focus />
+            {texts.editor.focusMode.label}
+            <Kbd>
+              {apple
+                ? texts.editor.focusMode.shortcut.apple
+                : texts.editor.focusMode.shortcut.other}
+            </Kbd>
+          </Button>
+        )}
         {isTemplate ? (
           isShared && <SharedTemplateBar templateId={contentId} />
         ) : (
@@ -2005,7 +2282,11 @@ function ContentEditor({
             <aside
               id="editeur-plan"
               aria-label={texts.editor.columns.left}
-              className="flex w-72 shrink-0 flex-col border-r bg-background"
+              // Caché (et non retiré) en Concentration : onglet et « Mes blocs » restent ouverts.
+              className={cn(
+                "flex w-72 shrink-0 flex-col border-r bg-background",
+                focusMode && "hidden"
+              )}
             >
               <Tabs
                 value={leftTab}
@@ -2029,6 +2310,8 @@ function ContentEditor({
                 </TabsContent>
                 <TabsContent value="blocks" className="min-h-0">
                   <BlocksLibrary
+                    open={savedOpen}
+                    onOpenChange={setSavedOpen}
                     editable={editable}
                     canAdd={canAddRoot}
                     onAdd={(type) => {
@@ -2114,7 +2397,10 @@ function ContentEditor({
           {feed ? (
             <aside
               aria-label={texts.editor.columns.right}
-              className="flex w-80 shrink-0 flex-col border-l bg-background"
+              className={cn(
+                "flex w-80 shrink-0 flex-col border-l bg-background",
+                focusMode && "hidden"
+              )}
             >
               <Tabs
                 value={rightTab}

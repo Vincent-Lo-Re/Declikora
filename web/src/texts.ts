@@ -1619,6 +1619,27 @@ export const texts = {
       title: "Plan",
       empty: "Aucun bloc pour l'instant.",
       select: (label: string) => `Aller à ${label}`,
+      // Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions »).
+      count: (count: number) =>
+        count === 0 ? "Aucun bloc" : count === 1 ? "1 bloc" : `${count} blocs`,
+      cover: "Image de présentation",
+      heading: (title: string) => `Aller à l'intertitre « ${title} »`,
+      collapse: (label: string) => `Replier ${label}`,
+      expand: (label: string) => `Déplier ${label}`,
+      actions: (label: string) => `Actions pour ${label}`,
+      duplicate: "Dupliquer",
+      duplicated: (label: string) => `${label} : copie ajoutée juste après.`,
+      saveToMine: "Enregistrer dans Mes blocs",
+      remove: "Supprimer",
+      warnings: {
+        coverMissing: "Pas encore choisie",
+        noFile: "Pas encore de fichier",
+        unavailable: "Le fichier ne s'affiche plus",
+        noAlt: "Sans texte alternatif",
+        missingTemplate: "Le modèle n'existe plus",
+        count: (count: number) =>
+          count === 1 ? "1 point à vérifier" : `${count} points à vérifier`,
+      },
     },
     toolbar: {
       label: "Mise en forme",
@@ -1769,6 +1790,19 @@ export const texts = {
     },
     // L'aperçu de l'éditeur du Fil : la barre d'outils à droite du téléphone, et ce que montre la
     // Lecture (le rendu de l'app reste provisoire tant qu'elle n'est pas dessinée).
+    // « / » au début d'un texte vide (éditeur du Fil).
+    slash: {
+      placeholder: "Écris ici, ou tape « / » pour ajouter un bloc",
+      title: "Ajouter un bloc",
+      mine: "Mes blocs…",
+    },
+    // Le mode Concentration de l'éditeur du Fil : les deux colonnes se cachent.
+    focusMode: {
+      label: "Concentration",
+      on: "Concentration : les colonnes sont cachées. Échap pour les retrouver.",
+      off: "Les colonnes sont de retour.",
+      shortcut: { apple: "⌘ .", other: "Ctrl + ." },
+    },
     preview: {
       tools: "Aperçu",
       device: {
@@ -1809,7 +1843,7 @@ export const texts = {
     },
     // L'onglet « Blocs » de l'éditeur du Fil, et le panneau « Mes blocs ».
     library: {
-      hint: "Clique sur un bloc pour l'ajouter sous le bloc choisi, ou à la fin.",
+      hint: "Clique sur un bloc pour l'ajouter sous le bloc choisi (ou à la fin), ou glisse-le dans le téléphone.",
       basics: "Blocs",
       addLabel: (label: string) => `Ajouter un bloc ${label}`,
       mine: {
