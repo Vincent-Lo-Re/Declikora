@@ -115,7 +115,12 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { errorMessage } from "@/lib/errors"
 import { kickFiles } from "@/lib/media/api"
 import { refreshAfterContentTrash } from "@/lib/refresh"
-import { categoriesPath, editorPath, type SectionKey } from "@/navigation"
+import {
+  categoriesPath,
+  editorPath,
+  sections,
+  type SectionKey,
+} from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.contentList
@@ -332,6 +337,7 @@ export function ContentListPage({
   return (
     <>
       <PageHeader
+        icon={sections[section].icon}
         title={title}
         description={description}
         actions={

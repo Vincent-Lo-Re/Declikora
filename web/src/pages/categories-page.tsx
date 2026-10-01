@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { cn } from "cn"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Tags } from "lucide-react"
 import { Link } from "react-router"
 
 import { OrderedNames } from "@/components/ordered-names"
 import { PageHeader } from "@/components/page-header"
 import { buttonVariants } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   categoryKeys,
   createCategory,
@@ -56,46 +56,48 @@ export function CategoriesPage({ section }: { section: CategorySection }) {
         </Link>
       </div>
       <PageHeader
+        icon={Tags}
         title={labels.title(sectionTitle)}
         description={labels.description[section]}
       />
-      <Card className="max-w-2xl">
-        <CardContent className="space-y-6">
-          <p className="text-sm text-muted-foreground">{labels.order}</p>
-          <OrderedNames
-            labels={{ ...labels, listLabel: labels.listLabel(sectionTitle) }}
-            query={categories}
-            queryKey={key}
-            schema={categoryNameSchema}
-            inputId="categorie"
-            create={(name) => createCategory(section, name)}
-            rename={renameCategory}
-            remove={deleteCategory}
-            reorder={(ids) => reorderCategories(section, ids)}
-            // Les listes du Blog ou des Podcasts montrent les noms : relues aussi.
-            refresh={() =>
-              Promise.all([
-                queryClient.invalidateQueries({ queryKey: categoryKeys.all }),
-                queryClient.invalidateQueries({ queryKey: contentKeys.lists }),
-              ])
-            }
-            after={(category) => (
-              <span className="shrink-0 text-sm text-muted-foreground">
-                {labels.uses(category.uses)}
-              </span>
-            )}
-            // Le nombre de brouillons qui la perdent est relu avant de confirmer ([D28]).
-            onAskRemove={() => void categories.refetch()}
-            confirmBusy={categories.isFetching}
-            confirmDetail={(category) =>
-              labels.confirmRemove.uses(
-                categories.data?.find((item) => item.id === category.id)
-                  ?.uses ?? category.uses
-              )
-            }
-          />
-        </CardContent>
-      </Card>
+      <OrderedNames
+        labels={{ ...labels, listLabel: labels.listLabel(sectionTitle) }}
+        header={
+          <CardHeader>
+            <CardTitle>{labels.orderTitle}</CardTitle>
+            <CardDescription>{labels.order}</CardDescription>
+          </CardHeader>
+        }
+        query={categories}
+        queryKey={key}
+        schema={categoryNameSchema}
+        inputId="categorie"
+        create={(name) => createCategory(section, name)}
+        rename={renameCategory}
+        remove={deleteCategory}
+        reorder={(ids) => reorderCategories(section, ids)}
+        // Les listes du Blog ou des Podcasts montrent les noms : relues aussi.
+        refresh={() =>
+          Promise.all([
+            queryClient.invalidateQueries({ queryKey: categoryKeys.all }),
+            queryClient.invalidateQueries({ queryKey: contentKeys.lists }),
+          ])
+        }
+        after={(category) => (
+          <span className="shrink-0 text-sm text-muted-foreground">
+            {labels.uses(category.uses)}
+          </span>
+        )}
+        // Le nombre de brouillons qui la perdent est relu avant de confirmer ([D28]).
+        onAskRemove={() => void categories.refetch()}
+        confirmBusy={categories.isFetching}
+        confirmDetail={(category) =>
+          labels.confirmRemove.uses(
+            categories.data?.find((item) => item.id === category.id)?.uses ??
+              category.uses
+          )
+        }
+      />
     </>
   )
 }

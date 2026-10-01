@@ -21,7 +21,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { saveFullName } from "@/lib/auth"
 import { formatDateTime } from "@/lib/dates"
 import { profileSchema } from "@/lib/schemas"
-import { authPaths } from "@/navigation"
+import { authPaths, sections } from "@/navigation"
 import { texts } from "@/texts"
 
 export function AccountPage() {
@@ -30,7 +30,11 @@ export function AccountPage() {
 
   return (
     <>
-      <PageHeader title={title} description={description} />
+      <PageHeader
+        icon={sections.account.icon}
+        title={title}
+        description={description}
+      />
       <div className="max-w-xl space-y-10">
         <Section
           title={texts.account.profile.title}

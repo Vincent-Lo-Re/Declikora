@@ -73,6 +73,7 @@ import {
   type Media,
 } from "@/lib/media/constants"
 import { getUploadQueue } from "@/lib/media/upload-queue"
+import { sections } from "@/navigation"
 import { texts } from "@/texts"
 
 type View = "grid" | "list"
@@ -320,6 +321,7 @@ export function MediaPage() {
   return (
     <>
       <PageHeader
+        icon={sections.media.icon}
         title={title}
         description={description}
         actions={

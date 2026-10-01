@@ -116,6 +116,11 @@
   grid-template-columns: auto 1fr;
 }
 
+/* Une liste au centre et, à droite, sa colonne d'ajout de 20 rem (Catégories, Formules). */
+@utility grid-cols-list-aside {
+  grid-template-columns: minmax(0, 1fr) --spacing(80);
+}
+
 /* Fenêtre de formulaire longue (création d'un contenu) : elle défile au-delà de 9/10 de l'écran. */
 @utility max-h-dialog {
   max-height: 90svh;
