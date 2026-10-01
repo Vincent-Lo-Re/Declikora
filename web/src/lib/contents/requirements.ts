@@ -103,3 +103,24 @@ export function publishChecks(
   }
   return { missing, advice }
 }
+
+/** Une ligne de « Prêt à publier ? » (éditeur du Fil) : l'image de présentation, le niveau d'accès. */
+export type ReadyItem = { key: "cover" | "access"; done: boolean }
+
+/**
+ * « Prêt à publier ? » : l'image de présentation ([D45]) et le niveau d'accès, que « Publier »
+ * demande tant qu'il n'est pas choisi ([D41]). Une image en cours de lecture compte comme faite
+ * (la base tranchera), comme pour publishChecks.
+ */
+export function readyItems(
+  checks: PublishChecks,
+  accessChosen: boolean
+): ReadyItem[] {
+  return [
+    {
+      key: "cover",
+      done: !checks.missing.some((item) => item.key === "cover"),
+    },
+    { key: "access", done: accessChosen },
+  ]
+}

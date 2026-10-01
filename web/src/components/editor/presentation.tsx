@@ -278,23 +278,7 @@ export function PresentationPanel({
           onChoose={onChooseCover}
           onRemove={onRemoveCover}
         />
-        {cover.state === "ready" &&
-          (cover.media.alt?.trim() ? (
-            <p className="text-xs text-muted-foreground">
-              {labels.cover.alt(cover.media.alt.trim())}
-            </p>
-          ) : (
-            <div className="space-y-1 text-xs text-warning">
-              <p className="flex items-start gap-1.5">
-                <TriangleAlert
-                  aria-hidden
-                  className="mt-px size-3.5 shrink-0"
-                />
-                {labels.cover.noAlt}
-              </p>
-              <MediaFileLink mediaId={cover.media.id} />
-            </div>
-          ))}
+        <CoverAlt cover={cover} />
       </PanelSection>
 
       <Separator />
@@ -353,6 +337,23 @@ export function PresentationPanel({
           </PanelSection>
         </>
       )}
+    </div>
+  )
+}
+
+/** Le texte alternatif de l'image de présentation (médiathèque), ou l'avertissement s'il manque. */
+export function CoverAlt({ cover }: { cover: BlockMedia }) {
+  if (cover.state !== "ready") return null
+  const alt = cover.media.alt?.trim()
+  return alt ? (
+    <p className="text-xs text-muted-foreground">{labels.cover.alt(alt)}</p>
+  ) : (
+    <div className="space-y-1 text-xs text-warning">
+      <p className="flex items-start gap-1.5">
+        <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
+        {labels.cover.noAlt}
+      </p>
+      <MediaFileLink mediaId={cover.media.id} />
     </div>
   )
 }

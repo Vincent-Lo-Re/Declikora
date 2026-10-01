@@ -52,6 +52,8 @@ export const templateKeys = {
   list: ["contents", "templates", "list"] as const,
   uses: ["contents", "templates", "uses"] as const,
   usesOf: (id: string) => ["contents", "templates", "uses", id] as const,
+  // Les brouillons qui citent un modèle, quel qu'il soit (« Mes blocs » de l'éditeur du Fil).
+  allUses: ["contents", "templates", "uses", "all"] as const,
   allOutdated: ["contents", "templates", "outdated"] as const,
   outdated: (id: string) => ["contents", "templates", "outdated", id] as const,
   byIds: (ids: string[]) => ["contents", "templates", "by-ids", ids] as const,

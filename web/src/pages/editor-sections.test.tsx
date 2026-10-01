@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { Draft } from "@/blocks/types"
+import type { Doc, Draft } from "@/blocks/types"
 import * as levelsApi from "@/lib/access-levels"
 import * as categoriesApi from "@/lib/categories"
 import * as api from "@/lib/contents/api"
@@ -205,8 +205,25 @@ function panel() {
     .find((region) => region.hasAttribute("data-side-panel"))!
 }
 
-describe("éditeur d'un article", () => {
-  it("s'ouvre à /blog/<id>, avec « ← Blog » et la présentation à droite", async () => {
+const columns = texts.editor.columns
+const article = texts.editor.article
+
+/** L'onglet « Article » de la colonne de droite (éditeur du Fil). */
+function articleTab() {
+  return screen.getByRole("tabpanel", { name: columns.article })
+}
+
+/** Choisit une option d'une liste (Base UI ne retient un clic que s'il commence sur l'option). */
+async function pick(list: HTMLElement, option: string) {
+  fireEvent.click(list)
+  const choice = await screen.findByRole("option", { name: option })
+  fireEvent.pointerDown(choice, { pointerType: "mouse" })
+  fireEvent.click(choice)
+  await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull())
+}
+
+describe("éditeur d'un article (Le Fil)", () => {
+  it("s'ouvre à /blog/<id> avec le plan à gauche et l'onglet « Article » à droite", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     renderApp(`/blog/${ARTICLE}`)
     await editable()
@@ -215,18 +232,34 @@ describe("éditeur d'un article", () => {
         name: texts.editor.back(texts.sections.blog.title),
       })
     ).toHaveAttribute("href", "/blog")
+    // Colonne de gauche ouverte d'office, sur le plan.
+    expect(screen.getByRole("tab", { name: columns.plan })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    )
+    expect(screen.getByRole("tab", { name: columns.blocks })).toBeVisible()
+    // Tout ce qui concerne l'article est à droite : ni « Réglages » ni « Ajouter un bloc » en haut.
     expect(
-      within(panel()).getByRole("heading", { name: words.panelTitle.article })
+      screen.queryByRole("button", { name: texts.publication.actions.settings })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", { name: texts.editor.add.label })
+    ).toBeNull()
+    expect(
+      within(articleTab()).getByRole("heading", { name: article.ready.title })
     ).toBeVisible()
-    // Le nom du panneau suit ce qu'il montre.
-    expect(panel()).toHaveAccessibleName(words.panelTitle.article)
-    expect(within(panel()).getByText(words.cover.none)).toBeVisible()
+    expect(
+      within(articleTab()).getByRole("button", {
+        name: article.ready.todo(article.ready.items.cover),
+      })
+    ).toBeVisible()
     expect(categoriesApi.listCategories).toHaveBeenCalledWith("blog")
-    // Un article n'a pas d'audio.
-    expect(within(panel()).queryByText(words.audio.label)).toBeNull()
+    // Un article n'a pas d'audio, et son résumé n'est pas dans l'aperçu.
+    expect(screen.queryByText(words.audio.label)).toBeNull()
+    expect(screen.queryByPlaceholderText(words.summary.placeholder)).toBeNull()
   })
 
-  it("choisit l'image de présentation dans la médiathèque et écrit le résumé", async () => {
+  it("choisit l'image de présentation dans l'aperçu, puis écrit le résumé de la carte", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     vi.mocked(mediaApi.listMedia).mockResolvedValue([plage])
     renderApp(`/blog/${ARTICLE}`)
@@ -240,7 +273,6 @@ describe("éditeur d'un article", () => {
       within(preview).getByRole("button", { name: words.cover.choose })
     )
     const dialog = await screen.findByRole("dialog")
-    expect(dialog).toHaveTextContent(texts.editor.picker.title)
     expect(mediaApi.listMedia).toHaveBeenCalledWith({
       kind: "image",
       search: "",
@@ -252,24 +284,33 @@ describe("éditeur d'un article", () => {
       })
     )
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
-    expect(within(panel()).getByText("plage.png")).toBeVisible()
     expect(
-      within(panel()).getByText(
+      within(articleTab()).getByText(
         words.cover.alt("Une plage au coucher du soleil")
       )
     ).toBeVisible()
+    expect(
+      within(articleTab()).getByRole("button", {
+        name: article.ready.done(article.ready.items.cover),
+      })
+    ).toBeVisible()
 
-    fireEvent.change(screen.getByLabelText(words.summary.label), {
-      target: { value: "Cinq gestes\npour l'été" },
-    })
+    const summary = within(articleTab()).getByLabelText(/^Résumé/)
+    expect(summary).toHaveAttribute("maxlength", "200")
+    fireEvent.change(summary, { target: { value: "Cinq gestes\npour l'été" } })
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
       timeout: 4000,
     })
     const saved = vi.mocked(api.saveDraft).mock.calls.at(-1)![2]
     expect(saved.cover).toEqual({ mediaId: PLAGE })
-    // Texte simple, sur une ligne.
+    // Texte simple, sur une ligne, montré dans la carte de la liste du Fil.
     expect(saved.summary).toBe("Cinq gestes pour l'été")
-    expect(within(panel()).getByText(words.summary.count("22"))).toBeVisible()
+    expect(
+      within(articleTab()).getByText(article.summary.count(22, 200))
+    ).toBeVisible()
+    expect(
+      within(articleTab()).getAllByText("Cinq gestes pour l'été")
+    ).not.toHaveLength(0)
   }, 10_000)
 
   it("« Retirer l'image » la retire, avec « Annuler »", async () => {
@@ -279,12 +320,15 @@ describe("éditeur d'un article", () => {
     renderApp(`/blog/${ARTICLE}`)
     await editable()
     fireEvent.click(
-      await within(panel()).findByRole("button", { name: words.cover.remove })
+      await within(articleTab()).findByRole("button", {
+        name: words.cover.remove,
+      })
     )
-    expect(within(panel()).getByText(words.cover.none)).toBeVisible()
-    // « Retirer l'image » a disparu : le focus passe à « Choisir l'image », à côté.
+    // « Retirer l'image » a disparu : le focus passe à la vignette, pour en choisir une.
     expect(
-      within(panel()).getByRole("button", { name: words.cover.choose })
+      within(articleTab()).getByRole("button", {
+        name: article.feed.chooseLabel,
+      })
     ).toHaveFocus()
     const toast = await screen.findByText(words.cover.removed)
     fireEvent.click(
@@ -292,10 +336,14 @@ describe("éditeur d'un article", () => {
         name: texts.editor.settings.undo,
       })
     )
-    expect(await within(panel()).findByText("plage.png")).toBeVisible()
+    expect(
+      await within(articleTab()).findByRole("button", {
+        name: article.feed.replaceLabel,
+      })
+    ).toBeVisible()
   })
 
-  it("après un choix depuis l'aperçu, le focus va à « Changer d'image » du panneau", async () => {
+  it("après un choix depuis l'aperçu, le focus va à la vignette de la carte", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     vi.mocked(mediaApi.listMedia).mockResolvedValue([plage])
     // Chaque vignette a son adresse : l'image remplace le bouton dans l'aperçu.
@@ -319,17 +367,17 @@ describe("éditeur d'un article", () => {
       })
     )
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
-    // Le bouton de l'aperçu a laissé place à l'image.
     await waitFor(() => expect(preview.querySelector("img")).not.toBeNull())
-    expect(within(preview).queryByRole("button")).toBeNull()
     await waitFor(() =>
       expect(
-        within(panel()).getByRole("button", { name: words.cover.replace })
+        within(articleTab()).getByRole("button", {
+          name: article.feed.replaceLabel,
+        })
       ).toHaveFocus()
     )
   })
 
-  it("« Voir la présentation » donne le focus au titre du panneau", async () => {
+  it("l'onglet de droite suit le clic : un bloc ouvre « Bloc choisi », le titre revient à « Article »", async () => {
     const BLOCK = "00000000-0000-4000-8000-0000000000d1"
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(ARTICLE, "article", {
@@ -345,48 +393,71 @@ describe("éditeur d'un article", () => {
       })
     )
     renderApp(`/blog/${ARTICLE}`)
-    await editable()
+    const title = await editable()
     fireEvent.pointerDown(
       document.querySelector<HTMLElement>(`[data-block-id="${BLOCK}"]`)!
     )
     await waitFor(() =>
-      expect(panel()).toHaveAccessibleName(texts.editor.settings.label)
+      expect(screen.getByRole("tab", { name: columns.block })).toHaveAttribute(
+        "aria-selected",
+        "true"
+      )
     )
-    fireEvent.click(within(panel()).getByRole("button", { name: words.show }))
-    const title = await within(panel()).findByRole("heading", {
-      name: words.panelTitle.article,
-    })
-    await waitFor(() => expect(title).toHaveFocus())
-    expect(panel()).toHaveAccessibleName(words.panelTitle.article)
+    expect(panel()).toHaveAccessibleName(texts.editor.settings.label)
+    // On peut revenir à « Article » à la main, sans perdre le bloc choisi.
+    fireEvent.click(screen.getByRole("tab", { name: columns.article }))
+    expect(articleTab()).toBeVisible()
+    fireEvent.focus(title)
+    await waitFor(() =>
+      expect(
+        screen.getByRole("tab", { name: columns.article })
+      ).toHaveAttribute("aria-selected", "true")
+    )
   })
 
-  it("choisit les catégories dans les réglages : elles partent avec le brouillon ([D44])", async () => {
+  it("niveau d'accès et catégories en pastilles : ils partent avec le brouillon ([D41], [D44])", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
-      contentOf(ARTICLE, "article", {}, { category_ids: [STRESS] })
+      contentOf(
+        ARTICLE,
+        "article",
+        {},
+        { access_chosen: false, category_ids: [STRESS] }
+      )
     )
+    vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([
+      {
+        id: "00000000-0000-4000-8000-0000000000b1",
+        name: "Essentiel",
+        rank: 1,
+      },
+    ])
     renderApp(`/blog/${ARTICLE}`)
     await editable()
-    await within(panel()).findByText("Stress")
-
-    fireEvent.click(
-      within(panel()).getByRole("button", { name: words.categories.edit })
-    )
-    const sheet = await screen.findByRole("dialog")
-    const sommeil = within(sheet).getByRole("checkbox", { name: "Sommeil" })
-    expect(sommeil).not.toBeChecked()
+    const tab = articleTab()
     expect(
-      within(sheet).getByRole("checkbox", { name: "Stress" })
-    ).toBeChecked()
+      await within(tab).findByRole("button", { name: "Stress" })
+    ).toHaveAttribute("aria-pressed", "true")
+    expect(
+      within(tab).getByRole("button", { name: "Sommeil" })
+    ).toHaveAttribute("aria-pressed", "false")
+    expect(
+      within(tab).getByText(texts.publication.settings.access.notChosen)
+    ).toBeVisible()
 
-    fireEvent.click(sommeil)
+    await pick(within(tab).getByRole("combobox"), "Essentiel")
+    fireEvent.click(within(tab).getByRole("button", { name: "Sommeil" }))
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
       timeout: 4000,
     })
-    expect(vi.mocked(api.saveDraft).mock.calls[0][4]).toEqual({
+    expect(vi.mocked(api.saveDraft).mock.calls.at(-1)![4]).toEqual({
+      access_level_id: "00000000-0000-4000-8000-0000000000b1",
       category_ids: [SOMMEIL, STRESS].sort(),
     })
-    // Un seul délai réel de l'enregistrement automatique (1,5 s) ; la marge couvre une
-    // machine lente (garde-fous GitHub).
+    expect(
+      within(tab).getByRole("button", {
+        name: article.ready.done(article.ready.items.access),
+      })
+    ).toBeVisible()
   }, 10_000)
 
   it("aucune catégorie : c'est permis ([D44])", async () => {
@@ -395,14 +466,9 @@ describe("éditeur d'un article", () => {
     )
     renderApp(`/blog/${ARTICLE}`)
     await editable()
-    await within(panel()).findByText(/Stress/)
-
-    fireEvent.click(
-      within(panel()).getByRole("button", { name: words.categories.edit })
-    )
-    const sheet = await screen.findByRole("dialog")
-    fireEvent.click(within(sheet).getByRole("checkbox", { name: "Sommeil" }))
-    fireEvent.click(within(sheet).getByRole("checkbox", { name: "Stress" }))
+    const tab = articleTab()
+    fireEvent.click(await within(tab).findByRole("button", { name: "Sommeil" }))
+    fireEvent.click(within(tab).getByRole("button", { name: "Stress" }))
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
       timeout: 4000,
     })
@@ -411,6 +477,79 @@ describe("éditeur d'un article", () => {
       category_ids: [],
     })
   }, 10_000)
+
+  it("« Blocs » ajoute un texte, et « Mes blocs » insère un bloc enregistré", async () => {
+    // Le nouveau bloc défile jusqu'à l'écran (jsdom ne sait pas faire défiler).
+    Element.prototype.scrollIntoView = vi.fn()
+    vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
+    vi.mocked(templatesApi.listTemplates).mockResolvedValue([
+      {
+        id: "00000000-0000-4000-8000-0000000000c9",
+        title: "À retenir",
+        sort: "style",
+        templateFor: null,
+        draft: {
+          v: 1,
+          title: "À retenir",
+          blocks: [
+            {
+              id: "00000000-0000-4000-8000-0000000000ca",
+              type: "text",
+              doc: {
+                type: "doc",
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: "Retiens bien ceci." }],
+                  },
+                ],
+              } as unknown as Doc,
+            },
+          ],
+        },
+        draft_saved_at: "2026-09-30T10:00:00Z",
+      },
+    ])
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    fireEvent.click(screen.getByRole("tab", { name: columns.blocks }))
+    const library = screen.getByRole("tabpanel", { name: columns.blocks })
+    fireEvent.click(
+      within(library).getByRole("button", {
+        name: texts.editor.library.addLabel(texts.editor.blocks.text),
+      })
+    )
+    // Le nouveau bloc est choisi : « Bloc choisi » s'ouvre à droite.
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: columns.block })).toHaveAttribute(
+        "aria-selected",
+        "true"
+      )
+    )
+    fireEvent.click(
+      await within(library).findByRole("button", {
+        name: new RegExp(texts.editor.library.mine.title),
+      })
+    )
+    const mine = await within(library).findByRole("region", {
+      name: texts.editor.library.mine.title,
+    })
+    expect(
+      within(mine).getByLabelText(texts.editor.library.mine.searchLabel)
+    ).toHaveFocus()
+    fireEvent.click(
+      await within(mine).findByRole("button", {
+        name: texts.editor.library.mine.insertLabel("À retenir"),
+      })
+    )
+    expect(
+      await screen.findByText(texts.templates.insert.inserted("À retenir"))
+    ).toBeInTheDocument()
+    // Dans l'aperçu réduit de « Mes blocs », et dans l'article.
+    await waitFor(() =>
+      expect(screen.getAllByText("Retiens bien ceci.")).toHaveLength(2)
+    )
+  })
 
   it("l'historique montre les catégories de chaque version, dont celles supprimées ([D28])", async () => {
     const history = texts.publication.history
@@ -559,6 +698,37 @@ describe("éditeur d'un article", () => {
 })
 
 describe("éditeur d'un épisode", () => {
+  it("« Voir la présentation » donne le focus au titre du panneau", async () => {
+    const BLOCK = "00000000-0000-4000-8000-0000000000d1"
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(EPISODE, "episode", {
+        blocks: [
+          {
+            id: BLOCK,
+            type: "image",
+            mediaId: PLAGE,
+            caption: null,
+            alt: null,
+          },
+        ],
+      })
+    )
+    renderApp(`/podcasts/${EPISODE}`)
+    await editable()
+    fireEvent.pointerDown(
+      document.querySelector<HTMLElement>(`[data-block-id="${BLOCK}"]`)!
+    )
+    await waitFor(() =>
+      expect(panel()).toHaveAccessibleName(texts.editor.settings.label)
+    )
+    fireEvent.click(within(panel()).getByRole("button", { name: words.show }))
+    const title = await within(panel()).findByRole("heading", {
+      name: words.panelTitle.episode,
+    })
+    await waitFor(() => expect(title).toHaveFocus())
+    expect(panel()).toHaveAccessibleName(words.panelTitle.episode)
+  })
+
   it("choisit l'audio parmi les audios de la médiathèque et montre sa durée", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(EPISODE, "episode", { cover: { mediaId: PLAGE } })

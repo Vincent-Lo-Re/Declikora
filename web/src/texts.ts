@@ -1757,6 +1757,89 @@ export const texts = {
       },
       openFileHint: "(nouvel onglet)",
     },
+    // Éditeur du Fil (ADMIN § 4) : les onglets des deux colonnes, et l'onglet « Article ».
+    columns: {
+      left: "Plan et blocs",
+      right: "Article et bloc choisi",
+      plan: "Plan",
+      blocks: "Blocs",
+      article: "Article",
+      block: "Bloc choisi",
+      noBlock: "Clique sur un bloc dans le téléphone pour voir ses réglages.",
+    },
+    // L'onglet « Blocs » de l'éditeur du Fil, et le panneau « Mes blocs ».
+    library: {
+      hint: "Clique sur un bloc pour l'ajouter sous le bloc choisi, ou à la fin.",
+      basics: "Blocs",
+      addLabel: (label: string) => `Ajouter un bloc ${label}`,
+      mine: {
+        title: "Mes blocs",
+        count: (count: number) =>
+          count === 0
+            ? "Aucun bloc enregistré"
+            : count === 1
+              ? "1 bloc enregistré"
+              : `${count} blocs enregistrés`,
+        back: "Revenir aux blocs",
+        search: "Rechercher un bloc",
+        searchLabel: "Rechercher dans Mes blocs",
+        filters: {
+          label: "Type de bloc",
+          all: "Tous",
+          style: "Mises en forme",
+          shared: "Partagés",
+        },
+        style: "Mise en forme : une copie à compléter",
+        shared: (count: number) =>
+          count === 0
+            ? "Bloc partagé : suit son modèle"
+            : count === 1
+              ? "Bloc partagé : suit son modèle · dans 1 contenu"
+              : `Bloc partagé : suit son modèle · dans ${count} contenus`,
+        insertLabel: (name: string) => `Ajouter « ${name} »`,
+        empty:
+          "Aucun bloc enregistré pour l'instant : enregistre un bloc depuis un article, ou crée-le dans Modèles de bloc.",
+        noResult: "Aucun bloc ne correspond.",
+        manage: "Gérer dans Modèles de bloc",
+      },
+    },
+    article: {
+      ready: {
+        title: "Prêt à publier ?",
+        count: (done: number, total: number) => `${done} / ${total}`,
+        items: {
+          cover: "Image de présentation",
+          access: "Niveau d'accès",
+        },
+        done: (label: string) => `${label} : fait`,
+        todo: (label: string) => `${label} : à régler`,
+      },
+      feed: {
+        title: "Dans la liste du Fil",
+        choose: "Choisir",
+        chooseLabel: "Choisir l'image de présentation",
+        replaceLabel: "Changer l'image de présentation",
+        summaryEmpty: "Le résumé apparaît ici.",
+        hint: "L'image est obligatoire pour publier : c'est aussi celle en tête de l'article.",
+      },
+      summary: {
+        label: "Résumé",
+        optional: "facultatif",
+        placeholder: "Une ou deux phrases pour donner envie de lire…",
+        ideal: "Idéal : 120 à 160",
+        count: (count: number, max: number) => `${count} / ${max}`,
+      },
+      categories: {
+        add: "Nouvelle",
+      },
+      stats: {
+        reading: (minutes: number) =>
+          `Environ ${Math.max(minutes, 1)} min de lecture`,
+        words: (count: string) =>
+          count === "0" || count === "1" ? `${count} mot` : `${count} mots`,
+        saved: (date: string) => `Modifié le ${date}`,
+      },
+    },
     settings: {
       label: "Réglages du bloc",
       title: (label: string) => `Réglages : ${label}`,
@@ -2159,6 +2242,7 @@ export const texts = {
         levelHint:
           "Pour les abonnés de cette formule et des formules plus complètes.",
         notChosen: "Pas encore choisi : « Publier » le demandera.",
+        notChosenShort: "Pas encore choisi",
         noLevels:
           "Aucune formule d'abonnement pour l'instant : un admin peut en créer dans les paramètres.",
         loadFailed: "Les formules d'abonnement n'ont pas pu être chargées.",
