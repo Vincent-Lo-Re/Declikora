@@ -83,7 +83,7 @@ import {
 import { errorMessage } from "@/lib/errors"
 import { kickFiles } from "@/lib/media/api"
 import { refreshAfterContentTrash } from "@/lib/refresh"
-import { editorPath } from "@/navigation"
+import { editorPath, sections } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.templates.list
@@ -155,6 +155,7 @@ export function TemplatesPage() {
   return (
     <>
       <PageHeader
+        icon={sections.templates.icon}
         title={title}
         description={description}
         actions={

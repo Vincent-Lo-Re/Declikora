@@ -56,6 +56,7 @@ import {
   type Member,
   type TeamRequest,
 } from "@/lib/team"
+import { sections } from "@/navigation"
 import { texts } from "@/texts"
 
 // Actions qui demandent une confirmation.
@@ -104,6 +105,7 @@ export function TeamPage() {
   return (
     <>
       <PageHeader
+        icon={sections.team.icon}
         title={title}
         description={description}
         actions={<InviteDialog />}

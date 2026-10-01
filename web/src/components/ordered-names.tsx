@@ -27,6 +27,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
@@ -42,6 +49,8 @@ type OrderedNamesLabels = {
   empty: string
   name: string
   namePlaceholder: string
+  addTitle: string
+  addDescription: string
   add: string
   added: (name: string) => string
   rename: string
@@ -71,6 +80,8 @@ type OrderedNamesLabels = {
 
 type OrderedNamesProps<T extends Named> = {
   labels: OrderedNamesLabels
+  // Le haut de la carte de la liste (titre, consigne de rangement).
+  header: ReactNode
   query: UseQueryResult<T[]>
   // La clé de la liste : l'ordre change tout de suite à l'écran, avant la réponse de la base.
   queryKey: QueryKey
@@ -101,10 +112,12 @@ function renameButtonOf(id: string): HTMLElement | null {
 
 /**
  * Une liste de noms qu'on range (glisser-déposer à la souris ou au clavier), renomme, complète
- * et dont on supprime des éléments, avec confirmation. Sert aux Catégories et aux Formules.
+ * et dont on supprime des éléments, avec confirmation. Sert aux Catégories et aux Formules : la
+ * liste au centre, l'ajout dans une colonne à droite (en dessous sur un écran étroit).
  */
 export function OrderedNames<T extends Named>({
   labels,
+  header,
   query,
   queryKey,
   schema,
@@ -183,42 +196,55 @@ export function OrderedNames<T extends Named>({
   })
 
   return (
-    <>
-      {query.data === undefined ? (
-        <LoadState
-          query={query}
-          failed={labels.loadFailed}
-          rows={2}
-          rowClassName="h-11 w-full"
-        />
-      ) : query.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{labels.empty}</p>
-      ) : (
-        <SortableNames
-          labels={labels}
-          items={query.data}
-          disabled={reorder.isPending || remove.isPending}
-          schema={schema}
-          inputId={inputId}
-          rename={rename}
-          refresh={refresh}
-          before={before}
-          after={after}
-          onReorder={(ids) => reorder.mutate(ids)}
-          onRemove={(item) => {
-            onAskRemove?.(item)
-            focusAfterRemove.current = undefined
-            setToRemove(item)
-          }}
-        />
-      )}
-      <AddForm
-        labels={labels}
-        schema={schema}
-        inputId={newInputId}
-        create={create}
-        refresh={refresh}
-      />
+    <div className="grid items-start gap-6 lg:grid-cols-list-aside">
+      <Card>
+        {header}
+        <CardContent>
+          {query.data === undefined ? (
+            <LoadState
+              query={query}
+              failed={labels.loadFailed}
+              rows={2}
+              rowClassName="h-11 w-full"
+            />
+          ) : query.data.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{labels.empty}</p>
+          ) : (
+            <SortableNames
+              labels={labels}
+              items={query.data}
+              disabled={reorder.isPending || remove.isPending}
+              schema={schema}
+              inputId={inputId}
+              rename={rename}
+              refresh={refresh}
+              before={before}
+              after={after}
+              onReorder={(ids) => reorder.mutate(ids)}
+              onRemove={(item) => {
+                onAskRemove?.(item)
+                focusAfterRemove.current = undefined
+                setToRemove(item)
+              }}
+            />
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{labels.addTitle}</CardTitle>
+          <CardDescription>{labels.addDescription}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AddForm
+            labels={labels}
+            schema={schema}
+            inputId={newInputId}
+            create={create}
+            refresh={refresh}
+          />
+        </CardContent>
+      </Card>
 
       <AlertDialog
         open={toRemove !== null}
@@ -256,7 +282,7 @@ export function OrderedNames<T extends Named>({
           </AlertDialogContent>
         )}
       </AlertDialog>
-    </>
+    </div>
   )
 }
 
@@ -515,7 +541,7 @@ function AddForm<T extends Named>({
         name="name"
         control={form.control}
         render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid} className="max-w-sm">
+          <Field data-invalid={fieldState.invalid}>
             <FieldLabel htmlFor={inputId}>{labels.name}</FieldLabel>
             <div className="flex gap-2">
               <Input

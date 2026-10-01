@@ -1,13 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { OrderedNames } from "@/components/ordered-names"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   accessLevelsKey,
   createAccessLevel,
@@ -34,32 +28,30 @@ export function AccessLevelsCard() {
   })
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{labels.title}</CardTitle>
-        <CardDescription>{labels.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <OrderedNames
-          labels={labels}
-          query={levels}
-          queryKey={accessLevelsKey}
-          schema={accessLevelNameSchema}
-          inputId="formule"
-          create={createAccessLevel}
-          rename={renameAccessLevel}
-          remove={deleteAccessLevel}
-          reorder={reorderAccessLevels}
-          refresh={() =>
-            queryClient.invalidateQueries({ queryKey: accessLevelsKey })
-          }
-          before={(_, position) => (
-            <span className="w-10 shrink-0 text-sm text-muted-foreground tabular-nums">
-              {labels.rank(position)}
-            </span>
-          )}
-        />
-      </CardContent>
-    </Card>
+    <OrderedNames
+      labels={labels}
+      header={
+        <CardHeader>
+          <CardTitle>{labels.title}</CardTitle>
+          <CardDescription>{labels.description}</CardDescription>
+        </CardHeader>
+      }
+      query={levels}
+      queryKey={accessLevelsKey}
+      schema={accessLevelNameSchema}
+      inputId="formule"
+      create={createAccessLevel}
+      rename={renameAccessLevel}
+      remove={deleteAccessLevel}
+      reorder={reorderAccessLevels}
+      refresh={() =>
+        queryClient.invalidateQueries({ queryKey: accessLevelsKey })
+      }
+      before={(_, position) => (
+        <span className="w-10 shrink-0 text-sm text-muted-foreground tabular-nums">
+          {labels.rank(position)}
+        </span>
+      )}
+    />
   )
 }

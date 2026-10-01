@@ -377,11 +377,6 @@ describe("éditeur d'un article", () => {
     expect(
       within(sheet).getByRole("checkbox", { name: "Stress" })
     ).toBeChecked()
-    expect(
-      within(sheet).getByRole("link", {
-        name: texts.publication.settings.categories.manage,
-      })
-    ).toHaveAttribute("href", "/blog/categories")
 
     fireEvent.click(sommeil)
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {

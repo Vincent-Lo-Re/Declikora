@@ -30,7 +30,7 @@ import {
   type PublicationStatus,
 } from "@/lib/contents/publication"
 import { formatDateTime } from "@/lib/dates"
-import { contentEditorPath } from "@/navigation"
+import { contentEditorPath, sections } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.home
@@ -121,7 +121,11 @@ export function HomePage() {
 
   return (
     <>
-      <PageHeader title={title} description={description} />
+      <PageHeader
+        icon={sections.home.icon}
+        title={title}
+        description={description}
+      />
       <div className="grid gap-6 xl:grid-cols-2">
         {hasFailures && failedCard}
         <HomeCard

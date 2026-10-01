@@ -63,7 +63,7 @@ import {
   type TrashItem,
 } from "@/lib/media/api"
 import { isMediaKind } from "@/lib/media/constants"
-import { contentEditorPath } from "@/navigation"
+import { contentEditorPath, sections } from "@/navigation"
 import {
   filterTrash,
   groupTrash,
@@ -200,6 +200,7 @@ export function TrashPage() {
   return (
     <>
       <PageHeader
+        icon={sections.trash.icon}
         title={title}
         description={description}
         actions={

@@ -1259,6 +1259,7 @@ export const texts = {
         "Elles servent à filtrer les épisodes dans l'app. Un épisode peut en avoir une, plusieurs ou aucune.",
     },
     back: (section: string) => `Retour à la section ${section}`,
+    orderTitle: "Ordre dans l'app",
     order:
       "L'app les montre dans cet ordre. Range-les avec la poignée, à la souris ou au clavier.",
     listLabel: (section: string) =>
@@ -1267,6 +1268,9 @@ export const texts = {
       "Aucune catégorie pour l'instant. Les catégories sont facultatives : ajoutes-en si tu veux que l'app puisse filtrer.",
     name: "Nom de la nouvelle catégorie",
     namePlaceholder: "Par exemple : Sommeil",
+    addTitle: "Ajouter une catégorie",
+    addDescription:
+      "Elle arrive en bas de la liste ; range-la ensuite à sa place.",
     nameRequired: "Donne un nom à la catégorie.",
     nameTooLong: "Le nom ne doit pas dépasser 100 caractères.",
     add: "Ajouter",
@@ -2185,7 +2189,6 @@ export const texts = {
         description:
           "Facultatives : l'app s'en sert pour filtrer. Elles ne changent l'app qu'à la prochaine publication.",
         none: "Aucune catégorie dans cette section pour l'instant.",
-        manage: "Gérer les catégories",
         loadFailed: "Les catégories n'ont pas pu être chargées.",
       },
       // Chapitre ou leçon : « Montrer dans l'app » et « Leçon gratuite » ([D29], [D43]).
@@ -2219,6 +2222,9 @@ export const texts = {
         "Aucune formule pour l'instant. Sans formule, un contenu ne peut être que gratuit.",
       name: "Nom de la nouvelle formule",
       namePlaceholder: "Par exemple : Essentiel",
+      addTitle: "Ajouter une formule",
+      addDescription:
+        "Elle arrive en bas de la liste, comme la plus complète ; range-la ensuite à sa place.",
       nameRequired: "Donne un nom à la formule.",
       nameTooLong: "Le nom ne doit pas dépasser 100 caractères.",
       add: "Ajouter",

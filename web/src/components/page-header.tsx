@@ -1,13 +1,19 @@
+import type { LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { texts } from "@/texts"
 
-/** Titre de la page (et de l'onglet du navigateur), avec sa présentation et ses boutons. */
+/**
+ * Titre de la page (et de l'onglet du navigateur), précédé de l'icône de sa section, avec sa
+ * présentation et ses boutons.
+ */
 export function PageHeader({
+  icon: Icon,
   title,
   description,
   actions,
 }: {
+  icon?: LucideIcon
   title: string
   description?: string
   actions?: ReactNode
@@ -16,7 +22,10 @@ export function PageHeader({
     <header className="mb-8 flex items-start justify-between gap-4">
       <div className="space-y-1">
         <title>{`${title} — ${texts.app.name}`}</title>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
+          {Icon && <Icon aria-hidden className="size-6 shrink-0" />}
+          {title}
+        </h1>
         {description && <p className="text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 gap-2">{actions}</div>}

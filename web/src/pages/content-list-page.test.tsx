@@ -322,14 +322,9 @@ describe("Blog", () => {
     fireEvent.click(
       await within(dialog).findByRole("checkbox", { name: "Sommeil" })
     )
-    // Ni niveau d'accès ni lien vers la page des catégories : ils se règlent ensuite.
+    // Pas de niveau d'accès : il se règle ensuite.
     expect(
       within(dialog).queryByRole("radio", { name: /Essentiel/ })
-    ).toBeNull()
-    expect(
-      within(dialog).queryByRole("link", {
-        name: texts.publication.settings.categories.manage,
-      })
     ).toBeNull()
     fireEvent.click(
       within(dialog).getByRole("button", { name: labels.kinds.article.submit })

@@ -1,12 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Plus, Tags } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react"
-import { Link } from "react-router"
 
 import { singleLine } from "@/blocks/components/fields"
 import { TITLE_MAX } from "@/blocks/draft"
 import { AccessLevelChoice } from "@/components/editor/access-level-choice"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Field,
@@ -42,7 +41,6 @@ import type { LiveVersion } from "@/lib/contents/publication"
 import { checkSlug, slugFromTitle } from "@/lib/contents/slug"
 import { errorMessage } from "@/lib/errors"
 import { categoryNameSchema } from "@/lib/schemas"
-import { categoriesPath } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.publication.settings
@@ -242,7 +240,6 @@ export function ContentSettingsFields({
             categories={categories}
             chosen={settings.categoryIds}
             editable={editable}
-            manageLink={!creating}
             onChange={(categoryIds) => onChange({ ...settings, categoryIds })}
           />
         </>
@@ -277,15 +274,12 @@ function CategoriesSection({
   categories,
   chosen,
   editable,
-  manageLink,
   onChange,
 }: {
   headingRef: React.RefObject<HTMLHeadingElement | null>
   categories: SectionCategories
   chosen: string[]
   editable: boolean
-  // « Gérer les catégories » (pas dans la fenêtre de création).
-  manageLink: boolean
   onChange: (categoryIds: string[]) => void
 }) {
   const words = labels.categories
@@ -359,15 +353,6 @@ function CategoriesSection({
           section={categories.section}
           onAdded={(category) => onChange([...chosen, category.id].sort())}
         />
-      )}
-      {manageLink && (
-        <Link
-          to={categoriesPath(categories.section)}
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          <Tags />
-          {words.manage}
-        </Link>
       )}
     </section>
   )
