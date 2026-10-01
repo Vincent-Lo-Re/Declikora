@@ -22,6 +22,14 @@ vi.mock("@/lib/categories", async (importOriginal) => {
 })
 
 const labels = texts.categories
+
+/** Ouvre le menu « … » d'une ligne et choisit une action (Renommer, Supprimer). */
+async function chooseAction(name: string, action: string) {
+  fireEvent.click(
+    await screen.findByRole("button", { name: labels.actions(name) })
+  )
+  fireEvent.click(await screen.findByRole("menuitem", { name: action }))
+}
 const sommeil = { id: "c1", name: "Sommeil", position: 0, uses: 3 }
 const stress = { id: "c2", name: "Stress", position: 1, uses: 0 }
 
@@ -102,9 +110,7 @@ describe("Catégories du Blog", () => {
       name: "Anxiété",
     })
     renderApp("/blog/categories")
-    fireEvent.click(
-      await screen.findByRole("button", { name: labels.renameItem("Stress") })
-    )
+    await chooseAction("Stress", labels.rename)
     const field = screen.getByLabelText(labels.renameLabel("Stress"))
     fireEvent.change(field, { target: { value: "Anxiété" } })
     fireEvent.click(screen.getByRole("button", { name: texts.common.save }))
@@ -117,9 +123,7 @@ describe("Catégories du Blog", () => {
   it("supprime après une confirmation qui dit que c'est définitif ([D28])", async () => {
     vi.mocked(categoriesApi.deleteCategory).mockResolvedValue()
     renderApp("/blog/categories")
-    fireEvent.click(
-      await screen.findByRole("button", { name: labels.removeItem("Sommeil") })
-    )
+    await chooseAction("Sommeil", labels.remove)
     const dialog = await screen.findByRole("alertdialog")
     expect(dialog).toHaveTextContent(
       labels.confirmRemove.description("Sommeil")
@@ -147,9 +151,7 @@ describe("Catégories du Blog", () => {
         () => new Promise((resolve) => (release = resolve))
       )
     renderApp("/blog/categories")
-    fireEvent.click(
-      await screen.findByRole("button", { name: labels.removeItem("Sommeil") })
-    )
+    await chooseAction("Sommeil", labels.remove)
     const dialog = await screen.findByRole("alertdialog")
     const confirm = within(dialog).getByRole("button", {
       name: labels.confirmRemove.confirm,

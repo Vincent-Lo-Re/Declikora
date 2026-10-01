@@ -18,6 +18,14 @@ vi.mock("@/lib/access-levels", async (importOriginal) => {
 })
 
 const labels = texts.settings.accessLevels
+
+/** Ouvre le menu « … » d'une ligne et choisit une action (Renommer, Supprimer). */
+async function chooseAction(name: string, action: string) {
+  fireEvent.click(
+    await screen.findByRole("button", { name: labels.actions(name) })
+  )
+  fireEvent.click(await screen.findByRole("menuitem", { name: action }))
+}
 const essentiel = {
   id: "00000000-0000-4000-8000-0000000000e1",
   name: "Essentiel",
@@ -84,9 +92,7 @@ describe("Paramètres : formules d'abonnement", () => {
       name: "Premium+",
     })
     renderApp("/parametres")
-    fireEvent.click(
-      await screen.findByRole("button", { name: labels.renameItem("Premium") })
-    )
+    await chooseAction("Premium", labels.rename)
     const input = screen.getByLabelText(labels.renameLabel("Premium"))
     fireEvent.change(input, { target: { value: "Premium+" } })
     fireEvent.click(screen.getByRole("button", { name: texts.common.save }))
@@ -105,22 +111,18 @@ describe("Paramètres : formules d'abonnement", () => {
       name: "Premium+",
     })
     renderApp("/parametres")
-    fireEvent.click(
-      await screen.findByRole("button", { name: labels.renameItem("Premium") })
-    )
+    await chooseAction("Premium", labels.rename)
     const input = screen.getByLabelText(labels.renameLabel("Premium"))
     fireEvent.keyDown(input, { key: "Escape" })
     await waitFor(
       () =>
         expect(
-          screen.getByRole("button", { name: labels.renameItem("Premium") })
+          screen.getByRole("button", { name: labels.actions("Premium") })
         ).toHaveFocus(),
       { timeout: 3000 }
     )
 
-    fireEvent.click(
-      screen.getByRole("button", { name: labels.renameItem("Premium") })
-    )
+    await chooseAction("Premium", labels.rename)
     const again = screen.getByLabelText(labels.renameLabel("Premium"))
     fireEvent.change(again, { target: { value: "Premium+" } })
     fireEvent.submit(again.closest("form")!)
@@ -128,7 +130,7 @@ describe("Paramètres : formules d'abonnement", () => {
     await waitFor(
       () =>
         expect(
-          screen.getByRole("button", { name: labels.renameItem("Premium") })
+          screen.getByRole("button", { name: labels.actions("Premium") })
         ).toHaveFocus(),
       { timeout: 3000 }
     )
@@ -137,11 +139,7 @@ describe("Paramètres : formules d'abonnement", () => {
   it("après une suppression, le focus va à la formule suivante, puis au champ du nom", async () => {
     vi.mocked(levelsApi.deleteAccessLevel).mockResolvedValue(undefined)
     renderApp("/parametres")
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: labels.removeItem("Essentiel"),
-      })
-    )
+    await chooseAction("Essentiel", labels.remove)
     vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([premium])
     fireEvent.click(
       within(await screen.findByRole("alertdialog")).getByRole("button", {
@@ -151,14 +149,12 @@ describe("Paramètres : formules d'abonnement", () => {
     await waitFor(
       () =>
         expect(
-          screen.getByRole("button", { name: labels.renameItem("Premium") })
+          screen.getByRole("button", { name: labels.actions("Premium") })
         ).toHaveFocus(),
       { timeout: 3000 }
     )
 
-    fireEvent.click(
-      screen.getByRole("button", { name: labels.removeItem("Premium") })
-    )
+    await chooseAction("Premium", labels.remove)
     vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([])
     fireEvent.click(
       within(await screen.findByRole("alertdialog")).getByRole("button", {
@@ -176,11 +172,7 @@ describe("Paramètres : formules d'abonnement", () => {
       new levelsApi.AccessLevelError("formule_utilisee")
     )
     renderApp("/parametres")
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: labels.removeItem("Essentiel"),
-      })
-    )
+    await chooseAction("Essentiel", labels.remove)
     const dialog = await screen.findByRole("alertdialog")
     expect(dialog).toHaveTextContent(
       labels.confirmRemove.description("Essentiel")

@@ -426,8 +426,9 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
       .click()
     await expect(page).toHaveURL(/\/blog\/categories$/)
     await page
-      .getByRole("button", { name: categories.removeItem(sommeil) })
+      .getByRole("button", { name: categories.actions(sommeil) })
       .click()
+    await page.getByRole("menuitem", { name: categories.remove }).click()
     const confirm = page.getByRole("alertdialog")
     await expect(confirm).toContainText(
       categories.confirmRemove.description(sommeil)

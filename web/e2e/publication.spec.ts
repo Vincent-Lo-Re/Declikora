@@ -703,15 +703,13 @@ test("formules d'abonnement : réservées aux admins ; ajouter, ranger au clavie
 
     // Renommer, puis supprimer (formule inutilisée).
     const renamed = `Premium ${id}`
-    await page
-      .getByRole("button", { name: settings.renameItem(second) })
-      .click()
+    await page.getByRole("button", { name: settings.actions(second) }).click()
+    await page.getByRole("menuitem", { name: settings.rename }).click()
     await page.getByLabel(settings.renameLabel(second)).fill(renamed)
     await page.getByRole("button", { name: texts.common.save }).click()
     await expect(page.getByText(settings.renamed)).toBeVisible()
-    await page
-      .getByRole("button", { name: settings.removeItem(renamed) })
-      .click()
+    await page.getByRole("button", { name: settings.actions(renamed) }).click()
+    await page.getByRole("menuitem", { name: settings.remove }).click()
     await page
       .getByRole("alertdialog")
       .getByRole("button", { name: settings.confirmRemove.confirm })
