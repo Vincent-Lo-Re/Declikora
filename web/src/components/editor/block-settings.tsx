@@ -321,14 +321,6 @@ function ImageSettings({
           </>
         )}
       </Field>
-
-      <Field>
-        <FieldLabel>{image.caption}</FieldLabel>
-        <FieldDescription>
-          {image.captionHint}{" "}
-          {image.captionCount([...(block.caption ?? "")].length)}
-        </FieldDescription>
-      </Field>
     </div>
   )
 }

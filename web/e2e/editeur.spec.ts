@@ -318,7 +318,7 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
     timeout: 60_000,
   })
 
-  // Une page : un texte, une image avec sa légende et son texte alternatif.
+  // Une page : un texte, une image avec son texte alternatif.
   await page.goto("/pages")
   await createBlankPage(page)
   const url = page.url()
@@ -337,8 +337,8 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
   await expect(picker).toHaveCount(0)
   const image = page.locator('[data-block-type="image"]')
   await expect(image.locator("img")).toBeVisible()
-  // Pas de texte alternatif dans la médiathèque : l'éditeur le signale.
-  await expect(image).toContainText(labels.image.altWarning)
+  // Pas de texte alternatif dans la médiathèque : on l'écrit dans les réglages du bloc (l'éditeur
+  // ne le réclame plus, [D15]).
   const settings = page.getByRole("region", {
     name: labels.settings.label,
   })
@@ -348,10 +348,8 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
   await settings
     .getByRole("textbox", { name: labels.settings.image.alt })
     .fill("Un vitrail bleu et rouge")
-  await expect(image).not.toContainText(labels.image.altWarning)
-  await image
-    .getByRole("textbox", { name: labels.image.captionLabel })
-    .fill("Le vitrail du chœur")
+  // Pas de légende : elle est retirée de l'admin (02/10/2026).
+  await expect(image.getByRole("textbox")).toHaveCount(0)
 
   // Un encadré, avec la même image dedans.
   await page.getByRole("button", { name: labels.add.label }).first().click()
@@ -365,16 +363,13 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
   await expect(box.locator('[data-block-type="image"] img')).toBeVisible()
   await saved(page)
 
-  // Recharger : l'image, sa légende et son texte alternatif sont là.
+  // Recharger : l'image et son texte alternatif sont là.
   await page.reload()
   await expect(page.getByLabel(labels.title.label)).toHaveValue(title)
   await expect(page.locator('[data-block-type="image"] img')).toHaveCount(2)
   await expect(
     page.locator('[data-block-type="image"] img').first()
   ).toHaveAttribute("alt", "Un vitrail bleu et rouge")
-  await expect(
-    page.getByRole("textbox", { name: labels.image.captionLabel }).first()
-  ).toHaveValue("Le vitrail du chœur")
 
   // La Médiathèque : « Utilisé dans » cite le brouillon, et la corbeille est refusée.
   await page

@@ -28,7 +28,7 @@ const leadIcons: Record<TextOutline["lead"], LucideIcon> = {
 /**
  * Un bloc résumé sur une ligne (plan de l'éditeur du Fil, bloc qu'on glisse) : le contenu
  * plutôt que le type (l'icône le dit) ; l'intertitre qui ouvre un texte ou son début, la
- * vignette et la légende (ou le nom du fichier) d'une image, l'aspect et le nombre de blocs d'un
+ * vignette et le nom du fichier d'une image, l'aspect et le nombre de blocs d'un
  * encadré, le nom d'un bloc partagé. Le nom complet (« Texte « … » ») reste celui des lecteurs
  * d'écran, là où la ligne est un bouton.
  */
@@ -86,7 +86,7 @@ export function BlockSummary({
         <Thumbnail media={media} />
         {lines(
           <span className="truncate">
-            {block.caption?.trim() || file || texts.editor.blockLabel.image("")}
+            {file || texts.editor.blockLabel.image}
           </span>
         )}
       </>

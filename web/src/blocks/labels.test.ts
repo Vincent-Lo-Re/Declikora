@@ -9,7 +9,7 @@ describe("nom des blocs dans les annonces", () => {
       id: "00000000-0000-4000-8000-000000000001",
       type: "image",
       mediaId: null,
-      caption: "Plage",
+      caption: null,
       alt: null,
     })
     const sentences = [
@@ -22,11 +22,9 @@ describe("nom des blocs dans les annonces", () => {
       // Les participes s'accordent avec « Bloc », jamais avec le nom du bloc ; pas de « il ».
       expect(sentence).not.toMatch(/» (a été )?(supprimé|déposé|lâché)|\bil\b/)
     }
-    expect(texts.editor.settings.removed(label)).toBe(
-      "Bloc supprimé : Image « Plage »."
-    )
+    expect(texts.editor.settings.removed(label)).toBe("Bloc supprimé : Image.")
     expect(texts.editor.dnd.end(label, texts.editor.dnd.page)).toBe(
-      "Bloc déposé dans la page : Image « Plage »."
+      "Bloc déposé dans la page : Image."
     )
   })
 })

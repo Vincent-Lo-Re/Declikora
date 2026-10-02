@@ -23,7 +23,6 @@ export const DRAFT_MAX_BYTES = 240_000
 export const DRAFT_WARN_BYTES = 200_000
 
 export const TITLE_MAX = 200
-export const CAPTION_MAX = 300
 // Résumé d'un article ou d'un épisode (texte simple, facultatif) : même limite que le schéma.
 export const SUMMARY_MAX = 1000
 // Le résumé d'un article ne sert qu'à sa carte dans la liste du Fil (ADMIN § 4) : l'admin
@@ -284,8 +283,6 @@ function blockTexts(
     if (block.type === "text") {
       const text = textDocToPlainText(block.doc).trim()
       if (text) parts.push(text)
-    } else if (block.type === "image") {
-      if (block.caption?.trim()) parts.push(block.caption.trim())
     } else if (block.type === "box") {
       block.blocks.forEach(add)
     } else {

@@ -36,8 +36,7 @@
   margin-bottom: var(--blocks-space-block-gap);
 }
 
-.blocks-title::placeholder,
-.blocks-caption::placeholder {
+.blocks-title::placeholder {
   color: var(--blocks-color-text-muted);
   opacity: 1;
 }
@@ -142,23 +141,6 @@
   line-height: var(--blocks-font-caption-line-height);
 }
 
-.blocks-caption {
-  display: block;
-  width: 100%;
-  resize: none;
-  overflow: hidden;
-  border: 0;
-  outline: none;
-  background: transparent;
-  margin-top: var(--blocks-space-caption-gap);
-  color: var(--blocks-color-text-muted);
-  font: inherit;
-  font-size: calc(
-    var(--blocks-font-caption-size) * var(--blocks-text-scale, 1)
-  );
-  line-height: var(--blocks-font-caption-line-height);
-}
-
 /* La poignée d'un bloc (éditeur) : dans la marge de l'écran, ou de l'encadré pour ses blocs, sur
    toute la hauteur du bloc ; la poignée y suit le défilement (sticky) tant que le bloc se voit.
    Elle reste ainsi dans le téléphone, dont l'écran coupe ce qui dépasse. Une seule s'allume :
@@ -214,10 +196,9 @@
   border: var(--blocks-border-box-width) solid var(--blocks-color-box-border);
 }
 
-/* Titre et légende n'ont pas de cadre : un contour montre où est le focus (comme la sélection
-   des blocs). */
-.blocks-title:focus-visible,
-.blocks-caption:focus-visible {
+/* Le titre n'a pas de cadre : un contour montre où est le focus (comme la sélection des
+   blocs). */
+.blocks-title:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent);
   outline-offset: 4px;
   border-radius: 4px;

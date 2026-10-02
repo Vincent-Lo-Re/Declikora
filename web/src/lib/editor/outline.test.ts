@@ -89,7 +89,7 @@ describe("blockWarning", () => {
     ...fields,
   })
 
-  it("signale une image sans fichier, un fichier perdu et une image sans texte alternatif", () => {
+  it("signale une image sans fichier et un fichier perdu, mais plus le texte alternatif ([D15])", () => {
     expect(blockWarning(image({}), () => ready("x"), noTemplate)).toBe("noFile")
     expect(
       blockWarning(
@@ -100,14 +100,6 @@ describe("blockWarning", () => {
     ).toBe("unavailable")
     expect(
       blockWarning(image({ mediaId: "f" }), () => ready(" "), noTemplate)
-    ).toBe("noAlt")
-    // Le texte du bloc remplace celui de la médiathèque.
-    expect(
-      blockWarning(
-        image({ mediaId: "f", alt: "Une plage" }),
-        () => ready(null),
-        noTemplate
-      )
     ).toBeNull()
   })
 

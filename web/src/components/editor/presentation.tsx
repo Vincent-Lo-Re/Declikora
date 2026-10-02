@@ -344,21 +344,16 @@ export function PresentationPanel({
   )
 }
 
-/** Le texte alternatif de l'image de présentation (médiathèque), ou l'avertissement s'il manque. */
+/**
+ * Le texte alternatif de l'image de présentation (médiathèque), s'il y en a un : il n'est plus
+ * réclamé (02/10/2026, [D15]).
+ */
 export function CoverAlt({ cover }: { cover: BlockMedia }) {
   if (cover.state !== "ready") return null
   const alt = cover.media.alt?.trim()
   return alt ? (
     <p className="text-xs text-muted-foreground">{labels.cover.alt(alt)}</p>
-  ) : (
-    <div className="space-y-1 text-xs text-warning">
-      <p className="flex items-start gap-1.5">
-        <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
-        {labels.cover.noAlt}
-      </p>
-      <MediaFileLink mediaId={cover.media.id} />
-    </div>
-  )
+  ) : null
 }
 
 function PanelSection({
