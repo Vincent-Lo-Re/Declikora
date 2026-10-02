@@ -112,6 +112,7 @@ export function LiveBadge({ live }: { live: LiveState }) {
 
 /** « Programmé le… », « Programmation en attente : quelqu'un écrit », « Programmation échouée ». */
 export function ScheduleBadge({ schedule }: { schedule: ScheduleState }) {
+  const text = scheduleText(schedule)
   switch (schedule.kind) {
     case "none":
       return null
@@ -119,7 +120,7 @@ export function ScheduleBadge({ schedule }: { schedule: ScheduleState }) {
       return (
         <Badge variant="outline" data-schedule="scheduled">
           <CalendarClock aria-hidden />
-          {labels.status.scheduled(formatDateTime(schedule.at))}
+          {text}
         </Badge>
       )
     case "waiting":
@@ -129,17 +130,63 @@ export function ScheduleBadge({ schedule }: { schedule: ScheduleState }) {
           data-schedule={schedule.overdue ? "waiting" : "due"}
         >
           <Hourglass aria-hidden />
-          {schedule.overdue ? labels.status.waiting : labels.status.due}
+          {text}
         </Badge>
       )
     case "failed":
       return (
         <Badge variant="destructive" data-schedule="failed">
           <TriangleAlert aria-hidden />
-          {labels.status.failed}
+          {text}
         </Badge>
       )
   }
+}
+
+function scheduleText(schedule: ScheduleState): string | null {
+  switch (schedule.kind) {
+    case "none":
+      return null
+    case "scheduled":
+      return labels.status.scheduled(formatDateTime(schedule.at))
+    case "waiting":
+      return schedule.overdue ? labels.status.waiting : labels.status.due
+    case "failed":
+      return labels.status.failed
+  }
+}
+
+/**
+ * Éditeur du Fil : l'état de publication sous « Publier », sur une ligne (« Brouillon »,
+ * « En ligne · Programmé le… ») ; le détail d'une programmation est dans son bandeau.
+ */
+export function PublicationLine({ pub }: { pub: PublicationControls }) {
+  if (pub.loading) return <Skeleton className="h-4 w-24" />
+  const { live, schedule } = pub.status
+  const dot = liveDots[live]
+  const line = [labels.status[live], scheduleText(schedule)]
+    .filter(Boolean)
+    .join(" · ")
+  return (
+    <p
+      data-publication={live}
+      className={cn(
+        "flex min-w-0 items-center gap-1.5 text-sm",
+        schedule.kind === "failed"
+          ? "text-destructive"
+          : "text-muted-foreground"
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "size-1.5 shrink-0 rounded-full",
+          dot ?? "bg-muted-foreground"
+        )}
+      />
+      <span className="truncate">{line}</span>
+    </p>
+  )
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -158,71 +205,90 @@ export function PublishBar({
   // publication sans que le brouillon change, « Publier » reste donc possible.
   alwaysPublishable?: boolean
 }) {
+  return (
+    <div className="flex items-center gap-2">
+      {!pub.loading && <LiveBadge live={pub.status.live} />}
+      <PublishButton
+        pub={pub}
+        disabled={disabled}
+        alwaysPublishable={alwaysPublishable}
+      />
+    </div>
+  )
+}
+
+/** « Publier » et le menu de ses autres actions (programmer, retirer de l'app). */
+export function PublishButton({
+  pub,
+  disabled,
+  alwaysPublishable = false,
+}: {
+  pub: PublicationControls
+  disabled: boolean
+  alwaysPublishable?: boolean
+}) {
   const { status } = pub
   const scheduled =
     status.schedule.kind === "scheduled" || status.schedule.kind === "waiting"
   const inApp = status.live === "live" || status.live === "modified"
   const upToDate = status.live === "live" && !alwaysPublishable
   return (
-    <div className="flex items-center gap-2">
-      {!pub.loading && <LiveBadge live={status.live} />}
-      <div className="flex items-center">
-        {/* Un bouton grisé ne reçoit pas la souris : l'infobulle se pose sur son contenant. */}
-        <Tooltip disabled={!upToDate}>
-          <TooltipTrigger render={<span className="inline-flex" />}>
-            <Button
-              size="sm"
-              className="rounded-r-none"
-              disabled={disabled || pub.busy || pub.loading || upToDate}
-              onClick={pub.startPublish}
-            >
-              {pub.publish.isPending ? <Spinner /> : <Send />}
-              {labels.actions.publish}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{labels.upToDate}</TooltipContent>
-        </Tooltip>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            disabled={disabled || pub.busy || pub.loading}
-            aria-label={labels.actions.more}
-            render={
-              <Button
-                size="icon-sm"
-                className="rounded-l-none border-l border-l-primary-foreground/25"
-              />
-            }
+    <div className="flex items-center">
+      {/* Un bouton grisé ne reçoit pas la souris : l'infobulle se pose sur son contenant. */}
+      <Tooltip disabled={!upToDate}>
+        <TooltipTrigger render={<span className="inline-flex" />}>
+          <Button
+            size="sm"
+            className="rounded-r-none"
+            disabled={disabled || pub.busy || pub.loading || upToDate}
+            onClick={pub.startPublish}
           >
-            <ChevronDown />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-60">
-            <DropdownMenuItem onClick={pub.startSchedule}>
-              <CalendarClock />
-              {scheduled ? labels.actions.reschedule : labels.actions.schedule}
+            {pub.publish.isPending ? <Spinner /> : <Send />}
+            {labels.actions.publish}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{labels.upToDate}</TooltipContent>
+      </Tooltip>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          disabled={disabled || pub.busy || pub.loading}
+          aria-label={labels.actions.more}
+          render={
+            <Button
+              size="icon-sm"
+              className="rounded-l-none border-l border-l-primary-foreground/25"
+            />
+          }
+        >
+          <ChevronDown />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuItem onClick={pub.startSchedule}>
+            <CalendarClock />
+            {scheduled ? labels.actions.reschedule : labels.actions.schedule}
+          </DropdownMenuItem>
+          {status.schedule.kind !== "none" && (
+            <DropdownMenuItem onClick={() => pub.unschedule.mutate()}>
+              <CircleOff />
+              {status.schedule.kind === "failed"
+                ? labels.actions.dismissFailure
+                : labels.actions.unschedule}
             </DropdownMenuItem>
-            {status.schedule.kind !== "none" && (
-              <DropdownMenuItem onClick={() => pub.unschedule.mutate()}>
+          )}
+          {inApp && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => pub.setDialog({ type: "unpublish" })}
+              >
                 <CircleOff />
-                {status.schedule.kind === "failed"
-                  ? labels.actions.dismissFailure
-                  : labels.actions.unschedule}
+                {labels.actions.unpublish}
               </DropdownMenuItem>
-            )}
-            {inApp && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={() => pub.setDialog({ type: "unpublish" })}
-                >
-                  <CircleOff />
-                  {labels.actions.unpublish}
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }
@@ -234,10 +300,13 @@ export function PublishBar({
 export function ScheduleBanner({
   pub,
   leave,
+  inline = false,
 }: {
   pub: PublicationControls
   // « Quitter l'éditeur » : la programmation en attente ne part qu'une fois l'éditeur fermé.
   leave?: ReactNode
+  // Au-dessus du téléphone (éditeur du Fil), à sa largeur.
+  inline?: boolean
 }) {
   const { schedule } = pub.status
   if (schedule.kind === "none") return null
@@ -319,7 +388,13 @@ export function ScheduleBanner({
   }
 
   return (
-    <div className="border-b bg-muted/40 px-4 py-2">
+    <div
+      className={
+        inline
+          ? "w-full max-w-(--blocks-phone-width)"
+          : "border-b bg-muted/40 px-4 py-2"
+      }
+    >
       <Alert
         variant={schedule.kind === "failed" ? "destructive" : "default"}
         data-schedule-banner={schedule.kind}

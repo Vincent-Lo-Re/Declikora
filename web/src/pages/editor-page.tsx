@@ -85,7 +85,11 @@ import {
 } from "@/components/editor/feed-preview"
 import { FormatToolbar } from "@/components/editor/format-toolbar"
 import { HistorySheet } from "@/components/editor/history-sheet"
-import { LockBanner } from "@/components/editor/lock-banner"
+import {
+  LockBanner,
+  LockButton,
+  LockDialog,
+} from "@/components/editor/lock-banner"
 import { MediaPicker } from "@/components/editor/media-picker"
 import {
   OutlinePanel,
@@ -102,7 +106,9 @@ import {
 } from "@/components/editor/presentation"
 import {
   PublicationDialogs,
+  PublicationLine,
   PublishBar,
+  PublishButton,
   ScheduleBanner,
 } from "@/components/editor/publication"
 import { SaveStatus } from "@/components/editor/save-status"
@@ -161,6 +167,7 @@ import {
 } from "@/hooks/use-autosave"
 import { useCategories } from "@/hooks/use-categories"
 import { useEditLock } from "@/hooks/use-edit-lock"
+import { useLockDialog } from "@/hooks/use-lock-dialog"
 import { accessLevelsKey, listAccessLevels } from "@/lib/access-levels"
 import {
   categoryKeys,
@@ -222,6 +229,7 @@ import {
   type PreviewSettings,
 } from "@/lib/editor/preview"
 import { isApple, isFocusShortcut } from "@/lib/editor/focus-mode"
+import { lockSituation } from "@/lib/editor/lock-view"
 import { blockWarning, duplicateBlock } from "@/lib/editor/outline"
 import {
   decodeLibraryDrag,
@@ -681,6 +689,10 @@ function ContentEditor({
   const { notifyLost } = lock
   const phase = lock.state.phase
   const serverRev = lock.state.draftRev
+  const holderIsMe = lock.state.holderId === lock.myId
+  // Éditeur du Fil : la lecture seule passe par le cadenas et sa fenêtre (ADMIN § 4).
+  const lockView = feed ? lockSituation(lock.state, holderIsMe) : null
+  const lockDialog = useLockDialog(lockView)
 
   // serverRev ne suit que les autres (edit-lock.ts) : nos propres enregistrements, vus par
   // Realtime avant leur réponse, ne rendent pas l'aperçu non modifiable.
@@ -2099,75 +2111,110 @@ function ContentEditor({
     ? texts.templates.list.untitled
     : texts.common.untitled
 
+  const publishDisabled = phase === "taking" || phase === "error"
+  // Une méthode dont on ne sait pas encore ce qui a changé : « Publier » reste possible (la
+  // fenêtre le montrera).
+  const alwaysPublishable =
+    linkedIds.length > 0 || (isMethod && methodBridge?.pending === undefined)
+  // Éditeur du Fil : au-dessus du téléphone, à sa largeur ; ailleurs, sous l'en-tête.
+  const lockBanner = (
+    <LockBanner
+      lock={lock.state}
+      holderIsMe={holderIsMe}
+      autosave={autosave.state}
+      canCopy={canCopy}
+      onTake={take}
+      onCopy={() => void onCopy()}
+      onReload={reload}
+      onDismissCopy={() => setStash(null)}
+      lockInDialog={feed}
+      inline={feed}
+    />
+  )
+  const scheduleBanner = (
+    <ScheduleBanner
+      pub={pub}
+      inline={feed}
+      leave={
+        <Link
+          to={sections[section].path}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          {texts.publication.banner.leave}
+        </Link>
+      }
+    />
+  )
+  const saveStatus = (
+    <SaveStatus
+      state={autosave.state}
+      visible={phase === "mine" || autosave.state.unsaved}
+    />
+  )
+  const lockButton = lockView && (
+    <LockButton
+      expanded={lockDialog.open}
+      onClick={() => lockDialog.setOpen(true)}
+    />
+  )
+
   return (
     <div className="flex h-svh flex-col bg-muted/40">
       <title>{`${title.trim() || untitled} — ${texts.app.name}`}</title>
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
-        <BackLink
-          section={section}
-          method={isElement ? (elementContext.data?.method ?? null) : null}
-        />
-        {!isMethod && (
-          <>
-            <Separator orientation="vertical" className="h-6" />
-            <Button
-              variant={outlineOpen ? "secondary" : "ghost"}
-              size="sm"
-              aria-expanded={outlineOpen}
-              aria-controls="editeur-plan"
-              aria-label={
-                outlineOpen
-                  ? texts.editor.outline.hide
-                  : texts.editor.outline.show
-              }
-              onClick={() => setOutlineOpen((open) => !open)}
-            >
-              <ListTree />
-              {texts.editor.outline.toggle}
-            </Button>
-          </>
-        )}
-        <p className="min-w-0 flex-1 truncate text-sm font-medium" aria-hidden>
-          {title.trim() || untitled}
-          <span className="font-normal text-muted-foreground">
-            {" "}
-            · {elementKind ? texts.methods.kinds[elementKind] : sectionTitle}
-          </span>
-        </p>
-        {templateSort && (
-          <TemplateSortBadge
-            sort={templateSort}
-            templateFor={
-              isTemplateFor(initial.template_for) ? initial.template_for : null
-            }
+      {!feed && (
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
+          <BackLink
+            section={section}
+            method={isElement ? (elementContext.data?.method ?? null) : null}
           />
-        )}
-        <SaveStatus
-          state={autosave.state}
-          visible={phase === "mine" || autosave.state.unsaved}
-        />
-        {feed && (
-          <Button
-            variant={focusMode ? "secondary" : "ghost"}
-            size="sm"
-            aria-pressed={focusMode}
-            aria-keyshortcuts={apple ? "Meta+." : "Control+."}
-            onClick={toggleFocusMode}
+          {!isMethod && (
+            <>
+              <Separator orientation="vertical" className="h-6" />
+              <Button
+                variant={outlineOpen ? "secondary" : "ghost"}
+                size="sm"
+                aria-expanded={outlineOpen}
+                aria-controls="editeur-plan"
+                aria-label={
+                  outlineOpen
+                    ? texts.editor.outline.hide
+                    : texts.editor.outline.show
+                }
+                onClick={() => setOutlineOpen((open) => !open)}
+              >
+                <ListTree />
+                {texts.editor.outline.toggle}
+              </Button>
+            </>
+          )}
+          <p
+            className="min-w-0 flex-1 truncate text-sm font-medium"
+            aria-hidden
           >
-            <Focus />
-            {texts.editor.focusMode.label}
-            <Kbd>
-              {apple
-                ? texts.editor.focusMode.shortcut.apple
-                : texts.editor.focusMode.shortcut.other}
-            </Kbd>
-          </Button>
-        )}
-        {isTemplate ? (
-          isShared && <SharedTemplateBar templateId={contentId} />
-        ) : (
-          <>
-            {!feed && (
+            {title.trim() || untitled}
+            <span className="font-normal text-muted-foreground">
+              {" "}
+              · {elementKind ? texts.methods.kinds[elementKind] : sectionTitle}
+            </span>
+          </p>
+          {templateSort && (
+            <TemplateSortBadge
+              sort={templateSort}
+              templateFor={
+                isTemplateFor(initial.template_for)
+                  ? initial.template_for
+                  : null
+              }
+            />
+          )}
+          <SaveStatus
+            state={autosave.state}
+            visible={phase === "mine" || autosave.state.unsaved}
+          />
+          {isTemplate ? (
+            isShared && <SharedTemplateBar templateId={contentId} />
+          ) : (
+            <>
               <HeaderIconButton
                 label={texts.publication.actions.settings}
                 expanded={settingsOpen}
@@ -2175,58 +2222,44 @@ function ContentEditor({
               >
                 <Settings2 />
               </HeaderIconButton>
-            )}
-            <HeaderIconButton
-              label={texts.publication.actions.history}
-              expanded={historyOpen}
-              onClick={() => setHistoryOpen(true)}
-            >
-              <History />
-            </HeaderIconButton>
-          </>
-        )}
-        {!isMethod && !feed && (
-          <AddBlockMenu
-            id={ADD_BLOCK_ID}
-            variant="outline"
-            disabled={!editable || !canAddRoot}
-            onAdd={(type) => addBlock(type)}
-            onTemplate={
-              isTemplate ? undefined : () => setTemplatePickerOpen(true)
-            }
-          />
-        )}
-        {!isTemplate && !isElement && (
-          <>
-            <Separator orientation="vertical" className="h-6" />
-            <PublishBar
-              pub={pub}
-              disabled={phase === "taking" || phase === "error"}
-              // Une méthode dont on ne sait pas encore ce qui a changé : « Publier » reste
-              // possible (la fenêtre le montrera).
-              alwaysPublishable={
-                linkedIds.length > 0 ||
-                (isMethod && methodBridge?.pending === undefined)
+              <HeaderIconButton
+                label={texts.publication.actions.history}
+                expanded={historyOpen}
+                onClick={() => setHistoryOpen(true)}
+              >
+                <History />
+              </HeaderIconButton>
+            </>
+          )}
+          {!isMethod && (
+            <AddBlockMenu
+              id={ADD_BLOCK_ID}
+              variant="outline"
+              disabled={!editable || !canAddRoot}
+              onAdd={(type) => addBlock(type)}
+              onTemplate={
+                isTemplate ? undefined : () => setTemplatePickerOpen(true)
               }
             />
-          </>
-        )}
-      </header>
+          )}
+          {!isTemplate && !isElement && (
+            <>
+              <Separator orientation="vertical" className="h-6" />
+              <PublishBar
+                pub={pub}
+                disabled={publishDisabled}
+                alwaysPublishable={alwaysPublishable}
+              />
+            </>
+          )}
+        </header>
+      )}
 
       <p role="status" className="sr-only">
         {announcement}
       </p>
 
-      <LockBanner
-        lock={lock.state}
-        holderIsMe={lock.state.holderId === lock.myId}
-        autosave={autosave.state}
-        canCopy={canCopy}
-        onTake={take}
-        onCopy={() => void onCopy()}
-        onReload={reload}
-        onDismissCopy={() => setStash(null)}
-      />
+      {!feed && lockBanner}
       {elementKind && (
         <ElementBanner
           kind={elementKind}
@@ -2243,19 +2276,7 @@ function ContentEditor({
           onOpenSettings={() => openSettings(null)}
         />
       )}
-      {!isTemplate && !isElement && (
-        <ScheduleBanner
-          pub={pub}
-          leave={
-            <Link
-              to={sections[section].path}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              {texts.publication.banner.leave}
-            </Link>
-          }
-        />
-      )}
+      {!feed && !isTemplate && !isElement && scheduleBanner}
 
       {isMethod ? (
         // Une méthode : sa fiche (dans l'aperçu du téléphone, puis son panneau) et son plan.
@@ -2301,6 +2322,19 @@ function ContentEditor({
                 focusMode && "hidden"
               )}
             >
+              <div className="shrink-0 border-b px-3 py-2">
+                <div className="flex h-8 items-center gap-2">
+                  <BackLink section={section} />
+                  <span className="flex-1" />
+                  {saveStatus}
+                </div>
+                <p
+                  className="flex h-6 items-center truncate px-2.5 font-semibold"
+                  aria-hidden
+                >
+                  <span className="truncate">{title.trim() || untitled}</span>
+                </p>
+              </div>
               <Tabs
                 value={leftTab}
                 onValueChange={(value: LeftTab) => setLeftTab(value)}
@@ -2367,7 +2401,13 @@ function ContentEditor({
                     orientation="vertical"
                   />
                 }
-                notices={notices}
+                notices={
+                  <>
+                    {lockBanner}
+                    {scheduleBanner}
+                    {notices}
+                  </>
+                }
                 appBar={
                   phoneView.mode === "read" ? (
                     <ReadAppBar section={sectionTitle} />
@@ -2418,6 +2458,32 @@ function ContentEditor({
                 focusMode && "hidden"
               )}
             >
+              <div className="shrink-0 border-b px-3 py-2">
+                <div className="flex h-8 items-center gap-1">
+                  <HeaderIconButton
+                    label={texts.publication.actions.history}
+                    expanded={historyOpen}
+                    onClick={() => setHistoryOpen(true)}
+                  >
+                    <History />
+                  </HeaderIconButton>
+                  <FocusButton
+                    on={focusMode}
+                    apple={apple}
+                    onClick={toggleFocusMode}
+                  />
+                  {lockButton}
+                  <span className="flex-1" />
+                  <PublishButton
+                    pub={pub}
+                    disabled={publishDisabled}
+                    alwaysPublishable={alwaysPublishable}
+                  />
+                </div>
+                <div className="flex h-6 items-center px-1">
+                  <PublicationLine pub={pub} />
+                </div>
+              </div>
               <Tabs
                 value={rightTab}
                 onValueChange={(value: RightTab) =>
@@ -2486,6 +2552,40 @@ function ContentEditor({
             </aside>
           )}
         </div>
+      )}
+
+      {feed && focusMode && (
+        <div className="fixed top-3 right-4 z-20 flex items-center gap-2 rounded-full border bg-background py-1 pr-1 pl-3 shadow-sm">
+          {saveStatus}
+          {lockButton}
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            aria-label={texts.editor.focusMode.exit}
+            aria-keyshortcuts={apple ? "Meta+." : "Control+."}
+            onClick={toggleFocusMode}
+          >
+            <Focus />
+            {texts.editor.focusMode.exit}
+            <Kbd>
+              {apple
+                ? texts.editor.focusMode.shortcut.apple
+                : texts.editor.focusMode.shortcut.other}
+            </Kbd>
+          </Button>
+        </div>
+      )}
+      {feed && (
+        <LockDialog
+          situation={lockView}
+          holderName={lock.state.holderName}
+          open={lockDialog.open}
+          onOpenChange={lockDialog.setOpen}
+          canCopy={canCopy}
+          onTake={take}
+          onCopy={() => void onCopy()}
+        />
       )}
 
       {!isTemplate && (
@@ -2630,6 +2730,42 @@ function HeaderIconButton({
         {children}
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+/** Éditeur du Fil : Concentration (⌘ . ou Ctrl + .), une icône dont l'infobulle dit le raccourci. */
+function FocusButton({
+  on,
+  apple,
+  onClick,
+}: {
+  on: boolean
+  apple: boolean
+  onClick: () => void
+}) {
+  const shortcut = apple
+    ? texts.editor.focusMode.shortcut.apple
+    : texts.editor.focusMode.shortcut.other
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant={on ? "secondary" : "ghost"}
+            size="icon-sm"
+            aria-label={texts.editor.focusMode.label}
+            aria-pressed={on}
+            aria-keyshortcuts={apple ? "Meta+." : "Control+."}
+            onClick={onClick}
+          />
+        }
+      >
+        <Focus />
+      </TooltipTrigger>
+      <TooltipContent>
+        {texts.editor.focusMode.label} <Kbd>{shortcut}</Kbd>
+      </TooltipContent>
     </Tooltip>
   )
 }
