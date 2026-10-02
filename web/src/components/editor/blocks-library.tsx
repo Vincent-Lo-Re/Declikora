@@ -85,7 +85,7 @@ export function BlocksLibrary({
   return (
     <div className="relative h-full overflow-hidden">
       <div
-        className="h-full space-y-4 overflow-y-auto p-3"
+        className="h-full space-y-4 overflow-y-auto px-4 py-3"
         // Caché (et hors du clavier) pendant que « Mes blocs » le recouvre.
         inert={open}
       >
@@ -188,7 +188,7 @@ function SavedBlocksPanel({
         if (event.key === "Escape" && !event.defaultPrevented) onBack()
       }}
     >
-      <div className="flex items-center gap-1 px-2 pt-2">
+      <div className="flex items-center gap-1 px-2.5 pt-2">
         <button
           type="button"
           aria-label={mine.back}
@@ -201,7 +201,7 @@ function SavedBlocksPanel({
           {mine.title}
         </h3>
       </div>
-      <div className="space-y-2 p-3 pb-2">
+      <div className="space-y-2 px-4 pt-3 pb-2">
         <SearchInput
           value={search}
           onChange={setSearch}
@@ -228,7 +228,7 @@ function SavedBlocksPanel({
           ))}
         </ToggleGroup>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
         {templates.data === undefined ? (
           <LoadState
             query={templates}
@@ -296,7 +296,7 @@ function SavedBlock({
         startDrag(event, { kind: "template", id: template.id })
       }
       aria-label={mine.insertLabel(name)}
-      className="w-full rounded-lg border bg-background p-2 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:border-foreground/30 disabled:opacity-60"
+      className="w-full rounded-lg border bg-background p-3 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:border-foreground/30 disabled:opacity-60"
       onClick={onInsert}
     >
       <div aria-hidden className="blocks-mini">

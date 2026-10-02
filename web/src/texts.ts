@@ -2161,6 +2161,17 @@ export const texts = {
       waiting: "Programmation en attente : quelqu'un écrit",
       failed: "Programmations échouées",
     },
+    // Éditeur du Fil : la pastille à côté de « Publier » (la phrase entière dans l'infobulle).
+    short: {
+      draft: "Brouillon",
+      withdrawn: "Retiré",
+      live: "En ligne",
+      modified: "Modifié",
+      scheduled: "Programmé",
+      due: "En cours",
+      waiting: "En attente",
+      failed: "Échec",
+    },
     // Bandeau de l'éditeur ([D16], [D31]).
     banner: {
       scheduled: (date: string) =>

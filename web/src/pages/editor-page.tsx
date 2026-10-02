@@ -106,7 +106,7 @@ import {
 } from "@/components/editor/presentation"
 import {
   PublicationDialogs,
-  PublicationLine,
+  PublicationBadge,
   PublishBar,
   PublishButton,
   ScheduleBanner,
@@ -390,10 +390,13 @@ function EditorFrame({
 function BackLink({
   section,
   method,
+  compact = false,
 }: {
   section: SectionKey
   // Un chapitre ou une leçon : « ← nom de la méthode ».
   method?: { id: string; title: string } | null
+  // Éditeur du Fil : la flèche seule, le nom de la section dans l'infobulle.
+  compact?: boolean
 }) {
   if (method) {
     const title = method.title.trim() || texts.common.untitled
@@ -412,6 +415,24 @@ function BackLink({
     )
   }
   const title = texts.sections[section].title
+  if (compact) {
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Link
+              to={sections[section].path}
+              aria-label={texts.editor.back(title)}
+              className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+            />
+          }
+        >
+          <ArrowLeft />
+        </TooltipTrigger>
+        <TooltipContent>{title}</TooltipContent>
+      </Tooltip>
+    )
+  }
   return (
     <Link
       to={sections[section].path}
@@ -463,19 +484,33 @@ const ADD_BLOCK_ID = "editeur-ajouter"
 type LeftTab = "plan" | "blocks"
 type RightTab = "article" | "block"
 
-/** Met le curseur dans un bloc qui vient d'apparaître (l'éditeur Tiptap se crée juste après). */
-function focusBlockSoon(id: string, attempts = 20) {
+/**
+ * Met le curseur dans un bloc qui vient d'apparaître (l'éditeur Tiptap se crée juste après).
+ * `top` : le bloc monte en haut de l'écran du téléphone (choisi dans le plan du Fil) ; sinon,
+ * l'écran ne défile que s'il le faut.
+ */
+function focusBlockSoon(id: string, attempts = 20, top = false) {
   const element = document.querySelector<HTMLElement>(`[data-block-id="${id}"]`)
-  const editable = element?.querySelector<HTMLElement>(
-    '[contenteditable="true"]'
-  )
-  if (element) element.scrollIntoView({ block: "nearest", behavior: "smooth" })
+  const found = element?.querySelector<HTMLElement>('[contenteditable="true"]')
+  // Le texte du bloc lui-même : pas celui d'un bloc de sa section, qui deviendrait le bloc
+  // choisi en recevant le curseur.
+  const editable =
+    found && found.closest("[data-block-id]") === element ? found : null
+  const scroll = () =>
+    element?.scrollIntoView({
+      block: top ? "start" : "nearest",
+      behavior: "smooth",
+    })
   if (editable) {
-    editable.focus()
+    // D'abord le curseur, puis le défilement : le navigateur ramène l'écran au curseur quand il
+    // le pose, ce qui interromprait un défilement déjà commencé.
+    editable.focus({ preventScroll: true })
+    requestAnimationFrame(scroll)
     return
   }
+  scroll()
   if (attempts > 0) {
-    requestAnimationFrame(() => focusBlockSoon(id, attempts - 1))
+    requestAnimationFrame(() => focusBlockSoon(id, attempts - 1, top))
   }
 }
 
@@ -1062,7 +1097,7 @@ function ContentEditor({
   const selectAndShow = (id: string) => {
     toEdit()
     setSelectedId(id)
-    requestAnimationFrame(() => focusBlockSoon(id, 0))
+    requestAnimationFrame(() => focusBlockSoon(id, 0, feed))
   }
 
   const onShift = (id: string, offset: -1 | 1) => {
@@ -1865,6 +1900,7 @@ function ContentEditor({
       onDetach={detachBlock}
       removeBlocked={removeBlocked}
       onSaveAsTemplate={(id) => openSaveAs([id])}
+      onDuplicate={onDuplicate}
       actionBar
     />
   )
@@ -2138,6 +2174,13 @@ function ContentEditor({
       visible={phase === "mine" || autosave.state.unsaved}
     />
   )
+  const feedSaveStatus = (
+    <SaveStatus
+      state={autosave.state}
+      visible={phase === "mine" || autosave.state.unsaved}
+      compact
+    />
+  )
   const lockButton = lockView && (
     <LockButton
       expanded={lockDialog.open}
@@ -2305,29 +2348,31 @@ function ContentEditor({
               aria-label={texts.editor.columns.left}
               // Caché (et non retiré) en Concentration : onglet et « Mes blocs » restent ouverts.
               className={cn(
-                "flex w-72 shrink-0 flex-col border-r bg-background",
+                "flex w-feed-column shrink-0 flex-col border-r bg-background",
                 focusMode && "hidden"
               )}
             >
-              <div className="shrink-0 border-b px-3 py-2">
-                <div className="flex h-8 items-center gap-2">
-                  <BackLink section={section} />
-                  <span className="flex-1" />
-                  {saveStatus}
-                </div>
+              {/* Une ligne, de la même hauteur que l'en-tête de droite : le retour, le titre,
+                  l'état de l'enregistrement en icône. */}
+              <div className="flex h-12 shrink-0 items-center gap-1 border-b px-4">
+                {/* La flèche alignée sur la marge de 16 px (son bouton déborde dans la marge). */}
+                <span className="-ml-1.5 flex">
+                  <BackLink section={section} compact />
+                </span>
                 <p
-                  className="flex h-6 items-center truncate px-2.5 font-semibold"
+                  className="min-w-0 flex-1 truncate font-semibold"
                   aria-hidden
                 >
-                  <span className="truncate">{title.trim() || untitled}</span>
+                  {title.trim() || untitled}
                 </p>
+                {feedSaveStatus}
               </div>
               <Tabs
                 value={leftTab}
                 onValueChange={(value: LeftTab) => setLeftTab(value)}
                 className="min-h-0 flex-1 gap-0"
               >
-                <div className="px-3 pt-3">
+                <div className="px-4 pt-3">
                   <TabsList className="w-full">
                     <TabsTrigger value="plan">
                       <ListTree />
@@ -2449,30 +2494,21 @@ function ContentEditor({
             <aside
               aria-label={texts.editor.columns.right}
               className={cn(
-                "flex w-80 shrink-0 flex-col border-l bg-background",
+                "flex w-feed-column shrink-0 flex-col border-l bg-background",
                 focusMode && "hidden"
               )}
             >
-              <div className="shrink-0 border-b px-3 py-2">
-                <div className="flex h-8 items-center gap-1">
-                  <HeaderIconButton
-                    label={texts.publication.actions.history}
-                    expanded={historyOpen}
-                    onClick={() => setHistoryOpen(true)}
-                  >
-                    <History />
-                  </HeaderIconButton>
-                  {lockButton}
-                  <span className="flex-1" />
-                  <PublishButton
-                    pub={pub}
-                    disabled={publishDisabled}
-                    alwaysPublishable={alwaysPublishable}
-                  />
-                </div>
-                <div className="flex h-6 items-center px-1">
-                  <PublicationLine pub={pub} />
-                </div>
+              {/* Une ligne : le cadenas (en lecture seule), l'état de publication, « Publier ». */}
+              <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+                {lockButton}
+                <PublicationBadge pub={pub} />
+                <span className="flex-1" />
+                <PublishButton
+                  pub={pub}
+                  disabled={publishDisabled}
+                  alwaysPublishable={alwaysPublishable}
+                  onHistory={() => setHistoryOpen(true)}
+                />
               </div>
               <Tabs
                 value={rightTab}
@@ -2481,7 +2517,7 @@ function ContentEditor({
                 }
                 className="min-h-0 flex-1 gap-0"
               >
-                <div className="px-3 pt-3">
+                <div className="px-4 pt-3">
                   <TabsList className="w-full">
                     <TabsTrigger value="article">
                       {texts.editor.columns.article}
@@ -2493,7 +2529,7 @@ function ContentEditor({
                 </div>
                 <TabsContent
                   value="article"
-                  className="min-h-0 overflow-y-auto p-3"
+                  className="min-h-0 overflow-y-auto px-4 py-3"
                 >
                   {articlePanel}
                 </TabsContent>

@@ -136,7 +136,7 @@ export function ArticlePanel({
           onSettingsChange({ ...settings, categoryIds })
         }
       />
-      <div className="space-y-1 px-1 pb-2 text-xs text-muted-foreground">
+      <div className="space-y-1 pb-2 text-xs text-muted-foreground">
         <p className="flex items-center gap-1.5">
           <Clock aria-hidden className="size-3.5" />
           {labels.stats.reading(stats.minutes)} ·{" "}
@@ -158,8 +158,9 @@ function ReadyCard({ items }: { items: ReadyItem[] }) {
   const done = items.filter((item) => item.done).length
   return (
     // Collée en haut de la colonne, sur un fond plein : rien ne défile au-dessus d'elle (la
-    // colonne a une marge intérieure, que ce fond recouvre).
-    <div className="sticky -top-3 z-10 -mt-3 bg-background pt-3">
+    // colonne a une marge intérieure, que ce fond recouvre), et ce qui passe dessous garde
+    // l'écart habituel : le fond le prolonge (pb-3), à la place de l'espace entre les cartes.
+    <div className="sticky -top-3 z-10 -mt-3 mb-0 bg-background pt-3 pb-3">
       <section
         aria-labelledby="article-pret"
         className="rounded-xl border bg-muted p-3"

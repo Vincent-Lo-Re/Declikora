@@ -11,7 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
-  Ellipsis,
+  EllipsisVertical,
   GripVertical,
   LayoutTemplate,
   ListChecks,
@@ -151,7 +151,9 @@ export function OutlinePanel({
   return (
     <nav
       aria-label={labels.title}
-      className="flex h-full flex-col overflow-y-auto p-3"
+      // Les lignes alignées sur la marge de 16 px des colonnes (comme les onglets et les cartes) ;
+      // leur poignée apparaît dans cette marge.
+      className="flex h-full flex-col overflow-y-auto px-4 py-3"
     >
       <div className="flex items-center justify-between gap-2 px-2 pb-2">
         <h2 className="text-sm font-semibold">{labels.title}</h2>
@@ -389,6 +391,8 @@ function OutlineRow({
           <Button
             variant="ghost"
             size="icon-xs"
+            // Le nom de la section aligné sur le texte des autres lignes.
+            className="-mr-1"
             aria-expanded={!isCollapsed}
             aria-label={
               isCollapsed ? labels.expand(label) : labels.collapse(label)
@@ -554,7 +558,7 @@ function RowActions({
           />
         }
       >
-        <Ellipsis />
+        <EllipsisVertical />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={onDuplicate}>

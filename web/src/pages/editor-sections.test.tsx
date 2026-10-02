@@ -675,6 +675,42 @@ describe("éditeur d'un article (Le Fil)", () => {
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
   })
 
+  it("un bloc choisi dans le plan monte en haut de l'écran du téléphone", async () => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    const BLOCK = "00000000-0000-4000-8000-0000000000f8"
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        blocks: [
+          {
+            id: BLOCK,
+            type: "image",
+            mediaId: null,
+            caption: null,
+            alt: null,
+          },
+        ],
+      })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    fireEvent.click(
+      within(plan).getByRole("button", {
+        name: outline.select(texts.editor.blockLabel.image),
+      })
+    )
+    await waitFor(() =>
+      expect(scroll).toHaveBeenCalledWith({
+        block: "start",
+        behavior: "smooth",
+      })
+    )
+    expect(scroll.mock.contexts.at(-1)).toBe(
+      document.querySelector(`[data-block-id="${BLOCK}"]`)
+    )
+  })
+
   it("« Bloc choisi » : les actions en icônes, dans une barre en bas de l'onglet", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(ARTICLE, "article", {
@@ -703,15 +739,68 @@ describe("éditeur d'un article (Le Fil)", () => {
       .getAllByRole("button")
       .map((button) => button.getAttribute("aria-label"))
     expect(names).toEqual([
-      texts.templates.saveAs.action,
       texts.editor.settings.moveUp,
       texts.editor.settings.moveDown,
+      outline.duplicate,
+      texts.templates.saveAs.action,
       texts.editor.settings.remove,
     ])
     // Des icônes seules : leur nom est dans l'infobulle.
     expect(bar).not.toHaveTextContent(texts.editor.settings.remove)
     // Le plan dit « Section » (anciennement « Encadré »).
     expect(within(plan).getByText(/Section à fond/)).toBeVisible()
+  })
+
+  it("une section choisie dans le plan reste choisie (pas son premier texte), et « Dupliquer » la copie", async () => {
+    Element.prototype.scrollIntoView = vi.fn()
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        blocks: [
+          {
+            id: "00000000-0000-4000-8000-0000000000f9",
+            type: "box",
+            look: "border",
+            blocks: [
+              {
+                id: "00000000-0000-4000-8000-0000000000fa",
+                type: "text",
+                doc: {
+                  type: "doc",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "Dans la section" }],
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    const section = texts.editor.blockLabel.box(1)
+    fireEvent.click(
+      within(plan).getByRole("button", { name: outline.select(section) })
+    )
+    expect(
+      await screen.findByText(texts.editor.settings.title(section))
+    ).toBeVisible()
+    const bar = screen.getByRole("toolbar", {
+      name: texts.editor.settings.actions,
+    })
+    expect(
+      within(bar).getByRole("button", { name: texts.templates.saveAs.action })
+    ).toBeInTheDocument()
+    fireEvent.click(
+      within(bar).getByRole("button", { name: outline.duplicate })
+    )
+    await waitFor(() =>
+      expect(within(plan).getByText(outline.count(4))).toBeVisible()
+    )
   })
 
   it("l'aperçu n'a pas de poignée : c'est le plan qui range les blocs", async () => {
@@ -980,8 +1069,14 @@ describe("éditeur d'un article (Le Fil)", () => {
     ])
     renderApp(`/blog/${ARTICLE}`)
     await editable()
+    // L'historique s'ouvre depuis le menu de « Publier ».
     fireEvent.click(
-      screen.getByRole("button", { name: texts.publication.actions.history })
+      screen.getByRole("button", { name: texts.publication.actions.more })
+    )
+    fireEvent.click(
+      await screen.findByRole("menuitem", {
+        name: texts.publication.actions.history,
+      })
     )
     const list = await screen.findByRole("list", { name: history.title })
     const [second, first] = within(list).getAllByRole("listitem")
@@ -1176,12 +1271,27 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
     expect(within(left).getByText(texts.editor.save.saved)).toBeInTheDocument()
     const right = screen.getByRole("complementary", { name: columns.right })
     for (const name of [
-      texts.publication.actions.history,
       texts.publication.actions.publish,
       texts.publication.actions.more,
     ]) {
       expect(within(right).getByRole("button", { name })).toBeInTheDocument()
     }
+    // Historique est dans le menu de « Publier », pas à côté.
+    expect(
+      within(right).queryByRole("button", {
+        name: texts.publication.actions.history,
+      })
+    ).toBeNull()
+    fireEvent.click(
+      within(right).getByRole("button", {
+        name: texts.publication.actions.more,
+      })
+    )
+    expect(
+      await screen.findByRole("menuitem", {
+        name: texts.publication.actions.history,
+      })
+    ).toBeVisible()
     // Concentration est dans la barre de l'aperçu, sous Édition et Lecture.
     expect(
       within(right).queryByRole("button", {
@@ -1202,7 +1312,7 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
     ).toBeNull()
   })
 
-  it("une programmation s'écrit sous « Publier », et son bandeau passe au-dessus du téléphone", async () => {
+  it("une programmation : « Programmé » à côté de « Publier », et son bandeau au-dessus du téléphone", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     vi.mocked(publicationApi.getPublication).mockResolvedValue({
       id: ARTICLE,
@@ -1217,9 +1327,14 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
     renderApp(`/blog/${ARTICLE}`)
     await editable()
     const right = screen.getByRole("complementary", { name: columns.right })
-    expect(
-      await within(right).findByText(/^Brouillon · Programmé le 25 oct\. 2099/)
-    ).toBeInTheDocument()
+    // Une pastille courte à côté de « Publier », la phrase entière pour les lecteurs d'écran (et
+    // dans l'infobulle).
+    const badge = await within(right).findByText(
+      texts.publication.short.scheduled
+    )
+    expect(badge.closest("[data-publication]")).toHaveTextContent(
+      /Brouillon · Programmé le 25 oct\. 2099/
+    )
     const banner = document.querySelector("[data-schedule-banner]")!
     expect(banner).toBeInTheDocument()
     expect(screen.getByRole("main")).toContainElement(banner as HTMLElement)

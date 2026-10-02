@@ -4,6 +4,7 @@ import {
   CalendarClock,
   ChevronDown,
   CircleOff,
+  History,
   Hourglass,
   Send,
   TriangleAlert,
@@ -157,35 +158,53 @@ function scheduleText(schedule: ScheduleState): string | null {
 }
 
 /**
- * Éditeur du Fil : l'état de publication sous « Publier », sur une ligne (« Brouillon »,
- * « En ligne · Programmé le… ») ; le détail d'une programmation est dans son bandeau.
+ * Éditeur du Fil : l'état de publication en pastille à côté de « Publier » (« Brouillon »,
+ * « Programmé »…), la phrase entière dans l'infobulle (« En ligne · Programmé le… »). Le détail
+ * d'une programmation est dans son bandeau.
  */
-export function PublicationLine({ pub }: { pub: PublicationControls }) {
-  if (pub.loading) return <Skeleton className="h-4 w-24" />
+export function PublicationBadge({ pub }: { pub: PublicationControls }) {
+  if (pub.loading) return <Skeleton className="h-5 w-20" />
   const { live, schedule } = pub.status
   const dot = liveDots[live]
   const line = [labels.status[live], scheduleText(schedule)]
     .filter(Boolean)
     .join(" · ")
+  const short =
+    schedule.kind === "none"
+      ? labels.short[live]
+      : schedule.kind === "waiting"
+        ? labels.short[schedule.overdue ? "waiting" : "due"]
+        : labels.short[schedule.kind]
   return (
-    <p
-      data-publication={live}
-      className={cn(
-        "flex min-w-0 items-center gap-1.5 text-sm",
-        schedule.kind === "failed"
-          ? "text-destructive"
-          : "text-muted-foreground"
-      )}
-    >
-      <span
-        aria-hidden
-        className={cn(
-          "size-1.5 shrink-0 rounded-full",
-          dot ?? "bg-muted-foreground"
-        )}
-      />
-      <span className="truncate">{line}</span>
-    </p>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            tabIndex={0}
+            data-publication={live}
+            className={cn(
+              "inline-flex min-w-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              schedule.kind === "failed"
+                ? "border-destructive/40 text-destructive"
+                : "text-muted-foreground"
+            )}
+          />
+        }
+      >
+        <span
+          aria-hidden
+          className={cn(
+            "size-1.5 shrink-0 rounded-full",
+            schedule.kind === "none"
+              ? (dot ?? "bg-muted-foreground")
+              : "bg-status-new"
+          )}
+        />
+        <span className="truncate">{short}</span>
+        <span className="sr-only">{` : ${line}`}</span>
+      </TooltipTrigger>
+      <TooltipContent>{line}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -217,15 +236,21 @@ export function PublishBar({
   )
 }
 
-/** « Publier » et le menu de ses autres actions (programmer, retirer de l'app). */
+/**
+ * « Publier » et le menu de ses autres actions (programmer, retirer de l'app ; dans l'éditeur du
+ * Fil, l'historique).
+ */
 export function PublishButton({
   pub,
   disabled,
   alwaysPublishable = false,
+  onHistory,
 }: {
   pub: PublicationControls
   disabled: boolean
   alwaysPublishable?: boolean
+  // Éditeur du Fil : « Historique » dans le menu (ailleurs, une icône à côté).
+  onHistory?: () => void
 }) {
   const { status } = pub
   const scheduled =
@@ -273,6 +298,12 @@ export function PublishButton({
               {status.schedule.kind === "failed"
                 ? labels.actions.dismissFailure
                 : labels.actions.unschedule}
+            </DropdownMenuItem>
+          )}
+          {onHistory && (
+            <DropdownMenuItem onClick={onHistory}>
+              <History />
+              {labels.actions.history}
             </DropdownMenuItem>
           )}
           {inApp && (

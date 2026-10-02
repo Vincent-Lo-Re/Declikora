@@ -2,7 +2,8 @@ import { cn } from "cn"
 import {
   ArrowDown,
   ArrowUp,
-  LayoutTemplate,
+  BookmarkPlus,
+  Copy,
   Trash2,
   Unlink,
 } from "lucide-react"
@@ -63,9 +64,11 @@ type Props = {
   empty?: ReactNode
   // Le nom du panneau quand il montre `empty` (par défaut « Réglages du bloc »).
   emptyLabel?: string
-  // Éditeur du Fil : les actions (modèle, monter, descendre, supprimer) en icônes, dans une
-  // barre fixe en bas du panneau.
+  // Éditeur du Fil : les actions (monter, descendre, dupliquer, modèle, supprimer) en icônes,
+  // dans une barre fixe en bas du panneau.
   actionBar?: boolean
+  // « Dupliquer » (éditeur du Fil, comme dans le menu « … » du plan).
+  onDuplicate?: (id: string) => void
 }
 
 /** Panneau de droite : les réglages du bloc choisi dans l'aperçu. */
@@ -80,7 +83,7 @@ export function BlockSettings(props: Props) {
         data-side-panel
         className="flex h-full flex-col"
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-3">
           {props.header}
           <SelectedBlock place={place} {...props} />
         </div>
@@ -168,7 +171,7 @@ function SelectedBlock({
             className="justify-self-start"
             onClick={() => onSaveAsTemplate?.(block.id)}
           >
-            <LayoutTemplate />
+            <BookmarkPlus />
             {texts.templates.saveAs.action}
           </Button>
         </>
@@ -280,13 +283,16 @@ function canSaveAs(
 
 /**
  * Éditeur du Fil : les actions du bloc choisi en icônes (leur nom dans l'infobulle), fixées en
- * bas de l'onglet « Bloc choisi ». Désactivées sans perdre le focus (aria-disabled) : on peut
- * appuyer plusieurs fois de suite au clavier, et la nouvelle place est annoncée.
+ * bas de l'onglet « Bloc choisi » : la place (Monter, Descendre), la copie (Dupliquer,
+ * Enregistrer comme modèle…), et à l'écart, Supprimer. Mêmes icônes que le menu du plan.
+ * Désactivées sans perdre le focus (aria-disabled) : on peut appuyer plusieurs fois de suite au
+ * clavier, et la nouvelle place est annoncée.
  */
 function ActionBar({
   place,
   onShift,
   onRemove,
+  onDuplicate,
   removeBlocked = null,
   onSaveAsTemplate,
 }: Props & { place: BlockPlace }) {
@@ -295,16 +301,8 @@ function ActionBar({
     <div
       role="toolbar"
       aria-label={labels.actions}
-      className="flex shrink-0 items-center gap-1 border-t bg-background p-2"
+      className="flex shrink-0 items-center gap-1 border-t bg-background px-2.5 py-2"
     >
-      {canSaveAs(place, onSaveAsTemplate) && (
-        <IconAction
-          label={texts.templates.saveAs.action}
-          onClick={() => onSaveAsTemplate?.(block.id)}
-        >
-          <LayoutTemplate />
-        </IconAction>
-      )}
       <IconAction
         label={labels.moveUp}
         disabled={place.index === 0}
@@ -319,6 +317,23 @@ function ActionBar({
       >
         <ArrowDown />
       </IconAction>
+      <Separator orientation="vertical" className="mx-1 h-5" />
+      {onDuplicate && (
+        <IconAction
+          label={texts.editor.outline.duplicate}
+          onClick={() => onDuplicate(block.id)}
+        >
+          <Copy />
+        </IconAction>
+      )}
+      {canSaveAs(place, onSaveAsTemplate) && (
+        <IconAction
+          label={texts.templates.saveAs.action}
+          onClick={() => onSaveAsTemplate?.(block.id)}
+        >
+          <BookmarkPlus />
+        </IconAction>
+      )}
       <span className="flex-1" />
       <IconAction
         label={labels.remove}
