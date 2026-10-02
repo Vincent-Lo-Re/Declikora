@@ -10,6 +10,7 @@ import { GripVertical, Link2, Plus } from "lucide-react"
 import { memo, useContext, useMemo } from "react"
 import { Link } from "react-router"
 
+import { BlockSummary, DragChip } from "@/blocks/components/block-summary"
 import {
   BlocksEditorContext,
   templateNameOf,
@@ -65,6 +66,7 @@ export function BlockCanvas({
   rootLimit?: number
 }) {
   const { dndProps, active } = useBlockDrag({ draft, onChange, rootLimit })
+  const { mediaFor, templateFor } = useBlocksEditor()
 
   return (
     <DndContext {...dndProps}>
@@ -83,20 +85,29 @@ export function BlockCanvas({
       </DraggingTypeContext>
       <DragOverlay dropAnimation={null}>
         {active ? (
-          <div className="flex items-center gap-2 rounded-md border bg-popover px-3 py-2 font-sans text-sm text-popover-foreground shadow-md">
-            <GripVertical
-              aria-hidden
-              className="size-4 text-muted-foreground"
+          // Le bloc tenu, résumé comme dans le plan (icône et contenu).
+          <DragChip>
+            <BlockSummary
+              block={active}
+              media={active.type === "image" ? mediaFor(active.mediaId) : null}
+              templateName={
+                active.type === "linked"
+                  ? templateNameOf(templateFor(active.templateId))
+                  : null
+              }
             />
-            {blockLabel(active)}
-          </div>
+          </DragChip>
         ) : null}
       </DragOverlay>
     </DndContext>
   )
 }
 
-/** Un bloc déplaçable : la poignée à gauche, le bloc lui-même dans l'aperçu. */
+/**
+ * Un bloc déplaçable : la poignée dans la marge à gauche (de l'écran, ou de l'encadré), le bloc
+ * lui-même dans l'aperçu. La poignée et le contour de survol ne s'allument que pour le bloc le
+ * plus intérieur sous la souris (preview.css).
+ */
 const SortableBlock = memo(function SortableBlock({
   block,
   container,
@@ -143,46 +154,45 @@ const SortableBlock = memo(function SortableBlock({
       data-block-id={block.id}
       data-block-type={block.type}
       data-selected={selected || undefined}
+      data-sortable={editable || undefined}
       // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer (dnd-kit)
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
       }}
       className={cn(
-        "group/block relative rounded-sm outline-offset-4 outline-ring/70",
+        "relative rounded-sm outline-offset-4 outline-ring/70",
         selected && "outline-2",
-        // data-hovered : survolé dans le plan de l'éditeur du Fil.
-        !selected &&
-          editable &&
-          "hover:outline-1 hover:outline-border data-hovered:outline-1 data-hovered:outline-border",
         isDragging && "opacity-40"
       )}
       onPointerDownCapture={() => selectBlock(block.id)}
       onFocusCapture={() => selectBlock(block.id)}
     >
       {editable && (
-        // Pendant un déplacement, l'infobulle se ferme : Échap doit annuler le déplacement.
-        <Tooltip disabled={isDragging}>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                ref={setActivatorNodeRef}
-                data-block-handle
-                {...attributes}
-                {...listeners}
-                aria-label={texts.editor.handle(label)}
-                className={cn(
-                  "absolute top-0 -left-9 flex h-7 w-6 cursor-grab touch-none items-center justify-center rounded-md font-sans text-muted-foreground opacity-0 transition-opacity group-hover/block:opacity-100 hover:bg-accent hover:text-accent-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing",
-                  selected && "opacity-100"
-                )}
-              />
-            }
-          >
-            <GripVertical aria-hidden className="size-4" />
-          </TooltipTrigger>
-          <TooltipContent>{texts.editor.handle(label)}</TooltipContent>
-        </Tooltip>
+        // La marge à gauche du bloc, sur toute sa hauteur : la poignée y reste visible quand on
+        // fait défiler un long bloc (preview.css).
+        <span className="blocks-handle-rail">
+          {/* Pendant un déplacement, l'infobulle se ferme : Échap doit annuler le déplacement. */}
+          <Tooltip disabled={isDragging}>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  ref={setActivatorNodeRef}
+                  data-block-handle
+                  {...attributes}
+                  {...listeners}
+                  aria-label={texts.editor.handle(label)}
+                  // Place et visibilité : .blocks-handle (preview.css).
+                  className="blocks-handle cursor-grab touch-none items-center justify-center rounded-sm font-sans text-muted-foreground transition-opacity hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
+                />
+              }
+            >
+              <GripVertical aria-hidden className="size-3.5" />
+            </TooltipTrigger>
+            <TooltipContent>{texts.editor.handle(label)}</TooltipContent>
+          </Tooltip>
+        </span>
       )}
       <BlockBody block={block} />
     </div>

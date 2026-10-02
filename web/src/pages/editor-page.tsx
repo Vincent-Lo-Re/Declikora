@@ -444,7 +444,9 @@ function blockHandle(id: string): HTMLElement | null {
   return (
     document
       .querySelector(`[data-block-id="${id}"]`)
-      ?.querySelector<HTMLElement>(":scope > [data-block-handle]") ?? null
+      ?.querySelector<HTMLElement>(
+        ":scope > .blocks-handle-rail [data-block-handle]"
+      ) ?? null
   )
 }
 
