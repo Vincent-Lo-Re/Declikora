@@ -1624,7 +1624,6 @@ export const texts = {
       select: (label: string) => `Aller à ${label}`,
       // Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions »).
       count: (count: number) => (count === 1 ? "1 bloc" : `${count} blocs`),
-      cover: "Image de présentation",
       heading: (title: string) => `Aller au titre « ${title} »`,
       move: (label: string) => `Ranger dans le plan : ${label}`,
       collapse: (label: string) => `Replier ${label}`,
@@ -1636,7 +1635,6 @@ export const texts = {
       saveToMine: "Enregistrer comme modèle…",
       remove: "Supprimer",
       warnings: {
-        coverMissing: "Pas encore choisie",
         noFile: "Pas encore de fichier",
         unavailable: "Le fichier ne s'affiche plus",
         noAlt: "Sans texte alternatif",

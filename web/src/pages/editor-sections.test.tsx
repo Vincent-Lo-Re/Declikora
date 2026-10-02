@@ -539,13 +539,14 @@ describe("éditeur d'un article (Le Fil)", () => {
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     expect(within(plan).getByText(outline.count(2))).toBeVisible()
+    // L'image de présentation n'est pas dans le plan : elle se règle dans la colonne de droite.
     expect(
-      within(plan).getByRole("img", { name: outline.warnings.coverMissing })
-    ).toBeVisible()
+      within(plan).queryByText(texts.editor.article.ready.items.cover)
+    ).toBeNull()
     expect(
       within(plan).getByRole("img", { name: outline.warnings.noFile })
     ).toBeVisible()
-    expect(within(plan).getByText(outline.warnings.count(2))).toBeVisible()
+    expect(within(plan).getByText(outline.warnings.count(1))).toBeVisible()
 
     // L'encadré se replie : son image ne se voit plus dans le plan.
     const boxLabel = texts.editor.blockLabel.box(1)

@@ -14,7 +14,6 @@ import {
   Ellipsis,
   GripVertical,
   Heading2,
-  ImageIcon,
   LayoutTemplate,
   ListChecks,
   Trash2,
@@ -71,13 +70,11 @@ type OutlineSelection = {
 }
 
 /**
- * Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions ») : l'image de présentation en tête,
- * les intertitres sous chaque texte, les encadrés repliables, ce qui manque, un menu « … » par
+ * Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions ») : les blocs seulement (l'image de
+ * présentation se règle dans la colonne de droite), les intertitres sous chaque texte, les encadrés repliables, ce qui manque, un menu « … » par
  * ligne, et le survol partagé avec l'aperçu.
  */
 export type FeedOutline = {
-  coverMissing: boolean
-  onCover: () => void
   // Le bloc survolé, ici ou dans l'aperçu.
   hoveredId: string | null
   onHover: (id: string | null) => void
@@ -118,8 +115,7 @@ export function OutlinePanel({
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
   const all = flattenBlocks(draft)
   const warnings = feed
-    ? all.filter(({ block }) => feed.warningOf(block) !== null).length +
-      (feed.coverMissing ? 1 : 0)
+    ? all.filter(({ block }) => feed.warningOf(block) !== null).length
     : 0
   const choosing = selection?.active ?? false
   // Éditeur du Fil : les lignes se rangent par glisser-déposer (pas pendant « Choisir des
@@ -177,20 +173,6 @@ export function OutlinePanel({
         <p className="px-2 pb-2 text-xs text-muted-foreground">
           {saveAs.selectHint}
         </p>
-      )}
-      {feed && (
-        <div className="flex min-w-0 items-center gap-1">
-          <button type="button" className={rowButton} onClick={feed.onCover}>
-            <ImageIcon
-              aria-hidden
-              className="size-4 shrink-0 text-muted-foreground"
-            />
-            <span className="truncate">{labels.cover}</span>
-          </button>
-          {feed.coverMissing && (
-            <Warning label={labels.warnings.coverMissing} />
-          )}
-        </div>
       )}
       {all.length === 0 ? (
         <p className="px-2 text-sm text-muted-foreground">{labels.empty}</p>
