@@ -6,6 +6,8 @@ import {
   ChevronLeft,
   Eye,
   Lock,
+  Maximize,
+  MoveVertical,
   Moon,
   Pencil,
   Share,
@@ -16,7 +18,15 @@ import {
   Wifi,
   type LucideIcon,
 } from "lucide-react"
-import type { ComponentType, ReactNode, SVGProps } from "react"
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+  type ReactNode,
+  type SVGProps,
+} from "react"
 
 import type { BlockMedia } from "@/blocks/components/context"
 import { StaticBlock } from "@/blocks/components/static-block"
@@ -34,6 +44,9 @@ import {
 import {
   chosenValue,
   devices,
+  fullScreenScale,
+  previewFits,
+  showsFullScreen,
   previewModes,
   previewReaders,
   previewThemes,
@@ -66,6 +79,23 @@ export function FeedPreview({
   appBar?: ReactNode
   children: ReactNode
 }) {
+  // Écran entier (Lecture) : la hauteur disponible pour le téléphone, relue quand la fenêtre change.
+  const frame = useRef<HTMLDivElement>(null)
+  const [available, setAvailable] = useState<number | null>(null)
+  const full = showsFullScreen(preview)
+  useEffect(() => {
+    const element = frame.current
+    if (!full || !element) return
+    const observer = new ResizeObserver(() =>
+      setAvailable(element.clientHeight)
+    )
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [full])
+  const scale =
+    full && available !== null
+      ? fullScreenScale(preview.device, available)
+      : null
   return (
     <div className="flex min-h-0 flex-1 justify-center gap-9 px-4 py-4">
       <div
@@ -79,30 +109,46 @@ export function FeedPreview({
       <div className="flex min-h-0 flex-col items-center gap-3">
         {notices}
         <div
-          role="region"
-          aria-label={labels.screen[preview.device]}
-          className="blocks-device"
-          data-device={preview.device}
-          data-blocks-theme={preview.theme}
-          data-large-text={preview.largeText || undefined}
+          ref={frame}
+          className="flex min-h-0 w-full flex-1 flex-col items-center"
         >
-          <div className="blocks-screen">
-            <div aria-hidden className="blocks-status">
-              <span>{labels.time[preview.device]}</span>
-              <span className="blocks-camera" />
-              <span className="blocks-status-icons">
-                <Signal />
-                <Wifi />
-                <BatteryFull />
-              </span>
+          <div
+            role="region"
+            aria-label={labels.screen[preview.device]}
+            className="blocks-device"
+            data-device={preview.device}
+            data-blocks-theme={preview.theme}
+            data-large-text={preview.largeText || undefined}
+            data-fit={scale !== null ? "full" : undefined}
+            // eslint-disable-next-line no-restricted-syntax -- réduction tirée d'une mesure (hauteur de la fenêtre)
+            style={
+              scale !== null
+                ? ({ "--blocks-device-scale": scale } as CSSProperties)
+                : undefined
+            }
+          >
+            <div className="blocks-screen">
+              <div aria-hidden className="blocks-status">
+                <span>{labels.time[preview.device]}</span>
+                <span className="blocks-camera" />
+                <span className="blocks-status-icons">
+                  <Signal />
+                  <Wifi />
+                  <BatteryFull />
+                </span>
+              </div>
+              {appBar}
+              <div className="blocks-screen-scroll">{children}</div>
+              <div aria-hidden className="blocks-home" />
             </div>
-            {appBar}
-            <div className="blocks-screen-scroll">{children}</div>
-            <div aria-hidden className="blocks-home" />
           </div>
         </div>
       </div>
-      <PreviewTools preview={preview} onChange={onPreviewChange} />
+      <PreviewTools
+        preview={preview}
+        onChange={onPreviewChange}
+        scale={scale}
+      />
     </div>
   )
 }
@@ -123,6 +169,10 @@ const themeChoices: Choice<(typeof previewThemes)[number]> = {
   light: { label: labels.theme.light, icon: Sun },
   dark: { label: labels.theme.dark, icon: Moon },
 }
+const fitChoices: Choice<(typeof previewFits)[number]> = {
+  adjust: { label: labels.fit.adjust, icon: MoveVertical },
+  full: { label: labels.fit.full, icon: Maximize },
+}
 const readerChoices: Choice<(typeof previewReaders)[number]> = {
   subscriber: { label: labels.reader.subscriber, icon: UserCheck },
   visitor: { label: labels.reader.visitor, icon: UserX },
@@ -132,9 +182,12 @@ const readerChoices: Choice<(typeof previewReaders)[number]> = {
 function PreviewTools({
   preview,
   onChange,
+  scale,
 }: {
   preview: PreviewSettings
   onChange: (preview: PreviewSettings) => void
+  // La réduction de l'écran entier, s'il est montré.
+  scale: number | null
 }) {
   return (
     <div
@@ -193,6 +246,22 @@ function PreviewTools({
             value={preview.reader}
             onChange={(reader) => onChange({ ...preview, reader })}
           />
+          <Separator className="my-1 w-5" />
+          <ToolGroup
+            label={labels.fit.label}
+            values={previewFits}
+            choices={fitChoices}
+            value={preview.fit}
+            onChange={(fit) => onChange({ ...preview, fit })}
+          />
+          {scale !== null && (
+            <span
+              aria-label={labels.fit.scaleLabel(Math.round(scale * 100))}
+              className="pb-1 text-xs text-muted-foreground tabular-nums"
+            >
+              {labels.fit.scale(Math.round(scale * 100))}
+            </span>
+          )}
         </>
       )}
     </div>

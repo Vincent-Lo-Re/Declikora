@@ -273,6 +273,18 @@
   border-radius: 40px;
 }
 
+/* Écran entier (Lecture seulement) : le téléphone garde sa vraie hauteur et se réduit tout
+   entier (zoom tiré de la hauteur de la fenêtre, --blocks-device-scale) ; en Édition, l'écran
+   reste à sa vraie largeur (le glisser-déposer et le curseur en dépendent). */
+.blocks-device[data-fit="full"] {
+  zoom: var(--blocks-device-scale, 1);
+  flex-shrink: 0;
+}
+
+.blocks-device[data-fit="full"] .blocks-screen {
+  flex-shrink: 0;
+}
+
 /* Grand texte : comme le réglage du téléphone, le texte grandit et la page garde sa largeur. */
 .blocks-device[data-large-text] {
   --blocks-text-scale: 1.3;
