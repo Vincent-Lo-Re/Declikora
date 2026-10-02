@@ -1822,6 +1822,14 @@ export const texts = {
         dark: "Sombre",
       },
       largeText: "Grand texte",
+      fit: {
+        label: "Taille de l'écran",
+        adjust:
+          "Ajuster : l'écran à la hauteur de la fenêtre, à sa vraie largeur",
+        full: "Écran entier : tout l'écran du téléphone, réduit s'il le faut",
+        scale: (percent: number) => `${percent} %`,
+        scaleLabel: (percent: number) => `Écran entier affiché à ${percent} %`,
+      },
       reader: {
         label: "Lecteur",
         subscriber: "Lire comme un abonné à la bonne formule",

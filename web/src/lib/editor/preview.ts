@@ -16,12 +16,17 @@ type PreviewTheme = (typeof previewThemes)[number]
 export const previewReaders = ["subscriber", "visitor"] as const
 type PreviewReader = (typeof previewReaders)[number]
 
+// En Lecture : l'écran à la hauteur de la fenêtre (à sa vraie largeur), ou l'écran entier, réduit.
+export const previewFits = ["adjust", "full"] as const
+type PreviewFit = (typeof previewFits)[number]
+
 export type PreviewSettings = {
   device: Device
   mode: PreviewMode
   theme: PreviewTheme
   largeText: boolean
   reader: PreviewReader
+  fit: PreviewFit
 }
 
 // À chaque ouverture de l'éditeur : l'iPhone, en Édition, en clair, comme un abonné.
@@ -31,6 +36,33 @@ export const defaultPreview: PreviewSettings = {
   theme: "light",
   largeText: false,
   reader: "subscriber",
+  fit: "adjust",
+}
+
+// La hauteur du téléphone entier (écran et cadre), comme .blocks-device dans preview.css.
+const deviceHeights: Record<Device, number> = {
+  ios: 874 + 2 * 10,
+  android: 915 + 2 * 9,
+}
+
+// En dessous, le texte ne se lirait plus : l'écran déborde plutôt que de rapetisser encore.
+const MIN_SCALE = 0.4
+
+/**
+ * « Écran entier » : seulement en Lecture (en Édition, réduire l'écran fausserait le
+ * glisser-déposer et le curseur, docs/ADMINISTRATION.md, § 4).
+ */
+export function showsFullScreen(preview: PreviewSettings): boolean {
+  return preview.mode === "read" && preview.fit === "full"
+}
+
+/**
+ * La réduction de l'écran entier pour tenir dans la hauteur disponible : 1 si la place suffit,
+ * arrondie au centième inférieur, jamais sous 0,4.
+ */
+export function fullScreenScale(device: Device, available: number): number {
+  const scale = Math.floor((available / deviceHeights[device]) * 100) / 100
+  return Math.min(1, Math.max(MIN_SCALE, scale))
 }
 
 /**

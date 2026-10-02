@@ -595,6 +595,49 @@ describe("éditeur d'un article (Le Fil)", () => {
     expect(left).not.toHaveClass("hidden")
   })
 
+  it("l'écran entier n'existe qu'en Lecture, réduit d'après la hauteur disponible", async () => {
+    // jsdom n'a pas ResizeObserver : la hauteur mesurée est 0, l'écran descend à 40 %.
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        callback: () => void
+        constructor(callback: () => void) {
+          this.callback = callback
+        }
+        observe() {
+          this.callback()
+        }
+        disconnect() {}
+      }
+    )
+    vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const tools = screen.getByRole("toolbar", { name: preview.tools })
+    expect(
+      within(tools).queryByRole("button", { name: preview.fit.full })
+    ).toBeNull()
+
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.mode.read })
+    )
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.fit.full })
+    )
+    const phone = screen.getByRole("region", { name: preview.screen.ios })
+    expect(phone).toHaveAttribute("data-fit", "full")
+    expect(
+      within(tools).getByLabelText(preview.fit.scaleLabel(40))
+    ).toBeVisible()
+
+    // En Édition, l'écran reprend sa vraie largeur.
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.mode.edit })
+    )
+    expect(phone).not.toHaveAttribute("data-fit")
+    vi.unstubAllGlobals()
+  })
+
   it("niveau d'accès et catégories en pastilles : ils partent avec le brouillon ([D41], [D44])", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(
