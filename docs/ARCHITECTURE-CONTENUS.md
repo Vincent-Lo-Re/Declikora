@@ -1084,6 +1084,8 @@ Les noms des jobs ne changent pas : les Deployment Checks de Vercel attendent «
 - **Accueil** : le titre de la méthode d'un chapitre ou d'une leçon est relu à part (deux petites lectures par identifiants) : l'API ne sait pas remonter d'une ligne de `contents` à son parent sans une relation calculée, c'est-à-dire sans migration.
 - **Pas de liste des méthodes pour l'app** : inchangé (question ouverte de la partie base).
 
+**Libellés revus le 02/10/2026** (test complet de l'admin) : les états des éléments d'une méthode sont neutres, pour un chapitre comme pour une leçon (« À publier », « Sortira de l'app », « Plus dans l'app », « Pas dans l'app », « Pas dans l'app, comme son chapitre ») ; la liste des changements nomme le changement (« Ajout », « Modification », « Retrait », « Nouvelle place ») ; un chapitre ou une leçon a la pastille « Part avec sa méthode » à l'Accueil. Les noms donnés plus haut dans cette partie sont ceux d'avant.
+
 **Titre obligatoire ([D49], 02/10/2026, base)** : `private.check_publish_requirements` (remplacée) refuse d'abord un titre vide ou fait d'espaces (`titre_manquant`, un message par sorte), puis l'image de présentation et le son comme avant. Elle sert déjà à `prepare_version` (chaque élément d'une méthode compris), à `schedule` et donc à `publish_preview` : un chapitre ou une leçon sans titre est signalé avant de publier la méthode. Une programmation déjà posée sur un contenu sans titre échoue à l'heure dite. pgTAP : `50_titre_obligatoire`.
 
 ---

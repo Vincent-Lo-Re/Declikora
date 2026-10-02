@@ -6,7 +6,7 @@ import {
   FieldTitle,
 } from "@/components/ui/field"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import type { AccessLevel } from "@/lib/access-levels"
+import { isMostComplete, type AccessLevel } from "@/lib/access-levels"
 import { texts } from "@/texts"
 
 const labels = texts.publication.settings.access
@@ -41,7 +41,9 @@ export function AccessLevelChoice({
     ...levels.map((level) => ({
       value: level.id,
       title: level.name,
-      hint: labels.levelHint,
+      hint: isMostComplete(levels, level.id)
+        ? labels.levelHintTop
+        : labels.levelHint,
     })),
   ]
   return (

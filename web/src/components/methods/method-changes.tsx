@@ -57,7 +57,8 @@ export function MethodChanges({
 }) {
   const titleId = useId()
   const { preview } = method
-  const problems = preview?.filter((row) => row.problem !== null) ?? []
+  // « Corrige d'abord ce qui est signalé » : seulement s'il y a une ligne signalée ici.
+  const problems = preview?.filter((row) => shownProblem(row) !== null) ?? []
   return (
     <section
       aria-labelledby={titleId}
@@ -122,21 +123,26 @@ export function MethodChanges({
   )
 }
 
+/**
+ * Le problème d'une ligne, s'il se montre dans la liste : le titre et l'image de présentation de
+ * la fiche sont déjà signalés au-dessus (avec « Écrire le titre » et « Choisir l'image »).
+ */
+function shownProblem(row: PreviewRow): string | null {
+  if (
+    row.kind === "method" &&
+    (row.problem === "image_de_presentation_manquante" ||
+      row.problem === "titre_manquant")
+  ) {
+    return null
+  }
+  return row.problem
+}
+
 function ChangeRow({ row, onOpen }: { row: PreviewRow; onOpen: () => void }) {
   const label = rowLabel(row)
   const path =
     row.kind === "method" ? null : contentEditorPath(row.kind, row.elementId)
-  // Le titre et l'image de présentation de la fiche sont déjà signalés au-dessus (avec « Écrire
-  // le titre » et « Choisir l'image »).
-  const problem =
-    row.problem &&
-    !(
-      row.kind === "method" &&
-      (row.problem === "image_de_presentation_manquante" ||
-        row.problem === "titre_manquant")
-    )
-      ? row.problem
-      : null
+  const problem = shownProblem(row)
   return (
     <li
       className="space-y-1 px-3 py-2 text-sm"

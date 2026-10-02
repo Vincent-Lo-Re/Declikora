@@ -167,7 +167,8 @@ export function OutlinePanel({
           </Button>
         )}
       </div>
-      {feed && (
+      {/* Sans bloc, « Aucun bloc pour l'instant » le dit déjà. */}
+      {feed && all.length > 0 && (
         <p className="px-2 pb-2 text-xs text-muted-foreground">
           {labels.count(all.length)}
         </p>

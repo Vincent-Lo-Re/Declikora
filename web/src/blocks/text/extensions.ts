@@ -40,7 +40,14 @@ const ParagraphFirstListItem = ListItem.extend({
 })
 
 /** Extensions d'un bloc Texte (éditeur de l'admin et tests). */
-export function textExtensions(placeholder?: string): Extensions {
+/**
+ * placeholder : le texte d'une ligne vide ; emptyPlaceholder, s'il est donné, celui d'un texte
+ * entièrement vide (éditeur du Fil : « / » n'ouvre la liste des blocs que là).
+ */
+export function textExtensions(
+  placeholder?: string,
+  emptyPlaceholder?: string
+): Extensions {
   const extensions: Extensions = [
     StarterKit.configure({
       blockquote: false,
@@ -67,7 +74,13 @@ export function textExtensions(placeholder?: string): Extensions {
     ParagraphFirstListItem,
   ]
   if (placeholder) {
-    extensions.push(Placeholder.configure({ placeholder }))
+    extensions.push(
+      Placeholder.configure({
+        placeholder: emptyPlaceholder
+          ? ({ editor }) => (editor.isEmpty ? emptyPlaceholder : placeholder)
+          : placeholder,
+      })
+    )
   }
   return extensions
 }

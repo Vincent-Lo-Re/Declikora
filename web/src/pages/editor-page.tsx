@@ -1302,6 +1302,16 @@ function ContentEditor({
     else requestAnimationFrame(() => focusBlockSoon(block.id))
   }
 
+  // Éditeur du Fil : les modèles s'insèrent depuis « Mes blocs », dans la colonne de gauche
+  // (pas dans une fenêtre) ; ailleurs, la fenêtre des modèles.
+  const openMine = () => {
+    setFocusMode(false)
+    setOutlineOpen(true)
+    setLeftTab("blocks")
+    setSavedOpen(true)
+  }
+  const openTemplates = feed ? openMine : () => setTemplatePickerOpen(true)
+
   // « / » au début d'un texte vide (éditeur du Fil) : le texte devient le bloc choisi, ou
   // « Mes blocs » s'ouvre à gauche (le bloc enregistré prendra alors la place du texte vide).
   const slashTarget = useRef<string | null>(null)
@@ -1310,10 +1320,7 @@ function ContentEditor({
     if (choice === "mine") {
       slashTarget.current = blockId
       setSelectedId(blockId)
-      setFocusMode(false)
-      setOutlineOpen(true)
-      setLeftTab("blocks")
-      setSavedOpen(true)
+      openMine()
       return
     }
     const block = blockRegistry[choice].create()
@@ -2061,11 +2068,7 @@ function ContentEditor({
                 </Button>
               ))}
               {!isTemplate && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setTemplatePickerOpen(true)}
-                >
+                <Button variant="outline" size="sm" onClick={openTemplates}>
                   <LayoutTemplate />
                   {texts.templates.insert.menu}
                 </Button>
@@ -2079,9 +2082,7 @@ function ContentEditor({
           <AddBlockMenu
             variant="ghost"
             onAdd={(type) => addBlock(type, undefined)}
-            onTemplate={
-              isTemplate ? undefined : () => setTemplatePickerOpen(true)
-            }
+            onTemplate={isTemplate ? undefined : openTemplates}
           />
         </div>
       )}

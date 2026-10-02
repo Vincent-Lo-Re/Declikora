@@ -225,6 +225,14 @@ describe("bloc lié dans un contenu", () => {
     expect(
       screen.getByRole("navigation", { name: texts.editor.outline.title })
     ).toHaveTextContent(texts.editor.blockLabel.linked("Contact"))
+    // Choisi, il ne propose pas « Enregistrer comme modèle » : c'est déjà un modèle.
+    fireEvent.pointerDown(view)
+    expect(
+      await screen.findByRole("button", { name: texts.templates.linked.detach })
+    ).toBeVisible()
+    expect(
+      screen.queryByRole("button", { name: texts.templates.saveAs.action })
+    ).toBeNull()
   })
 
   it("« Détacher » en fait une copie ordinaire : même id, nouveaux id à l'intérieur", async () => {

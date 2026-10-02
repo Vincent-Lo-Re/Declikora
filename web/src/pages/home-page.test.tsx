@@ -117,6 +117,7 @@ describe("Accueil", () => {
     expect(lessonRow).toHaveTextContent(labels.inMethod("Mieux respirer"))
     // Une leçon part avec sa méthode : pas d'état de publication propre.
     expect(lessonRow.querySelector("[data-publication]")).toBeNull()
+    expect(lessonRow).toHaveTextContent(labels.withMethod)
     expect(
       within(drafts).getByText(texts.trash.contentKinds.article)
     ).toBeVisible()

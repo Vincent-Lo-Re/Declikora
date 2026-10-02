@@ -265,7 +265,10 @@ function DraftRow({
           {labels.savedAt(formatDateTime(item.draft_saved_at))}
         </p>
       </div>
-      {!element && (
+      {element ? (
+        // Pas d'état propre : il part dans l'app avec sa méthode.
+        <Badge variant="outline">{labels.withMethod}</Badge>
+      ) : (
         <div className="flex flex-wrap gap-1.5">
           <LiveBadge live={status.live} />
           <ScheduleBadge schedule={status.schedule} />

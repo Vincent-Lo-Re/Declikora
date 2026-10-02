@@ -693,7 +693,7 @@ test("formules d'abonnement : réservées aux admins ; ajouter, ranger au clavie
     // dnd-kit n'écoute les flèches qu'au tour suivant de la boucle d'événements.
     await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)))
     await page.keyboard.press("ArrowUp")
-    await expect(announced).toContainText(`${first} est à la place n°`)
+    await expect(announced).toContainText(`« ${first} » est à la place n°`)
     await page.keyboard.press("Space")
     await expect(page.getByText(settings.reordered)).toBeVisible()
     await expect.poll(names).toEqual(swapped)

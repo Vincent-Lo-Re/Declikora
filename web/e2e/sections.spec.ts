@@ -422,7 +422,7 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     // dnd-kit n'écoute les flèches qu'au tour suivant de la boucle d'événements.
     await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)))
     await page.keyboard.press("ArrowUp")
-    await expect(announced).toContainText(`${stress} est à la place n°`)
+    await expect(announced).toContainText(`« ${stress} » est à la place n°`)
     await page.keyboard.press("Space")
     await expect(page.getByText(categories.reordered)).toBeVisible()
     await expect

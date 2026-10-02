@@ -12,6 +12,15 @@ export type AccessLevel = { id: string; name: string; rank: number }
 
 export const accessLevelsKey = ["access-levels"] as const
 
+/**
+ * Vrai pour la formule la plus complète (le plus grand rang) : aucune formule n'est au-dessus
+ * d'elle, son explication le dit.
+ */
+export function isMostComplete(levels: AccessLevel[], id: string): boolean {
+  const top = Math.max(...levels.map((level) => level.rank))
+  return levels.some((level) => level.id === id && level.rank === top)
+}
+
 type AccessLevelErrorCode = keyof typeof texts.settings.accessLevels.errors
 
 /** Erreur de la base sur une formule, avec son code (s'il est connu). */

@@ -166,7 +166,9 @@ export function NewContentDialog({
           <DialogHeader>
             <DialogTitle>{kindLabels.create}</DialogTitle>
             <DialogDescription>
-              {labels.newContent.description}
+              {kind === "article"
+                ? labels.newContent.articleDescription
+                : labels.newContent.description}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">

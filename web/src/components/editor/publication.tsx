@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import {
   CalendarClock,
   ChevronDown,
@@ -673,7 +674,13 @@ function PublishDialog({ pub }: { pub: PublicationControls }) {
     methodNotReady(pub)
   const method = pub.bridge.method
   return (
-    <DialogContent className={method ? "sm:max-w-xl" : "sm:max-w-md"}>
+    // Haute (liste des changements, formules) : elle défile dans la fenêtre du navigateur.
+    <DialogContent
+      className={cn(
+        "max-h-dialog overflow-y-auto",
+        method ? "sm:max-w-xl" : "sm:max-w-md"
+      )}
+    >
       <DialogHeader>
         <DialogTitle>
           {pub.publication?.live
@@ -796,7 +803,10 @@ function ScheduleDialog({ pub }: { pub: PublicationControls }) {
 
   return (
     <DialogContent
-      className={pub.bridge.method ? "sm:max-w-xl" : "sm:max-w-md"}
+      className={cn(
+        "max-h-dialog overflow-y-auto",
+        pub.bridge.method ? "sm:max-w-xl" : "sm:max-w-md"
+      )}
     >
       <form noValidate onSubmit={submit} className="grid gap-4">
         <DialogHeader>
