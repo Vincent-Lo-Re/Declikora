@@ -1625,6 +1625,11 @@ export const texts = {
       // Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions »).
       count: (count: number) => (count === 1 ? "1 bloc" : `${count} blocs`),
       heading: (title: string) => `Aller au titre « ${title} »`,
+      // Une ligne d'encadré : son aspect, puis le nombre de ses blocs.
+      box: { fill: "Encadré à fond", border: "Encadré à bordure" },
+      boxCount: (count: number) => (count === 0 ? "vide" : `${count}`),
+      shared: "Partagé",
+      dropInBox: "Glisse un texte ou une image ici",
       move: (label: string) => `Ranger dans le plan : ${label}`,
       collapse: (label: string) => `Replier ${label}`,
       expand: (label: string) => `Déplier ${label}`,

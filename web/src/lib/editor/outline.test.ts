@@ -7,7 +7,7 @@ import type {
 import { createBlock } from "@/blocks/draft"
 import type { Block, Doc, Draft } from "@/blocks/types"
 import type { Media } from "@/lib/media/constants"
-import { blockWarning, duplicateBlock, headingsOf } from "@/lib/editor/outline"
+import { blockWarning, duplicateBlock, textOutline } from "@/lib/editor/outline"
 
 const text = (value: string) => [{ type: "text" as const, text: value }]
 
@@ -26,9 +26,54 @@ const doc = {
   ],
 } as Doc
 
-describe("headingsOf", () => {
-  it("rend les intertitres (Titre) dans l'ordre, sans les sous-titres ni les vides", () => {
-    expect(headingsOf(doc)).toEqual(["Les bons réflexes", "Le matin"])
+describe("textOutline", () => {
+  it("un texte qui commence par un intertitre prend son nom ; les suivants (h2, h3) vont dessous, avec leur rang", () => {
+    expect(textOutline(doc)).toEqual({
+      lead: "h2",
+      text: "Les bons réflexes",
+      headings: [
+        { level: 3, text: "Un sous-titre", index: 1 },
+        // L'intertitre vide ne se montre pas, mais compte dans le rang (h2 de l'aperçu).
+        { level: 2, text: "Le matin", index: 3 },
+      ],
+    })
+  })
+
+  it("sinon, le début du texte : paragraphe, liste, ou texte vide", () => {
+    const paragraph = {
+      type: "doc",
+      content: [
+        { type: "paragraph" },
+        { type: "paragraph", content: text("Bonjour   à tous") },
+        { type: "heading", attrs: { level: 3 }, content: text("Ensuite") },
+      ],
+    } as Doc
+    expect(textOutline(paragraph)).toEqual({
+      lead: "paragraph",
+      text: "Bonjour à tous Ensuite",
+      headings: [{ level: 3, text: "Ensuite", index: 0 }],
+    })
+    const list = {
+      type: "doc",
+      content: [
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [{ type: "paragraph", content: text("Un point") }],
+            },
+          ],
+        },
+      ],
+    } as Doc
+    expect(textOutline(list)).toMatchObject({
+      lead: "list",
+      text: "• Un point",
+    })
+    expect(
+      textOutline({ type: "doc", content: [{ type: "paragraph" }] } as Doc)
+    ).toEqual({ lead: "empty", text: "", headings: [] })
   })
 })
 

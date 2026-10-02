@@ -12,15 +12,52 @@ import { textDocToPlainText } from "@/blocks/text/clean-text-doc"
 import { copyWithNewIds } from "@/blocks/templates"
 import type { Block, Doc, Draft } from "@/blocks/types"
 
-/** Les intertitres (Titre, h2) d'un texte, dans l'ordre ; un intertitre vide ne compte pas. */
-export function headingsOf(doc: Doc): string[] {
-  return doc.content.flatMap((node) =>
-    node.type === "heading" && node.attrs.level === 2
-      ? [textDocToPlainText({ type: "doc", content: [node] }).trim()].filter(
-          Boolean
-        )
-      : []
-  )
+// Un intertitre (Titre) ou un sous-titre (Sous-titre) d'un texte.
+type HeadingLevel = 2 | 3
+
+/** Ce que le plan montre d'un texte : une ligne, et ses intertitres dessous. */
+export type TextOutline = {
+  // Ce qui ouvre le texte : un intertitre, une liste, un paragraphe, ou rien (texte vide).
+  lead: "h2" | "h3" | "list" | "paragraph" | "empty"
+  // L'intertitre qui ouvre le texte, sinon le début du texte (sur une ligne).
+  text: string
+  // Les intertitres suivants, avec leur rang parmi les titres du texte (h2 et h3, vides
+  // compris : c'est le rang des éléments h2 et h3 de l'aperçu).
+  headings: { level: HeadingLevel; text: string; index: number }[]
+}
+
+const flat = (value: string) => value.replace(/\s+/g, " ").trim()
+
+/**
+ * Le plan d'un texte (ADMIN § 4) : le contenu plutôt que le type. Un texte qui commence par un
+ * intertitre prend son nom ; les intertitres suivants (h2 et h3) se rangent dessous.
+ */
+export function textOutline(doc: Doc): TextOutline {
+  const plain = (node: Doc["content"][number]) =>
+    flat(textDocToPlainText({ type: "doc", content: [node] }))
+  const headings: TextOutline["headings"] = []
+  let rank = 0
+  for (const node of doc.content) {
+    if (node.type !== "heading") continue
+    const text = plain(node)
+    if (text) headings.push({ level: node.attrs.level, text, index: rank })
+    rank += 1
+  }
+  const first = doc.content.find((node) => plain(node) !== "")
+  if (!first) return { lead: "empty", text: "", headings }
+  if (first.type === "heading") {
+    const [lead, ...rest] = headings
+    return {
+      lead: first.attrs.level === 2 ? "h2" : "h3",
+      text: lead.text,
+      headings: rest,
+    }
+  }
+  return {
+    lead: first.type === "paragraph" ? "paragraph" : "list",
+    text: flat(textDocToPlainText(doc)),
+    headings,
+  }
 }
 
 // Ce que le plan signale sur une ligne.

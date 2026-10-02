@@ -512,7 +512,61 @@ describe("éditeur d'un article (Le Fil)", () => {
     ).toBeNull()
   })
 
-  it("le plan : image de présentation, points à vérifier, encadré replié, survol partagé avec l'aperçu", async () => {
+  it("le plan montre le contenu : l'intertitre qui ouvre un texte, ses sous-titres, le fichier d'une image, le bloc partagé", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        blocks: [
+          {
+            id: "00000000-0000-4000-8000-0000000000e1",
+            type: "text",
+            doc: {
+              type: "doc",
+              content: [
+                {
+                  type: "heading",
+                  attrs: { level: 2 },
+                  content: [{ type: "text", text: "Les bons réflexes" }],
+                },
+                {
+                  type: "heading",
+                  attrs: { level: 3 },
+                  content: [{ type: "text", text: "Le soir" }],
+                },
+              ],
+            },
+          },
+          {
+            id: "00000000-0000-4000-8000-0000000000e2",
+            type: "image",
+            mediaId: PLAGE,
+            caption: null,
+            alt: null,
+          },
+          {
+            id: "00000000-0000-4000-8000-0000000000e3",
+            type: "linked",
+            templateId: "00000000-0000-4000-8000-0000000000e4",
+          },
+        ],
+      })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    // Le contenu plutôt que le type : « Texte « … » » reste le nom lu par les lecteurs d'écran.
+    expect(within(plan).getByText("Les bons réflexes")).toBeVisible()
+    expect(
+      within(plan).getByRole("button", { name: outline.heading("Le soir") })
+    ).toBeVisible()
+    expect(await within(plan).findByText("plage.png")).toBeVisible()
+    expect(within(plan).getByText(outline.shared)).toBeVisible()
+    // Le modèle n'existe plus : écrit en clair.
+    expect(
+      await within(plan).findByText(outline.warnings.missingTemplate)
+    ).toBeVisible()
+  })
+
+  it("le plan : sans l'image de présentation, points à vérifier, encadré replié, survol partagé avec l'aperçu", async () => {
     const BOX = "00000000-0000-4000-8000-0000000000d3"
     const IMAGE = "00000000-0000-4000-8000-0000000000d4"
     vi.mocked(api.getContent).mockResolvedValue(
@@ -543,10 +597,14 @@ describe("éditeur d'un article (Le Fil)", () => {
     expect(
       within(plan).queryByText(texts.editor.article.ready.items.cover)
     ).toBeNull()
+    // Ce qui manque est écrit sous la ligne, et la décrit.
     expect(
-      within(plan).getByRole("img", { name: outline.warnings.noFile })
-    ).toBeVisible()
+      within(plan).getByRole("button", {
+        name: outline.select(texts.editor.blockLabel.image("")),
+      })
+    ).toHaveAccessibleDescription(outline.warnings.noFile)
     expect(within(plan).getByText(outline.warnings.count(1))).toBeVisible()
+    expect(within(plan).getByText(outline.box.fill)).toBeVisible()
 
     // L'encadré se replie : son image ne se voit plus dans le plan.
     const boxLabel = texts.editor.blockLabel.box(1)

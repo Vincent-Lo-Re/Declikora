@@ -6,7 +6,7 @@
 //    publier ; l'app le liste avec sa vignette (publique, question 1) ; filtres par catégorie
 //    (admin et app) ; la catégorie supprimée, l'app l'ignore ([D28]).
 // 1 bis. L'éditeur du Fil : « / » dans un texte vide, un Texte glissé depuis l'onglet Blocs, un
-//    intertitre dans le plan, « … » › Dupliquer, le plan rangé au clavier, la Concentration,
+//    intertitre qui nomme sa ligne du plan, « … » › Dupliquer, le plan rangé au clavier, la Concentration,
 //    puis recharger.
 // 1 ter. L'éditeur du Fil en lecture seule : un second onglet prend la main, la fenêtre s'ouvre
 //    dans le premier, Échap y laisse le cadenas, qui la rouvre pour reprendre la main.
@@ -292,6 +292,8 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
   await createFromDialog(page, "article", `Finitions ${uniqueId()}`)
   const plan = page.getByRole("navigation", { name: outline.title })
   const rows = plan.getByRole("button", { name: /^Aller à (Texte|Encadré)/ })
+  // Ce que montre une ligne du plan : le contenu (l'icône dit le type).
+  const emptyBox = `${outline.box.fill} · ${outline.boxCount(0)}`
   const phone = page.getByRole("region", { name: editor.preview.screen.ios })
 
   // « / » dans un texte vide : la liste des blocs, au clavier.
@@ -305,7 +307,7 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
   await page.keyboard.press("ArrowDown")
   await page.keyboard.press("Enter")
   await expect(slash).toBeHidden()
-  await expect(rows).toHaveText([texts.editor.blockLabel.box(0)])
+  await expect(rows).toHaveText([emptyBox])
 
   // Un Texte glissé depuis l'onglet Blocs, au-dessus de l'encadré.
   await page.getByRole("tab", { name: editor.columns.blocks }).click()
@@ -317,21 +319,16 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
       targetPosition: { x: 40, y: 2 },
     })
   await page.getByRole("tab", { name: editor.columns.plan }).click()
-  await expect(rows).toHaveText([
-    texts.editor.blockLabel.text(""),
-    texts.editor.blockLabel.box(0),
-  ])
+  await expect(rows).toHaveText([texts.editor.blockLabel.text(""), emptyBox])
 
-  // Un intertitre apparaît sous son texte dans le plan.
+  // Un texte qui commence par un intertitre prend son nom dans le plan.
   await text.click()
   await page
     .getByRole("toolbar", { name: editor.toolbar.label })
     .getByRole("button", { name: editor.toolbar.h2, exact: true })
     .click()
   await page.keyboard.type("Les bons réflexes")
-  await expect(
-    plan.getByRole("button", { name: outline.heading("Les bons réflexes") })
-  ).toBeVisible()
+  await expect(rows.first()).toHaveText("Les bons réflexes")
 
   // « … » › Dupliquer : la copie juste après.
   await plan
@@ -369,11 +366,7 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
     )
   }
   await page.keyboard.press("Space")
-  await expect(rows).toHaveText([
-    texts.editor.blockLabel.box(0),
-    texts.editor.blockLabel.text("Les bons réflexes"),
-    texts.editor.blockLabel.box(0),
-  ])
+  await expect(rows).toHaveText([emptyBox, "Les bons réflexes", emptyBox])
 
   // Concentration : les deux colonnes se cachent, Échap les ramène.
   const left = page.getByRole("complementary", { name: editor.columns.left })
