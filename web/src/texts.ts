@@ -1624,6 +1624,7 @@ export const texts = {
         count === 0 ? "Aucun bloc" : count === 1 ? "1 bloc" : `${count} blocs`,
       cover: "Image de présentation",
       heading: (title: string) => `Aller à l'intertitre « ${title} »`,
+      move: (label: string) => `Ranger dans le plan : ${label}`,
       collapse: (label: string) => `Replier ${label}`,
       expand: (label: string) => `Déplier ${label}`,
       actions: (label: string) => `Actions pour ${label}`,

@@ -1866,6 +1866,7 @@ function ContentEditor({
             })
           })
         },
+        onMove: editable ? setDraft : undefined,
         actions: editable
           ? {
               onDuplicate,
