@@ -61,13 +61,12 @@ export function textOutline(doc: Doc): TextOutline {
 }
 
 // Ce que le plan signale sur une ligne.
-export type BlockWarning =
-  "noFile" | "unavailable" | "noAlt" | "missingTemplate"
+export type BlockWarning = "noFile" | "unavailable" | "missingTemplate"
 
 /**
- * Ce qui manque à un bloc : une image sans fichier, un fichier qui ne s'affiche plus, une image
- * sans texte alternatif ; un bloc partagé dont le modèle n'existe plus. Ce qui se charge encore
- * (ou un échec du réseau) n'est pas signalé.
+ * Ce qui manque à un bloc : une image sans fichier, un fichier qui ne s'affiche plus ; un bloc
+ * partagé dont le modèle n'existe plus. Ce qui se charge encore (ou un échec du réseau) n'est pas
+ * signalé. Le texte alternatif n'est plus réclamé (02/10/2026, [D15]).
  */
 export function blockWarning(
   block: Block,
@@ -82,10 +81,9 @@ export function blockWarning(
   if (block.type !== "image") return null
   if (block.mediaId === null) return "noFile"
   const media = mediaFor(block.mediaId)
-  if (media.state === "missing" || media.state === "not_ready")
-    return "unavailable"
-  if (media.state !== "ready") return null
-  return (block.alt ?? media.media.alt ?? "").trim() === "" ? "noAlt" : null
+  return media.state === "missing" || media.state === "not_ready"
+    ? "unavailable"
+    : null
 }
 
 /**

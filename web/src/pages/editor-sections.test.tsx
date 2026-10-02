@@ -566,6 +566,32 @@ describe("éditeur d'un article (Le Fil)", () => {
     ).toBeVisible()
   })
 
+  it("une image sans texte alternatif n'est plus signalée, et une image n'a plus de légende", async () => {
+    vi.mocked(api.getMediaByIds).mockResolvedValue([{ ...plage, alt: null }])
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        cover: { mediaId: PLAGE },
+        blocks: [
+          {
+            id: "00000000-0000-4000-8000-0000000000f5",
+            type: "image",
+            mediaId: PLAGE,
+            caption: null,
+            alt: null,
+          },
+        ],
+      })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    expect(await within(plan).findByText("plage.png")).toBeVisible()
+    expect(within(plan).queryByText(outline.warnings.count(1))).toBeNull()
+    const image = document.querySelector('[data-block-type="image"]')!
+    expect(within(image as HTMLElement).queryByRole("textbox")).toBeNull()
+    expect(screen.queryByText(/texte alternatif/i)).toBeNull()
+  })
+
   it("le plan : sans l'image de présentation, points à vérifier, encadré replié, survol partagé avec l'aperçu", async () => {
     const BOX = "00000000-0000-4000-8000-0000000000d3"
     const IMAGE = "00000000-0000-4000-8000-0000000000d4"
@@ -600,7 +626,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     // Ce qui manque est écrit sous la ligne, et la décrit.
     expect(
       within(plan).getByRole("button", {
-        name: outline.select(texts.editor.blockLabel.image("")),
+        name: outline.select(texts.editor.blockLabel.image),
       })
     ).toHaveAccessibleDescription(outline.warnings.noFile)
     expect(within(plan).getByText(outline.warnings.count(1))).toBeVisible()
@@ -609,7 +635,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     // L'encadré se replie : son image ne se voit plus dans le plan.
     const boxLabel = texts.editor.blockLabel.box(1)
     const imageRow = within(plan).getByRole("button", {
-      name: outline.select(texts.editor.blockLabel.image("")),
+      name: outline.select(texts.editor.blockLabel.image),
     })
     fireEvent.click(
       within(plan).getByRole("button", { name: outline.collapse(boxLabel) })
@@ -633,7 +659,7 @@ describe("éditeur d'un article (Le Fil)", () => {
       expect(
         within(plan)
           .getByRole("button", {
-            name: outline.select(texts.editor.blockLabel.image("")),
+            name: outline.select(texts.editor.blockLabel.image),
           })
           .closest("div")
       ).toHaveClass("bg-accent/60")
