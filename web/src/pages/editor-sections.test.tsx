@@ -739,15 +739,68 @@ describe("éditeur d'un article (Le Fil)", () => {
       .getAllByRole("button")
       .map((button) => button.getAttribute("aria-label"))
     expect(names).toEqual([
-      texts.templates.saveAs.action,
       texts.editor.settings.moveUp,
       texts.editor.settings.moveDown,
+      outline.duplicate,
+      texts.templates.saveAs.action,
       texts.editor.settings.remove,
     ])
     // Des icônes seules : leur nom est dans l'infobulle.
     expect(bar).not.toHaveTextContent(texts.editor.settings.remove)
     // Le plan dit « Section » (anciennement « Encadré »).
     expect(within(plan).getByText(/Section à fond/)).toBeVisible()
+  })
+
+  it("une section choisie dans le plan reste choisie (pas son premier texte), et « Dupliquer » la copie", async () => {
+    Element.prototype.scrollIntoView = vi.fn()
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        blocks: [
+          {
+            id: "00000000-0000-4000-8000-0000000000f9",
+            type: "box",
+            look: "border",
+            blocks: [
+              {
+                id: "00000000-0000-4000-8000-0000000000fa",
+                type: "text",
+                doc: {
+                  type: "doc",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "Dans la section" }],
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    const section = texts.editor.blockLabel.box(1)
+    fireEvent.click(
+      within(plan).getByRole("button", { name: outline.select(section) })
+    )
+    expect(
+      await screen.findByText(texts.editor.settings.title(section))
+    ).toBeVisible()
+    const bar = screen.getByRole("toolbar", {
+      name: texts.editor.settings.actions,
+    })
+    expect(
+      within(bar).getByRole("button", { name: texts.templates.saveAs.action })
+    ).toBeInTheDocument()
+    fireEvent.click(
+      within(bar).getByRole("button", { name: outline.duplicate })
+    )
+    await waitFor(() =>
+      expect(within(plan).getByText(outline.count(4))).toBeVisible()
+    )
   })
 
   it("l'aperçu n'a pas de poignée : c'est le plan qui range les blocs", async () => {

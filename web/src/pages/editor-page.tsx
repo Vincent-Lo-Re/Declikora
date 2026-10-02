@@ -491,9 +491,11 @@ type RightTab = "article" | "block"
  */
 function focusBlockSoon(id: string, attempts = 20, top = false) {
   const element = document.querySelector<HTMLElement>(`[data-block-id="${id}"]`)
-  const editable = element?.querySelector<HTMLElement>(
-    '[contenteditable="true"]'
-  )
+  const found = element?.querySelector<HTMLElement>('[contenteditable="true"]')
+  // Le texte du bloc lui-même : pas celui d'un bloc de sa section, qui deviendrait le bloc
+  // choisi en recevant le curseur.
+  const editable =
+    found && found.closest("[data-block-id]") === element ? found : null
   const scroll = () =>
     element?.scrollIntoView({
       block: top ? "start" : "nearest",
@@ -1898,6 +1900,7 @@ function ContentEditor({
       onDetach={detachBlock}
       removeBlocked={removeBlocked}
       onSaveAsTemplate={(id) => openSaveAs([id])}
+      onDuplicate={onDuplicate}
       actionBar
     />
   )
@@ -2351,8 +2354,11 @@ function ContentEditor({
             >
               {/* Une ligne, de la même hauteur que l'en-tête de droite : le retour, le titre,
                   l'état de l'enregistrement en icône. */}
-              <div className="flex h-12 shrink-0 items-center gap-1 border-b px-3">
-                <BackLink section={section} compact />
+              <div className="flex h-12 shrink-0 items-center gap-1 border-b px-4">
+                {/* La flèche alignée sur la marge de 16 px (son bouton déborde dans la marge). */}
+                <span className="-ml-1.5 flex">
+                  <BackLink section={section} compact />
+                </span>
                 <p
                   className="min-w-0 flex-1 truncate font-semibold"
                   aria-hidden
@@ -2366,7 +2372,7 @@ function ContentEditor({
                 onValueChange={(value: LeftTab) => setLeftTab(value)}
                 className="min-h-0 flex-1 gap-0"
               >
-                <div className="px-3 pt-3">
+                <div className="px-4 pt-3">
                   <TabsList className="w-full">
                     <TabsTrigger value="plan">
                       <ListTree />
@@ -2493,7 +2499,7 @@ function ContentEditor({
               )}
             >
               {/* Une ligne : le cadenas (en lecture seule), l'état de publication, « Publier ». */}
-              <div className="flex h-12 shrink-0 items-center gap-1 border-b px-3">
+              <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
                 {lockButton}
                 <PublicationBadge pub={pub} />
                 <span className="flex-1" />
@@ -2511,7 +2517,7 @@ function ContentEditor({
                 }
                 className="min-h-0 flex-1 gap-0"
               >
-                <div className="px-3 pt-3">
+                <div className="px-4 pt-3">
                   <TabsList className="w-full">
                     <TabsTrigger value="article">
                       {texts.editor.columns.article}
@@ -2523,7 +2529,7 @@ function ContentEditor({
                 </div>
                 <TabsContent
                   value="article"
-                  className="min-h-0 overflow-y-auto p-3"
+                  className="min-h-0 overflow-y-auto px-4 py-3"
                 >
                   {articlePanel}
                 </TabsContent>
