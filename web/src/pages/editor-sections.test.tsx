@@ -438,7 +438,19 @@ describe("éditeur d'un article (Le Fil)", () => {
       contentOf(
         ARTICLE,
         "article",
-        { blocks: [{ id: TEXT, type: "text", doc }] },
+        {
+          blocks: [
+            { id: TEXT, type: "text", doc },
+            // Une image : la Lecture la montre sans planter (02/10/2026).
+            {
+              id: "00000000-0000-4000-8000-0000000000d5",
+              type: "image",
+              mediaId: PLAGE,
+              caption: null,
+              alt: null,
+            },
+          ],
+        },
         { access_level_id: LEVEL, category_ids: [SOMMEIL] }
       )
     )
@@ -458,6 +470,8 @@ describe("éditeur d'un article (Le Fil)", () => {
     ).toBeVisible()
     expect(screen.queryByLabelText(texts.editor.title.label)).toBeNull()
     expect(within(phone).getByText("Respire lentement.")).toBeVisible()
+    // L'image du bloc (son adresse d'aperçu n'est pas lue ici) : affichée, sans planter.
+    expect(phone.querySelectorAll(".blocks-read .blocks-image")).toHaveLength(2)
     expect(
       await within(phone).findByText(`Sommeil · ${preview.minutes(1)}`)
     ).toBeVisible()

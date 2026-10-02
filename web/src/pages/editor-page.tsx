@@ -1369,6 +1369,12 @@ function ContentEditor({
     ]
   )
 
+  // La Lecture (éditeur du Fil) : les mêmes fichiers et modèles, rien de modifiable.
+  const readOnlyBlocks = useMemo<BlocksEditorValue>(
+    () => ({ ...blocksValue, editable: false, slash: undefined }),
+    [blocksValue]
+  )
+
   // --- Réglages du contenu, publication, historique -----------------------------------------
 
   const levels = useQuery({
@@ -2368,23 +2374,26 @@ function ContentEditor({
                 }
               >
                 {phoneView.mode === "read" ? (
-                  <ReadView
-                    draft={draft}
-                    title={title.trim() || untitled}
-                    cover={mediaFor(draft.cover?.mediaId ?? null)}
-                    meta={[
-                      ...(chosenCategoryNames ?? []).slice(0, 1),
-                      texts.editor.preview.minutes(stats.minutes),
-                    ].join(" · ")}
-                    locked={
-                      previewLocked(phoneView, settings)
-                        ? (levels.data?.find(
-                            (level) => level.id === settings.accessLevelId
-                          )?.name ?? null)
-                        : false
-                    }
-                    resolve={resolveLinked}
-                  />
+                  // Les images lisent l'éditeur (fichier, aperçu), en lecture seule.
+                  <BlocksEditorContext value={readOnlyBlocks}>
+                    <ReadView
+                      draft={draft}
+                      title={title.trim() || untitled}
+                      cover={mediaFor(draft.cover?.mediaId ?? null)}
+                      meta={[
+                        ...(chosenCategoryNames ?? []).slice(0, 1),
+                        texts.editor.preview.minutes(stats.minutes),
+                      ].join(" · ")}
+                      locked={
+                        previewLocked(phoneView, settings)
+                          ? (levels.data?.find(
+                              (level) => level.id === settings.accessLevelId
+                            )?.name ?? null)
+                          : false
+                      }
+                      resolve={resolveLinked}
+                    />
+                  </BlocksEditorContext>
                 ) : (
                   phone
                 )}
