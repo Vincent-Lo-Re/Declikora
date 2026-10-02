@@ -1,7 +1,6 @@
 import { cn } from "cn"
 import {
   ALargeSmall,
-  Apple,
   BatteryFull,
   Bookmark,
   ChevronLeft,
@@ -11,17 +10,17 @@ import {
   Pencil,
   Share,
   Signal,
-  Smartphone,
   Sun,
   UserCheck,
   UserX,
   Wifi,
   type LucideIcon,
 } from "lucide-react"
-import type { ReactNode } from "react"
+import type { ComponentType, ReactNode, SVGProps } from "react"
 
 import type { BlockMedia } from "@/blocks/components/context"
 import { StaticBlock } from "@/blocks/components/static-block"
+import { AndroidLogo, AppleLogo } from "@/components/brand-icons"
 import type { Block, Draft } from "@/blocks/types"
 import { CoverPreview } from "@/components/editor/presentation"
 import { Separator } from "@/components/ui/separator"
@@ -108,11 +107,13 @@ export function FeedPreview({
   )
 }
 
-type Choice<T extends string> = Record<T, { label: string; icon: LucideIcon }>
+// Une icône Lucide, ou l'un des deux logos de marque (iPhone, Android).
+type Icon = LucideIcon | ComponentType<SVGProps<SVGSVGElement>>
+type Choice<T extends string> = Record<T, { label: string; icon: Icon }>
 
 const deviceChoices: Choice<(typeof devices)[number]> = {
-  ios: { label: labels.device.ios, icon: Apple },
-  android: { label: labels.device.android, icon: Smartphone },
+  ios: { label: labels.device.ios, icon: AppleLogo },
+  android: { label: labels.device.android, icon: AndroidLogo },
 }
 const modeChoices: Choice<(typeof previewModes)[number]> = {
   edit: { label: labels.mode.edit, icon: Pencil },

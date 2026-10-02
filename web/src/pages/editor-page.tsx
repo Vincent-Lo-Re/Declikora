@@ -94,6 +94,7 @@ import {
 import { ArticlePanel } from "@/components/editor/article-panel"
 import { BlocksLibrary } from "@/components/editor/blocks-library"
 import {
+  CONTENT_TITLE_ID,
   AudioPreview,
   CoverPreview,
   PresentationPanel,
@@ -201,11 +202,10 @@ import {
 } from "@/lib/contents/publication"
 import {
   coverRequired,
-  hasAudio,
   hasPresentation,
   publishChecks,
   readyItems,
-  type Requirement,
+  titleRequired,
 } from "@/lib/contents/requirements"
 import {
   createTemplateFrom,
@@ -551,7 +551,7 @@ function ContentEditor({
   // ce bouton a disparu à la fermeture (« Choisir… » de l'aperçu, remplacé par l'image, ou la
   // fenêtre Publier, refermée), le focus va au bouton du panneau.
   const presentationPicker = useRef<{
-    key: Requirement["key"]
+    key: "cover" | "audio"
     returnTo: Element | null
   } | null>(null)
   // Ce qui n'était pas enregistré quand on a perdu la main (« Copier mon texte »).
@@ -1153,7 +1153,7 @@ function ContentEditor({
 
   /** Ouvre le choix de l'image de présentation ou de l'audio (s'il manque pour publier). */
   const openPresentationPicker = useCallback(
-    (key: Requirement["key"]) => {
+    (key: "cover" | "audio") => {
       if (!editable) return
       presentationPicker.current = { key, returnTo: document.activeElement }
       setSelectedId(null)
@@ -1459,9 +1459,7 @@ function ContentEditor({
   // Ce qui manque pour publier ([D45], audio) et le conseil [D46] : expliqués avant l'envoi.
   const checks = useMemo(
     () =>
-      coverRequired(kind) || hasAudio(kind)
-        ? publishChecks(kind, draft, mediaFor)
-        : undefined,
+      titleRequired(kind) ? publishChecks(kind, draft, mediaFor) : undefined,
     [kind, draft, mediaFor]
   )
 
@@ -1576,7 +1574,13 @@ function ContentEditor({
     takeLock: () => take(true),
     openSettings,
     checks,
-    onFix: openPresentationPicker,
+    // Le titre : le curseur y va ; une image ou un audio : le choix du fichier s'ouvre.
+    onFix: (key) => {
+      if (key === "title") {
+        setSelectedId(null)
+        focusOnceShown(() => document.getElementById(CONTENT_TITLE_ID))
+      } else openPresentationPicker(key)
+    },
   })
 
   // --- « Enregistrer comme modèle » (contenus) ----------------------------------------------
@@ -1719,6 +1723,7 @@ function ContentEditor({
       )}
       <textarea
         ref={titleRef}
+        id={CONTENT_TITLE_ID}
         rows={1}
         className="blocks-title"
         value={title}

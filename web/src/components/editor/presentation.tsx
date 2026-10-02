@@ -30,6 +30,9 @@ import { texts } from "@/texts"
 
 const labels = texts.editor.presentation
 
+// Le titre du contenu, en tête de l'aperçu : « Prêt à publier ? » et « Écrire le titre » y mènent.
+export const CONTENT_TITLE_ID = "contenu-titre"
+
 // Nombres en français (« 1 000 »).
 const integer = new Intl.NumberFormat("fr-FR")
 

@@ -154,6 +154,9 @@ export function LockBanner({
           <Alert
             variant={destructive ? "destructive" : "default"}
             data-lock-phase={lock.phase}
+            // L'icône au milieu de la ligne (message et boutons), et non sur la première ligne
+            // du texte comme dans les autres alertes.
+            className="items-center *:[svg]:row-span-1 *:[svg]:translate-y-0"
           >
             {content}
           </Alert>

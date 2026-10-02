@@ -4,6 +4,7 @@ import type { BlockMedia } from "@/blocks/components/context"
 import type { Media } from "@/lib/media/constants"
 import {
   coverRequired,
+  titleRequired,
   hasAudio,
   hasCategories,
   hasPresentation,
@@ -66,21 +67,38 @@ describe("sortes", () => {
 })
 
 describe("ce qui manque pour publier", () => {
-  it("une page : rien n'est exigé", () => {
-    expect(publishChecks("page", {}, mediaFor({}))).toEqual({
+  it("une page : seulement le titre ([D49])", () => {
+    expect(publishChecks("page", { title: "À propos" }, mediaFor({}))).toEqual({
       missing: [],
       advice: [],
     })
   })
 
+  it("le titre est demandé en premier, et des espaces ne font pas un titre ([D49])", () => {
+    for (const kind of [
+      "page",
+      "article",
+      "episode",
+      "method",
+      "chapter",
+      "lesson",
+    ]) {
+      expect(
+        publishChecks(kind, { title: "  " }, mediaFor({})).missing[0]
+      ).toEqual({ key: "title", state: "missing" })
+    }
+    expect(titleRequired("template")).toBe(false)
+  })
+
   it("un article sans image de présentation (le résumé reste facultatif)", () => {
     expect(
-      publishChecks("article", { cover: null }, mediaFor({})).missing
+      publishChecks("article", { title: "Titre", cover: null }, mediaFor({}))
+        .missing
     ).toEqual([{ key: "cover", state: "missing" }])
     expect(
       publishChecks(
         "article",
-        { cover: { mediaId: IMAGE } },
+        { title: "Titre", cover: { mediaId: IMAGE } },
         mediaFor({ [IMAGE]: readyImage })
       )
     ).toEqual({ missing: [], advice: [] })
@@ -90,7 +108,7 @@ describe("ce qui manque pour publier", () => {
     const check = (file: BlockMedia) =>
       publishChecks(
         "article",
-        { cover: { mediaId: IMAGE } },
+        { title: "Titre", cover: { mediaId: IMAGE } },
         mediaFor({ [IMAGE]: file })
       ).missing
     expect(check({ state: "missing" })).toEqual([
@@ -115,14 +133,14 @@ describe("ce qui manque pour publier", () => {
     expect(
       publishChecks(
         "episode",
-        { cover: { mediaId: IMAGE }, audio: null },
+        { title: "Titre", cover: { mediaId: IMAGE }, audio: null },
         mediaFor({ [IMAGE]: readyImage })
       ).missing
     ).toEqual([{ key: "audio", state: "missing" }])
     expect(
       publishChecks(
         "episode",
-        { cover: null, audio: null },
+        { title: "Titre", cover: null, audio: null },
         mediaFor({})
       ).missing.map((item) => item.key)
     ).toEqual(["cover", "audio"])
@@ -130,7 +148,11 @@ describe("ce qui manque pour publier", () => {
     const withAudio = (transcript: string | null) =>
       publishChecks(
         "episode",
-        { cover: { mediaId: IMAGE }, audio: { mediaId: AUDIO } },
+        {
+          title: "Titre",
+          cover: { mediaId: IMAGE },
+          audio: { mediaId: AUDIO },
+        },
         mediaFor({ [IMAGE]: readyImage, [AUDIO]: readyAudio(transcript) })
       )
     // La transcription est conseillée, pas obligatoire.
@@ -149,7 +171,11 @@ describe("ce qui manque pour publier", () => {
     expect(
       publishChecks(
         "episode",
-        { cover: { mediaId: IMAGE }, audio: { mediaId: IMAGE } },
+        {
+          title: "Titre",
+          cover: { mediaId: IMAGE },
+          audio: { mediaId: IMAGE },
+        },
         mediaFor({ [IMAGE]: readyImage })
       ).missing
     ).toEqual([{ key: "audio", state: "unavailable" }])
@@ -157,17 +183,25 @@ describe("ce qui manque pour publier", () => {
 })
 
 describe("prêt à publier (éditeur du Fil)", () => {
-  it("l'image de présentation, puis le niveau d'accès", () => {
+  it("le titre, l'image de présentation, puis le niveau d'accès", () => {
     expect(
       readyItems(
-        { missing: [{ key: "cover", state: "missing" }], advice: [] },
+        {
+          missing: [
+            { key: "title", state: "missing" },
+            { key: "cover", state: "missing" },
+          ],
+          advice: [],
+        },
         false
       )
     ).toEqual([
+      { key: "title", done: false },
       { key: "cover", done: false },
       { key: "access", done: false },
     ])
     expect(readyItems({ missing: [], advice: [] }, true)).toEqual([
+      { key: "title", done: true },
       { key: "cover", done: true },
       { key: "access", done: true },
     ])
