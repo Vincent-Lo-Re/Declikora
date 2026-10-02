@@ -1882,6 +1882,7 @@ export const texts = {
         title: "Prêt à publier ?",
         count: (done: number, total: number) => `${done} / ${total}`,
         items: {
+          title: "Titre",
           cover: "Image de présentation",
           access: "Niveau d'accès",
         },
@@ -2059,6 +2060,8 @@ export const texts = {
         "Quelqu'un écrit ce brouillon en ce moment : reprends la main, ou attends qu'il ait fini.",
       adresse_manquante: "Choisis l'adresse de la page avant de la publier.",
       son_manquant: "Choisis l'audio de l'épisode avant de le publier.",
+      // [D49].
+      titre_manquant: "Donne un titre avant de publier.",
       // Étape 7 : [D45].
       image_de_presentation_manquante:
         "Choisis l'image de présentation avant de publier : c'est la vignette des listes de l'app.",
@@ -2183,6 +2186,8 @@ export const texts = {
     requirements: {
       publishTitle: "Pour publier, il manque :",
       scheduleTitle: "Pour programmer, il manque :",
+      title: "Le titre.",
+      writeTitle: "Écrire le titre",
       cover: "L'image de présentation (la vignette des listes de l'app).",
       coverUnavailable:
         "Une image de présentation disponible : la sienne est supprimée ou pas prête.",

@@ -176,6 +176,11 @@ export function usePublication(bridge: PublicationBridge) {
           toast.error(error.message)
           bridge.onFix?.("cover")
           return
+        // [D49] : le curseur va dans le titre.
+        case "titre_manquant":
+          toast.error(error.message)
+          bridge.onFix?.("title")
+          return
         case "son_manquant":
           toast.error(error.message)
           bridge.onFix?.("audio")

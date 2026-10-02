@@ -838,6 +838,60 @@ describe("éditeur d'un article (Le Fil)", () => {
     await waitFor(() => expect(mediaApi.kickFiles).toHaveBeenCalled())
   })
 
+  it("[D49] : sans titre, « Prêt à publier ? » et « Publier » le demandent, et y mènent", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", { title: "  " })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    const title = await editable()
+    const todo = within(articleTab()).getByRole("button", {
+      name: article.ready.todo(article.ready.items.title),
+    })
+    // Le niveau est déjà choisi : seuls le titre et l'image manquent.
+    expect(within(articleTab()).getByText("1 / 3")).toBeVisible()
+    fireEvent.click(todo)
+    await waitFor(() => expect(title).toHaveFocus())
+
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.publication.actions.publish })
+    )
+    const dialog = await screen.findByRole("dialog")
+    expect(dialog).toHaveTextContent(requirements.title)
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: requirements.writeTitle })
+    )
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    await waitFor(() => expect(title).toHaveFocus())
+
+    fireEvent.change(title, { target: { value: "Bien dormir" } })
+    expect(
+      within(articleTab()).getByRole("button", {
+        name: article.ready.done(article.ready.items.title),
+      })
+    ).toBeVisible()
+  })
+
+  it("un refus de la base (titre_manquant) met le curseur dans le titre", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", { cover: { mediaId: PLAGE } })
+    )
+    vi.mocked(publicationApi.publishContent).mockRejectedValue(
+      new api.ContentError("titre_manquant")
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    const title = await editable()
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.publication.actions.publish })
+    )
+    const dialog = await screen.findByRole("dialog")
+    fireEvent.click(
+      within(dialog).getByRole("button", {
+        name: texts.publication.publishDialog.confirm,
+      })
+    )
+    await waitFor(() => expect(title).toHaveFocus())
+  })
+
   it("un refus de la base (image_de_presentation_manquante) ouvre le choix de l'image", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       // Une image que l'éditeur n'arrive pas à lire : la base tranche.

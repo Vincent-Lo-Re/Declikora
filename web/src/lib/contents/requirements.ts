@@ -1,10 +1,15 @@
-// Ce qu'il faut pour publier un contenu, vu de l'admin (sans React) : [D45] (image de
-// présentation d'un article, d'un épisode et, plus tard, d'une méthode), l'audio d'un épisode,
-// et le conseil [D46] (transcription). La base vérifie les mêmes règles (publish, schedule) :
+// Ce qu'il faut pour publier un contenu, vu de l'admin (sans React) : le titre ([D49], tout ce
+// qui se publie), [D45] (image de présentation d'un article, d'un épisode et d'une méthode),
+// l'audio d'un épisode, et le conseil [D46] (transcription). La base vérifie les mêmes règles (publish, schedule) :
 // l'admin ne fait qu'expliquer avant d'envoyer.
 
 import type { BlockMedia } from "@/blocks/components/context"
 import type { Draft } from "@/blocks/types"
+
+/** Sortes dont le titre est obligatoire pour publier ([D49]) : tout sauf un modèle de bloc. */
+export function titleRequired(kind: string): boolean {
+  return kind !== "template"
+}
 
 /** Sortes dont l'image de présentation est obligatoire pour publier ([D45]). */
 export function coverRequired(kind: string): boolean {
@@ -41,11 +46,11 @@ export function hasCategories(kind: string): boolean {
 }
 
 /**
- * Ce qui manque : l'image de présentation ou l'audio, absent (missing) ou plus disponible
- * (unavailable : supprimé, pas prêt, ou d'un autre type).
+ * Ce qui manque : le titre, l'image de présentation ou l'audio, absent (missing) ou plus
+ * disponible (unavailable : supprimé, pas prêt, ou d'un autre type).
  */
 export type Requirement = {
-  key: "cover" | "audio"
+  key: "title" | "cover" | "audio"
   state: "missing" | "unavailable"
 }
 
@@ -80,11 +85,15 @@ function fileState(
  */
 export function publishChecks(
   kind: string,
-  draft: Pick<Draft, "cover" | "audio">,
+  draft: Pick<Draft, "title" | "cover" | "audio">,
   mediaFor: (mediaId: string | null) => BlockMedia
 ): PublishChecks {
   const missing: Requirement[] = []
   const advice: Advice[] = []
+  // Comme la base : des espaces ne font pas un titre, et il est demandé en premier.
+  if (titleRequired(kind) && draft.title.trim() === "") {
+    missing.push({ key: "title", state: "missing" })
+  }
   if (coverRequired(kind)) {
     const state = fileState(mediaFor(draft.cover?.mediaId ?? null), "image")
     if (state) missing.push({ key: "cover", state })
@@ -104,19 +113,26 @@ export function publishChecks(
   return { missing, advice }
 }
 
-/** Une ligne de « Prêt à publier ? » (éditeur du Fil) : l'image de présentation, le niveau d'accès. */
-export type ReadyItem = { key: "cover" | "access"; done: boolean }
+/**
+ * Une ligne de « Prêt à publier ? » (éditeur du Fil) : le titre, l'image de présentation, le
+ * niveau d'accès.
+ */
+export type ReadyItem = { key: "title" | "cover" | "access"; done: boolean }
 
 /**
- * « Prêt à publier ? » : l'image de présentation ([D45]) et le niveau d'accès, que « Publier »
- * demande tant qu'il n'est pas choisi ([D41]). Une image en cours de lecture compte comme faite
- * (la base tranchera), comme pour publishChecks.
+ * « Prêt à publier ? » : le titre ([D49]), l'image de présentation ([D45]) et le niveau d'accès,
+ * que « Publier » demande tant qu'il n'est pas choisi ([D41]). Une image en cours de lecture
+ * compte comme faite (la base tranchera), comme pour publishChecks.
  */
 export function readyItems(
   checks: PublishChecks,
   accessChosen: boolean
 ): ReadyItem[] {
   return [
+    {
+      key: "title",
+      done: !checks.missing.some((item) => item.key === "title"),
+    },
     {
       key: "cover",
       done: !checks.missing.some((item) => item.key === "cover"),

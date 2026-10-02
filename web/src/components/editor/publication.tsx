@@ -599,7 +599,7 @@ function RequirementsNotice({
   const checks = pub.bridge.checks
   if (!checks) return null
   const words = labels.requirements
-  const fix = (key: "cover" | "audio") => {
+  const fix = (key: "title" | "cover" | "audio") => {
     pub.setDialog(null)
     pub.bridge.onFix?.(key)
   }
@@ -619,13 +619,15 @@ function RequirementsNotice({
                   className="flex flex-wrap items-center justify-between gap-2"
                 >
                   <span>
-                    {item.key === "cover"
-                      ? item.state === "missing"
-                        ? words.cover
-                        : words.coverUnavailable
-                      : item.state === "missing"
-                        ? words.audio
-                        : words.audioUnavailable}
+                    {item.key === "title"
+                      ? words.title
+                      : item.key === "cover"
+                        ? item.state === "missing"
+                          ? words.cover
+                          : words.coverUnavailable
+                        : item.state === "missing"
+                          ? words.audio
+                          : words.audioUnavailable}
                   </span>
                   {pub.bridge.editable && pub.bridge.onFix && (
                     <Button
@@ -634,9 +636,11 @@ function RequirementsNotice({
                       variant="outline"
                       onClick={() => fix(item.key)}
                     >
-                      {item.key === "cover"
-                        ? words.chooseCover
-                        : words.chooseAudio}
+                      {item.key === "title"
+                        ? words.writeTitle
+                        : item.key === "cover"
+                          ? words.chooseCover
+                          : words.chooseAudio}
                     </Button>
                   )}
                 </li>

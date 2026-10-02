@@ -126,11 +126,14 @@ function ChangeRow({ row, onOpen }: { row: PreviewRow; onOpen: () => void }) {
   const label = rowLabel(row)
   const path =
     row.kind === "method" ? null : contentEditorPath(row.kind, row.elementId)
-  // L'image de présentation de la fiche est déjà signalée au-dessus (avec « Choisir l'image »).
+  // Le titre et l'image de présentation de la fiche sont déjà signalés au-dessus (avec « Écrire
+  // le titre » et « Choisir l'image »).
   const problem =
     row.problem &&
     !(
-      row.kind === "method" && row.problem === "image_de_presentation_manquante"
+      row.kind === "method" &&
+      (row.problem === "image_de_presentation_manquante" ||
+        row.problem === "titre_manquant")
     )
       ? row.problem
       : null

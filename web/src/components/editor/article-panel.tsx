@@ -23,7 +23,7 @@ import {
   AddCategory,
   type SectionCategories,
 } from "@/components/editor/content-settings-sheet"
-import { CoverAlt } from "@/components/editor/presentation"
+import { CONTENT_TITLE_ID, CoverAlt } from "@/components/editor/presentation"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -55,6 +55,7 @@ const FREE = "gratuit"
 
 // Où mène chaque ligne de « Prêt à publier ? ».
 const targets: Record<ReadyItem["key"], string> = {
+  title: CONTENT_TITLE_ID,
   cover: "article-image",
   access: "article-niveau",
 }
