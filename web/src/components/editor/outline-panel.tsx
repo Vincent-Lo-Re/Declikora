@@ -14,15 +14,25 @@ import {
   Ellipsis,
   GripVertical,
   Heading2,
-  ImageIcon,
+  Heading3,
   LayoutTemplate,
+  Link2,
+  List,
   ListChecks,
   Trash2,
   TriangleAlert,
   X,
+  type LucideIcon,
 } from "lucide-react"
-import { useContext, useState, type CSSProperties, type ReactNode } from "react"
+import {
+  useContext,
+  useId,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react"
 
+import type { BlockMedia } from "@/blocks/components/context"
 import {
   DraggingTypeContext,
   useBlockDrag,
@@ -48,11 +58,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { headingsOf, type BlockWarning } from "@/lib/editor/outline"
+  textOutline,
+  type BlockWarning,
+  type TextOutline,
+} from "@/lib/editor/outline"
 import { texts } from "@/texts"
 
 const labels = texts.editor.outline
@@ -71,13 +80,14 @@ type OutlineSelection = {
 }
 
 /**
- * Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions ») : l'image de présentation en tête,
- * les intertitres sous chaque texte, les encadrés repliables, ce qui manque, un menu « … » par
- * ligne, et le survol partagé avec l'aperçu.
+ * Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions ») : les blocs seulement (l'image de
+ * présentation se règle dans la colonne de droite), chacun par son contenu (l'icône dit le
+ * type), une vignette par image, les intertitres sous chaque texte, les encadrés repliables, ce
+ * qui manque écrit en clair, un menu « … » par ligne, et le survol partagé avec l'aperçu.
  */
 export type FeedOutline = {
-  coverMissing: boolean
-  onCover: () => void
+  // Le fichier d'une image : sa vignette et son nom.
+  mediaFor: (mediaId: string | null) => BlockMedia
   // Le bloc survolé, ici ou dans l'aperçu.
   hoveredId: string | null
   onHover: (id: string | null) => void
@@ -118,8 +128,7 @@ export function OutlinePanel({
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
   const all = flattenBlocks(draft)
   const warnings = feed
-    ? all.filter(({ block }) => feed.warningOf(block) !== null).length +
-      (feed.coverMissing ? 1 : 0)
+    ? all.filter(({ block }) => feed.warningOf(block) !== null).length
     : 0
   const choosing = selection?.active ?? false
   // Éditeur du Fil : les lignes se rangent par glisser-déposer (pas pendant « Choisir des
@@ -169,28 +178,23 @@ export function OutlinePanel({
       </div>
       {/* Sans bloc, « Aucun bloc pour l'instant » le dit déjà. */}
       {feed && all.length > 0 && (
-        <p className="px-2 pb-2 text-xs text-muted-foreground">
+        <p className="flex items-center gap-1.5 px-2 pb-2 text-xs text-muted-foreground">
           {labels.count(all.length)}
+          {warnings > 0 && (
+            <>
+              <span aria-hidden>·</span>
+              <span className="flex items-center gap-1 text-warning">
+                <TriangleAlert aria-hidden className="size-3.5 shrink-0" />
+                {labels.warnings.count(warnings)}
+              </span>
+            </>
+          )}
         </p>
       )}
       {choosing && (
         <p className="px-2 pb-2 text-xs text-muted-foreground">
           {saveAs.selectHint}
         </p>
-      )}
-      {feed && (
-        <div className="flex min-w-0 items-center gap-1">
-          <button type="button" className={rowButton} onClick={feed.onCover}>
-            <ImageIcon
-              aria-hidden
-              className="size-4 shrink-0 text-muted-foreground"
-            />
-            <span className="truncate">{labels.cover}</span>
-          </button>
-          {feed.coverMissing && (
-            <Warning label={labels.warnings.coverMissing} />
-          )}
-        </div>
       )}
       {all.length === 0 ? (
         <p className="px-2 text-sm text-muted-foreground">{labels.empty}</p>
@@ -234,12 +238,6 @@ export function OutlinePanel({
             </DndContext>
           )
         })()
-      )}
-      {feed && warnings > 0 && (
-        <p className="mt-3 flex items-center gap-1.5 px-2 text-xs text-warning">
-          <TriangleAlert aria-hidden className="size-3.5 shrink-0" />
-          {labels.warnings.count(warnings)}
-        </p>
       )}
       {choosing && selection && (
         <div className="mt-3 border-t pt-3">
@@ -330,7 +328,8 @@ function SortableRow(props: RowProps) {
             {...attributes}
             {...listeners}
             aria-label={labels.move(label)}
-            className="flex h-7 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground opacity-0 group-hover/row:opacity-100 hover:bg-accent focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
+            // Dans la marge, à gauche de la ligne : elle ne prend pas de place au libellé.
+            className="absolute top-1.5 -left-3 flex h-6 w-3 cursor-grab touch-none items-center justify-center rounded-sm text-muted-foreground opacity-0 group-hover/row:opacity-100 hover:bg-accent focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
           >
             <GripVertical aria-hidden className="size-3.5" />
           </button>
@@ -362,7 +361,8 @@ function OutlineRow({
   const checkable = choosing && container === ROOT
   const warning = feed?.warningOf(block) ?? null
   const isCollapsed = shared.collapsed.has(block.id)
-  const headings = feed && block.type === "text" ? headingsOf(block.doc) : []
+  const outline = feed && block.type === "text" ? textOutline(block.doc) : null
+  const warningId = useId()
   return (
     <li
       ref={rowRef}
@@ -372,7 +372,7 @@ function OutlineRow({
     >
       <div
         className={cn(
-          "group/row flex min-w-0 items-center gap-1 rounded-md",
+          "group/row relative flex min-w-0 items-center gap-1 rounded-md",
           feed?.hoveredId === block.id && "bg-accent/60"
         )}
         onPointerEnter={feed && (() => feed.onHover(block.id))}
@@ -404,16 +404,42 @@ function OutlineRow({
           type="button"
           aria-label={labels.select(label)}
           aria-current={selectedId === block.id || undefined}
+          aria-describedby={warning ? warningId : undefined}
           onClick={() => onSelect(block.id)}
           className={cn(
             rowButton,
             selectedId === block.id && "bg-accent font-medium"
           )}
         >
-          <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate">{label}</span>
+          {feed ? (
+            <FeedRowContent
+              block={block}
+              outline={outline}
+              media={
+                block.type === "image" ? feed.mediaFor(block.mediaId) : null
+              }
+              templateName={shared.templateName(block)}
+              warning={
+                warning && (
+                  <span
+                    id={warningId}
+                    className="truncate text-xs text-warning"
+                  >
+                    {labels.warnings[warning]}
+                  </span>
+                )
+              }
+            />
+          ) : (
+            <>
+              <Icon
+                aria-hidden
+                className="size-4 shrink-0 text-muted-foreground"
+              />
+              <span className="truncate">{label}</span>
+            </>
+          )}
         </button>
-        {warning && <Warning label={labels.warnings[warning]} />}
         {feed?.actions && (
           <RowActions
             label={label}
@@ -428,21 +454,30 @@ function OutlineRow({
           />
         )}
       </div>
-      {headings.length > 0 && (
+      {outline && outline.headings.length > 0 && (
         <ol className="grid gap-0.5 pl-5">
-          {headings.map((heading, index) => (
-            <li key={index}>
-              <button
-                type="button"
-                aria-label={labels.heading(heading)}
-                onClick={() => feed!.onHeading(block.id, index)}
-                className={cn(rowButton, "py-1 text-xs text-muted-foreground")}
+          {outline.headings.map((heading) => {
+            const HeadingIcon = heading.level === 2 ? Heading2 : Heading3
+            return (
+              <li
+                key={heading.index}
+                className={cn(heading.level === 3 && "pl-4")}
               >
-                <Heading2 aria-hidden className="size-3.5 shrink-0" />
-                <span className="truncate">{heading}</span>
-              </button>
-            </li>
-          ))}
+                <button
+                  type="button"
+                  aria-label={labels.heading(heading.text)}
+                  onClick={() => feed!.onHeading(block.id, heading.index)}
+                  className={cn(
+                    rowButton,
+                    "py-1 text-xs text-muted-foreground"
+                  )}
+                >
+                  <HeadingIcon aria-hidden className="size-3.5 shrink-0" />
+                  <span className="truncate">{heading.text}</span>
+                </button>
+              </li>
+            )
+          })}
         </ol>
       )}
       {block.type === "box" && !isCollapsed && (
@@ -492,7 +527,11 @@ function DroppableBoxRows({
         ref={setNodeRef}
         className={cn(
           "grid min-h-2 gap-0.5 rounded-md",
-          shared.choosing ? "pl-11" : "pl-5",
+          shared.feed
+            ? cn("border-l pl-1.5", shared.choosing ? "ml-9" : "ml-3.5")
+            : shared.choosing
+              ? "pl-11"
+              : "pl-5",
           isOver && box.blocks.length === 0 && "outline-2 outline-ring/60"
         )}
       >
@@ -504,6 +543,11 @@ function DroppableBoxRows({
             shared={shared}
           />
         ))}
+        {shared.feed && shared.sortable && box.blocks.length === 0 && (
+          <li className="rounded-md border border-dashed px-2 py-1.5 text-xs text-muted-foreground">
+            {labels.dropInBox}
+          </li>
+        )}
       </ol>
     </SortableContext>
   )
@@ -512,23 +556,126 @@ function DroppableBoxRows({
 const rowButton =
   "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
 
-/** Ce qui manque à une ligne : une icône, son sens dans l'infobulle (et lu). */
-function Warning({ label }: { label: string }) {
+const leadIcons: Record<TextOutline["lead"], LucideIcon> = {
+  h2: Heading2,
+  h3: Heading3,
+  list: List,
+  paragraph: blockRegistry.text.icon,
+  empty: blockRegistry.text.icon,
+}
+
+/**
+ * Éditeur du Fil : ce que montre une ligne. Le contenu plutôt que le type (l'icône le dit) :
+ * l'intertitre qui ouvre un texte ou son début, la vignette et la légende (ou le nom du fichier)
+ * d'une image, l'aspect et le nombre de blocs d'un encadré, le nom d'un bloc partagé. Le nom
+ * complet du bouton (« Aller à Texte « … » ») reste celui des lecteurs d'écran.
+ */
+function FeedRowContent({
+  block,
+  outline,
+  media,
+  templateName,
+  warning,
+}: {
+  block: Block
+  outline: TextOutline | null
+  media: BlockMedia | null
+  templateName: string | null
+  // Ce qui manque, écrit en clair sous le libellé.
+  warning: ReactNode
+}) {
+  const icon = "size-4 shrink-0 text-muted-foreground"
+  // Le libellé, et dessous ce qui manque.
+  const lines = (main: ReactNode) => (
+    <span className="grid min-w-0 flex-1">
+      {main}
+      {warning}
+    </span>
+  )
+  if (block.type === "text" && outline) {
+    const Icon = leadIcons[outline.lead]
+    return (
+      <>
+        <Icon aria-hidden className={icon} />
+        {lines(
+          outline.lead === "empty" ? (
+            <span className="truncate text-muted-foreground italic">
+              {texts.editor.blockLabel.text("")}
+            </span>
+          ) : (
+            <span
+              className={cn(
+                "truncate",
+                (outline.lead === "h2" || outline.lead === "h3") &&
+                  "font-medium"
+              )}
+            >
+              {outline.text}
+            </span>
+          )
+        )}
+      </>
+    )
+  }
+  if (block.type === "image") {
+    const file = media && "media" in media ? media.media.name : ""
+    return (
+      <>
+        <Thumbnail media={media} />
+        {lines(
+          <span className="truncate">
+            {block.caption?.trim() || file || texts.editor.blockLabel.image("")}
+          </span>
+        )}
+      </>
+    )
+  }
+  if (block.type === "box") {
+    return (
+      <span className="truncate">
+        {labels.box[block.look]}{" "}
+        <span className="text-muted-foreground">
+          · {labels.boxCount(block.blocks.length)}
+        </span>
+      </span>
+    )
+  }
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <span
-            role="img"
-            aria-label={label}
-            className="flex size-6 shrink-0 items-center justify-center text-warning"
-          />
-        }
-      >
-        <TriangleAlert aria-hidden className="size-4" />
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
+    <>
+      <Link2 aria-hidden className={icon} />
+      {lines(
+        <span className="truncate">
+          {templateName?.trim() || texts.editor.blockLabel.linked(null)}
+        </span>
+      )}
+      <span className="ml-auto shrink-0 rounded-full border px-1.5 text-xs text-muted-foreground">
+        {labels.shared}
+      </span>
+    </>
+  )
+}
+
+/** La vignette d'une image : son fichier, ou un cadre en pointillés s'il n'y en a pas encore. */
+function Thumbnail({ media }: { media: BlockMedia | null }) {
+  if (media?.state === "ready" && media.url) {
+    return (
+      <img
+        src={media.url}
+        alt=""
+        className="h-5 w-7 shrink-0 rounded-sm object-cover"
+      />
+    )
+  }
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "h-5 w-7 shrink-0 rounded-sm",
+        !media || media.state === "none"
+          ? "border border-dashed border-muted-foreground"
+          : "bg-muted"
+      )}
+    />
   )
 }
 
@@ -554,7 +701,8 @@ function RowActions({
             variant="ghost"
             size="icon-xs"
             aria-label={labels.actions(label)}
-            className="opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 aria-expanded:opacity-100"
+            // Par-dessus la fin de la ligne : il ne prend pas de place au libellé.
+            className="absolute top-1 right-1 bg-accent opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 aria-expanded:opacity-100"
           />
         }
       >

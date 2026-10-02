@@ -1866,15 +1866,11 @@ function ContentEditor({
   )
 
   // Le plan : la colonne de gauche (onglet « Plan » de l'éditeur du Fil).
-  // Éditeur du Fil : le plan montre aussi l'image de présentation, les intertitres et ce qui
-  // manque, avec un menu « … » par ligne.
+  // Éditeur du Fil : le plan montre le contenu de chaque bloc (vignettes, intertitres) et ce
+  // qui manque, avec un menu « … » par ligne.
   const feedOutline: FeedOutline | undefined = feed
     ? {
-        coverMissing: !draft.cover,
-        onCover: () => {
-          setSelectedId(null)
-          focusOnceShown(() => document.getElementById("article-image"))
-        },
+        mediaFor,
         hoveredId,
         onHover: setHoveredId,
         warningOf: (block) => blockWarning(block, mediaFor, templateFor),
@@ -1883,7 +1879,7 @@ function ContentEditor({
           setSelectedId(id)
           requestAnimationFrame(() => {
             const headings = document.querySelectorAll(
-              `[data-block-text="${id}"] h2`
+              `[data-block-text="${id}"] :is(h2, h3)`
             )
             headings[index]?.scrollIntoView({
               block: "center",
