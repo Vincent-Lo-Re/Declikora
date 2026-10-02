@@ -771,7 +771,9 @@ test("Pages : recherche (accents, casse, adresse) et filtre par état dans la li
   await expect(liveRow).toBeVisible()
   await expect(draftRow).toBeVisible()
   await expect(
-    page.getByRole("status").filter({ hasText: /^2 (sur \d+|éléments)$/ })
+    page
+      .getByRole("status")
+      .filter({ hasText: new RegExp(`^(2 sur \\d+|${list.count(2, 2)})$`) })
   ).toBeVisible()
 
   // Sans accents ni majuscules : « ETE SEREIN » trouve « Été serein ».
