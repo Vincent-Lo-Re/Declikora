@@ -6,7 +6,8 @@
 //    publier ; l'app le liste avec sa vignette (publique, question 1) ; filtres par catégorie
 //    (admin et app) ; la catégorie supprimée, l'app l'ignore ([D28]).
 // 1 bis. L'éditeur du Fil : « / » dans un texte vide, un Texte glissé depuis l'onglet Blocs, un
-//    intertitre dans le plan, « … » › Dupliquer, la Concentration, puis recharger.
+//    intertitre dans le plan, « … » › Dupliquer, le plan rangé au clavier, la Concentration,
+//    puis recharger.
 // 2. Podcasts : un épisode que « Publier » refuse sans audio ; l'audio choisi dans la
 //    médiathèque, sa durée affichée, la transcription conseillée ([D46]) ; publier ; l'app le
 //    liste avec sa durée ; la transcription ajoutée depuis sa fiche fait taire l'avertissement.
@@ -339,6 +340,38 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
   await page.getByRole("menuitem", { name: outline.duplicate }).click()
   await expect(rows).toHaveCount(3)
   await expect(plan.getByText(outline.count(3))).toBeVisible()
+
+  // Le plan se range au clavier, comme l'aperçu : la copie de l'encadré monte en tête.
+  const copyHandle = plan
+    .getByRole("button", {
+      name: outline.move(texts.editor.blockLabel.box(0)),
+    })
+    .last()
+  await rows.last().hover()
+  await copyHandle.focus()
+  await page.keyboard.press("Space")
+  // dnd-kit n'écoute les flèches qu'au tour suivant de la boucle d'événements.
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)))
+  // Le plan a sa propre annonce (la première de la page) ; chaque flèche attend la sienne.
+  const announced = page.locator('[id^="DndLiveRegion"]').first()
+  await expect(announced).toContainText(
+    editor.dnd.start(texts.editor.blockLabel.box(0))
+  )
+  for (const target of [
+    texts.editor.blockLabel.box(0),
+    texts.editor.blockLabel.text("Les bons réflexes"),
+  ]) {
+    await page.keyboard.press("ArrowUp")
+    await expect(announced).toContainText(
+      editor.dnd.over(texts.editor.blockLabel.box(0), target, editor.dnd.page)
+    )
+  }
+  await page.keyboard.press("Space")
+  await expect(rows).toHaveText([
+    texts.editor.blockLabel.box(0),
+    texts.editor.blockLabel.text("Les bons réflexes"),
+    texts.editor.blockLabel.box(0),
+  ])
 
   // Concentration : les deux colonnes se cachent, Échap les ramène.
   const left = page.getByRole("complementary", { name: editor.columns.left })

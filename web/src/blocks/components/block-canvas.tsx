@@ -1,36 +1,13 @@
-import {
-  DndContext,
-  DragOverlay,
-  KeyboardSensor,
-  PointerSensor,
-  useDroppable,
-  useSensor,
-  useSensors,
-  type Announcements,
-  type CollisionDetection,
-  type DragEndEvent,
-  type DragOverEvent,
-  type DragStartEvent,
-  type UniqueIdentifier,
-} from "@dnd-kit/core"
+import { DndContext, DragOverlay, useDroppable } from "@dnd-kit/core"
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { cn } from "cn"
 import { GripVertical, Link2, Plus } from "lucide-react"
-import {
-  createContext,
-  memo,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import { memo, useContext, useMemo } from "react"
 import { Link } from "react-router"
 
 import {
@@ -42,20 +19,15 @@ import { ImageBlockView } from "@/blocks/components/image-block"
 import { StaticBlock } from "@/blocks/components/static-block"
 import { TextBlockView } from "@/blocks/components/text-block"
 import {
-  blocksCollision,
-  moveOnDrop,
-  moveOver,
-  targetContainer,
-  zoneId,
-  type DropData,
-} from "@/blocks/dnd"
-import { findBlock } from "@/blocks/draft"
+  DraggingTypeContext,
+  useBlockDrag,
+} from "@/blocks/components/use-block-drag"
+import { zoneId, type DropData } from "@/blocks/dnd"
 import { blockLabel } from "@/blocks/labels"
 import { insertableBlocks } from "@/blocks/registry"
 import {
   ROOT,
   type Block,
-  type BlockType,
   type BoxBlock,
   type ContainerId,
   type Draft,
@@ -92,98 +64,10 @@ export function BlockCanvas({
   // bloc ne sort pas d'un encadré s'il faut dépasser ce nombre.
   rootLimit?: number
 }) {
-  const [activeId, setActiveId] = useState<string | null>(null)
-  // Le brouillon au début du déplacement : remis tel quel si on annule (Échap).
-  const before = useRef<Draft | null>(null)
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
-
-  // Les annonces lisent le brouillon du moment (il change pendant le déplacement).
-  const announcements = useMemo(() => makeAnnouncements(draft), [draft])
-
-  const active = activeId ? findBlock(draft, activeId)?.block : null
-
-  // Dernière cible trouvée, et vrai juste après un changement de conteneur : le temps que
-  // l'aperçu se redessine, on garde la même cible (sinon le bloc repartirait aussitôt).
-  const lastOver = useRef<UniqueIdentifier | null>(null)
-  const justMoved = useRef(false)
-  const collisionDetection = useCallback<CollisionDetection>((args) => {
-    if (justMoved.current && lastOver.current !== null) {
-      return [{ id: lastOver.current }]
-    }
-    const found = blocksCollision(args)
-    if (found.length > 0) {
-      lastOver.current = found[0].id
-      return found
-    }
-    return lastOver.current !== null ? [{ id: lastOver.current }] : []
-  }, [])
-
-  const exceedsLimit = (next: Draft) =>
-    rootLimit !== undefined &&
-    next.blocks.length > rootLimit &&
-    next.blocks.length > draft.blocks.length
-
-  const onDragStart = ({ active: started }: DragStartEvent) => {
-    before.current = draft
-    lastOver.current = null
-    setActiveId(String(started.id))
-  }
-
-  const onDragOver = ({ active: moving, over }: DragOverEvent) => {
-    if (!over) return
-    const translated = moving.rect.current.translated
-    const below = translated
-      ? translated.top + translated.height / 2 >
-        over.rect.top + over.rect.height / 2
-      : false
-    const moved = moveOver(draft, moving.id, over.id, below)
-    if (!moved || exceedsLimit(moved)) return
-    justMoved.current = true
-    lastOver.current = moving.id
-    requestAnimationFrame(() => {
-      justMoved.current = false
-    })
-    onChange(() => moved)
-  }
-
-  const onDragEnd = ({ active: moved, over }: DragEndEvent) => {
-    setActiveId(null)
-    before.current = null
-    lastOver.current = null
-    if (!over) return
-    onChange((current) => {
-      const next = moveOnDrop(current, moved.id, over.id)
-      return next && !exceedsLimit(next) ? next : current
-    })
-  }
-
-  const onDragCancel = () => {
-    setActiveId(null)
-    lastOver.current = null
-    const snapshot = before.current
-    before.current = null
-    if (snapshot) onChange(() => snapshot)
-  }
+  const { dndProps, active } = useBlockDrag({ draft, onChange, rootLimit })
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={collisionDetection}
-      accessibility={{
-        announcements,
-        screenReaderInstructions: { draggable: texts.editor.dnd.instructions },
-      }}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDragEnd={onDragEnd}
-      onDragCancel={onDragCancel}
-    >
+    <DndContext {...dndProps}>
       <DraggingTypeContext value={active?.type ?? null}>
         <SortableContext
           id={ROOT}
@@ -210,57 +94,6 @@ export function BlockCanvas({
       </DragOverlay>
     </DndContext>
   )
-}
-
-// Le type du bloc en cours de déplacement : les cibles interdites se désactivent.
-const DraggingTypeContext = createContext<BlockType | null>(null)
-
-function containerLabel(draft: Draft, container: ContainerId): string {
-  if (container === ROOT) return texts.editor.dnd.page
-  const index = findBlock(draft, container)?.index ?? 0
-  return texts.editor.dnd.box(index + 1)
-}
-
-function labelOf(draft: Draft, id: UniqueIdentifier): string {
-  const block = findBlock(draft, String(id))?.block
-  return block ? blockLabel(block) : ""
-}
-
-/** Annonces en français pour les lecteurs d'écran. */
-function makeAnnouncements(draft: Draft): Announcements {
-  const dnd = texts.editor.dnd
-  return {
-    onDragStart: ({ active }) => dnd.start(labelOf(draft, active.id)),
-    onDragOver: ({ active, over }) => {
-      const label = labelOf(draft, active.id)
-      // Le bloc au-dessus de sa propre place (au début, ou juste après un changement
-      // d'encadré) : rien de neuf à dire, et « Tu as pris… » n'est pas écrasé.
-      if (over?.id === active.id) return undefined
-      if (!over) return dnd.outside(label)
-      const container = targetContainer(draft, over.id)
-      if (!container) return dnd.outside(label)
-      const data = over.data.current as DropData | undefined
-      // La zone de l'encadré où le bloc est déjà : rien de neuf non plus.
-      const place = findBlock(draft, String(active.id))
-      if (data?.kind === "zone" && place?.container === container)
-        return undefined
-      if (data?.kind === "zone") {
-        return dnd.overZone(label, containerLabel(draft, container))
-      }
-      return dnd.over(
-        label,
-        labelOf(draft, over.id),
-        containerLabel(draft, container)
-      )
-    },
-    onDragEnd: ({ active, over }) => {
-      const label = labelOf(draft, active.id)
-      const place = findBlock(draft, String(active.id))
-      if (!over || !place) return dnd.endOutside(label)
-      return dnd.end(label, containerLabel(draft, place.container))
-    },
-    onDragCancel: ({ active }) => dnd.cancel(labelOf(draft, active.id)),
-  }
 }
 
 /** Un bloc déplaçable : la poignée à gauche, le bloc lui-même dans l'aperçu. */

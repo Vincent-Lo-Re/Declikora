@@ -551,9 +551,9 @@ describe("éditeur d'un article (Le Fil)", () => {
       name: outline.select(boxLabel),
     })
     const boxInPhone = document.querySelector(`[data-block-id="${BOX}"]`)!
-    fireEvent.pointerEnter(boxRow.closest("li")!)
+    fireEvent.pointerEnter(boxRow.parentElement!)
     await waitFor(() => expect(boxInPhone).toHaveAttribute("data-hovered"))
-    fireEvent.pointerLeave(boxRow.closest("li")!)
+    fireEvent.pointerLeave(boxRow.parentElement!)
     await waitFor(() => expect(boxInPhone).not.toHaveAttribute("data-hovered"))
     fireEvent.pointerOver(document.querySelector(`[data-block-id="${IMAGE}"]`)!)
     await waitFor(() =>
