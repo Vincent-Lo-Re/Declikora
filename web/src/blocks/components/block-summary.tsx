@@ -1,29 +1,16 @@
 import { cn } from "cn"
-import {
-  GripVertical,
-  Heading2,
-  Heading3,
-  Link2,
-  List,
-  type LucideIcon,
-} from "lucide-react"
+import { GripVertical } from "lucide-react"
 import type { ReactNode } from "react"
 
 import type { BlockMedia } from "@/blocks/components/context"
 import { blockRegistry } from "@/blocks/registry"
 import type { Block } from "@/blocks/types"
-import { textOutline, type TextOutline } from "@/lib/editor/outline"
+import { textOutline } from "@/lib/editor/outline"
+import { sections } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.editor.outline
-
-const leadIcons: Record<TextOutline["lead"], LucideIcon> = {
-  h2: Heading2,
-  h3: Heading3,
-  list: List,
-  paragraph: blockRegistry.text.icon,
-  empty: blockRegistry.text.icon,
-}
+const SharedIcon = sections.templates.icon
 
 /**
  * Un bloc résumé sur une ligne (plan de l'éditeur du Fil, bloc qu'on glisse) : le contenu
@@ -55,7 +42,7 @@ export function BlockSummary({
     </span>
   )
   if (block.type === "text" && outline) {
-    const Icon = leadIcons[outline.lead]
+    const Icon = blockRegistry.text.icon
     return (
       <>
         <Icon aria-hidden className={icon} />
@@ -68,8 +55,7 @@ export function BlockSummary({
             <span
               className={cn(
                 "truncate",
-                (outline.lead === "h2" || outline.lead === "h3") &&
-                  "font-medium"
+                outline.lead === "heading" && "font-medium"
               )}
             >
               {outline.text}
@@ -104,7 +90,8 @@ export function BlockSummary({
   }
   return (
     <>
-      <Link2 aria-hidden className={icon} />
+      {/* Un bloc partagé : l'icône de Modèles de bloc, dans le menu. */}
+      <SharedIcon aria-hidden className={icon} />
       {lines(
         <span className="truncate">
           {templateName?.trim() || texts.editor.blockLabel.linked(null)}

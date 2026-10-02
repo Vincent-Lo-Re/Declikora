@@ -27,19 +27,14 @@ const doc = {
 } as Doc
 
 describe("textOutline", () => {
-  it("un texte qui commence par un intertitre prend son nom ; les suivants (h2, h3) vont dessous, avec leur rang", () => {
+  it("un texte qui commence par un intertitre prend son nom, sans ses autres intertitres", () => {
     expect(textOutline(doc)).toEqual({
-      lead: "h2",
+      lead: "heading",
       text: "Les bons réflexes",
-      headings: [
-        { level: 3, text: "Un sous-titre", index: 1 },
-        // L'intertitre vide ne se montre pas, mais compte dans le rang (h2 de l'aperçu).
-        { level: 2, text: "Le matin", index: 3 },
-      ],
     })
   })
 
-  it("sinon, le début du texte : paragraphe, liste, ou texte vide", () => {
+  it("sinon, le début du texte (paragraphe ou liste), ou rien pour un texte vide", () => {
     const paragraph = {
       type: "doc",
       content: [
@@ -49,9 +44,8 @@ describe("textOutline", () => {
       ],
     } as Doc
     expect(textOutline(paragraph)).toEqual({
-      lead: "paragraph",
+      lead: "text",
       text: "Bonjour à tous Ensuite",
-      headings: [{ level: 3, text: "Ensuite", index: 0 }],
     })
     const list = {
       type: "doc",
@@ -67,13 +61,10 @@ describe("textOutline", () => {
         },
       ],
     } as Doc
-    expect(textOutline(list)).toMatchObject({
-      lead: "list",
-      text: "• Un point",
-    })
+    expect(textOutline(list)).toEqual({ lead: "text", text: "• Un point" })
     expect(
       textOutline({ type: "doc", content: [{ type: "paragraph" }] } as Doc)
-    ).toEqual({ lead: "empty", text: "", headings: [] })
+    ).toEqual({ lead: "empty", text: "" })
   })
 })
 

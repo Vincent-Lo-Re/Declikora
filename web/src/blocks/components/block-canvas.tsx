@@ -6,7 +6,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { cn } from "cn"
-import { GripVertical, Link2, Plus } from "lucide-react"
+import { GripVertical, Plus } from "lucide-react"
 import { memo, useContext, useMemo } from "react"
 import { Link } from "react-router"
 
@@ -46,7 +46,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { editorPath } from "@/navigation"
+import { editorPath, sections } from "@/navigation"
 import { texts } from "@/texts"
 
 /**
@@ -242,7 +242,8 @@ const LinkedBlockView = memo(function LinkedBlockView({
       data-linked-state={template.state}
     >
       <div className="mb-2 flex flex-wrap items-center gap-x-1 gap-y-1 font-sans text-xs text-muted-foreground">
-        <Link2 aria-hidden className="size-3.5 shrink-0" />
+        {/* L'icône de Modèles de bloc, dans le menu. */}
+        <sections.templates.icon aria-hidden className="size-3.5 shrink-0" />
         <span className="min-w-0 flex-1 truncate">
           {name
             ? labels.label(name)

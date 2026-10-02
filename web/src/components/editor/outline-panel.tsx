@@ -13,8 +13,6 @@ import {
   Copy,
   Ellipsis,
   GripVertical,
-  Heading2,
-  Heading3,
   LayoutTemplate,
   ListChecks,
   Trash2,
@@ -55,7 +53,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { textOutline, type BlockWarning } from "@/lib/editor/outline"
+import type { BlockWarning } from "@/lib/editor/outline"
 import { texts } from "@/texts"
 
 const labels = texts.editor.outline
@@ -86,7 +84,6 @@ export type FeedOutline = {
   hoveredId: string | null
   onHover: (id: string | null) => void
   warningOf: (block: Block) => BlockWarning | null
-  onHeading: (blockId: string, index: number) => void
   // Ranger les lignes par glisser-déposer (absent en lecture seule).
   onMove?: (update: (draft: Draft) => Draft) => void
   // Absent en lecture seule.
@@ -363,7 +360,6 @@ function OutlineRow({
   const checkable = choosing && container === ROOT
   const warning = feed?.warningOf(block) ?? null
   const isCollapsed = shared.collapsed.has(block.id)
-  const outline = feed && block.type === "text" ? textOutline(block.doc) : null
   const warningId = useId()
   return (
     <li
@@ -455,32 +451,6 @@ function OutlineRow({
           />
         )}
       </div>
-      {outline && outline.headings.length > 0 && (
-        <ol className="grid gap-0.5 pl-5">
-          {outline.headings.map((heading) => {
-            const HeadingIcon = heading.level === 2 ? Heading2 : Heading3
-            return (
-              <li
-                key={heading.index}
-                className={cn(heading.level === 3 && "pl-4")}
-              >
-                <button
-                  type="button"
-                  aria-label={labels.heading(heading.text)}
-                  onClick={() => feed!.onHeading(block.id, heading.index)}
-                  className={cn(
-                    rowButton,
-                    "py-1 text-xs text-muted-foreground"
-                  )}
-                >
-                  <HeadingIcon aria-hidden className="size-3.5 shrink-0" />
-                  <span className="truncate">{heading.text}</span>
-                </button>
-              </li>
-            )
-          })}
-        </ol>
-      )}
       {block.type === "box" && !isCollapsed && (
         <BoxRows box={block} shared={shared} />
       )}

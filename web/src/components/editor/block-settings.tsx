@@ -30,6 +30,11 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { editorPath } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -58,6 +63,9 @@ type Props = {
   empty?: ReactNode
   // Le nom du panneau quand il montre `empty` (par défaut « Réglages du bloc »).
   emptyLabel?: string
+  // Éditeur du Fil : les actions (modèle, monter, descendre, supprimer) en icônes, dans une
+  // barre fixe en bas du panneau.
+  actionBar?: boolean
 }
 
 /** Panneau de droite : les réglages du bloc choisi dans l'aperçu. */
@@ -65,6 +73,21 @@ export function BlockSettings(props: Props) {
   const place = props.selectedId
     ? findBlock(props.draft, props.selectedId)
     : null
+  if (place && props.actionBar) {
+    return (
+      <section
+        aria-label={labels.label}
+        data-side-panel
+        className="flex h-full flex-col"
+      >
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+          {props.header}
+          <SelectedBlock place={place} {...props} />
+        </div>
+        {props.editable && <ActionBar place={place} {...props} />}
+      </section>
+    )
+  }
   return (
     <section
       aria-label={place ? labels.label : (props.emptyLabel ?? labels.label)}
@@ -97,6 +120,7 @@ function SelectedBlock({
   onDetach,
   removeBlocked = null,
   onSaveAsTemplate,
+  actionBar = false,
 }: Props & { place: BlockPlace }) {
   const { block } = place
   const linkedState =
@@ -131,25 +155,25 @@ function SelectedBlock({
           onDetach={() => onDetach(block.id)}
         />
       )}
-      {editable &&
-        onSaveAsTemplate &&
-        place.container === ROOT &&
-        // Un bloc partagé est déjà un modèle.
-        block.type !== "linked" && (
-          <>
-            <Separator />
-            <Button
-              variant="outline"
-              size="sm"
-              className="justify-self-start"
-              onClick={() => onSaveAsTemplate(block.id)}
-            >
-              <LayoutTemplate />
-              {texts.templates.saveAs.action}
-            </Button>
-          </>
-        )}
-      {editable && (
+      {/* La barre d'icônes porte les actions ; dessus, ce qui empêche de supprimer. */}
+      {actionBar && editable && removeBlocked && (
+        <p className="text-sm text-muted-foreground">{removeBlocked}</p>
+      )}
+      {!actionBar && editable && canSaveAs(place, onSaveAsTemplate) && (
+        <>
+          <Separator />
+          <Button
+            variant="outline"
+            size="sm"
+            className="justify-self-start"
+            onClick={() => onSaveAsTemplate?.(block.id)}
+          >
+            <LayoutTemplate />
+            {texts.templates.saveAs.action}
+          </Button>
+        </>
+      )}
+      {!actionBar && editable && (
         <>
           <Separator />
           <div className="flex flex-wrap gap-2">
@@ -239,6 +263,110 @@ function LinkedSettings({
         <p className="text-xs text-muted-foreground">{linked.detachHint}</p>
       )}
     </div>
+  )
+}
+
+/** « Enregistrer comme modèle… » : un bloc de premier niveau, qui n'est pas déjà partagé. */
+function canSaveAs(
+  place: BlockPlace,
+  onSaveAsTemplate: Props["onSaveAsTemplate"]
+): boolean {
+  return (
+    onSaveAsTemplate !== undefined &&
+    place.container === ROOT &&
+    place.block.type !== "linked"
+  )
+}
+
+/**
+ * Éditeur du Fil : les actions du bloc choisi en icônes (leur nom dans l'infobulle), fixées en
+ * bas de l'onglet « Bloc choisi ». Désactivées sans perdre le focus (aria-disabled) : on peut
+ * appuyer plusieurs fois de suite au clavier, et la nouvelle place est annoncée.
+ */
+function ActionBar({
+  place,
+  onShift,
+  onRemove,
+  removeBlocked = null,
+  onSaveAsTemplate,
+}: Props & { place: BlockPlace }) {
+  const { block } = place
+  return (
+    <div
+      role="toolbar"
+      aria-label={labels.actions}
+      className="flex shrink-0 items-center gap-1 border-t bg-background p-2"
+    >
+      {canSaveAs(place, onSaveAsTemplate) && (
+        <IconAction
+          label={texts.templates.saveAs.action}
+          onClick={() => onSaveAsTemplate?.(block.id)}
+        >
+          <LayoutTemplate />
+        </IconAction>
+      )}
+      <IconAction
+        label={labels.moveUp}
+        disabled={place.index === 0}
+        onClick={() => onShift(block.id, -1)}
+      >
+        <ArrowUp />
+      </IconAction>
+      <IconAction
+        label={labels.moveDown}
+        disabled={place.index >= place.siblings - 1}
+        onClick={() => onShift(block.id, 1)}
+      >
+        <ArrowDown />
+      </IconAction>
+      <span className="flex-1" />
+      <IconAction
+        label={labels.remove}
+        disabled={removeBlocked !== null}
+        destructive
+        onClick={() => onRemove(block.id)}
+      >
+        <Trash2 />
+      </IconAction>
+    </div>
+  )
+}
+
+function IconAction({
+  label,
+  disabled = false,
+  destructive = false,
+  onClick,
+  children,
+}: {
+  label: string
+  disabled?: boolean
+  destructive?: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={label}
+            className={cn(
+              "aria-disabled:opacity-50",
+              destructive && "text-destructive hover:text-destructive"
+            )}
+            disabled={disabled}
+            focusableWhenDisabled
+            onClick={onClick}
+          />
+        }
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }
 

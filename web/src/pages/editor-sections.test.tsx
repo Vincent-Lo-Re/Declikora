@@ -512,7 +512,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     ).toBeNull()
   })
 
-  it("le plan montre le contenu : l'intertitre qui ouvre un texte, ses sous-titres, le fichier d'une image, le bloc partagé", async () => {
+  it("le plan montre le contenu : l'intertitre qui ouvre un texte (sans les suivants), le fichier d'une image, le bloc partagé", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(ARTICLE, "article", {
         blocks: [
@@ -555,9 +555,8 @@ describe("éditeur d'un article (Le Fil)", () => {
     const plan = screen.getByRole("navigation", { name: outline.title })
     // Le contenu plutôt que le type : « Texte « … » » reste le nom lu par les lecteurs d'écran.
     expect(within(plan).getByText("Les bons réflexes")).toBeVisible()
-    expect(
-      within(plan).getByRole("button", { name: outline.heading("Le soir") })
-    ).toBeVisible()
+    // Ses autres intertitres n'apparaissent pas dans le plan.
+    expect(within(plan).queryByText("Le soir")).toBeNull()
     expect(await within(plan).findByText("plage.png")).toBeVisible()
     expect(within(plan).getByText(outline.shared)).toBeVisible()
     // Le modèle n'existe plus : écrit en clair.
@@ -674,6 +673,45 @@ describe("éditeur d'un article (Le Fil)", () => {
     ).toBeVisible()
     fireEvent.keyDown(document.activeElement!, { key: "Escape" })
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
+  })
+
+  it("« Bloc choisi » : les actions en icônes, dans une barre en bas de l'onglet", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        blocks: [
+          {
+            id: "00000000-0000-4000-8000-0000000000f7",
+            type: "box",
+            look: "fill",
+            blocks: [],
+          },
+        ],
+      })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    fireEvent.click(
+      within(plan).getByRole("button", {
+        name: outline.select(texts.editor.blockLabel.box(0)),
+      })
+    )
+    const bar = await screen.findByRole("toolbar", {
+      name: texts.editor.settings.actions,
+    })
+    const names = within(bar)
+      .getAllByRole("button")
+      .map((button) => button.getAttribute("aria-label"))
+    expect(names).toEqual([
+      texts.templates.saveAs.action,
+      texts.editor.settings.moveUp,
+      texts.editor.settings.moveDown,
+      texts.editor.settings.remove,
+    ])
+    // Des icônes seules : leur nom est dans l'infobulle.
+    expect(bar).not.toHaveTextContent(texts.editor.settings.remove)
+    // Le plan dit « Section » (anciennement « Encadré »).
+    expect(within(plan).getByText(/Section à fond/)).toBeVisible()
   })
 
   it("l'aperçu n'a pas de poignée : c'est le plan qui range les blocs", async () => {
@@ -1139,12 +1177,22 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
     const right = screen.getByRole("complementary", { name: columns.right })
     for (const name of [
       texts.publication.actions.history,
-      texts.editor.focusMode.label,
       texts.publication.actions.publish,
       texts.publication.actions.more,
     ]) {
       expect(within(right).getByRole("button", { name })).toBeInTheDocument()
     }
+    // Concentration est dans la barre de l'aperçu, sous Édition et Lecture.
+    expect(
+      within(right).queryByRole("button", {
+        name: texts.editor.focusMode.label,
+      })
+    ).toBeNull()
+    expect(
+      within(
+        screen.getByRole("toolbar", { name: texts.editor.preview.tools })
+      ).getByRole("button", { name: texts.editor.focusMode.label })
+    ).toBeInTheDocument()
     expect(
       await within(right).findByText(texts.publication.status.draft)
     ).toBeInTheDocument()

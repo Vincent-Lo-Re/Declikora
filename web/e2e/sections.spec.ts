@@ -291,7 +291,7 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
   await open(page, "/blog", admin)
   await createFromDialog(page, "article", `Finitions ${uniqueId()}`)
   const plan = page.getByRole("navigation", { name: outline.title })
-  const rows = plan.getByRole("button", { name: /^Aller à (Texte|Encadré)/ })
+  const rows = plan.getByRole("button", { name: /^Aller à (Texte|Section)/ })
   // Ce que montre une ligne du plan : le contenu (l'icône dit le type).
   const emptyBox = `${outline.box.fill} · ${outline.boxCount(0)}`
   const phone = page.getByRole("region", { name: editor.preview.screen.ios })
