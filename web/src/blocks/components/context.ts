@@ -2,6 +2,7 @@ import type { Editor } from "@tiptap/react"
 import { createContext, useContext } from "react"
 
 import type { Block } from "@/blocks/types"
+import type { SlashChoice } from "@/lib/editor/slash"
 import type { Media } from "@/lib/media/constants"
 
 /** Ce qu'un bloc sait de son image : le fichier, son adresse d'aperçu, son état. */
@@ -49,6 +50,11 @@ export type BlocksEditorValue = {
   // Blocs liés : le modèle cité, et « Détacher » (copie ordinaire, à la même place).
   templateFor: (templateId: string) => LinkedTemplateState
   detachBlock: (blockId: string) => void
+  // Éditeur du Fil : « / » au début d'un texte vide (absent ailleurs).
+  slash?: {
+    choices: (blockId: string) => SlashChoice[]
+    choose: (blockId: string, choice: SlashChoice) => void
+  }
 }
 
 export const BlocksEditorContext = createContext<BlocksEditorValue | null>(null)

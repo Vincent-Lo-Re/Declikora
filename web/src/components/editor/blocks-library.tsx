@@ -9,7 +9,7 @@ import {
   ImageIcon,
   Link2,
 } from "lucide-react"
-import { useRef, useState } from "react"
+import { useRef, useState, type DragEvent } from "react"
 import { Link } from "react-router"
 
 import { StaticBlock } from "@/blocks/components/static-block"
@@ -20,6 +20,11 @@ import { LoadState } from "@/components/load-state"
 import { SearchInput } from "@/components/search-input"
 import { buttonVariants } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import {
+  encodeLibraryDrag,
+  LIBRARY_DRAG_TYPE,
+  type LibraryDrag,
+} from "@/lib/editor/library-drag"
 import { focusSoon } from "@/lib/focus"
 import {
   countUses,
@@ -40,6 +45,12 @@ const mine = labels.mine
 
 const filters: SavedFilter[] = ["all", "style", "shared"]
 
+/** Glisser un bloc vers l'aperçu (qui le dépose à la place montrée). */
+function startDrag(event: DragEvent, drag: LibraryDrag) {
+  event.dataTransfer.setData(LIBRARY_DRAG_TYPE, encodeLibraryDrag(drag))
+  event.dataTransfer.effectAllowed = "copy"
+}
+
 /**
  * L'onglet « Blocs » de l'éditeur du Fil (ADMIN § 4) : Texte, Image et Encadré, puis « Mes
  * blocs » (mises en forme et blocs partagés), qui glisse un panneau par-dessus la colonne. Un clic
@@ -50,14 +61,18 @@ export function BlocksLibrary({
   canAdd,
   onAdd,
   onInsert,
+  open,
+  onOpenChange,
 }: {
   editable: boolean
   // Faux : on ne peut plus rien ajouter au premier niveau.
   canAdd: boolean
   onAdd: (type: InsertableType) => void
   onInsert: (template: TemplateItem) => void
+  // Le panneau « Mes blocs » (ouvert aussi par « / » dans un texte vide).
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
   const opener = useRef<HTMLButtonElement>(null)
   const templates = useQuery({
     queryKey: templateKeys.list,
@@ -86,6 +101,10 @@ export function BlocksLibrary({
                 <button
                   type="button"
                   disabled={disabled}
+                  draggable={!disabled}
+                  onDragStart={(event) =>
+                    startDrag(event, { kind: "block", type: definition.type })
+                  }
                   aria-label={labels.addLabel(definition.label)}
                   className="flex w-full flex-col items-center gap-1.5 rounded-lg border bg-background px-1 py-3 text-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:bg-muted disabled:opacity-50"
                   onClick={() => onAdd(definition.type)}
@@ -103,7 +122,7 @@ export function BlocksLibrary({
           aria-expanded={open}
           aria-controls="mes-blocs"
           className="flex w-full items-center gap-3 rounded-lg border bg-background p-2.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 hover:bg-muted"
-          onClick={() => setOpen(true)}
+          onClick={() => onOpenChange(true)}
         >
           <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
             <Bookmark aria-hidden className="size-5" />
@@ -124,7 +143,7 @@ export function BlocksLibrary({
           templates={templates}
           disabled={disabled}
           onBack={() => {
-            setOpen(false)
+            onOpenChange(false)
             focusSoon(() => opener.current)
           }}
           onInsert={onInsert}
@@ -272,6 +291,10 @@ function SavedBlock({
     <button
       type="button"
       disabled={disabled || empty}
+      draggable={!disabled && !empty}
+      onDragStart={(event) =>
+        startDrag(event, { kind: "template", id: template.id })
+      }
       aria-label={mine.insertLabel(name)}
       className="w-full rounded-lg border bg-background p-2 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:border-foreground/30 disabled:opacity-60"
       onClick={onInsert}

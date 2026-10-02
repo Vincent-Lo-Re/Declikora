@@ -208,6 +208,7 @@ function panel() {
 const columns = texts.editor.columns
 const article = texts.editor.article
 const preview = texts.editor.preview
+const outline = texts.editor.outline
 
 /** L'onglet « Article » de la colonne de droite (éditeur du Fil). */
 function articleTab() {
@@ -488,13 +489,110 @@ describe("éditeur d'un article (Le Fil)", () => {
     fireEvent.click(
       within(screen.getByRole("tabpanel", { name: columns.plan })).getByRole(
         "button",
-        { name: /Respire lentement/ }
+        { name: /^Aller à Texte/ }
       )
     )
     expect(await screen.findByLabelText(texts.editor.title.label)).toBeVisible()
     expect(
       within(tools).queryByRole("button", { name: preview.reader.visitor })
     ).toBeNull()
+  })
+
+  it("le plan : image de présentation, points à vérifier, encadré replié, survol partagé avec l'aperçu", async () => {
+    const BOX = "00000000-0000-4000-8000-0000000000d3"
+    const IMAGE = "00000000-0000-4000-8000-0000000000d4"
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        blocks: [
+          {
+            id: BOX,
+            type: "box",
+            look: "fill",
+            blocks: [
+              {
+                id: IMAGE,
+                type: "image",
+                mediaId: null,
+                caption: null,
+                alt: null,
+              },
+            ],
+          },
+        ],
+      })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    expect(within(plan).getByText(outline.count(2))).toBeVisible()
+    expect(
+      within(plan).getByRole("img", { name: outline.warnings.coverMissing })
+    ).toBeVisible()
+    expect(
+      within(plan).getByRole("img", { name: outline.warnings.noFile })
+    ).toBeVisible()
+    expect(within(plan).getByText(outline.warnings.count(2))).toBeVisible()
+
+    // L'encadré se replie : son image ne se voit plus dans le plan.
+    const boxLabel = texts.editor.blockLabel.box(1)
+    const imageRow = within(plan).getByRole("button", {
+      name: outline.select(texts.editor.blockLabel.image("")),
+    })
+    fireEvent.click(
+      within(plan).getByRole("button", { name: outline.collapse(boxLabel) })
+    )
+    expect(imageRow).not.toBeInTheDocument()
+    fireEvent.click(
+      within(plan).getByRole("button", { name: outline.expand(boxLabel) })
+    )
+
+    // Survoler une ligne du plan montre le bloc dans l'aperçu, et inversement.
+    const boxRow = within(plan).getByRole("button", {
+      name: outline.select(boxLabel),
+    })
+    const boxInPhone = document.querySelector(`[data-block-id="${BOX}"]`)!
+    fireEvent.pointerEnter(boxRow.closest("li")!)
+    await waitFor(() => expect(boxInPhone).toHaveAttribute("data-hovered"))
+    fireEvent.pointerLeave(boxRow.closest("li")!)
+    await waitFor(() => expect(boxInPhone).not.toHaveAttribute("data-hovered"))
+    fireEvent.pointerOver(document.querySelector(`[data-block-id="${IMAGE}"]`)!)
+    await waitFor(() =>
+      expect(
+        within(plan)
+          .getByRole("button", {
+            name: outline.select(texts.editor.blockLabel.image("")),
+          })
+          .closest("div")
+      ).toHaveClass("bg-accent/60")
+    )
+
+    // « … » : Enregistrer dans Mes blocs pour un bloc de premier niveau seulement.
+    fireEvent.click(
+      within(plan).getByRole("button", { name: outline.actions(boxLabel) })
+    )
+    expect(
+      await screen.findByRole("menuitem", { name: outline.saveToMine })
+    ).toBeVisible()
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" })
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
+  })
+
+  it("Concentration : le raccourci cache les deux colonnes, Échap les ramène", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const left = screen.getByRole("complementary", { name: columns.left })
+    const button = screen.getByRole("button", {
+      name: new RegExp(`^${texts.editor.focusMode.label}`),
+    })
+    expect(button).toHaveAttribute("aria-pressed", "false")
+    // jsdom n'est pas un Mac : Ctrl + .
+    fireEvent.keyDown(window, { key: ".", ctrlKey: true })
+    expect(button).toHaveAttribute("aria-pressed", "true")
+    expect(left).toHaveClass("hidden")
+    expect(screen.getByText(texts.editor.focusMode.on)).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: "Escape" })
+    expect(left).not.toHaveClass("hidden")
   })
 
   it("niveau d'accès et catégories en pastilles : ils partent avec le brouillon ([D41], [D44])", async () => {

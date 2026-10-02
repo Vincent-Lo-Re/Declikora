@@ -129,14 +129,16 @@ export function templateInsertable(
 export function insertTemplate(
   draft: Draft,
   template: TemplateToInsert,
-  selectedId: string | null
+  selectedId: string | null,
+  // Une place au premier niveau (bloc glissé dans l'aperçu), au lieu de « après le bloc choisi ».
+  at?: number
 ): { draft: Draft; firstId: string } | null {
   if (templateInsertable(template) !== "ok") return null
   const inserted =
     template.sort === "shared"
       ? [linkedBlock(template.id)]
       : template.draft.blocks.map(copyWithNewIds)
-  const index = rootInsertIndex(draft, selectedId)
+  const index = at ?? rootInsertIndex(draft, selectedId)
   const blocks = [...draft.blocks]
   blocks.splice(index, 0, ...inserted)
   return { draft: { ...draft, blocks }, firstId: inserted[0].id }

@@ -318,7 +318,10 @@ const SortableBlock = memo(function SortableBlock({
       className={cn(
         "group/block relative rounded-sm outline-offset-4 outline-ring/70",
         selected && "outline-2",
-        !selected && editable && "hover:outline-1 hover:outline-border",
+        // data-hovered : survolé dans le plan de l'éditeur du Fil.
+        !selected &&
+          editable &&
+          "hover:outline-1 hover:outline-border data-hovered:outline-1 data-hovered:outline-border",
         isDragging && "opacity-40"
       )}
       onPointerDownCapture={() => selectBlock(block.id)}

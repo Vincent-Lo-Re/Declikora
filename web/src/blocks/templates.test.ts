@@ -168,6 +168,11 @@ describe("modèles : insertion", () => {
     expect(prepareDraft(result.draft).ok).toBe(true)
   })
 
+  it("se met à la place donnée quand on le glisse dans l'aperçu", () => {
+    const result = insertTemplate(page(), shared, id(1), 0)!
+    expect(result.draft.blocks[0].id).toBe(result.firstId)
+  })
+
   it("ne s'insèrent pas : un bloc identique partout vide, une mise en forme vide, un point de départ", () => {
     const empty = { ...shared, draft: { blocks: [] } }
     expect(templateInsertable(empty)).toBe("empty")

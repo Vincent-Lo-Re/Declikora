@@ -5,6 +5,8 @@
 //    n'a pas d'image de présentation ([D45]) ; l'image, un résumé et une catégorie, puis
 //    publier ; l'app le liste avec sa vignette (publique, question 1) ; filtres par catégorie
 //    (admin et app) ; la catégorie supprimée, l'app l'ignore ([D28]).
+// 1 bis. L'éditeur du Fil : « / » dans un texte vide, un Texte glissé depuis l'onglet Blocs, un
+//    intertitre dans le plan, « … » › Dupliquer, la Concentration, puis recharger.
 // 2. Podcasts : un épisode que « Publier » refuse sans audio ; l'audio choisi dans la
 //    médiathèque, sa durée affichée, la transcription conseillée ([D46]) ; publier ; l'app le
 //    liste avec sa durée ; la transcription ajoutée depuis sa fiche fait taire l'avertissement.
@@ -275,6 +277,79 @@ test("Le Fil : un article neuf arrive en tête ; rangé au clavier, l'ordre tien
   await expect(
     page.getByRole("button", { name: list.order.handle(first) })
   ).toBeDisabled()
+})
+
+test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (intertitre, Dupliquer), Concentration", async ({
+  page,
+  team,
+}) => {
+  const outline = editor.outline
+  const admin = await team.createAdmin("Fanny Finitions")
+  await open(page, "/blog", admin)
+  await createFromDialog(page, "article", `Finitions ${uniqueId()}`)
+  const plan = page.getByRole("navigation", { name: outline.title })
+  const rows = plan.getByRole("button", { name: /^Aller à (Texte|Encadré)/ })
+  const phone = page.getByRole("region", { name: editor.preview.screen.ios })
+
+  // « / » dans un texte vide : la liste des blocs, au clavier.
+  await phone.getByRole("button", { name: texts.editor.blocks.text }).click()
+  const text = phone.getByRole("textbox", { name: texts.editor.blocks.text })
+  await text.click()
+  await page.keyboard.type("/")
+  const slash = page.getByRole("listbox", { name: editor.slash.title })
+  await expect(slash).toBeVisible()
+  await page.keyboard.press("ArrowDown")
+  await page.keyboard.press("ArrowDown")
+  await page.keyboard.press("Enter")
+  await expect(slash).toBeHidden()
+  await expect(rows).toHaveText([texts.editor.blockLabel.box(0)])
+
+  // Un Texte glissé depuis l'onglet Blocs, au-dessus de l'encadré.
+  await page.getByRole("tab", { name: editor.columns.blocks }).click()
+  await page
+    .getByRole("button", {
+      name: editor.library.addLabel(texts.editor.blocks.text),
+    })
+    .dragTo(phone.locator("[data-block-id]").first(), {
+      targetPosition: { x: 40, y: 2 },
+    })
+  await page.getByRole("tab", { name: editor.columns.plan }).click()
+  await expect(rows).toHaveText([
+    texts.editor.blockLabel.text(""),
+    texts.editor.blockLabel.box(0),
+  ])
+
+  // Un intertitre apparaît sous son texte dans le plan.
+  await text.click()
+  await page
+    .getByRole("toolbar", { name: editor.toolbar.label })
+    .getByRole("button", { name: editor.toolbar.h2, exact: true })
+    .click()
+  await page.keyboard.type("Les bons réflexes")
+  await expect(
+    plan.getByRole("button", { name: outline.heading("Les bons réflexes") })
+  ).toBeVisible()
+
+  // « … » › Dupliquer : la copie juste après.
+  await plan
+    .getByRole("button", {
+      name: outline.actions(texts.editor.blockLabel.box(0)),
+    })
+    .click()
+  await page.getByRole("menuitem", { name: outline.duplicate }).click()
+  await expect(rows).toHaveCount(3)
+  await expect(plan.getByText(outline.count(3))).toBeVisible()
+
+  // Concentration : les deux colonnes se cachent, Échap les ramène.
+  const left = page.getByRole("complementary", { name: editor.columns.left })
+  await page.getByRole("button", { name: editor.focusMode.label }).click()
+  await expect(left).toBeHidden()
+  await page.keyboard.press("Escape")
+  await expect(left).toBeVisible()
+
+  await saved(page)
+  await page.reload()
+  await expect(rows).toHaveCount(3)
 })
 
 test("Blog : catégories rangées, article refusé sans image de présentation, publié, filtré, catégorie supprimée", async ({
