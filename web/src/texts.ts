@@ -1571,7 +1571,7 @@ export const texts = {
     blockLabel: {
       text: (excerpt: string) =>
         excerpt ? `Texte « ${excerpt} »` : "Texte vide",
-      image: (caption: string) => (caption ? `Image « ${caption} »` : "Image"),
+      image: "Image",
       box: (count: number) =>
         count === 0
           ? "Encadré vide"
@@ -1642,7 +1642,6 @@ export const texts = {
       warnings: {
         noFile: "Pas encore de fichier",
         unavailable: "Le fichier ne s'affiche plus",
-        noAlt: "Sans texte alternatif",
         missingTemplate: "Le modèle n'existe plus",
         count: (count: number) =>
           count === 1 ? "1 point à vérifier" : `${count} points à vérifier`,
@@ -1679,10 +1678,6 @@ export const texts = {
       missing: "Image supprimée : choisis-en une autre.",
       loadFailed: "L'image n'a pas pu être chargée.",
       notReady: "Cette image n'est pas prête : choisis-en une autre.",
-      captionLabel: "Légende",
-      captionPlaceholder: "Ajoute une légende (facultatif)",
-      altWarning:
-        "Pas de texte alternatif : décris l'image pour les personnes qui ne la voient pas.",
     },
     picker: {
       title: "Choisir une image",
@@ -1751,8 +1746,6 @@ export const texts = {
         missing: "Image supprimée : choisis-en une autre.",
         notReady: "Cette image n'est pas prête : choisis-en une autre.",
         alt: (alt: string) => `Texte alternatif (médiathèque) : « ${alt} »`,
-        noAlt:
-          "Pas de texte alternatif : ajoute-le dans la fiche de l'image, pour les personnes qui ne la voient pas.",
       },
       summary: {
         label: "Résumé",
@@ -1946,9 +1939,6 @@ export const texts = {
           "La médiathèque n'a pas de texte alternatif pour cette image.",
         altHint:
           "Décris l'image en une phrase pour les personnes qui ne la voient pas.",
-        caption: "Légende",
-        captionCount: (count: number) => `${count} / 300 caractères`,
-        captionHint: "Texte simple, écrit sous l'image dans l'aperçu.",
       },
       box: {
         look: "Apparence",

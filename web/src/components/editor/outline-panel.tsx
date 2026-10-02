@@ -624,7 +624,7 @@ function FeedRowContent({
         <Thumbnail media={media} />
         {lines(
           <span className="truncate">
-            {block.caption?.trim() || file || texts.editor.blockLabel.image("")}
+            {file || texts.editor.blockLabel.image}
           </span>
         )}
       </>

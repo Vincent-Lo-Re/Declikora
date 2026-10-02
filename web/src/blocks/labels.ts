@@ -13,7 +13,7 @@ export function blockLabel(block: Block, templateName?: string | null): string {
     case "text":
       return labels.text(excerpt(textDocToPlainText(block.doc), 30))
     case "image":
-      return labels.image(excerpt(block.caption ?? "", 30))
+      return labels.image
     case "box":
       return labels.box(block.blocks.length)
     case "linked":
