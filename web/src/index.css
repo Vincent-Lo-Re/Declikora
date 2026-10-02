@@ -6,6 +6,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Éditeur du Fil : à partir de 1 400 px de large, les deux colonnes s'élargissent (en dessous,
+     elles gardent la place du téléphone sur un portable de 13 pouces, ADMIN § 4). */
+  --breakpoint-wide: 87.5rem;
   --font-heading: var(--font-sans);
   --font-sans: "Inter Variable", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);

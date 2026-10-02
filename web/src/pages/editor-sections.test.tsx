@@ -675,6 +675,42 @@ describe("éditeur d'un article (Le Fil)", () => {
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
   })
 
+  it("un bloc choisi dans le plan monte en haut de l'écran du téléphone", async () => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    const BLOCK = "00000000-0000-4000-8000-0000000000f8"
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        blocks: [
+          {
+            id: BLOCK,
+            type: "image",
+            mediaId: null,
+            caption: null,
+            alt: null,
+          },
+        ],
+      })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    fireEvent.click(
+      within(plan).getByRole("button", {
+        name: outline.select(texts.editor.blockLabel.image),
+      })
+    )
+    await waitFor(() =>
+      expect(scroll).toHaveBeenCalledWith({
+        block: "start",
+        behavior: "smooth",
+      })
+    )
+    expect(scroll.mock.contexts.at(-1)).toBe(
+      document.querySelector(`[data-block-id="${BLOCK}"]`)
+    )
+  })
+
   it("« Bloc choisi » : les actions en icônes, dans une barre en bas de l'onglet", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(ARTICLE, "article", {
@@ -980,8 +1016,14 @@ describe("éditeur d'un article (Le Fil)", () => {
     ])
     renderApp(`/blog/${ARTICLE}`)
     await editable()
+    // L'historique s'ouvre depuis le menu de « Publier ».
     fireEvent.click(
-      screen.getByRole("button", { name: texts.publication.actions.history })
+      screen.getByRole("button", { name: texts.publication.actions.more })
+    )
+    fireEvent.click(
+      await screen.findByRole("menuitem", {
+        name: texts.publication.actions.history,
+      })
     )
     const list = await screen.findByRole("list", { name: history.title })
     const [second, first] = within(list).getAllByRole("listitem")
@@ -1176,12 +1218,27 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
     expect(within(left).getByText(texts.editor.save.saved)).toBeInTheDocument()
     const right = screen.getByRole("complementary", { name: columns.right })
     for (const name of [
-      texts.publication.actions.history,
       texts.publication.actions.publish,
       texts.publication.actions.more,
     ]) {
       expect(within(right).getByRole("button", { name })).toBeInTheDocument()
     }
+    // Historique est dans le menu de « Publier », pas à côté.
+    expect(
+      within(right).queryByRole("button", {
+        name: texts.publication.actions.history,
+      })
+    ).toBeNull()
+    fireEvent.click(
+      within(right).getByRole("button", {
+        name: texts.publication.actions.more,
+      })
+    )
+    expect(
+      await screen.findByRole("menuitem", {
+        name: texts.publication.actions.history,
+      })
+    ).toBeVisible()
     // Concentration est dans la barre de l'aperçu, sous Édition et Lecture.
     expect(
       within(right).queryByRole("button", {

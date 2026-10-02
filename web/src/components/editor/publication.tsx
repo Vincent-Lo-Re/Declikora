@@ -4,6 +4,7 @@ import {
   CalendarClock,
   ChevronDown,
   CircleOff,
+  History,
   Hourglass,
   Send,
   TriangleAlert,
@@ -217,15 +218,21 @@ export function PublishBar({
   )
 }
 
-/** « Publier » et le menu de ses autres actions (programmer, retirer de l'app). */
+/**
+ * « Publier » et le menu de ses autres actions (programmer, retirer de l'app ; dans l'éditeur du
+ * Fil, l'historique).
+ */
 export function PublishButton({
   pub,
   disabled,
   alwaysPublishable = false,
+  onHistory,
 }: {
   pub: PublicationControls
   disabled: boolean
   alwaysPublishable?: boolean
+  // Éditeur du Fil : « Historique » dans le menu (ailleurs, une icône à côté).
+  onHistory?: () => void
 }) {
   const { status } = pub
   const scheduled =
@@ -273,6 +280,12 @@ export function PublishButton({
               {status.schedule.kind === "failed"
                 ? labels.actions.dismissFailure
                 : labels.actions.unschedule}
+            </DropdownMenuItem>
+          )}
+          {onHistory && (
+            <DropdownMenuItem onClick={onHistory}>
+              <History />
+              {labels.actions.history}
             </DropdownMenuItem>
           )}
           {inApp && (

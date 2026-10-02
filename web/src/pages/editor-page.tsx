@@ -463,19 +463,31 @@ const ADD_BLOCK_ID = "editeur-ajouter"
 type LeftTab = "plan" | "blocks"
 type RightTab = "article" | "block"
 
-/** Met le curseur dans un bloc qui vient d'apparaître (l'éditeur Tiptap se crée juste après). */
-function focusBlockSoon(id: string, attempts = 20) {
+/**
+ * Met le curseur dans un bloc qui vient d'apparaître (l'éditeur Tiptap se crée juste après).
+ * `top` : le bloc monte en haut de l'écran du téléphone (choisi dans le plan du Fil) ; sinon,
+ * l'écran ne défile que s'il le faut.
+ */
+function focusBlockSoon(id: string, attempts = 20, top = false) {
   const element = document.querySelector<HTMLElement>(`[data-block-id="${id}"]`)
   const editable = element?.querySelector<HTMLElement>(
     '[contenteditable="true"]'
   )
-  if (element) element.scrollIntoView({ block: "nearest", behavior: "smooth" })
+  const scroll = () =>
+    element?.scrollIntoView({
+      block: top ? "start" : "nearest",
+      behavior: "smooth",
+    })
   if (editable) {
-    editable.focus()
+    // D'abord le curseur, puis le défilement : le navigateur ramène l'écran au curseur quand il
+    // le pose, ce qui interromprait un défilement déjà commencé.
+    editable.focus({ preventScroll: true })
+    requestAnimationFrame(scroll)
     return
   }
+  scroll()
   if (attempts > 0) {
-    requestAnimationFrame(() => focusBlockSoon(id, attempts - 1))
+    requestAnimationFrame(() => focusBlockSoon(id, attempts - 1, top))
   }
 }
 
@@ -1062,7 +1074,7 @@ function ContentEditor({
   const selectAndShow = (id: string) => {
     toEdit()
     setSelectedId(id)
-    requestAnimationFrame(() => focusBlockSoon(id, 0))
+    requestAnimationFrame(() => focusBlockSoon(id, 0, feed))
   }
 
   const onShift = (id: string, offset: -1 | 1) => {
@@ -2305,7 +2317,7 @@ function ContentEditor({
               aria-label={texts.editor.columns.left}
               // Caché (et non retiré) en Concentration : onglet et « Mes blocs » restent ouverts.
               className={cn(
-                "flex w-72 shrink-0 flex-col border-r bg-background",
+                "flex w-72 shrink-0 flex-col border-r bg-background wide:w-80",
                 focusMode && "hidden"
               )}
             >
@@ -2449,25 +2461,19 @@ function ContentEditor({
             <aside
               aria-label={texts.editor.columns.right}
               className={cn(
-                "flex w-80 shrink-0 flex-col border-l bg-background",
+                "flex w-80 shrink-0 flex-col border-l bg-background wide:w-96",
                 focusMode && "hidden"
               )}
             >
               <div className="shrink-0 border-b px-3 py-2">
                 <div className="flex h-8 items-center gap-1">
-                  <HeaderIconButton
-                    label={texts.publication.actions.history}
-                    expanded={historyOpen}
-                    onClick={() => setHistoryOpen(true)}
-                  >
-                    <History />
-                  </HeaderIconButton>
                   {lockButton}
                   <span className="flex-1" />
                   <PublishButton
                     pub={pub}
                     disabled={publishDisabled}
                     alwaysPublishable={alwaysPublishable}
+                    onHistory={() => setHistoryOpen(true)}
                   />
                 </div>
                 <div className="flex h-6 items-center px-1">
