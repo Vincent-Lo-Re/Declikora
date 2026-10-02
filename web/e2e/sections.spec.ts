@@ -291,7 +291,7 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
   await open(page, "/blog", admin)
   await createFromDialog(page, "article", `Finitions ${uniqueId()}`)
   const plan = page.getByRole("navigation", { name: outline.title })
-  const rows = plan.getByRole("button", { name: /^Aller à (Texte|Encadré)/ })
+  const rows = plan.getByRole("button", { name: /^Aller à (Texte|Section)/ })
   // Ce que montre une ligne du plan : le contenu (l'icône dit le type).
   const emptyBox = `${outline.box.fill} · ${outline.boxCount(0)}`
   const phone = page.getByRole("region", { name: editor.preview.screen.ios })
@@ -367,6 +367,11 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
   }
   await page.keyboard.press("Space")
   await expect(rows).toHaveText([emptyBox, "Les bons réflexes", emptyBox])
+
+  // Le plan range les blocs : l'aperçu du Fil n'a pas de poignée.
+  await expect(phone.getByRole("button", { name: /^Déplacer : / })).toHaveCount(
+    0
+  )
 
   // Concentration : les deux colonnes se cachent, Échap les ramène.
   const left = page.getByRole("complementary", { name: editor.columns.left })

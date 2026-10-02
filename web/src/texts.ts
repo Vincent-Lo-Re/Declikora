@@ -1336,7 +1336,7 @@ export const texts = {
         tab: "Mises en forme",
         description:
           "On insère une copie déjà mise en forme, puis on y écrit son propre texte. Modifier le modèle ne change pas les contenus déjà écrits.",
-        example: "Exemple : un encadré « À retenir ».",
+        example: "Exemple : une section « À retenir ».",
       },
       shared: {
         title: "Bloc partagé",
@@ -1344,7 +1344,7 @@ export const texts = {
         description:
           "Le même bloc, avec le même texte, dans plusieurs contenus. On le corrige une seule fois dans le modèle, et il est corrigé dans tous les brouillons qui l'utilisent.",
         example:
-          "Exemple : un encadré « Contact ». Il contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
+          "Exemple : une section « Contact ». Il contient un seul bloc : pour en regrouper plusieurs, mets-les dans une section.",
       },
       starter: {
         title: "Point de départ",
@@ -1451,13 +1451,13 @@ export const texts = {
       namePlaceholder: "Nom du modèle",
       starterFor: (section: string) => `Point de départ : ${section}`,
       sharedLimit:
-        "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
+        "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans une section.",
       empty: {
         title: "Modèle vide",
         description:
-          "Ajoute ses blocs : un texte, une image ou un encadré. Tu pourras ensuite l'insérer dans les contenus.",
+          "Ajoute ses blocs : un texte, une image ou une section. Tu pourras ensuite l'insérer dans les contenus.",
         sharedDescription:
-          "Ajoute son bloc : un texte, une image ou un encadré (qui peut en regrouper plusieurs). Tant qu'il est vide, il ne peut pas être inséré.",
+          "Ajoute son bloc : un texte, une image ou une section (qui peut en regrouper plusieurs). Tant qu'il est vide, il ne peut pas être inséré.",
       },
       usedIn: (count: number) =>
         count === 0
@@ -1540,7 +1540,7 @@ export const texts = {
           ? "Le bloc choisi devient un nouveau modèle."
           : `Les ${count} blocs choisis deviennent un nouveau modèle, dans l'ordre du contenu.`,
       sharedOne:
-        "Pour un bloc partagé, choisis un seul bloc (un encadré peut en regrouper plusieurs).",
+        "Pour un bloc partagé, choisis un seul bloc (une section peut en regrouper plusieurs).",
       sharedReplaced:
         "Le bloc est maintenant lié au modèle : le corriger dans le modèle le corrigera ici aussi.",
       submit: "Enregistrer le modèle",
@@ -1565,7 +1565,7 @@ export const texts = {
     blocks: {
       text: "Texte",
       image: "Image",
-      box: "Encadré",
+      box: "Section",
     },
     // Nom d'un bloc dans le plan, les annonces et les boutons.
     blockLabel: {
@@ -1574,25 +1574,25 @@ export const texts = {
       image: "Image",
       box: (count: number) =>
         count === 0
-          ? "Encadré vide"
+          ? "Section vide"
           : count === 1
-            ? "Encadré (1 bloc)"
-            : `Encadré (${count} blocs)`,
+            ? "Section (1 bloc)"
+            : `Section (${count} blocs)`,
       linked: (name: string | null) =>
         name ? `Bloc partagé « ${name} »` : "Bloc partagé",
     },
     textPlaceholder: "Écris ici…",
     add: {
       label: "Ajouter un bloc",
-      inBox: "Ajouter dans l'encadré",
+      inBox: "Ajouter dans la section",
     },
     emptyPage: {
       title: "Aucun bloc pour l'instant",
       description:
-        "Ajoute un premier bloc : un texte, une image ou un encadré.",
+        "Ajoute un premier bloc : un texte, une image ou une section.",
     },
     emptyBox:
-      "Encadré vide : ajoute un texte ou une image, ou dépose un bloc ici.",
+      "Section vide : ajoute un texte ou une image, ou dépose un bloc ici.",
     handle: (label: string) => `Déplacer : ${label}`,
     // Glisser-déposer : annonces lues par les lecteurs d'écran.
     dnd: {
@@ -1600,7 +1600,7 @@ export const texts = {
       instructions:
         "Pour déplacer un bloc, appuie sur Espace ou Entrée sur sa poignée. Déplace-le avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour le déposer, ou sur Échap pour annuler.",
       page: "la page",
-      box: (position: number) => `l'encadré (bloc n° ${position})`,
+      box: (position: number) => `la section (bloc n° ${position})`,
       start: (label: string) => `Tu as pris ${label}.`,
       over: (label: string, target: string, container: string) =>
         `${label} est au niveau de ${target}, dans ${container}.`,
@@ -1624,9 +1624,8 @@ export const texts = {
       select: (label: string) => `Aller à ${label}`,
       // Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions »).
       count: (count: number) => (count === 1 ? "1 bloc" : `${count} blocs`),
-      heading: (title: string) => `Aller au titre « ${title} »`,
-      // Une ligne d'encadré : son aspect, puis le nombre de ses blocs.
-      box: { fill: "Encadré à fond", border: "Encadré à bordure" },
+      // Une ligne de section : son aspect, puis le nombre de ses blocs.
+      box: { fill: "Section à fond", border: "Section à bordure" },
       boxCount: (count: number) => (count === 0 ? "vide" : `${count}`),
       shared: "Partagé",
       dropInBox: "Glisse un texte ou une image ici",
@@ -1927,6 +1926,8 @@ export const texts = {
     settings: {
       label: "Réglages du bloc",
       title: (label: string) => `Réglages : ${label}`,
+      // Éditeur du Fil : la barre d'icônes en bas de l'onglet « Bloc choisi ».
+      actions: "Actions du bloc",
       none: "Choisis un bloc dans l'aperçu pour voir ses réglages.",
       readOnly: "Lecture seule : tu ne peux rien modifier.",
       text: "Écris directement dans l'aperçu. Sélectionne des mots pour les mettre en forme avec la barre de mise en forme.",
@@ -1944,7 +1945,7 @@ export const texts = {
         look: "Apparence",
         fill: "Fond",
         border: "Bordure",
-        hint: "Un encadré contient des textes et des images, pas d'autre encadré.",
+        hint: "Une section contient des textes et des images, pas d'autre section.",
       },
       moveUp: "Monter",
       moveDown: "Descendre",
@@ -1954,7 +1955,7 @@ export const texts = {
       // Annoncé après « Monter » ou « Descendre ».
       moved: (position: number, count: number, container: string) =>
         `Bloc n° ${position} sur ${count}, dans ${container}.`,
-      inBox: "l'encadré",
+      inBox: "la section",
     },
     // Enregistrement automatique.
     save: {
@@ -1962,7 +1963,7 @@ export const texts = {
       savedAt: (date: string) => `Enregistré le ${date}`,
       // Lu après « Enregistré » par les lecteurs d'écran.
       savedOn: (date: string) => `le ${date}`,
-      pending: "Modifications en attente…",
+      pending: "En attente…",
       saving: "Enregistrement…",
       offline: "Hors ligne, nouvel essai…",
       failed: "Non enregistré",
@@ -2133,7 +2134,7 @@ export const texts = {
       modele_vide:
         "Ce bloc partagé est encore vide : ajoute-lui son bloc dans Modèles de bloc avant de l'insérer.",
       modele_un_seul_bloc:
-        "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
+        "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans une section.",
       bloc_introuvable:
         "Un des blocs choisis n'est pas encore enregistré. Attends la fin de l'enregistrement, puis réessaie.",
       modele_introuvable:

@@ -5,6 +5,7 @@ import {
   Bookmark,
   ChevronLeft,
   Eye,
+  Focus,
   Lock,
   Maximize,
   MoveVertical,
@@ -33,6 +34,7 @@ import { StaticBlock } from "@/blocks/components/static-block"
 import { AndroidLogo, AppleLogo } from "@/components/brand-icons"
 import type { Block, Draft } from "@/blocks/types"
 import { CoverPreview } from "@/components/editor/presentation"
+import { Kbd } from "@/components/ui/kbd"
 import { Separator } from "@/components/ui/separator"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -67,10 +69,13 @@ export function FeedPreview({
   toolbar,
   notices,
   appBar,
+  focus,
   children,
 }: {
   preview: PreviewSettings
   onPreviewChange: (preview: PreviewSettings) => void
+  // Concentration (⌘ . ou Ctrl + .) : sous Édition et Lecture, dans la barre de l'aperçu.
+  focus: FocusTool
   // La barre de mise en forme : cachée en Lecture, sa place gardée (le téléphone ne bouge pas).
   toolbar: ReactNode
   // Messages au-dessus du téléphone (brouillon trop lourd, échec d'enregistrement).
@@ -148,6 +153,7 @@ export function FeedPreview({
         preview={preview}
         onChange={onPreviewChange}
         scale={scale}
+        focus={focus}
       />
     </div>
   )
@@ -178,16 +184,26 @@ const readerChoices: Choice<(typeof previewReaders)[number]> = {
   visitor: { label: labels.reader.visitor, icon: UserX },
 }
 
+type FocusTool = {
+  on: boolean
+  // Le raccourci écrit (« ⌘ . ») et pour les lecteurs d'écran (« Meta+. »).
+  shortcut: string
+  keys: string
+  onToggle: () => void
+}
+
 /** La barre verticale à droite du téléphone : une icône par choix, son sens dans l'infobulle. */
 function PreviewTools({
   preview,
   onChange,
   scale,
+  focus,
 }: {
   preview: PreviewSettings
   onChange: (preview: PreviewSettings) => void
   // La réduction de l'écran entier, s'il est montré.
   scale: number | null
+  focus: FocusTool
 }) {
   return (
     <div
@@ -211,6 +227,23 @@ function PreviewTools({
         value={preview.mode}
         onChange={(mode) => onChange({ ...preview, mode })}
       />
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Toggle
+              aria-label={texts.editor.focusMode.label}
+              aria-keyshortcuts={focus.keys}
+              pressed={focus.on}
+              onPressedChange={focus.onToggle}
+            />
+          }
+        >
+          <Focus />
+        </TooltipTrigger>
+        <TooltipContent side="left">
+          {texts.editor.focusMode.label} <Kbd>{focus.shortcut}</Kbd>
+        </TooltipContent>
+      </Tooltip>
       <Separator className="my-1 w-5" />
       <ToolGroup
         label={labels.theme.label}

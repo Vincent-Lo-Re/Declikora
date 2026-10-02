@@ -444,7 +444,9 @@ function blockHandle(id: string): HTMLElement | null {
   return (
     document
       .querySelector(`[data-block-id="${id}"]`)
-      ?.querySelector<HTMLElement>(":scope > [data-block-handle]") ?? null
+      ?.querySelector<HTMLElement>(
+        ":scope > .blocks-handle-rail [data-block-handle]"
+      ) ?? null
   )
 }
 
@@ -1372,6 +1374,7 @@ function ContentEditor({
       templateFor,
       detachBlock,
       slash: feed ? slash : undefined,
+      withoutHandles: feed,
     }),
     [
       feed,
@@ -1862,31 +1865,19 @@ function ContentEditor({
       onDetach={detachBlock}
       removeBlocked={removeBlocked}
       onSaveAsTemplate={(id) => openSaveAs([id])}
+      actionBar
     />
   )
 
   // Le plan : la colonne de gauche (onglet « Plan » de l'éditeur du Fil).
-  // Éditeur du Fil : le plan montre le contenu de chaque bloc (vignettes, intertitres) et ce
-  // qui manque, avec un menu « … » par ligne.
+  // Éditeur du Fil : le plan montre le contenu de chaque bloc (vignettes, intertitre qui ouvre
+  // un texte) et ce qui manque, avec un menu « … » par ligne.
   const feedOutline: FeedOutline | undefined = feed
     ? {
         mediaFor,
         hoveredId,
         onHover: setHoveredId,
         warningOf: (block) => blockWarning(block, mediaFor, templateFor),
-        onHeading: (id, index) => {
-          toEdit()
-          setSelectedId(id)
-          requestAnimationFrame(() => {
-            const headings = document.querySelectorAll(
-              `[data-block-text="${id}"] :is(h2, h3)`
-            )
-            headings[index]?.scrollIntoView({
-              block: "center",
-              behavior: "smooth",
-            })
-          })
-        },
         onMove: editable ? setDraft : undefined,
         actions: editable
           ? {
@@ -2397,6 +2388,14 @@ function ContentEditor({
                     orientation="vertical"
                   />
                 }
+                focus={{
+                  on: focusMode,
+                  shortcut: apple
+                    ? texts.editor.focusMode.shortcut.apple
+                    : texts.editor.focusMode.shortcut.other,
+                  keys: apple ? "Meta+." : "Control+.",
+                  onToggle: toggleFocusMode,
+                }}
                 notices={
                   <>
                     {lockBanner}
@@ -2463,11 +2462,6 @@ function ContentEditor({
                   >
                     <History />
                   </HeaderIconButton>
-                  <FocusButton
-                    on={focusMode}
-                    apple={apple}
-                    onClick={toggleFocusMode}
-                  />
                   {lockButton}
                   <span className="flex-1" />
                   <PublishButton
@@ -2726,42 +2720,6 @@ function HeaderIconButton({
         {children}
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  )
-}
-
-/** Éditeur du Fil : Concentration (⌘ . ou Ctrl + .), une icône dont l'infobulle dit le raccourci. */
-function FocusButton({
-  on,
-  apple,
-  onClick,
-}: {
-  on: boolean
-  apple: boolean
-  onClick: () => void
-}) {
-  const shortcut = apple
-    ? texts.editor.focusMode.shortcut.apple
-    : texts.editor.focusMode.shortcut.other
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant={on ? "secondary" : "ghost"}
-            size="icon-sm"
-            aria-label={texts.editor.focusMode.label}
-            aria-pressed={on}
-            aria-keyshortcuts={apple ? "Meta+." : "Control+."}
-            onClick={onClick}
-          />
-        }
-      >
-        <Focus />
-      </TooltipTrigger>
-      <TooltipContent>
-        {texts.editor.focusMode.label} <Kbd>{shortcut}</Kbd>
-      </TooltipContent>
     </Tooltip>
   )
 }

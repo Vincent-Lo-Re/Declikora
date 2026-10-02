@@ -7,7 +7,6 @@ import {
   Copy,
   ExternalLink,
   ImageIcon,
-  Link2,
 } from "lucide-react"
 import { useRef, useState, type DragEvent } from "react"
 import { Link } from "react-router"
@@ -286,7 +285,8 @@ function SavedBlock({
   const name = template.title.trim() || texts.templates.list.untitled
   const empty = templateInsertable(template) === "empty"
   const shared = template.sort === "shared"
-  const Icon = shared ? Link2 : Copy
+  // Un bloc partagé : l'icône de Modèles de bloc, dans le menu.
+  const Icon = shared ? sections.templates.icon : Copy
   return (
     <button
       type="button"

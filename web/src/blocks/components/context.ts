@@ -50,6 +50,9 @@ export type BlocksEditorValue = {
   // Blocs liés : le modèle cité, et « Détacher » (copie ordinaire, à la même place).
   templateFor: (templateId: string) => LinkedTemplateState
   detachBlock: (blockId: string) => void
+  // Éditeur du Fil : pas de poignée dans l'aperçu, c'est le plan (toujours ouvert) qui range les
+  // blocs (ADMIN § 4).
+  withoutHandles?: boolean
   // Éditeur du Fil : « / » au début d'un texte vide (absent ailleurs).
   slash?: {
     choices: (blockId: string) => SlashChoice[]
