@@ -1803,6 +1803,7 @@ export const texts = {
     // Le mode Concentration de l'éditeur du Fil : les deux colonnes se cachent.
     focusMode: {
       label: "Concentration",
+      exit: "Quitter la Concentration",
       on: "Concentration : les colonnes sont cachées. Échap pour les retrouver.",
       off: "Les colonnes sont de retour.",
       shortcut: { apple: "⌘ .", other: "Ctrl + ." },
@@ -2033,6 +2034,49 @@ export const texts = {
         "L'état du brouillon n'a pas pu être lu. Réessaie dans un instant.",
       reloadFailed:
         "Le brouillon n'a pas pu être relu. Ton texte reste à l'écran : réessaie dans un instant.",
+      // Éditeur du Fil : le cadenas à côté de Concentration, et sa fenêtre (au lieu du bandeau).
+      button: "Lecture seule",
+      dialog: {
+        title: {
+          lost: (name: string) => `${name} a repris la main`,
+          lostUnknown: "Quelqu'un a repris la main",
+          lostSelf: "Tu as pris la main dans un autre onglet",
+          readOnly: (name: string) => `${name} écrit ce brouillon`,
+          readOnlySelf: "Tu écris ce brouillon dans un autre onglet",
+          free: "Personne n'écrit ce brouillon",
+          released: "Le brouillon a été libéré",
+        },
+        text: {
+          lost: (name: string) =>
+            `Tu vois maintenant ce brouillon en lecture seule. Il se met à jour à chaque enregistrement de ${name}.`,
+          lostUnknown:
+            "Tu vois maintenant ce brouillon en lecture seule. Il se met à jour à chaque enregistrement.",
+          lostSelf: "Ici, tu vois maintenant ce brouillon en lecture seule.",
+          readOnly: (name: string) =>
+            `Tu le vois en lecture seule, et il se met à jour à chaque enregistrement de ${name}.`,
+          readOnlySelf: "Ici, tu le vois en lecture seule.",
+          free: "Tu le vois en lecture seule. Prends la main pour écrire.",
+          released:
+            "Cet onglet est resté caché plus de 30 minutes : le brouillon a été libéré pour l'équipe.",
+        },
+        // Ce que ferait la prise de main.
+        note: {
+          other: (name: string) =>
+            `Si tu prends la main, ${name} passera en lecture seule. Ce qui n'est pas encore enregistré de son côté restera dans son navigateur.`,
+          unknown:
+            "Si tu prends la main, la personne qui écrit passera en lecture seule. Ce qui n'est pas encore enregistré de son côté restera dans son navigateur.",
+          self: "Si tu reprends la main ici, l'autre onglet passera en lecture seule.",
+        },
+        take: {
+          lost: "Reprendre la main",
+          lostSelf: "Reprendre la main ici",
+          readOnly: "Prendre la main",
+          readOnlySelf: "Prendre la main ici",
+          free: "Prendre la main",
+          released: "Reprendre l'écriture",
+        },
+        stay: "Rester en lecture seule",
+      },
     },
     // Erreurs de la base (RPC), selon leur code (docs/ARCHITECTURE-CONTENUS.md, « Étape 4 »).
     errors: {

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Doc, Draft } from "@/blocks/types"
@@ -1000,6 +1000,167 @@ describe("éditeur d'un article (Le Fil)", () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     renderApp(`/podcasts/${ARTICLE}`)
     expect(await screen.findByText(texts.editor.notFound.title)).toBeVisible()
+  })
+})
+
+describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
+  const CLAIRE = "00000000-0000-4000-8000-00000000c1a1"
+  const claire: api.LockRow = {
+    ...mine,
+    mine: false,
+    holder_id: CLAIRE,
+    holder_name: "Claire Martin",
+  }
+  const dialog = texts.editor.lock.dialog
+
+  it("pas de barre du haut : le retour, l'enregistrement et le titre à gauche ; Publier et son état à droite", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    expect(screen.queryByRole("banner")).toBeNull()
+    const left = screen.getByRole("complementary", { name: columns.left })
+    expect(
+      within(left).getByRole("link", {
+        name: texts.editor.back(texts.sections.blog.title),
+      })
+    ).toBeInTheDocument()
+    expect(within(left).getByText(texts.editor.save.saved)).toBeInTheDocument()
+    const right = screen.getByRole("complementary", { name: columns.right })
+    for (const name of [
+      texts.publication.actions.history,
+      texts.editor.focusMode.label,
+      texts.publication.actions.publish,
+      texts.publication.actions.more,
+    ]) {
+      expect(within(right).getByRole("button", { name })).toBeInTheDocument()
+    }
+    expect(
+      await within(right).findByText(texts.publication.status.draft)
+    ).toBeInTheDocument()
+    // Pas de cadenas quand on écrit.
+    expect(
+      within(right).queryByRole("button", { name: texts.editor.lock.button })
+    ).toBeNull()
+  })
+
+  it("une programmation s'écrit sous « Publier », et son bandeau passe au-dessus du téléphone", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
+    vi.mocked(publicationApi.getPublication).mockResolvedValue({
+      id: ARTICLE,
+      draft_rev: 4,
+      first_published_at: null,
+      scheduled_at: "2099-10-25T06:00:00Z",
+      scheduled_by_name: null,
+      schedule_error: null,
+      deleted_at: null,
+      live: null,
+    })
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const right = screen.getByRole("complementary", { name: columns.right })
+    expect(
+      await within(right).findByText(/^Brouillon · Programmé le 25 oct\. 2099/)
+    ).toBeInTheDocument()
+    const banner = document.querySelector("[data-schedule-banner]")!
+    expect(banner).toBeInTheDocument()
+    expect(screen.getByRole("main")).toContainElement(banner as HTMLElement)
+  })
+
+  it("quelqu'un écrit déjà à l'ouverture : pas de fenêtre, le cadenas l'ouvre et « Prendre la main » agit sans seconde confirmation", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
+    vi.mocked(api.lockTake).mockResolvedValueOnce(claire)
+    vi.mocked(api.lockStatus).mockResolvedValue(claire)
+    renderApp(`/blog/${ARTICLE}`)
+    const lock = await screen.findByRole("button", {
+      name: texts.editor.lock.button,
+    })
+    expect(screen.queryByRole("alertdialog")).toBeNull()
+    // Le bandeau des autres éditeurs n'est pas là.
+    expect(
+      screen.queryByText(texts.editor.lock.readOnly("Claire Martin"))
+    ).toBeNull()
+
+    fireEvent.click(lock)
+    const window = await screen.findByRole("alertdialog")
+    expect(
+      within(window).getByText(dialog.title.readOnly("Claire Martin"))
+    ).toBeInTheDocument()
+    expect(
+      within(window).getByText(dialog.note.other("Claire Martin"))
+    ).toBeInTheDocument()
+    // Quelqu'un d'autre écrit : « Rester en lecture seule » est le bouton principal (le dernier).
+    const buttons = within(window).getAllByRole("button")
+    expect(buttons.at(-1)).toHaveTextContent(dialog.stay)
+
+    vi.mocked(api.lockStatus).mockResolvedValue(mine)
+    fireEvent.click(
+      within(window).getByRole("button", { name: dialog.take.readOnly })
+    )
+    await waitFor(() =>
+      expect(api.lockTake).toHaveBeenLastCalledWith(
+        ARTICLE,
+        true,
+        expect.any(String)
+      )
+    )
+    await editable()
+    expect(
+      screen.queryByRole("button", { name: texts.editor.lock.button })
+    ).toBeNull()
+  })
+
+  it("perdre la main ouvre la fenêtre une fois ; Échap y laisse le cadenas, qui la rouvre", async () => {
+    let emit: (change: api.LockChange) => void = () => {}
+    vi.mocked(api.subscribeLock).mockImplementation((_id, onChange) => {
+      emit = onChange
+      return () => {}
+    })
+    vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+
+    vi.mocked(api.lockStatus).mockResolvedValue(claire)
+    act(() =>
+      emit({
+        holder_id: CLAIRE,
+        holder_session: null,
+        heartbeat_at: new Date().toISOString(),
+        draft_rev: 4,
+        taken_at: new Date().toISOString(),
+      })
+    )
+    const window = await screen.findByRole("alertdialog")
+    expect(
+      await within(window).findByText(dialog.title.lost("Claire Martin"))
+    ).toBeInTheDocument()
+    expect(
+      within(window).getByRole("button", { name: dialog.take.lost })
+    ).toBeInTheDocument()
+
+    fireEvent.keyDown(window, { key: "Escape" })
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull())
+    // Elle ne se rouvre pas d'elle-même ; le cadenas la rouvre.
+    const lock = screen.getByRole("button", { name: texts.editor.lock.button })
+    fireEvent.click(lock)
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument()
+  })
+
+  it("Concentration : une pastille garde l'enregistrement et « Quitter la Concentration »", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    expect(
+      screen.queryByRole("button", { name: texts.editor.focusMode.exit })
+    ).toBeNull()
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.editor.focusMode.label })
+    )
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.editor.focusMode.exit })
+    )
+    expect(
+      screen.getByRole("complementary", { name: columns.left })
+    ).not.toHaveClass("hidden")
   })
 })
 

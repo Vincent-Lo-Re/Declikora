@@ -8,6 +8,8 @@
 // 1 bis. L'éditeur du Fil : « / » dans un texte vide, un Texte glissé depuis l'onglet Blocs, un
 //    intertitre dans le plan, « … » › Dupliquer, le plan rangé au clavier, la Concentration,
 //    puis recharger.
+// 1 ter. L'éditeur du Fil en lecture seule : un second onglet prend la main, la fenêtre s'ouvre
+//    dans le premier, Échap y laisse le cadenas, qui la rouvre pour reprendre la main.
 // 2. Podcasts : un épisode que « Publier » refuse sans audio ; l'audio choisi dans la
 //    médiathèque, sa durée affichée, la transcription conseillée ([D46]) ; publier ; l'app le
 //    liste avec sa durée ; la transcription ajoutée depuis sa fiche fait taire l'avertissement.
@@ -383,6 +385,42 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
   await saved(page)
   await page.reload()
   await expect(rows).toHaveCount(3)
+})
+
+test("Éditeur du Fil : main prise dans un autre onglet, la fenêtre, le cadenas, la reprise", async ({
+  page,
+  team,
+}) => {
+  const words = editor.lock.dialog
+  const admin = await team.createAdmin("Léo Lecture")
+  await open(page, "/blog", admin)
+  await createFromDialog(page, "article", `Lecture seule ${uniqueId()}`)
+  const title = page.getByLabel(editor.title.label)
+  await expect(title).not.toHaveAttribute("readonly")
+
+  // Le même membre ouvre l'article dans un second onglet : c'est lui qui a la main.
+  const tab = await page.context().newPage()
+  await tab.goto(page.url())
+  await expect(tab.getByLabel(editor.title.label)).not.toHaveAttribute(
+    "readonly"
+  )
+  const dialog = page.getByRole("alertdialog")
+  await expect(dialog.getByText(words.title.lostSelf)).toBeVisible()
+  await expect(title).toHaveAttribute("readonly")
+
+  // Échap : on reste en lecture seule, le cadenas rouvre la fenêtre.
+  await page.keyboard.press("Escape")
+  await expect(dialog).toBeHidden()
+  await page.getByRole("button", { name: editor.lock.button }).click()
+  await dialog.getByRole("button", { name: words.take.lostSelf }).click()
+  await expect(title).not.toHaveAttribute("readonly")
+  await expect(
+    page.getByRole("button", { name: editor.lock.button })
+  ).toHaveCount(0)
+  await expect(
+    tab.getByRole("alertdialog").getByText(words.title.lostSelf)
+  ).toBeVisible()
+  await tab.close()
 })
 
 test("Blog : catégories rangées, article refusé sans image de présentation, publié, filtré, catégorie supprimée", async ({
