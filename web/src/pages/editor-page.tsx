@@ -106,7 +106,7 @@ import {
 } from "@/components/editor/presentation"
 import {
   PublicationDialogs,
-  PublicationLine,
+  PublicationBadge,
   PublishBar,
   PublishButton,
   ScheduleBanner,
@@ -390,10 +390,13 @@ function EditorFrame({
 function BackLink({
   section,
   method,
+  compact = false,
 }: {
   section: SectionKey
   // Un chapitre ou une leçon : « ← nom de la méthode ».
   method?: { id: string; title: string } | null
+  // Éditeur du Fil : la flèche seule, le nom de la section dans l'infobulle.
+  compact?: boolean
 }) {
   if (method) {
     const title = method.title.trim() || texts.common.untitled
@@ -412,6 +415,24 @@ function BackLink({
     )
   }
   const title = texts.sections[section].title
+  if (compact) {
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Link
+              to={sections[section].path}
+              aria-label={texts.editor.back(title)}
+              className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+            />
+          }
+        >
+          <ArrowLeft />
+        </TooltipTrigger>
+        <TooltipContent>{title}</TooltipContent>
+      </Tooltip>
+    )
+  }
   return (
     <Link
       to={sections[section].path}
@@ -2150,6 +2171,13 @@ function ContentEditor({
       visible={phase === "mine" || autosave.state.unsaved}
     />
   )
+  const feedSaveStatus = (
+    <SaveStatus
+      state={autosave.state}
+      visible={phase === "mine" || autosave.state.unsaved}
+      compact
+    />
+  )
   const lockButton = lockView && (
     <LockButton
       expanded={lockDialog.open}
@@ -2317,22 +2345,21 @@ function ContentEditor({
               aria-label={texts.editor.columns.left}
               // Caché (et non retiré) en Concentration : onglet et « Mes blocs » restent ouverts.
               className={cn(
-                "flex w-72 shrink-0 flex-col border-r bg-background wide:w-80",
+                "flex w-feed-column shrink-0 flex-col border-r bg-background",
                 focusMode && "hidden"
               )}
             >
-              <div className="shrink-0 border-b px-3 py-2">
-                <div className="flex h-8 items-center gap-2">
-                  <BackLink section={section} />
-                  <span className="flex-1" />
-                  {saveStatus}
-                </div>
+              {/* Une ligne, de la même hauteur que l'en-tête de droite : le retour, le titre,
+                  l'état de l'enregistrement en icône. */}
+              <div className="flex h-12 shrink-0 items-center gap-1 border-b px-3">
+                <BackLink section={section} compact />
                 <p
-                  className="flex h-6 items-center truncate px-2.5 font-semibold"
+                  className="min-w-0 flex-1 truncate font-semibold"
                   aria-hidden
                 >
-                  <span className="truncate">{title.trim() || untitled}</span>
+                  {title.trim() || untitled}
                 </p>
+                {feedSaveStatus}
               </div>
               <Tabs
                 value={leftTab}
@@ -2461,24 +2488,21 @@ function ContentEditor({
             <aside
               aria-label={texts.editor.columns.right}
               className={cn(
-                "flex w-80 shrink-0 flex-col border-l bg-background wide:w-96",
+                "flex w-feed-column shrink-0 flex-col border-l bg-background",
                 focusMode && "hidden"
               )}
             >
-              <div className="shrink-0 border-b px-3 py-2">
-                <div className="flex h-8 items-center gap-1">
-                  {lockButton}
-                  <span className="flex-1" />
-                  <PublishButton
-                    pub={pub}
-                    disabled={publishDisabled}
-                    alwaysPublishable={alwaysPublishable}
-                    onHistory={() => setHistoryOpen(true)}
-                  />
-                </div>
-                <div className="flex h-6 items-center px-1">
-                  <PublicationLine pub={pub} />
-                </div>
+              {/* Une ligne : le cadenas (en lecture seule), l'état de publication, « Publier ». */}
+              <div className="flex h-12 shrink-0 items-center gap-1 border-b px-3">
+                {lockButton}
+                <PublicationBadge pub={pub} />
+                <span className="flex-1" />
+                <PublishButton
+                  pub={pub}
+                  disabled={publishDisabled}
+                  alwaysPublishable={alwaysPublishable}
+                  onHistory={() => setHistoryOpen(true)}
+                />
               </div>
               <Tabs
                 value={rightTab}

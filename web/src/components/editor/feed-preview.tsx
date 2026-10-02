@@ -102,7 +102,8 @@ export function FeedPreview({
       ? fullScreenScale(preview.device, available)
       : null
   return (
-    <div className="flex min-h-0 flex-1 justify-center gap-9 px-4 py-4">
+    // Centré sans rien cacher : trop étroit, l'aperçu défile au lieu de déborder des deux côtés.
+    <div className="flex min-h-0 flex-1 justify-center-safe gap-4 px-3 py-4 wide:gap-9 wide:px-4">
       <div
         className={cn(
           "shrink-0 self-start",

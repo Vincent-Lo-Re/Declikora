@@ -1259,7 +1259,7 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
     ).toBeNull()
   })
 
-  it("une programmation s'écrit sous « Publier », et son bandeau passe au-dessus du téléphone", async () => {
+  it("une programmation : « Programmé » à côté de « Publier », et son bandeau au-dessus du téléphone", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     vi.mocked(publicationApi.getPublication).mockResolvedValue({
       id: ARTICLE,
@@ -1274,9 +1274,14 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
     renderApp(`/blog/${ARTICLE}`)
     await editable()
     const right = screen.getByRole("complementary", { name: columns.right })
-    expect(
-      await within(right).findByText(/^Brouillon · Programmé le 25 oct\. 2099/)
-    ).toBeInTheDocument()
+    // Une pastille courte à côté de « Publier », la phrase entière pour les lecteurs d'écran (et
+    // dans l'infobulle).
+    const badge = await within(right).findByText(
+      texts.publication.short.scheduled
+    )
+    expect(badge.closest("[data-publication]")).toHaveTextContent(
+      /Brouillon · Programmé le 25 oct\. 2099/
+    )
     const banner = document.querySelector("[data-schedule-banner]")!
     expect(banner).toBeInTheDocument()
     expect(screen.getByRole("main")).toContainElement(banner as HTMLElement)

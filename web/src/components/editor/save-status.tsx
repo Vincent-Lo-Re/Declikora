@@ -23,10 +23,13 @@ const labels = texts.editor.save
 export function SaveStatus({
   state,
   visible,
+  compact = false,
 }: {
   state: AutosaveState
   // Faux en lecture seule sans rien à enregistrer : seule la région annoncée reste.
   visible: boolean
+  // Éditeur du Fil : l'icône seule, l'état (et l'heure) dans l'infobulle.
+  compact?: boolean
 }) {
   const announcement = useAnnouncement(state.status)
   const { icon: Icon, text, spin, tone } = describe(state.status)
@@ -38,7 +41,7 @@ export function SaveStatus({
   const indicator = (
     <>
       <Icon aria-hidden className={spin ? "size-4 animate-spin" : "size-4"} />
-      <span>{text}</span>
+      <span className={cn(compact && "sr-only")}>{text}</span>
       {date && <span className="sr-only">{` ${labels.savedOn(date)}`}</span>}
     </>
   )
@@ -46,6 +49,8 @@ export function SaveStatus({
     "flex items-center gap-1.5 rounded-md text-sm",
     tone === "error" ? "text-destructive" : "text-muted-foreground"
   )
+  // Une infobulle quand il y a quelque chose à y lire : l'heure, ou l'état d'une icône seule.
+  const tip = date ? labels.savedAt(date) : compact ? text : null
 
   return (
     <>
@@ -53,7 +58,7 @@ export function SaveStatus({
         {announcement}
       </p>
       {visible &&
-        (date ? (
+        (tip ? (
           <Tooltip>
             <TooltipTrigger
               render={
@@ -69,7 +74,7 @@ export function SaveStatus({
             >
               {indicator}
             </TooltipTrigger>
-            <TooltipContent>{labels.savedAt(date)}</TooltipContent>
+            <TooltipContent>{tip}</TooltipContent>
           </Tooltip>
         ) : (
           <p data-save-status={state.status} className={className}>
