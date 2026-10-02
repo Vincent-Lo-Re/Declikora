@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
-import type { AccessLevel } from "@/lib/access-levels"
+import { isMostComplete, type AccessLevel } from "@/lib/access-levels"
 import type { ContentSettings } from "@/lib/contents/api"
 import type { LiveVersion } from "@/lib/contents/publication"
 import type { ReadyItem } from "@/lib/contents/requirements"
@@ -157,56 +157,60 @@ export function ArticlePanel({
 function ReadyCard({ items }: { items: ReadyItem[] }) {
   const done = items.filter((item) => item.done).length
   return (
-    <section
-      aria-labelledby="article-pret"
-      className="sticky top-0 z-10 rounded-xl border bg-muted p-3"
-    >
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <h3 id="article-pret" className="text-sm font-semibold">
-          {labels.ready.title}
-        </h3>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {labels.ready.count(done, items.length)}
-        </span>
-      </div>
-      <ul>
-        {items.map((item) => {
-          const label = labels.ready.items[item.key]
-          return (
-            <li key={item.key}>
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm outline-none hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/50"
-                aria-label={
-                  item.done
-                    ? labels.ready.done(label)
-                    : labels.ready.todo(label)
-                }
-                onClick={() =>
-                  focusSoon(() => document.getElementById(targets[item.key]))
-                }
-              >
-                {item.done ? (
-                  <CircleCheck
-                    aria-hidden
-                    className="size-4 text-status-live"
-                  />
-                ) : (
-                  <CircleAlert aria-hidden className="size-4 text-warning" />
-                )}
-                <span className="flex-1">{label}</span>
-                {!item.done && (
-                  <ChevronRight
-                    aria-hidden
-                    className="size-4 text-muted-foreground"
-                  />
-                )}
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-    </section>
+    // Collée en haut de la colonne, sur un fond plein : rien ne défile au-dessus d'elle (la
+    // colonne a une marge intérieure, que ce fond recouvre).
+    <div className="sticky -top-3 z-10 -mt-3 bg-background pt-3">
+      <section
+        aria-labelledby="article-pret"
+        className="rounded-xl border bg-muted p-3"
+      >
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <h3 id="article-pret" className="text-sm font-semibold">
+            {labels.ready.title}
+          </h3>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {labels.ready.count(done, items.length)}
+          </span>
+        </div>
+        <ul>
+          {items.map((item) => {
+            const label = labels.ready.items[item.key]
+            return (
+              <li key={item.key}>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm outline-none hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/50"
+                  aria-label={
+                    item.done
+                      ? labels.ready.done(label)
+                      : labels.ready.todo(label)
+                  }
+                  onClick={() =>
+                    focusSoon(() => document.getElementById(targets[item.key]))
+                  }
+                >
+                  {item.done ? (
+                    <CircleCheck
+                      aria-hidden
+                      className="size-4 text-status-live"
+                    />
+                  ) : (
+                    <CircleAlert aria-hidden className="size-4 text-warning" />
+                  )}
+                  <span className="flex-1">{label}</span>
+                  {!item.done && (
+                    <ChevronRight
+                      aria-hidden
+                      className="size-4 text-muted-foreground"
+                    />
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+    </div>
   )
 }
 
@@ -448,7 +452,9 @@ function AccessCard({
           ? access.notChosen
           : settings.accessLevelId === null
             ? access.freeHint
-            : access.levelHint}
+            : levels && isMostComplete(levels, settings.accessLevelId)
+              ? access.levelHintTop
+              : access.levelHint}
       </p>
       {levels?.length === 0 && (
         <p className="mt-1 text-xs text-muted-foreground">{access.noLevels}</p>

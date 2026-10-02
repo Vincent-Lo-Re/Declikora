@@ -114,7 +114,7 @@ export const texts = {
     scheduled: {
       title: "Publications programmées",
       description:
-        "Dans l'ordre où elles partiront dans l'app. Une programmation en attente attend que la personne qui écrit ait quitté l'éditeur.",
+        "Dans l'ordre où elles partiront dans l'app. Une programmation en attente part dès que la personne qui écrit a quitté l'éditeur.",
       empty: "Aucune publication programmée.",
       by: (name: string) => `programmée par ${name}`,
     },
@@ -128,6 +128,8 @@ export const texts = {
     },
     savedAt: (date: string) => `Modifié le ${date}`,
     inMethod: (title: string) => `Méthode « ${title} »`,
+    // Un chapitre ou une leçon : publié avec sa méthode, sans état propre.
+    withMethod: "Part avec sa méthode",
     loadFailed: "Cette liste n'a pas pu être chargée.",
   },
 
@@ -152,7 +154,7 @@ export const texts = {
       `Si ${email} fait partie de l'équipe, un code y a été envoyé. Il est valable 10 minutes.`,
     // Une invitation pas encore acceptée ne permet pas de recevoir un code.
     invitedHint:
-      "Tu as été invité ? Ouvre plutôt le lien de l'e-mail d'invitation, ou demande à un admin de te le renvoyer.",
+      "Tu as reçu une invitation ? Ouvre plutôt le lien de l'e-mail d'invitation, ou demande à un admin de te le renvoyer.",
     code: "Code reçu par e-mail",
     invalidCode: "Le code contient 6 chiffres.",
     wrongCode:
@@ -247,7 +249,7 @@ export const texts = {
     refreshFailed:
       "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
     singleAdmin:
-      "Tu es le seul admin à avoir configuré la double vérification. Nomme un deuxième admin : si tu perds ton téléphone, c'est lui qui réinitialisera la tienne.",
+      "Tu es le seul admin à avoir configuré la double vérification. Nomme un deuxième admin : si tu perds ton téléphone, c'est cette personne qui réinitialisera la tienne.",
     columns: {
       member: "Membre",
       role: "Rôle",
@@ -289,7 +291,7 @@ export const texts = {
     confirmResetMfa: {
       title: "Réinitialiser la double vérification ?",
       description: (member: string) =>
-        `${member} sera déconnecté de l'administration et devra configurer à nouveau la double vérification avec son téléphone.`,
+        `La session de ${member} sera fermée : il faudra configurer à nouveau la double vérification avec son téléphone.`,
       confirm: "Réinitialiser",
     },
     // Erreurs renvoyées par la fonction serveur « equipe », selon leur code.
@@ -396,7 +398,7 @@ export const texts = {
       createdAt: "Ajouté le",
       status: "État",
     },
-    open: (name: string) => `Ouvrir la fiche de ${name}`,
+    open: (name: string) => `Ouvrir la fiche « ${name} »`,
     // Sélection en masse (cases des vignettes et de la liste).
     selection: {
       trashed: (count: number) =>
@@ -500,7 +502,7 @@ export const texts = {
           `Échec de l'envoi de ${name}. ${error}`,
         cancelled: (name: string) => `Envoi de ${name} annulé.`,
       },
-      resumable: "Envoi reprenable",
+      resumable: "Envoi qui peut reprendre",
       gifWarning:
         "GIF animé : seule la première image est gardée. Pour une animation, utilise un fichier Lottie.",
       leaveWarning: "Des fichiers sont en cours d'envoi.",
@@ -518,7 +520,7 @@ export const texts = {
       image_illisible:
         "Cette image est illisible par ton navigateur. Enregistre-la en JPEG ou en PNG, puis envoie-la de nouveau.",
       heic_illisible:
-        "Ton navigateur ne sait pas lire les photos HEIC (iPhone). Ouvre-la avec Safari, ou enregistre-la en JPEG, puis envoie-la de nouveau.",
+        "Ton navigateur ne sait pas lire les photos HEIC (iPhone). Ouvre la photo avec Safari, ou enregistre-la en JPEG, puis envoie-la de nouveau.",
       svg_illisible:
         "Ce SVG est illisible, ou il déclare des entités (refusées par sécurité).",
       svg_element_interdit:
@@ -628,7 +630,7 @@ export const texts = {
             ? "1 contenu en ligne montre encore l'ancien texte"
             : `${count} contenus en ligne montrent encore l'ancien texte`,
         description:
-          "Le texte alternatif ou la transcription a changé depuis leur publication. Seuls les textes de ce fichier seront remplacés dans l'app : le reste des brouillons ne part pas.",
+          "Le texte alternatif ou la transcription a changé depuis leur publication. Seuls les textes de ce fichier seront remplacés dans l'app : les autres modifications des brouillons ne sont pas publiées.",
         version: (number: number, date: string) =>
           `version n° ${number}, publiée le ${date}`,
         push: (count: number) =>
@@ -761,11 +763,9 @@ export const texts = {
     confirmErase: {
       title: "Effacer définitivement ?",
       description: (name: string) =>
-        `« ${name} » sera effacé définitivement. Tu ne pourras pas revenir en arrière.`,
+        `Effacement définitif de « ${name} » : tu ne pourras pas revenir en arrière.`,
       confirm: "Effacer définitivement",
     },
-    retention:
-      "Ce qui est mis à la corbeille reste ici 30 jours, puis est effacé automatiquement.",
     emptyState: {
       title: "La corbeille est vide",
       description:
@@ -939,7 +939,7 @@ export const texts = {
         modified: "Modifiés depuis la publication",
         withdrawn: "Retirés de l'app",
         scheduled: "Programmés",
-        failed: "Programmation échouée",
+        failed: "Programmations échouées",
       },
       allCategories: "Toutes les catégories",
       noCategory: "Sans catégorie",
@@ -948,8 +948,8 @@ export const texts = {
     count: (shown: number, total: number) =>
       shown === total
         ? total === 1
-          ? "1 élément"
-          : `${total} éléments`
+          ? "1 contenu"
+          : `${total} contenus`
         : `${shown} sur ${total}`,
     // Méthodes : le niveau de la fiche.
     levelNotChosen: "Pas encore choisi",
@@ -967,6 +967,9 @@ export const texts = {
     newContent: {
       description:
         "Le titre suffit pour commencer : tout se modifie ensuite dans les réglages.",
+      // Un article : ses réglages sont dans la colonne « Article » de l'éditeur.
+      articleDescription:
+        "Le titre suffit pour commencer : tout se modifie ensuite dans l'éditeur, colonne « Article ».",
       starter: "Point de départ",
       // Une page : l'adresse vient du titre ; déjà prise, la création est bloquée.
       address: (slug: string) => `Adresse de la page : ${slug}`,
@@ -976,7 +979,7 @@ export const texts = {
         "Ce titre ne donne pas d'adresse : ajoute des lettres ou des chiffres.",
       starterHint: "Une structure déjà en place, au lieu d'un contenu vide.",
       settingsFailed: (message: string) =>
-        `Créé, mais ses réglages n'ont pas été enregistrés : ${message} Corrige-les dans les réglages.`,
+        `Le contenu est créé, mais ses réglages n'ont pas été enregistrés : ${message} Corrige-les dans l'éditeur.`,
     },
     // Ordre des listes (Le Fil, Radio Éclaircies, Méthodes, [D47]) : glisser-déposer.
     order: {
@@ -995,7 +998,7 @@ export const texts = {
         over: (title: string, position: number, count: number) =>
           `« ${title} » est à la place n° ${position} sur ${count}.`,
         end: (title: string, position: number, count: number) =>
-          `« ${title} » déposé à la place n° ${position} sur ${count}.`,
+          `Déposé à la place n° ${position} sur ${count} : « ${title} ».`,
         cancel: (title: string) =>
           `Déplacement annulé : « ${title} » reprend sa place.`,
       },
@@ -1067,30 +1070,30 @@ export const texts = {
       states: {
         live: "En ligne",
         modified: "Modifié depuis la publication",
-        new: "Neuf",
-        removing: "Sera retiré de l'app",
-        withdrawn: "Retiré de l'app",
-        hidden: "Caché de l'app",
-        blocked: "Caché avec son chapitre",
+        new: "À publier",
+        removing: "Sortira de l'app",
+        withdrawn: "Plus dans l'app",
+        hidden: "Pas dans l'app",
+        blocked: "Pas dans l'app, comme son chapitre",
       },
       stateHints: {
         live: "Dans l'app, tel quel.",
         modified:
           "Ses modifications partiront à la prochaine publication de la méthode.",
-        new: "Il partira dans l'app à la prochaine publication de la méthode.",
+        new: "Partira dans l'app à la prochaine publication de la méthode.",
         removing:
-          "Décoché : il sortira de l'app à la prochaine publication de la méthode.",
+          "Décoché : sortira de l'app à la prochaine publication de la méthode.",
         withdrawn:
-          "Il n'est plus dans l'app. Coche « Montrer dans l'app » puis publie la méthode pour le remettre.",
+          "N'est plus dans l'app. Pour l'y remettre, coche « Montrer dans l'app », puis publie la méthode.",
         hidden:
-          "Coche « Montrer dans l'app » quand il est prêt : il partira à la prochaine publication de la méthode.",
+          "Coche « Montrer dans l'app » quand c'est prêt : ce sera dans l'app à la prochaine publication de la méthode.",
         blocked:
           "Son chapitre n'est pas montré dans l'app : cette leçon ne part pas avec la méthode.",
       },
       problem: "À corriger avant de publier",
       // Cases cochées depuis le plan : le réglage appartient à l'élément, sous son verrou.
       heldBy: (name: string) =>
-        `${name} écrit cet élément en ce moment : attends qu'il ait fini, ou ouvre-le pour reprendre la main.`,
+        `${name} écrit cet élément en ce moment : attends la fin, ou ouvre-le pour reprendre la main.`,
       heldSelf:
         "Tu écris cet élément dans un autre onglet : change ce réglage dans cet onglet-là.",
       yourselfElsewhere: "Toi (dans un autre onglet)",
@@ -1105,7 +1108,7 @@ export const texts = {
       lessonPlace: (position: number, total: number, chapter: string) =>
         `leçon ${position} sur ${total}, dans ${chapter}`,
       confirmUnpublish: {
-        title: (label: string) => `Retirer de l'app ${label} ?`,
+        title: (label: string) => `Retirer ${label} de l'app ?`,
         chapter:
           "Le chapitre et ses leçons disparaissent de l'app tout de suite (une nouvelle version de la méthode est écrite). « Montrer dans l'app » est décoché : coche-le, puis publie la méthode, pour le remettre.",
         lesson:
@@ -1124,7 +1127,7 @@ export const texts = {
       trashed: (label: string) => `${upperFirst(label)} est dans la corbeille.`,
       undo: "Annuler",
       restored: (label: string) =>
-        `De retour en fin de liste, caché de l'app : ${label}.`,
+        `De retour en fin de liste, hors de l'app : ${label}.`,
       loadFailed: "Le plan n'a pas pu être chargé.",
       refreshFailed:
         "Le plan n'a pas pu être mis à jour : il date peut-être un peu.",
@@ -1140,7 +1143,7 @@ export const texts = {
       overChapter: (label: string, chapter: string) =>
         `${upperFirst(label)} est dans ${chapter}.`,
       outside: (label: string) =>
-        `${upperFirst(label)} n'est au-dessus d'aucune place.`,
+        `${upperFirst(label)} n'est sur aucun emplacement.`,
       end: (label: string, place: string) => `Déposé : ${label}, ${place}.`,
       endOutside: (label: string) =>
         `Lâché hors du plan : ${label} reprend sa place.`,
@@ -1182,7 +1185,7 @@ export const texts = {
         lesson:
           "Cette leçon part dans l'app avec sa méthode : elle n'a pas de bouton Publier.",
       },
-      publishFromMethod: "Publie la méthode depuis sa page.",
+      publishFromMethod: "Publie la méthode depuis l'écran de la méthode.",
       openMethod: "Ouvrir la méthode",
       inChapter: (chapter: string) => `Dans le chapitre « ${chapter} »`,
       // La programmation de la méthode, vue depuis un chapitre ou une leçon ([D31]).
@@ -1193,7 +1196,7 @@ export const texts = {
         due: (date: string) =>
           `La méthode est programmée le ${date} : sa publication part dans un instant.`,
         dueHint:
-          "Si quelqu'un a modifié la méthode, un chapitre ou une leçon depuis la programmation et a encore son éditeur ouvert, elle attendra qu'il le quitte, une heure au plus.",
+          "Si quelqu'un a modifié la méthode, un chapitre ou une leçon depuis la programmation et a encore son éditeur ouvert, la publication attendra que cette personne quitte l'éditeur, une heure au plus.",
         waiting: (date: string) =>
           `La publication de la méthode, programmée le ${date}, attend : quelqu'un écrit la méthode, un chapitre ou une leçon.`,
         waitingHint:
@@ -1233,10 +1236,10 @@ export const texts = {
       // « Leçon « Respirer » » : la sorte, puis le titre.
       row: (kind: string, title: string) => `${kind} « ${title} »`,
       changes: {
-        new: "Neuf",
-        modified: "Modifié",
-        removed: "Retiré",
-        reordered: "Rangé",
+        new: "Ajout",
+        modified: "Modification",
+        removed: "Retrait",
+        reordered: "Nouvelle place",
       },
       inChapter: (title: string) => `dans « ${title} »`,
       savedAt: (date: string) => `modifié le ${date}`,
@@ -1296,20 +1299,20 @@ export const texts = {
       confirm: "Supprimer définitivement",
     },
     removed: (name: string) => `Catégorie « ${name} » supprimée.`,
-    handle: (name: string) => `Déplacer ${name}`,
+    handle: (name: string) => `Déplacer « ${name} »`,
     reordered: "Nouvel ordre enregistré.",
     // Glisser-déposer : annonces lues par les lecteurs d'écran.
     dnd: {
       roleDescription: "catégorie déplaçable",
       instructions:
         "Pour déplacer une catégorie, appuie sur Espace ou Entrée sur sa poignée. Déplace-la avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour la déposer, ou sur Échap pour annuler.",
-      start: (name: string) => `Tu as pris ${name}.`,
+      start: (name: string) => `Tu as pris « ${name} ».`,
       over: (name: string, position: number, count: number) =>
-        `${name} est à la place n° ${position} sur ${count}.`,
+        `« ${name} » est à la place n° ${position} sur ${count}.`,
       end: (name: string, position: number, count: number) =>
-        `${name} déposée à la place n° ${position} sur ${count}.`,
+        `« ${name} » déposée à la place n° ${position} sur ${count}.`,
       cancel: (name: string) =>
-        `Déplacement annulé : ${name} reprend sa place.`,
+        `Déplacement annulé : « ${name} » reprend sa place.`,
     },
     loadFailed: "Les catégories n'ont pas pu être chargées.",
     errors: {
@@ -1369,7 +1372,7 @@ export const texts = {
       // Les onglets : « Tous les blocs », puis un par sorte (texts.templates.sorts.*.tab).
       tabs: {
         label: "Types de modèles",
-        all: "Tous les blocs",
+        all: "Tous les modèles",
       },
       untitled: "Sans nom",
       empty: {
@@ -1475,7 +1478,7 @@ export const texts = {
             ? "Mettre à jour ce contenu dans l'app ?"
             : `Mettre à jour ces ${count} contenus dans l'app ?`,
         description:
-          "Ces contenus sont en ligne avec une ancienne version de ce bloc. Seul ce bloc sera remplacé dans l'app : le reste de leurs brouillons ne part pas. Rien ne change dans l'app avant ce clic.",
+          "Ces contenus sont en ligne avec une ancienne version de ce bloc. Seul ce bloc sera remplacé dans l'app : les autres modifications de leurs brouillons ne sont pas publiées. Rien ne change dans l'app avant ce clic.",
         version: (number: number, date: string) =>
           `version n° ${number}, publiée le ${date}`,
         confirm: "Mettre à jour",
@@ -1491,7 +1494,7 @@ export const texts = {
     },
     // Un bloc lié (bloc partagé) dans l'éditeur d'un contenu.
     linked: {
-      label: (name: string) => `Modèle « ${name} »`,
+      label: (name: string) => `Bloc partagé « ${name} »`,
       loading: "Chargement du modèle…",
       missing:
         "Ce modèle n'existe plus ou est dans la corbeille : supprime ce bloc, ou restaure le modèle.",
@@ -1603,7 +1606,7 @@ export const texts = {
         `${label} est au niveau de ${target}, dans ${container}.`,
       overZone: (label: string, container: string) =>
         `${label} est dans ${container}.`,
-      outside: (label: string) => `${label} n'est au-dessus d'aucune place.`,
+      outside: (label: string) => `${label} n'est sur aucun emplacement.`,
       // Accordé à « Bloc » : le nom du bloc peut être masculin (Texte) ou féminin (Image).
       end: (label: string, container: string) =>
         `Bloc déposé dans ${container} : ${label}.`,
@@ -1620,17 +1623,17 @@ export const texts = {
       empty: "Aucun bloc pour l'instant.",
       select: (label: string) => `Aller à ${label}`,
       // Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions »).
-      count: (count: number) =>
-        count === 0 ? "Aucun bloc" : count === 1 ? "1 bloc" : `${count} blocs`,
+      count: (count: number) => (count === 1 ? "1 bloc" : `${count} blocs`),
       cover: "Image de présentation",
-      heading: (title: string) => `Aller à l'intertitre « ${title} »`,
+      heading: (title: string) => `Aller au titre « ${title} »`,
       move: (label: string) => `Ranger dans le plan : ${label}`,
       collapse: (label: string) => `Replier ${label}`,
       expand: (label: string) => `Déplier ${label}`,
       actions: (label: string) => `Actions pour ${label}`,
       duplicate: "Dupliquer",
       duplicated: (label: string) => `${label} : copie ajoutée juste après.`,
-      saveToMine: "Enregistrer dans Mes blocs",
+      // Comme dans « Bloc choisi » : le bloc devient un modèle, rangé ensuite dans « Mes blocs ».
+      saveToMine: "Enregistrer comme modèle…",
       remove: "Supprimer",
       warnings: {
         coverMissing: "Pas encore choisie",
@@ -1697,7 +1700,7 @@ export const texts = {
       uploadFailed: (name: string, error: string) =>
         `Échec de l'envoi de « ${name} ». ${error}`,
       notImage: (name: string) =>
-        `« ${name} » est dans la médiathèque, mais le bloc Image n'accepte que les photos et les images (JPEG, PNG, WebP, GIF, HEIC).`,
+        `« ${name} » est dans la médiathèque, mais le bloc Image n'accepte que les images (JPEG, PNG, WebP, GIF, HEIC, AVIF).`,
     },
     // Le choix de l'audio d'un épisode : mêmes libellés que le choix d'une image, sauf ceux-ci.
     audioPicker: {
@@ -1774,7 +1777,7 @@ export const texts = {
       },
       categories: {
         label: "Catégories",
-        none: "Aucune catégorie (facultatif).",
+        none: "Aucune catégorie (facultatives)",
         edit: "Choisir les catégories",
       },
       openFileHint: "(nouvel onglet)",
@@ -1825,7 +1828,7 @@ export const texts = {
       fit: {
         label: "Taille de l'écran",
         adjust:
-          "Ajuster : l'écran à la hauteur de la fenêtre, à sa vraie largeur",
+          "Ajuster : l'écran tient dans la hauteur de la fenêtre, sans changer de largeur",
         full: "Écran entier : tout l'écran du téléphone, réduit s'il le faut",
         scale: (percent: number) => `${percent} %`,
         scaleLabel: (percent: number) => `Écran entier affiché à ${percent} %`,
@@ -1853,7 +1856,7 @@ export const texts = {
     // L'onglet « Blocs » de l'éditeur du Fil, et le panneau « Mes blocs ».
     library: {
       hint: "Clique sur un bloc pour l'ajouter sous le bloc choisi (ou à la fin), ou glisse-le dans le téléphone.",
-      basics: "Blocs",
+      basics: "Blocs de base",
       addLabel: (label: string) => `Ajouter un bloc ${label}`,
       mine: {
         title: "Mes blocs",
@@ -1910,7 +1913,7 @@ export const texts = {
         label: "Résumé",
         optional: "facultatif",
         placeholder: "Une ou deux phrases pour donner envie de lire…",
-        ideal: "Idéal : 120 à 160",
+        ideal: "Idéal : 120 à 160 caractères",
         count: (count: number, max: number) => `${count} / ${max}`,
       },
       categories: {
@@ -2088,7 +2091,7 @@ export const texts = {
       modele_utilise:
         "Ce modèle est encore utilisé dans des brouillons : détache-le d'abord.",
       parent_dans_la_corbeille:
-        "Restaure d'abord le chapitre ou la méthode qui le contient.",
+        "Restaure d'abord le chapitre ou la méthode qui contient cet élément.",
       // Étape 6 : modèles de blocs.
       modele_vide:
         "Ce bloc partagé est encore vide : ajoute-lui son bloc dans Modèles de bloc avant de l'insérer.",
@@ -2118,18 +2121,18 @@ export const texts = {
       // Juste après l'heure prévue : la tâche planifiée n'est peut-être pas encore passée.
       due: "Publication en cours",
       waiting: "Programmation en attente : quelqu'un écrit",
-      failed: "Programmation échouée",
+      failed: "Programmations échouées",
     },
     // Bandeau de l'éditeur ([D16], [D31]).
     banner: {
       scheduled: (date: string) =>
         `Programmé le ${date} : ce que tu écris partira à cette heure.`,
       scheduledHint:
-        "C'est le dernier brouillon enregistré à cette heure-là qui sera publié. Si quelqu'un l'a modifié depuis la programmation et a encore l'éditeur ouvert à ce moment-là, la publication attend qu'il le quitte, une heure au plus.",
+        "C'est le dernier brouillon enregistré à cette heure-là qui sera publié. Si quelqu'un l'a modifié depuis la programmation et a encore l'éditeur ouvert à ce moment-là, la publication attend que cette personne quitte l'éditeur, une heure au plus.",
       due: (date: string) =>
         `Programmé le ${date} : la publication part dans un instant.`,
       dueHint:
-        "Si quelqu'un a modifié ce brouillon depuis la programmation et a encore l'éditeur ouvert, elle attendra qu'il le quitte, une heure au plus.",
+        "Si quelqu'un a modifié ce brouillon depuis la programmation et a encore l'éditeur ouvert, la publication attendra que cette personne quitte l'éditeur, une heure au plus.",
       waiting: (date: string) =>
         `Programmation en attente depuis le ${date} : quelqu'un écrit ce brouillon.`,
       waitingHint:
@@ -2143,9 +2146,9 @@ export const texts = {
       // Une méthode : l'attente peut venir de sa fiche, d'un chapitre ou d'une leçon ([D31]).
       method: {
         scheduledHint:
-          "C'est le dernier brouillon enregistré à cette heure-là de la fiche, des chapitres et des leçons qui sera publié. Si quelqu'un a modifié l'un d'eux depuis la programmation et a encore son éditeur ouvert à ce moment-là, la publication attend qu'il le quitte, une heure au plus.",
+          "Ce sont les derniers brouillons enregistrés à cette heure-là (fiche, chapitres et leçons) qui seront publiés. Si quelqu'un a modifié l'un d'eux depuis la programmation et a encore son éditeur ouvert à ce moment-là, la publication attend que cette personne quitte l'éditeur, une heure au plus.",
         dueHint:
-          "Si quelqu'un a modifié la fiche, un chapitre ou une leçon depuis la programmation et a encore son éditeur ouvert, elle attendra qu'il le quitte, une heure au plus.",
+          "Si quelqu'un a modifié la fiche, un chapitre ou une leçon depuis la programmation et a encore son éditeur ouvert, la publication attendra que cette personne quitte l'éditeur, une heure au plus.",
         waiting: (date: string) =>
           `Programmation en attente depuis le ${date} : quelqu'un écrit la méthode, un chapitre ou une leçon.`,
         waitingHint:
@@ -2189,7 +2192,7 @@ export const texts = {
       confirm: "Publier",
       // Une méthode : tout part d'un seul geste ([D29]).
       methodDescription:
-        "La fiche, le plan et les chapitres et leçons cochés « Montrer dans l'app » partent ensemble, tels qu'ils sont enregistrés. Rien d'autre ne change dans l'app.",
+        "La fiche, le plan, ainsi que les chapitres et leçons où « Montrer dans l'app » est coché, partent ensemble, tels qu'ils sont enregistrés. Rien d'autre ne change dans l'app.",
     },
     // Ce qui manque pour publier ou programmer ([D45], audio d'un épisode), et le conseil [D46].
     requirements: {
@@ -2231,12 +2234,12 @@ export const texts = {
     unpublishDialog: {
       title: "Retirer de l'app ?",
       description:
-        "Les lecteurs ne le verront plus. Le brouillon et l'historique sont gardés, et tu pourras le publier de nouveau. Une publication programmée est annulée.",
+        "Les lecteurs ne verront plus ce contenu. Le brouillon et l'historique sont gardés, et tu pourras le publier de nouveau. Une publication programmée est annulée.",
       confirm: "Retirer de l'app",
       done: "Retiré de l'app.",
       // Une méthode : ses chapitres et ses leçons partent avec elle.
       methodDescription:
-        "Les lecteurs ne verront plus la méthode, ni ses chapitres et ses leçons. Les brouillons et l'historique sont gardés, et tu pourras la publier de nouveau. Une publication programmée est annulée.",
+        "Les lecteurs ne verront plus la méthode, ni ses chapitres ni ses leçons. Les brouillons et l'historique sont gardés, et tu pourras la publier de nouveau. Une publication programmée est annulée.",
     },
     scheduleDialog: {
       title: "Programmer la publication",
@@ -2329,10 +2332,12 @@ export const texts = {
         freeHint: "Tout le monde peut le lire.",
         levelHint:
           "Pour les abonnés de cette formule et des formules plus complètes.",
+        // La dernière formule : il n'y en a pas de plus complète.
+        levelHintTop: "Pour les abonnés de cette formule, la plus complète.",
         notChosen: "Pas encore choisi : « Publier » le demandera.",
         notChosenShort: "Pas encore choisi",
         noLevels:
-          "Aucune formule d'abonnement pour l'instant : un admin peut en créer dans les paramètres.",
+          "Aucune formule d'abonnement pour l'instant : un admin peut en créer dans Paramètres.",
         loadFailed: "Les formules d'abonnement n'ont pas pu être chargées.",
         live: (name: string) => `En ligne : ${name}`,
         deleted: "formule supprimée",
@@ -2384,7 +2389,7 @@ export const texts = {
     accessLevels: {
       title: "Formules d'abonnement",
       description:
-        "Rangées de la moins complète (en haut) à la plus complète (en bas). Un abonné lit les contenus de sa formule et ceux des formules placées au-dessus. Changer l'ordre change tout de suite ce que chaque abonné peut lire.",
+        "Rangées de la moins complète (en haut) à la plus complète (en bas). Un abonné lit les contenus de sa formule et ceux des formules placées au-dessus d'elle (moins complètes). Changer l'ordre change tout de suite ce que chaque abonné peut lire.",
       listLabel: "Formules, de la moins complète à la plus complète",
       empty:
         "Aucune formule pour l'instant. Sans formule, un contenu ne peut être que gratuit.",
@@ -2410,20 +2415,20 @@ export const texts = {
         confirm: "Supprimer définitivement",
       },
       removed: (name: string) => `Formule « ${name} » supprimée.`,
-      handle: (name: string) => `Déplacer ${name}`,
+      handle: (name: string) => `Déplacer « ${name} »`,
       reordered: "Nouvel ordre enregistré.",
       // Glisser-déposer : annonces lues par les lecteurs d'écran.
       dnd: {
         roleDescription: "formule déplaçable",
         instructions:
           "Pour déplacer une formule, appuie sur Espace ou Entrée sur sa poignée. Déplace-la avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour la déposer, ou sur Échap pour annuler.",
-        start: (name: string) => `Tu as pris ${name}.`,
+        start: (name: string) => `Tu as pris « ${name} ».`,
         over: (name: string, position: number, count: number) =>
-          `${name} est à la place n° ${position} sur ${count}.`,
+          `« ${name} » est à la place n° ${position} sur ${count}.`,
         end: (name: string, position: number, count: number) =>
-          `${name} déposée à la place n° ${position} sur ${count}.`,
+          `« ${name} » déposée à la place n° ${position} sur ${count}.`,
         cancel: (name: string) =>
-          `Déplacement annulé : ${name} reprend sa place.`,
+          `Déplacement annulé : « ${name} » reprend sa place.`,
       },
       loadFailed: "Les formules n'ont pas pu être chargées.",
       errors: {
@@ -2458,7 +2463,7 @@ export const texts = {
 
   theme: {
     title: "Thème",
-    description: "Clair, sombre, ou automatique pour suivre l'ordinateur.",
+    description: "Clair, sombre ou automatique (comme l'ordinateur).",
     light: "Clair",
     dark: "Sombre",
     system: "Automatique",

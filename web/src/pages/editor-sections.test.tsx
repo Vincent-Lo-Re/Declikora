@@ -652,6 +652,21 @@ describe("éditeur d'un article (Le Fil)", () => {
     vi.unstubAllGlobals()
   })
 
+  it("« Un modèle… » d'un article vide ouvre « Mes blocs » à gauche, pas une fenêtre", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.templates.insert.menu })
+    )
+    expect(
+      await screen.findByRole("region", {
+        name: texts.editor.library.mine.title,
+      })
+    ).toBeVisible()
+    expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
   it("niveau d'accès et catégories en pastilles : ils partent avec le brouillon ([D41], [D44])", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(

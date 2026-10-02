@@ -422,7 +422,7 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     // dnd-kit n'écoute les flèches qu'au tour suivant de la boucle d'événements.
     await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)))
     await page.keyboard.press("ArrowUp")
-    await expect(announced).toContainText(`${stress} est à la place n°`)
+    await expect(announced).toContainText(`« ${stress} » est à la place n°`)
     await page.keyboard.press("Space")
     await expect(page.getByText(categories.reordered)).toBeVisible()
     await expect
@@ -771,7 +771,9 @@ test("Pages : recherche (accents, casse, adresse) et filtre par état dans la li
   await expect(liveRow).toBeVisible()
   await expect(draftRow).toBeVisible()
   await expect(
-    page.getByRole("status").filter({ hasText: /^2 (sur \d+|éléments)$/ })
+    page
+      .getByRole("status")
+      .filter({ hasText: new RegExp(`^(2 sur \\d+|${list.count(2, 2)})$`) })
   ).toBeVisible()
 
   // Sans accents ni majuscules : « ETE SEREIN » trouve « Été serein ».

@@ -16,8 +16,11 @@ import type { SlashChoice } from "@/lib/editor/slash"
 import { texts } from "@/texts"
 
 const extensions = textExtensions(texts.editor.textPlaceholder)
-// Éditeur du Fil : le texte vide dit qu'on peut taper « / ».
-const slashExtensions = textExtensions(texts.editor.slash.placeholder)
+// Éditeur du Fil : un texte vide dit qu'on peut taper « / » (une ligne vide d'un texte, non).
+const slashExtensions = textExtensions(
+  texts.editor.textPlaceholder,
+  texts.editor.slash.placeholder
+)
 
 const slashItems: Record<SlashChoice, { label: string; icon: LucideIcon }> = {
   text: blockRegistry.text,

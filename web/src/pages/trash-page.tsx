@@ -247,7 +247,6 @@ export function TrashPage() {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-        <p className="text-sm text-muted-foreground">{texts.trash.retention}</p>
       </div>
 
       {trash.data === undefined ? (

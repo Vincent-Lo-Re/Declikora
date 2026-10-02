@@ -254,7 +254,10 @@
   min-height: 0;
   flex-shrink: 1;
   background: var(--blocks-device-frame);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  /* Un liseré à la couleur des bordures de l'admin : le cadre se voit aussi en thème sombre. */
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 1px 3px rgb(0 0 0 / 0.12);
 }
 
 .blocks-device[data-device="ios"] {

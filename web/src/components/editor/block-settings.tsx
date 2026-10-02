@@ -131,20 +131,24 @@ function SelectedBlock({
           onDetach={() => onDetach(block.id)}
         />
       )}
-      {editable && onSaveAsTemplate && place.container === ROOT && (
-        <>
-          <Separator />
-          <Button
-            variant="outline"
-            size="sm"
-            className="justify-self-start"
-            onClick={() => onSaveAsTemplate(block.id)}
-          >
-            <LayoutTemplate />
-            {texts.templates.saveAs.action}
-          </Button>
-        </>
-      )}
+      {editable &&
+        onSaveAsTemplate &&
+        place.container === ROOT &&
+        // Un bloc partagé est déjà un modèle.
+        block.type !== "linked" && (
+          <>
+            <Separator />
+            <Button
+              variant="outline"
+              size="sm"
+              className="justify-self-start"
+              onClick={() => onSaveAsTemplate(block.id)}
+            >
+              <LayoutTemplate />
+              {texts.templates.saveAs.action}
+            </Button>
+          </>
+        )}
       {editable && (
         <>
           <Separator />
