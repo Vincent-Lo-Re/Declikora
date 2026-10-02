@@ -676,6 +676,32 @@ describe("éditeur d'un article (Le Fil)", () => {
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
   })
 
+  it("l'aperçu n'a pas de poignée : c'est le plan qui range les blocs", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        blocks: [
+          {
+            id: "00000000-0000-4000-8000-0000000000f6",
+            type: "image",
+            mediaId: null,
+            caption: null,
+            alt: null,
+          },
+        ],
+      })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    const name = texts.editor.blockLabel.image
+    expect(
+      within(plan).getByRole("button", { name: outline.move(name) })
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: texts.editor.handle(name) })
+    ).toBeNull()
+  })
+
   it("Concentration : le raccourci cache les deux colonnes, Échap les ramène", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     renderApp(`/blog/${ARTICLE}`)

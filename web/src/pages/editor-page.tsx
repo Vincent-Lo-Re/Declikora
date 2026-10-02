@@ -1374,6 +1374,7 @@ function ContentEditor({
       templateFor,
       detachBlock,
       slash: feed ? slash : undefined,
+      withoutHandles: feed,
     }),
     [
       feed,

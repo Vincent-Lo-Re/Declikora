@@ -173,12 +173,12 @@
   opacity: 1;
 }
 
-/* Le contour de survol, ici ou depuis le plan (data-hovered) : le bloc le plus intérieur
-   seulement, et pas un bloc partagé, qui a déjà son liseré. */
+/* Le contour de survol, ici ou depuis le plan de l'éditeur du Fil (data-hovered, posé sur le
+   bloc le plus intérieur) : un seul bloc, et pas un bloc partagé, qui a déjà son liseré. */
 [data-sortable]:not([data-selected], [data-block-type="linked"]):hover:not(
     :has([data-sortable]:hover)
   ),
-[data-sortable][data-hovered]:not([data-selected], [data-block-type="linked"]) {
+[data-block-id][data-hovered]:not([data-selected], [data-block-type="linked"]) {
   outline: 1px solid var(--border);
 }
 

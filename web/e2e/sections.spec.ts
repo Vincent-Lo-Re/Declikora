@@ -368,21 +368,10 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
   await page.keyboard.press("Space")
   await expect(rows).toHaveText([emptyBox, "Les bons réflexes", emptyBox])
 
-  // À la souris, par la poignée de l'aperçu (dans la marge de l'écran, donc attrapable) : le
-  // texte descend en dernier.
-  const textHandle = phone.getByRole("button", {
-    name: editor.handle(texts.editor.blockLabel.text("Les bons réflexes")),
-  })
-  const from = (await textHandle.boundingBox())!
-  const last = (await phone
-    .locator(".blocks-list > [data-block-id]")
-    .last()
-    .boundingBox())!
-  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
-  await page.mouse.down()
-  await page.mouse.move(from.x + 40, last.y + last.height - 4, { steps: 15 })
-  await page.mouse.up()
-  await expect(rows).toHaveText([emptyBox, emptyBox, "Les bons réflexes"])
+  // Le plan range les blocs : l'aperçu du Fil n'a pas de poignée.
+  await expect(phone.getByRole("button", { name: /^Déplacer : / })).toHaveCount(
+    0
+  )
 
   // Concentration : les deux colonnes se cachent, Échap les ramène.
   const left = page.getByRole("complementary", { name: editor.columns.left })

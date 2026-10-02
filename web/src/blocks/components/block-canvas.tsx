@@ -115,7 +115,10 @@ const SortableBlock = memo(function SortableBlock({
   block: Block
   container: ContainerId
 }) {
-  const { editable, selectedId, selectBlock, templateFor } = useBlocksEditor()
+  const { editable, selectedId, selectBlock, templateFor, withoutHandles } =
+    useBlocksEditor()
+  // Éditeur du Fil : le plan range les blocs, l'aperçu n'a pas de poignée.
+  const handle = editable && !withoutHandles
   const draggingType = useContext(DraggingTypeContext)
   const data: DropData = { kind: "block", type: block.type, container }
   const {
@@ -131,7 +134,7 @@ const SortableBlock = memo(function SortableBlock({
     data,
     attributes: { roleDescription: texts.editor.dnd.roleDescription },
     disabled: {
-      draggable: !editable,
+      draggable: !handle,
       // Pendant le déplacement d'un encadré, les blocs des encadrés ne sont plus des cibles.
       droppable:
         container !== ROOT &&
@@ -154,7 +157,7 @@ const SortableBlock = memo(function SortableBlock({
       data-block-id={block.id}
       data-block-type={block.type}
       data-selected={selected || undefined}
-      data-sortable={editable || undefined}
+      data-sortable={handle || undefined}
       // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer (dnd-kit)
       style={{
         transform: CSS.Translate.toString(transform),
@@ -168,7 +171,7 @@ const SortableBlock = memo(function SortableBlock({
       onPointerDownCapture={() => selectBlock(block.id)}
       onFocusCapture={() => selectBlock(block.id)}
     >
-      {editable && (
+      {handle && (
         // La marge à gauche du bloc, sur toute sa hauteur : la poignée y reste visible quand on
         // fait défiler un long bloc (preview.css).
         <span className="blocks-handle-rail">
