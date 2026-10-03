@@ -151,6 +151,14 @@ function lockChange(
   }
 }
 
+/** Le même brouillon, dans un modèle de bloc (mise en forme) : l'ancien éditeur, son bandeau. */
+const template: api.Content = {
+  ...content,
+  kind: "template",
+  template_sort: "style",
+  template_for: null,
+}
+
 /** L'ouverture de l'éditeur (session) passée à lock_take. */
 function editorSession(): string {
   return vi.mocked(api.lockTake).mock.calls[0][2]
@@ -430,10 +438,10 @@ describe("éditeur", () => {
       false,
       expect.any(String)
     )
-    // Le plan est fermé par défaut.
+    // Éditeur du Fil : le plan est ouvert d'office, avec la première ligne de chaque texte.
     expect(
-      screen.queryByRole("navigation", { name: texts.editor.outline.title })
-    ).toBeNull()
+      screen.getByRole("navigation", { name: texts.editor.outline.title })
+    ).toHaveTextContent("Bonjour")
 
     fireEvent.change(title, { target: { value: "Mentions légales 2026" } })
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalledTimes(1), {
@@ -446,40 +454,38 @@ describe("éditeur", () => {
     expect(session).toBe(editorSession())
     expect(saved.title).toBe("Mentions légales 2026")
     expect(await screen.findByText(texts.editor.save.saved)).toBeInTheDocument()
-
-    // Le plan s'ouvre à la demande.
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.editor.outline.show })
-    )
-    expect(
-      screen.getByRole("navigation", { name: texts.editor.outline.title })
-    ).toHaveTextContent("Texte « Bonjour »")
   })
 
-  it("montre le brouillon en lecture seule quand un autre membre écrit", async () => {
+  it("montre le brouillon en lecture seule quand un autre membre écrit : le cadenas, rien de modifiable", async () => {
     vi.mocked(api.lockTake).mockResolvedValue(claireRow)
     renderApp(`/pages/${PAGE_ID}`)
 
     expect(
-      await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
+      await screen.findByRole("button", { name: texts.editor.lock.button })
     ).toBeInTheDocument()
     expect(screen.getByLabelText(texts.editor.title.label)).toHaveAttribute(
       "readonly"
     )
+    for (const add of screen.getAllByRole("button", {
+      name: texts.editor.add.label,
+    })) {
+      expect(add).toBeDisabled()
+    }
+  })
+
+  it("ancien éditeur (un modèle de bloc) : le bandeau dit qui écrit ; « Reprendre la main » demande confirmation, puis force la prise du verrou", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(template)
+    vi.mocked(api.lockTake)
+      .mockResolvedValueOnce(claireRow)
+      .mockResolvedValue(mineRow)
+    renderApp(`/modeles/${PAGE_ID}`)
+
     expect(
-      screen.getByRole("button", { name: texts.editor.lock.forceTake })
+      await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
     ).toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: texts.editor.add.label })
     ).toBeDisabled()
-  })
-
-  it("« Reprendre la main » demande confirmation, puis force la prise du verrou", async () => {
-    vi.mocked(api.lockTake)
-      .mockResolvedValueOnce(claireRow)
-      .mockResolvedValue(mineRow)
-    renderApp(`/pages/${PAGE_ID}`)
-
     fireEvent.click(
       await screen.findByRole("button", { name: texts.editor.lock.forceTake })
     )
@@ -497,7 +503,7 @@ describe("éditeur", () => {
     )
     await waitFor(() =>
       expect(
-        screen.getByLabelText(texts.editor.title.label)
+        screen.getByLabelText(texts.templates.editor.nameLabel)
       ).not.toHaveAttribute("readonly")
     )
   })
@@ -530,7 +536,7 @@ describe("éditeur", () => {
       .mockRejectedValueOnce(new api.ContentError(null, { retryable: true }))
       .mockResolvedValue(withDraft({ title: "Titre de Claire" }, 5))
     renderApp(`/pages/${PAGE_ID}`)
-    await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
+    await screen.findByRole("button", { name: texts.editor.lock.button })
 
     act(() => emitLock(lockChange(CLAIRE, 5)))
     await waitFor(() => expect(api.getContent).toHaveBeenCalledTimes(2))
@@ -552,7 +558,7 @@ describe("éditeur", () => {
       .mockResolvedValueOnce(content)
       .mockImplementation(() => new Promise((resolve) => reads.push(resolve)))
     renderApp(`/pages/${PAGE_ID}`)
-    await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
+    await screen.findByRole("button", { name: texts.editor.lock.button })
 
     act(() => emitLock(lockChange(CLAIRE, 5)))
     await waitFor(() => expect(reads).toHaveLength(1))
@@ -572,7 +578,7 @@ describe("éditeur", () => {
       .mockResolvedValueOnce(withDraft({ title: "Révision 5" }, 5))
       .mockResolvedValue(withDraft({ title: "Révision 6" }, 6))
     renderApp(`/pages/${PAGE_ID}`)
-    await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
+    await screen.findByRole("button", { name: texts.editor.lock.button })
 
     act(() => emitLock(lockChange(CLAIRE, 6)))
     await waitFor(() =>
@@ -588,9 +594,14 @@ describe("éditeur", () => {
     vi.mocked(api.lockTake).mockResolvedValue(otherTab)
     vi.mocked(api.lockStatus).mockResolvedValue(otherTab)
     renderApp(`/pages/${PAGE_ID}`)
+    fireEvent.click(
+      await screen.findByRole("button", { name: texts.editor.lock.button })
+    )
+    const dialog = await screen.findByRole("alertdialog")
     expect(
-      await screen.findByText(texts.editor.lock.readOnlySelf)
+      within(dialog).getByText(texts.editor.lock.dialog.title.readOnlySelf)
     ).toBeInTheDocument()
+    expect(within(dialog).queryByText(/Claire/)).toBeNull()
     expect(screen.getByLabelText(texts.editor.title.label)).toHaveAttribute(
       "readonly"
     )
@@ -602,6 +613,153 @@ describe("éditeur", () => {
     expect(
       await screen.findByText(texts.editor.notFound.title)
     ).toBeInTheDocument()
+  })
+})
+
+describe("éditeur d'une page (éditeur du Fil)", () => {
+  const columns = texts.editor.columns
+  const ready = texts.editor.article.ready
+  const slug = texts.publication.settings.slug
+
+  /** La carte « Adresse de la page » et son champ. */
+  function addressCard() {
+    return screen.getByRole("region", { name: slug.label })
+  }
+  function addressField() {
+    return within(addressCard()).getByRole("textbox", { name: slug.label })
+  }
+
+  async function editable() {
+    const title = await screen.findByLabelText(texts.editor.title.label)
+    await waitFor(() => expect(title).not.toHaveAttribute("readonly"))
+  }
+
+  it("la colonne « Page » : titre, adresse et niveau d'accès ; ni image, ni catégories, ni carte de liste", async () => {
+    vi.mocked(api.saveDraft).mockResolvedValue({
+      rev: 5,
+      savedAt: "2026-09-27T12:31:00Z",
+    })
+    renderApp(`/pages/${PAGE_ID}`)
+    await editable()
+    expect(screen.queryByRole("banner")).toBeNull()
+    expect(
+      within(
+        screen.getByRole("complementary", { name: columns.left })
+      ).getByRole("link", {
+        name: texts.editor.back(texts.sections.pages.title),
+      })
+    ).toHaveAttribute("href", "/pages")
+    const panel = screen.getByRole("region", { name: columns.content.page })
+    const todo = within(panel)
+      .getAllByRole("button")
+      .map((button) => button.getAttribute("aria-label"))
+      .filter((label) => label?.endsWith(" : à régler"))
+    expect(todo).toEqual([
+      ready.todo(ready.items.address),
+      ready.todo(ready.items.access),
+    ])
+    expect(
+      within(panel).queryByText(texts.publication.settings.categories.label)
+    ).toBeNull()
+    expect(
+      within(panel).queryByRole("region", {
+        name: texts.editor.article.feed.title.article,
+      })
+    ).toBeNull()
+    // Le téléphone commence par le titre : pas d'image de présentation.
+    expect(document.querySelector('[data-presentation="cover"]')).toBeNull()
+    expect(
+      screen.queryByRole("button", { name: texts.publication.actions.settings })
+    ).toBeNull()
+  })
+
+  it("l'adresse, vérifiée en tapant : « Libre », puis elle part avec le brouillon", async () => {
+    vi.mocked(api.saveDraft).mockResolvedValue({
+      rev: 5,
+      savedAt: "2026-09-27T12:31:00Z",
+    })
+    renderApp(`/pages/${PAGE_ID}`)
+    await editable()
+
+    fireEvent.change(addressField(), { target: { value: "Contact !" } })
+    expect(within(addressCard()).getByText(slug.invalid)).toBeVisible()
+    expect(api.findPageBySlug).not.toHaveBeenCalled()
+
+    fireEvent.change(addressField(), { target: { value: "contact" } })
+    expect(within(addressCard()).getByText(slug.checking)).toBeVisible()
+    expect(await within(addressCard()).findByText(slug.free)).toBeVisible()
+    expect(api.findPageBySlug).toHaveBeenCalledWith("contact", PAGE_ID)
+    await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
+      timeout: 4000,
+    })
+    expect(vi.mocked(api.saveDraft).mock.calls[0][4]).toEqual({
+      slug: "contact",
+    })
+    // « Prêt à publier ? » : l'adresse est faite.
+    expect(
+      screen.getByRole("button", {
+        name: ready.done(ready.items.address),
+      })
+    ).toBeVisible()
+  })
+
+  it("une adresse déjà prise est refusée en tapant, avec le nom de la page ; « Reprendre le titre » propose l'adresse du titre", async () => {
+    vi.mocked(api.findPageBySlug).mockImplementation(async (value) =>
+      value === "accueil" ? { id: "autre", title: "Accueil" } : null
+    )
+    vi.mocked(api.saveDraft).mockResolvedValue({
+      rev: 5,
+      savedAt: "2026-09-27T12:31:00Z",
+    })
+    renderApp(`/pages/${PAGE_ID}`)
+    await editable()
+
+    fireEvent.change(addressField(), { target: { value: "accueil" } })
+    expect(
+      await within(addressCard()).findByText(slug.taken("Accueil"))
+    ).toBeVisible()
+    expect(addressField()).toHaveAttribute("aria-invalid", "true")
+
+    fireEvent.click(
+      within(addressCard()).getByRole("button", { name: slug.fromTitle })
+    )
+    expect(addressField()).toHaveValue("mentions-legales")
+    await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
+      timeout: 4000,
+    })
+    expect(vi.mocked(api.saveDraft).mock.calls[0][4]).toEqual({
+      slug: "mentions-legales",
+    })
+  })
+
+  it("« Adresse de la page » dans « Prêt à publier ? » allume la carte et met le curseur dans le champ", async () => {
+    Element.prototype.scrollIntoView = vi.fn()
+    renderApp(`/pages/${PAGE_ID}`)
+    await editable()
+    fireEvent.click(
+      screen.getByRole("button", { name: ready.todo(ready.items.address) })
+    )
+    await waitFor(() => expect(addressField()).toHaveFocus())
+    expect(addressCard()).toHaveAttribute("data-highlight")
+  })
+
+  it("en Lecture : le titre, puis les blocs, sans image ni ligne sous le titre", async () => {
+    renderApp(`/pages/${PAGE_ID}`)
+    await editable()
+    const preview = texts.editor.preview
+    fireEvent.click(
+      within(screen.getByRole("toolbar", { name: preview.tools })).getByRole(
+        "button",
+        { name: preview.mode.read }
+      )
+    )
+    const phone = screen.getByRole("region", { name: preview.screen.ios })
+    expect(
+      within(phone).getByRole("heading", { level: 1, name: "Mentions légales" })
+    ).toBeVisible()
+    expect(within(phone).getByText("Bonjour")).toBeVisible()
+    expect(phone.querySelector(".blocks-cover")).toBeNull()
+    expect(phone.querySelector(".blocks-meta")).toBeNull()
   })
 })
 
@@ -677,7 +835,7 @@ describe("éditeur : clavier", () => {
   const ONE = "00000000-0000-4000-8000-0000000000d1"
   const TWO = "00000000-0000-4000-8000-0000000000d2"
 
-  it("« Monter » garde le focus et annonce la place ; « Supprimer » donne le focus au voisin", async () => {
+  it("« Monter » garde le focus et annonce la place ; « Supprimer » donne le focus au voisin, puis à « Ajouter un bloc »", async () => {
     vi.mocked(api.saveDraft).mockResolvedValue({
       rev: 5,
       savedAt: "2026-09-27T12:31:00Z",
@@ -687,13 +845,18 @@ describe("éditeur : clavier", () => {
     )
     renderApp(`/pages/${PAGE_ID}`)
     const labels = texts.editor.settings
+    const title = await screen.findByLabelText(texts.editor.title.label)
+    await waitFor(() => expect(title).not.toHaveAttribute("readonly"))
 
-    // Le second bloc est choisi (focus sur sa poignée).
-    const twoHandle = await screen.findByRole("button", {
-      name: texts.editor.handle("Texte « Deux »"),
-    })
-    act(() => twoHandle.focus())
-    const moveUp = await screen.findByRole("button", { name: labels.moveUp })
+    // Le second bloc est choisi dans le plan : ses réglages glissent par-dessus la colonne de
+    // droite, avec la barre d'actions en bas.
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: texts.editor.outline.select("Texte « Deux »"),
+      })
+    )
+    const bar = await screen.findByRole("toolbar", { name: labels.actions })
+    const moveUp = within(bar).getByRole("button", { name: labels.moveUp })
     act(() => moveUp.focus())
     fireEvent.click(moveUp)
 
@@ -705,24 +868,29 @@ describe("éditeur : clavier", () => {
       screen.getByText(labels.moved(1, 2, texts.editor.dnd.page))
     ).toBeInTheDocument()
 
-    // Supprimer : le focus va au bloc suivant (sa poignée).
-    const remove = screen.getByRole("button", { name: labels.remove })
-    act(() => remove.focus())
-    fireEvent.click(remove)
-    const oneHandle = screen.getByRole("button", {
-      name: texts.editor.handle("Texte « Un »"),
-    })
-    await waitFor(() => expect(oneHandle).toHaveFocus())
-
-    // Plus aucun bloc : le focus va à « Ajouter un bloc ».
-    fireEvent.click(screen.getByRole("button", { name: labels.remove }))
+    // Supprimer : le focus va à la ligne du bloc suivant, dans le plan.
+    fireEvent.click(within(bar).getByRole("button", { name: labels.remove }))
     await waitFor(() =>
-      expect(document.activeElement).toHaveAccessibleName(
-        texts.editor.add.label
+      expect(document.activeElement).toBe(
+        document.querySelector(`[data-outline-id="${ONE}"]`)
       )
     )
-    expect(
-      screen.queryAllByRole("status").map((el) => el.textContent)
-    ).toContain(labels.moved(1, 2, texts.editor.dnd.page))
+
+    // Plus aucun bloc : le focus va à « Ajouter un bloc », en bas de la colonne de gauche.
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: texts.editor.outline.select("Texte « Un »"),
+      })
+    )
+    fireEvent.click(
+      within(
+        await screen.findByRole("toolbar", { name: labels.actions })
+      ).getByRole("button", { name: labels.remove })
+    )
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        document.getElementById("colonne-gauche-ajouter")
+      )
+    )
   })
 })

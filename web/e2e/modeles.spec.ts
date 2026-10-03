@@ -62,18 +62,23 @@ async function newPage(page: Page, title: string): Promise<string> {
   return contentIdFromUrl(page.url())
 }
 
-/** « Ajouter un bloc » › « Un modèle… » › « Insérer <nom> ». */
+/**
+ * Éditeur du Fil : « Ajouter un bloc » (en bas de la colonne de gauche) ouvre les Blocs, puis
+ * « Mes blocs » › « Ajouter <nom> ».
+ */
 async function insertTemplate(page: Page, name: string) {
-  await page.getByRole("button", { name: editor.add.label }).first().click()
-  await menuItem(page, editor.add.label, labels.insert.menu).click()
-  const picker = page.getByRole("dialog", { name: labels.insert.title })
-  await picker
-    .getByRole("button", { name: labels.insert.insertLabel(name) })
+  await page.locator("#colonne-gauche-ajouter").click()
+  const library = page.getByRole("region", { name: editor.columns.blocks })
+  await library
+    .getByRole("button", { name: new RegExp(editor.library.mine.title) })
     .click()
-  await expect(picker).toHaveCount(0)
+  await library
+    .getByRole("region", { name: editor.library.mine.title })
+    .getByRole("button", { name: editor.library.mine.insertLabel(name) })
+    .click()
   // Le message de l'insertion précédente peut être encore affiché.
   await expect(
-    page.getByText(labels.insert.inserted(name)).first()
+    page.getByText(editor.library.mine.added(name)).first()
   ).toBeVisible()
 }
 
@@ -145,14 +150,17 @@ test("bloc partagé : deux pages, correction, mise à jour de l'app, détacher, 
     labels.sorts.shared.title
   )
 
-  // 2. Le modèle inséré dans deux pages : un bloc lié, montré tel qu'il est dans le modèle.
+  // 2. Le modèle inséré dans deux pages : un bloc lié, montré tel qu'il est dans le modèle, et
+  //    nommé d'après lui dans le plan.
   await nav(page, pagesTitle)
   const pageA = await newPage(page, titleA)
   await insertTemplate(page, name)
   await expect(linkedBlock(page)).toContainText(
     "Écris-nous à contact@exemple.fr"
   )
-  await expect(linkedBlock(page)).toContainText(labels.linked.label(name))
+  await expect(
+    page.getByRole("navigation", { name: editor.outline.title })
+  ).toContainText(name)
   await leave(page, pagesTitle)
 
   const pageB = await newPage(page, titleB)
@@ -173,18 +181,14 @@ test("bloc partagé : deux pages, correction, mise à jour de l'app, détacher, 
     await leave(page, pagesTitle)
   }
 
-  // 4. La première page est publiée (adresse, Gratuit) : l'app a le bloc corrigé.
+  // 4. La première page est publiée (adresse dans sa carte, Gratuit) : l'app a le bloc corrigé.
   await openFromList(page, pagesTitle, titleA)
-  await page.getByRole("button", { name: publication.actions.settings }).click()
-  const settings = page.getByRole("dialog", {
-    name: publication.settings.title,
-  })
-  const address = settings.getByLabel(publication.settings.slug.label)
+  const address = page
+    .getByRole("region", { name: publication.settings.slug.label })
+    .getByRole("textbox", { name: publication.settings.slug.label })
   await address.fill(slug)
   await address.press("Enter")
   await saved(page)
-  await page.keyboard.press("Escape")
-  await expect(settings).toHaveCount(0)
   await page
     .getByRole("button", { name: publication.actions.publish, exact: true })
     .click()
@@ -222,9 +226,12 @@ test("bloc partagé : deux pages, correction, mise à jour de l'app, détacher, 
   expect(live).toContain(titleA)
   await leave(page, templatesTitle)
 
-  // 6. Détaché dans la seconde page : une copie ordinaire, modifiable, qui ne suit plus le modèle.
+  // 6. Détaché dans la seconde page (le bloc choisi, « Détacher » dans la barre de ses
+  //    réglages) : une copie ordinaire, modifiable, qui ne suit plus le modèle.
   await openFromList(page, pagesTitle, titleB)
+  await linkedBlock(page).click()
   await page
+    .getByRole("toolbar", { name: editor.settings.actions })
     .getByRole("button", { name: labels.linked.detachLabel(name) })
     .click()
   await expect(page.getByText(labels.linked.detached(name))).toBeVisible()

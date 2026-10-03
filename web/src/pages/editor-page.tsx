@@ -70,10 +70,7 @@ import { useMethodContext } from "@/components/editor/use-method-context"
 import { usePhoneDrop } from "@/components/editor/use-phone-drop"
 import { useSaveAsTemplate } from "@/components/editor/use-save-as-template"
 import { ColumnHeader } from "@/components/editor/column-header"
-import {
-  ContentSettingsSheet,
-  type SettingsFocus,
-} from "@/components/editor/content-settings-sheet"
+import { ContentSettingsSheet } from "@/components/editor/content-settings-sheet"
 import {
   FeedPreview,
   ReadAppBar,
@@ -97,7 +94,6 @@ import {
   LIBRARY_FIRST_ID,
 } from "@/components/editor/blocks-library"
 import {
-  CONTENT_TITLE_ID,
   AudioPreview,
   CoverPreview,
   PresentationPanel,
@@ -190,8 +186,10 @@ import {
   contentProfile,
   hasPresentation,
   isFeedKind,
+  isListedFeedKind,
 } from "@/lib/editor/profile"
 import { lockSituation } from "@/lib/editor/lock-view"
+import { CONTENT_TITLE_ID, showReadySetting } from "@/lib/editor/ready-targets"
 import { blockWarning, duplicateBlock } from "@/lib/editor/outline"
 import { type LibraryDrag } from "@/lib/editor/library-drag"
 import { liveBoxTarget } from "@/lib/editor/library-target"
@@ -1002,12 +1000,7 @@ function ContentEditor({
     queryFn: listAccessLevels,
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsFocus, setSettingsFocus] = useState<SettingsFocus>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
-  const openSettings = useCallback((focus: SettingsFocus) => {
-    setSettingsFocus(focus)
-    setSettingsOpen(true)
-  }, [])
 
   /** « Revenir à cette version » : recopiée dans le brouillon par la base, puis relue. */
   const onRevert = async (version: VersionItem) => {
@@ -1087,13 +1080,17 @@ function ContentEditor({
     prepare,
     applySettings,
     takeLock: () => take(true),
-    openSettings,
     checks,
-    // Le titre : le curseur y va ; une image ou un audio : le choix du fichier s'ouvre.
+    // Le titre : le curseur y va ; une image ou un audio : le choix du fichier s'ouvre ; l'adresse
+    // d'une page : sa carte s'allume (colonnes montrées, glissière du bloc fermée).
     onFix: (key) => {
       if (key === "title") {
         setSelectedId(null)
         focusOnceShown(() => document.getElementById(CONTENT_TITLE_ID))
+      } else if (key === "address") {
+        setSelectedId(null)
+        setFocusMode(false)
+        showReadySetting("address")
       } else openPresentationPicker(key)
     },
   })
@@ -1219,65 +1216,69 @@ function ContentEditor({
   ) : undefined
   // Un épisode : son audio (carte Audio, téléphone, Lecture, bas de la colonne de droite).
   const audio = profile.audio ? mediaFor(draft.audio?.mediaId ?? null) : null
-  // En Lecture, sous le titre : la première catégorie, puis le temps de lecture (un épisode : la
-  // durée de son audio, une fois connue).
+  // En Lecture, sous le titre d'un contenu des listes de l'app : la première catégorie, puis le
+  // temps de lecture (un épisode : la durée de son audio, une fois connue). Une page n'en a pas.
   const length = audio
     ? audio.state === "ready" && audio.media.duration_s !== null
       ? formatDuration(audio.media.duration_s)
       : null
     : texts.editor.preview.minutes(stats.minutes)
-  const readMeta = [
-    ...(chosenCategoryNames ?? []).slice(0, 1),
-    ...(length ? [length] : []),
-  ].join(" · ")
-  // Éditeur du Fil : la colonne de droite, tout ce qui concerne l'article (ou l'épisode).
-  const articlePanel =
-    feedKind && categorySection ? (
-      <ArticlePanel
-        kind={feedKind}
-        draft={draft}
-        editable={editable}
-        settings={settings}
-        onSettingsChange={setSettings}
-        levels={levels.data}
-        levelsFailed={levels.isError}
-        retryLevels={() => void levels.refetch()}
-        live={pub.publication?.live ?? null}
-        categories={{
-          section: categorySection,
-          list: categories.data,
-          failed: categories.isError,
-          retry: () => void categories.refetch(),
-        }}
-        cover={mediaFor(draft.cover?.mediaId ?? null)}
-        audio={audio}
-        ready={readyItems(
-          kind,
-          checks ?? { missing: [], advice: [] },
-          settings.accessChosen
-        )}
-        warnings={{
-          count: warnedIds.length,
-          // Le premier point à vérifier, choisi et montré dans le plan.
-          onShow: () => {
-            const first = warnedIds[0]
-            if (!first) return
-            closeLibrary()
-            selectAndShow(first)
-            // Sa ligne s'allume dans le plan, une fois les Blocs refermés.
-            highlightSoon(() =>
-              document.querySelector<HTMLElement>(
-                `[data-outline-id="${first}"]`
-              )
-            )
-          },
-        }}
-        onChooseCover={() => openPresentationPicker("cover")}
-        onRemoveCover={() => removePresentationFile("cover")}
-        onChooseAudio={() => openPresentationPicker("audio")}
-        onRemoveAudio={() => removePresentationFile("audio")}
-      />
-    ) : null
+  const readMeta = isListedFeedKind(kind)
+    ? [
+        ...(chosenCategoryNames ?? []).slice(0, 1),
+        ...(length ? [length] : []),
+      ].join(" · ")
+    : null
+  // Éditeur du Fil : la colonne de droite, tout ce qui concerne l'article (l'épisode, la page).
+  const articlePanel = feedKind ? (
+    <ArticlePanel
+      kind={feedKind}
+      contentId={contentId}
+      draft={draft}
+      editable={editable}
+      settings={settings}
+      onSettingsChange={(next) => {
+        if (next.slug !== settings.slug) setRefusedSlug(null)
+        setSettings(next)
+      }}
+      refusedSlug={refusedSlug}
+      levels={levels.data}
+      levelsFailed={levels.isError}
+      retryLevels={() => void levels.refetch()}
+      live={pub.publication?.live ?? null}
+      categories={
+        categorySection
+          ? {
+              section: categorySection,
+              list: categories.data,
+              failed: categories.isError,
+              retry: () => void categories.refetch(),
+            }
+          : null
+      }
+      cover={mediaFor(draft.cover?.mediaId ?? null)}
+      audio={audio}
+      ready={readyItems(kind, checks ?? { missing: [], advice: [] }, settings)}
+      warnings={{
+        count: warnedIds.length,
+        // Le premier point à vérifier, choisi et montré dans le plan.
+        onShow: () => {
+          const first = warnedIds[0]
+          if (!first) return
+          closeLibrary()
+          selectAndShow(first)
+          // Sa ligne s'allume dans le plan, une fois les Blocs refermés.
+          highlightSoon(() =>
+            document.querySelector<HTMLElement>(`[data-outline-id="${first}"]`)
+          )
+        },
+      }}
+      onChooseCover={() => openPresentationPicker("cover")}
+      onRemoveCover={() => removePresentationFile("cover")}
+      onChooseAudio={() => openPresentationPicker("audio")}
+      onRemoveAudio={() => removePresentationFile("audio")}
+    />
+  ) : null
   // Éditeur du Fil : le bloc choisi, dont les réglages glissent par-dessus l'Article.
   const selectedBlock = selectedId
     ? (findBlock(draft, selectedId)?.block ?? null)
@@ -1600,7 +1601,7 @@ function ContentEditor({
               <HeaderIconButton
                 label={texts.publication.actions.settings}
                 expanded={settingsOpen}
-                onClick={() => openSettings(null)}
+                onClick={() => setSettingsOpen(true)}
               >
                 <Settings2 />
               </HeaderIconButton>
@@ -1657,7 +1658,7 @@ function ContentEditor({
           }
           schedule={methodSchedule}
           holding={editable}
-          onOpenSettings={() => openSettings(null)}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
       )}
       {!feed && profile.publication === "own" && scheduleBanner}
@@ -1838,7 +1839,11 @@ function ContentEditor({
                       kind={feedKind}
                       draft={draft}
                       title={title.trim() || untitled}
-                      cover={mediaFor(draft.cover?.mediaId ?? null)}
+                      cover={
+                        profile.cover
+                          ? mediaFor(draft.cover?.mediaId ?? null)
+                          : null
+                      }
                       audio={audio}
                       meta={readMeta}
                       locked={
@@ -2002,7 +2007,6 @@ function ContentEditor({
             <ContentSettingsSheet
               open={settingsOpen}
               onOpenChange={setSettingsOpen}
-              focus={settingsFocus}
               kind={kind}
               contentId={contentId}
               title={title}
@@ -2014,11 +2018,9 @@ function ContentEditor({
               levels={levels.data}
               levelsFailed={levels.isError}
               live={pub.publication?.live ?? null}
-              refusedSlug={refusedSlug}
-              onChange={(next) => {
-                if (next.slug !== settings.slug) setRefusedSlug(null)
-                setSettings(next)
-              }}
+              // Pas de page ici (l'éditeur du Fil) : pas d'adresse refusée.
+              refusedSlug={null}
+              onChange={setSettings}
             />
           )}
           <HistorySheet

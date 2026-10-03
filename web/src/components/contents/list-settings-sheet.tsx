@@ -5,7 +5,6 @@ import { toast } from "sonner"
 import { useAuth } from "@/auth/auth-context"
 import {
   ContentSettingsSheet,
-  type RefusedSlug,
   type SectionCategories,
 } from "@/components/editor/content-settings-sheet"
 import { useAccessCheck } from "@/components/team/use-access-check"
@@ -22,6 +21,7 @@ import {
 } from "@/lib/contents/api"
 import { getPublication } from "@/lib/contents/publication"
 import { saveFromList } from "@/lib/contents/settings"
+import type { RefusedSlug } from "@/lib/contents/slug"
 import { errorMessage } from "@/lib/errors"
 import { texts } from "@/texts"
 
@@ -126,7 +126,6 @@ export function ListSettingsSheet({
       onOpenChange={(open) => {
         if (!open && !save.isPending) onClose()
       }}
-      focus={null}
       kind={kind}
       contentId={item.id}
       title={title}

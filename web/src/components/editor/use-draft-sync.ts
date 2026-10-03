@@ -4,7 +4,7 @@ import { toast } from "sonner"
 
 import { draftToPlainText } from "@/blocks/draft"
 import type { Draft } from "@/blocks/types"
-import type { RefusedSlug } from "@/components/editor/content-settings-sheet"
+import type { RefusedSlug } from "@/lib/contents/slug"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import {
   saveCheckedDraft,

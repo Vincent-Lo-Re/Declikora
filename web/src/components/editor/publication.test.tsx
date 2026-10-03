@@ -139,6 +139,28 @@ function publishButton() {
   return screen.getByRole("button", { name: labels.actions.publish })
 }
 
+/** La carte « Adresse de la page », dans la colonne de droite (éditeur du Fil), et son champ. */
+function addressCard() {
+  return screen.getByRole("region", { name: labels.settings.slug.label })
+}
+function addressField() {
+  return within(addressCard()).getByRole("textbox", {
+    name: labels.settings.slug.label,
+  })
+}
+
+/** Choisit le niveau d'accès dans sa carte (Base UI ne retient un clic que s'il commence sur l'option). */
+async function pickLevel(name: RegExp) {
+  fireEvent.click(
+    within(
+      screen.getByRole("region", { name: labels.settings.access.label })
+    ).getByRole("combobox")
+  )
+  const option = await screen.findByRole("option", { name })
+  fireEvent.pointerDown(option, { pointerType: "mouse" })
+  fireEvent.click(option)
+}
+
 beforeEach(() => {
   vi.mocked(api.lockTake).mockResolvedValue(mineRow)
   vi.mocked(api.lockStatus).mockResolvedValue(mineRow)
@@ -177,7 +199,11 @@ describe("barre de publication", () => {
     )
     vi.mocked(api.lockTake).mockResolvedValue({ ...mineRow, draft_rev: 6 })
     await ready()
-    expect(await screen.findByText(labels.status.modified)).toBeVisible()
+    // Une pastille courte, la phrase entière pour les lecteurs d'écran.
+    expect(await screen.findByText(labels.short.modified)).toBeVisible()
+    expect(
+      document.querySelector('[data-publication="modified"]')
+    ).toHaveTextContent(labels.status.modified)
     await waitFor(() => expect(publishButton()).toBeEnabled())
   })
 
@@ -299,19 +325,24 @@ describe("barre de publication", () => {
     ).toBeEnabled()
   })
 
-  it("une page sans adresse ouvre les réglages au lieu de publier", async () => {
+  it("une page sans adresse : « Publier » allume la carte de l'adresse au lieu de publier", async () => {
+    Element.prototype.scrollIntoView = vi.fn()
     open({ slug: null })
     await ready()
     await waitFor(() => expect(publishButton()).toBeEnabled())
+    expect(
+      screen.getByRole("button", {
+        name: texts.editor.article.ready.todo(labels.settings.slug.label),
+      })
+    ).toBeVisible()
 
     fireEvent.click(publishButton())
-    const sheet = await screen.findByRole("dialog", {
-      name: labels.settings.title,
-    })
     expect(
-      within(sheet).getByLabelText(labels.settings.slug.label)
-    ).toBeVisible()
-    expect(within(sheet).getByText(labels.settings.slug.missing)).toBeVisible()
+      await screen.findByText(labels.settings.slug.missing)
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("dialog")).toBeNull()
+    await waitFor(() => expect(addressField()).toHaveFocus())
+    expect(addressCard()).toHaveAttribute("data-highlight")
     expect(publicationApi.publishContent).not.toHaveBeenCalled()
   })
 
@@ -580,18 +611,10 @@ describe("réglages du contenu", () => {
     })
     open({ access_chosen: false })
     await ready()
-    fireEvent.click(
-      screen.getByRole("button", { name: labels.actions.settings })
-    )
-    const sheet = await screen.findByRole("dialog", {
-      name: labels.settings.title,
-    })
     expect(
-      within(sheet).getByText(labels.settings.access.notChosen)
+      screen.getByText(labels.settings.access.notChosenShort)
     ).toBeVisible()
-    fireEvent.click(
-      await within(sheet).findByRole("radio", { name: /Premium/ })
-    )
+    await pickLevel(/Premium/)
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
       timeout: 4000,
     })
@@ -606,15 +629,7 @@ describe("réglages du contenu", () => {
       .mockResolvedValue({ rev: 5, savedAt: "2026-09-27T12:31:00Z" })
     open({ access_chosen: false })
     await ready()
-    fireEvent.click(
-      screen.getByRole("button", { name: labels.actions.settings })
-    )
-    const sheet = await screen.findByRole("dialog", {
-      name: labels.settings.title,
-    })
-    fireEvent.click(
-      await within(sheet).findByRole("radio", { name: /Premium/ })
-    )
+    await pickLevel(/Premium/)
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalledTimes(2), {
       timeout: 8000,
     })
@@ -631,13 +646,7 @@ describe("réglages du contenu", () => {
       .mockResolvedValue({ rev: 5, savedAt: "2026-09-27T12:31:00Z" })
     open({ slug: null })
     await ready()
-    fireEvent.click(
-      screen.getByRole("button", { name: labels.actions.settings })
-    )
-    const sheet = await screen.findByRole("dialog", {
-      name: labels.settings.title,
-    })
-    const address = within(sheet).getByLabelText(labels.settings.slug.label)
+    const address = addressField()
     fireEvent.change(address, { target: { value: "aide" } })
     fireEvent.keyDown(address, { key: "Enter" })
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalledTimes(2), {
@@ -656,13 +665,7 @@ describe("réglages du contenu", () => {
       .mockResolvedValue({ rev: 6, savedAt: "2026-09-27T12:32:00Z" })
     open({ slug: null })
     await ready()
-    fireEvent.click(
-      screen.getByRole("button", { name: labels.actions.settings })
-    )
-    const sheet = await screen.findByRole("dialog", {
-      name: labels.settings.title,
-    })
-    const address = within(sheet).getByLabelText(labels.settings.slug.label)
+    const address = addressField()
     fireEvent.change(address, { target: { value: "contact" } })
     fireEvent.keyDown(address, { key: "Enter" })
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalledTimes(1), {
@@ -673,7 +676,7 @@ describe("réglages du contenu", () => {
     })
     // Le champ garde l'adresse refusée, avec la raison ; le brouillon repart sans elle.
     expect(
-      await within(sheet).findByText(texts.editor.errors.adresse_prise)
+      await within(addressCard()).findByText(texts.editor.errors.adresse_prise)
     ).toBeVisible()
     expect(address).toHaveValue("contact")
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalledTimes(2), {
@@ -682,9 +685,6 @@ describe("réglages du contenu", () => {
     expect(vi.mocked(api.saveDraft).mock.calls[1][4]).toBeNull()
 
     // La suite du texte s'enregistre, sans renvoyer l'adresse refusée.
-    fireEvent.click(
-      within(sheet).getByRole("button", { name: texts.common.close })
-    )
     fireEvent.change(screen.getByLabelText(texts.editor.title.label), {
       target: { value: "Aide et contact" },
     })
@@ -706,16 +706,12 @@ describe("réglages du contenu", () => {
     })
     open({ slug: null })
     await ready()
-    fireEvent.click(
-      screen.getByRole("button", { name: labels.actions.settings })
-    )
-    const sheet = await screen.findByRole("dialog", {
-      name: labels.settings.title,
-    })
-    const address = within(sheet).getByLabelText(labels.settings.slug.label)
+    const address = addressField()
+    // Vérifiée en tapant : la forme tout de suite.
     fireEvent.change(address, { target: { value: "Aide Générale" } })
-    fireEvent.keyDown(address, { key: "Enter" })
-    expect(within(sheet).getByText(labels.settings.slug.invalid)).toBeVisible()
+    expect(
+      within(addressCard()).getByText(labels.settings.slug.invalid)
+    ).toBeVisible()
 
     fireEvent.change(address, { target: { value: "aide-generale" } })
     fireEvent.keyDown(address, { key: "Enter" })

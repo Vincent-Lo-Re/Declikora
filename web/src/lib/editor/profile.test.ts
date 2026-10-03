@@ -6,6 +6,7 @@ import {
   contentProfile,
   hasPresentation,
   isFeedKind,
+  isListedFeedKind,
 } from "@/lib/editor/profile"
 
 const kinds: ContentKind[] = [
@@ -19,14 +20,14 @@ const kinds: ContentKind[] = [
 ]
 
 describe("profil d'une sorte de contenu", () => {
-  it("la mise en page : le Fil pour un article et un épisode, l'écran d'une méthode, l'ancienne ailleurs (pour l'instant)", () => {
-    expect(contentProfile("article").layout).toBe("feed")
-    expect(contentProfile("episode").layout).toBe("feed")
+  it("la mise en page : le Fil pour un article, un épisode et une page, l'écran d'une méthode, l'ancienne ailleurs (pour l'instant)", () => {
     expect(contentProfile("method").layout).toBe("method")
-    for (const kind of ["page", "chapter", "lesson", "template"] as const) {
+    for (const kind of ["chapter", "lesson", "template"] as const) {
       expect(contentProfile(kind).layout).toBe("classic")
     }
-    expect(kinds.filter(isFeedKind)).toEqual(["article", "episode"])
+    expect(kinds.filter(isFeedKind)).toEqual(["article", "episode", "page"])
+    // Une page n'est dans aucune liste de l'app : pas de carte, pas d'image.
+    expect(kinds.filter(isListedFeedKind)).toEqual(["article", "episode"])
   })
 
   it("qui publie : le contenu, sa méthode (chapitre, leçon, [D29]), personne (modèle)", () => {

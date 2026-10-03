@@ -3,6 +3,12 @@
 const SLUG_MAX = 100
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
+/**
+ * Une adresse refusée par la base (prise ou invalide) : le brouillon garde son adresse
+ * enregistrée, et le champ montre celle qui a été refusée, avec la raison.
+ */
+export type RefusedSlug = { slug: string | null; message: string }
+
 type SlugCheck =
   | { ok: true; slug: string | null }
   | { ok: false; reason: "invalid" | "too_long" }

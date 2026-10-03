@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import type { SettingsFocus } from "@/components/editor/content-settings-sheet"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import type { AccessLevel } from "@/lib/access-levels"
 import {
@@ -56,15 +55,16 @@ type PublicationBridge = {
   applySettings: (next: ContentSettings) => Promise<number | null>
   /** « Reprendre la main » (confirmé par la fenêtre du refus [D14]). */
   takeLock: () => void
-  /** Ouvre les réglages du contenu (et met le focus sur l'adresse). */
-  openSettings: (focus: SettingsFocus) => void
   /**
    * Ce qui manque pour publier (image de présentation, audio : [D45]) et les conseils
    * (transcription : [D46]). Absent : rien n'est exigé (page).
    */
   checks?: PublishChecks
-  /** Ouvre le choix de ce qui manque (image de présentation, audio). */
-  onFix?: (key: Requirement["key"]) => void
+  /**
+   * Mène à ce qui manque : le titre, le choix d'un fichier (image de présentation, audio), ou la
+   * carte de l'adresse d'une page.
+   */
+  onFix?: (key: Requirement["key"] | "address") => void
   /** Une méthode : ce qui changera dans l'app si on la publie ([D29], publish_preview). */
   method?: MethodPublication
 }
@@ -171,7 +171,7 @@ export function usePublication(bridge: PublicationBridge) {
         case "adresse_manquante":
         case "adresse_prise":
           toast.error(error.message)
-          bridge.openSettings("slug")
+          bridge.onFix?.("address")
           return
         case "conflit_revision":
           toast.error(labels.conflict)
@@ -266,7 +266,7 @@ export function usePublication(bridge: PublicationBridge) {
   const needsAddress = () => {
     if (kind !== "page" || settings.slug) return false
     toast.error(labels.settings.slug.missing)
-    bridge.openSettings("slug")
+    bridge.onFix?.("address")
     return true
   }
 

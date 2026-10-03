@@ -1778,9 +1778,10 @@ export const texts = {
       right: {
         article: "Article et réglages du bloc",
         episode: "Épisode et réglages du bloc",
+        page: "Page et réglages du bloc",
       },
       blocks: "Blocs",
-      content: { article: "Article", episode: "Épisode" },
+      content: { article: "Article", episode: "Épisode", page: "Page" },
     },
     // Le mode Concentration de l'éditeur du Fil : les deux colonnes se cachent.
     focusMode: {
@@ -1834,10 +1835,13 @@ export const texts = {
             `Avec la formule ${level}, tu lis tout l'article.`,
           episode: (level: string) =>
             `Avec la formule ${level}, tu écoutes tout l'épisode.`,
+          page: (level: string) =>
+            `Avec la formule ${level}, tu lis toute la page.`,
         },
         textUnknown: {
           article: "Avec la bonne formule, tu lis tout l'article.",
           episode: "Avec la bonne formule, tu écoutes tout l'épisode.",
+          page: "Avec la bonne formule, tu lis toute la page.",
         },
         action: "Voir les formules",
       },
@@ -1895,6 +1899,7 @@ export const texts = {
           title: "Titre",
           cover: "Image de présentation",
           audio: "Audio",
+          address: "Adresse de la page",
           access: "Niveau d'accès",
         },
         done: (label: string) => `${label} : fait`,
@@ -2439,6 +2444,7 @@ export const texts = {
         taken: (title: string) =>
           `La page « ${title || "Sans titre"} » a déjà cette adresse : choisis-en une autre.`,
         checking: "Vérification de l'adresse…",
+        free: "Libre",
       },
       categories: {
         label: "Catégories",

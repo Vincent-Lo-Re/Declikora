@@ -374,8 +374,8 @@ export function ReadAppBar({ section }: { section: string }) {
 }
 
 /**
- * En Lecture : l'article ou l'épisode comme dans l'app, sans outils. Réservé et lu par une
- * personne sans la formule, il ne montre ni ses blocs ni son audio (l'app ne les reçoit pas) :
+ * En Lecture : l'article, l'épisode ou la page comme dans l'app, sans outils. Réservé et lu par
+ * une personne sans la formule, il ne montre ni ses blocs ni son audio (l'app ne les reçoit pas) :
  * seulement l'image, le titre et l'invitation à prendre la formule.
  */
 export function ReadView({
@@ -391,11 +391,13 @@ export function ReadView({
   kind: FeedKind
   draft: Draft
   title: string
-  cover: BlockMedia
+  // L'image de présentation ; null pour une sorte sans image (une page).
+  cover: BlockMedia | null
   // L'audio d'un épisode, sous le titre ; null pour une sorte sans audio.
   audio: BlockMedia | null
-  // Catégorie et temps de lecture (un épisode : la durée de son audio), sous le titre.
-  meta: string
+  // Catégorie et temps de lecture (un épisode : la durée de son audio), sous le titre ; null
+  // pour une page, qui n'est dans aucune liste.
+  meta: string | null
   // `false` : tout se lit ; sinon le nom de la formule (ou `null` s'il n'est pas encore lu).
   locked: string | null | false
   // Le bloc d'un modèle partagé, tel qu'il est aujourd'hui.
@@ -403,14 +405,16 @@ export function ReadView({
 }) {
   return (
     <article className="blocks-phone blocks-read">
-      <CoverPreview
-        media={cover}
-        editable={false}
-        onChoose={() => undefined}
-        onSelect={() => undefined}
-      />
+      {cover && (
+        <CoverPreview
+          media={cover}
+          editable={false}
+          onChoose={() => undefined}
+          onSelect={() => undefined}
+        />
+      )}
       <h1 className="blocks-title">{title}</h1>
-      <p className="blocks-meta">{meta}</p>
+      {meta !== null && <p className="blocks-meta">{meta}</p>}
       {audio && locked === false && (
         <AudioPreview
           media={audio}

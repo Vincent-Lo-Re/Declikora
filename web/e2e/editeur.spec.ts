@@ -1,13 +1,13 @@
-// Parcours de l'éditeur de blocs (étape 4), contre le Supabase local (base, Realtime).
+// Parcours de l'éditeur de blocs (étape 4), contre le Supabase local (base, Realtime), avec une
+// page dans l'éditeur du Fil (ADMIN § 4, « Le builder du Fil partout »).
 //
-// 1. Écrire une page, déplacer un bloc par sa poignée (souris, puis clavier), recharger et
-//    retrouver son texte.
-// 2. Deux navigateurs : le second voit le brouillon en lecture seule et le voit changer,
-//    reprend la main ; le premier bascule en lecture seule avec « Copier mon texte » ; le
-//    second quitte, et le premier voit le verrou libéré ; puis l'inverse.
+// 1. Écrire une page, ranger un bloc dans le plan au clavier, recharger et retrouver son texte.
+// 2. Deux navigateurs : le second voit le brouillon en lecture seule (le cadenas) et le voit
+//    changer, prend la main ; le premier perd la main, sa fenêtre propose « Copier mon texte » ;
+//    le second quitte, et le premier voit le verrou libéré ; puis l'inverse.
 // 3. Deux onglets du même membre : le plus récent prend la main, et quitter l'ancien ne la lui
 //    retire pas.
-// 4. Une image de la médiathèque insérée (seule, puis dans un encadré) : elle apparaît dans
+// 4. Une image de la médiathèque insérée (seule, puis dans une section) : elle apparaît dans
 //    « Utilisé dans » et ne peut plus aller à la corbeille, jusqu'à ce qu'on la retire.
 // 5. Une image envoyée depuis le bloc Image : réduite, envoyée, puis choisie d'elle-même.
 
@@ -41,14 +41,33 @@ function textBlock(page: Page, index = 0) {
   return page.locator('[data-block-type="text"] [contenteditable]').nth(index)
 }
 
+/** Les Blocs, en glissière par-dessus le Plan. */
+function library(page: Page) {
+  return page.getByRole("region", { name: labels.columns.blocks })
+}
+
 /**
- * Un choix du menu d'ajout ouvert par le bouton `menu` (« Ajouter un bloc » ou « Ajouter dans
- * l'encadré ») : le menu précédent peut être encore là pendant qu'il se ferme.
+ * Ajoute un bloc par les Blocs, ouverts par « Ajouter un bloc » en bas à gauche (sous le bloc
+ * choisi, ou à la fin). Un bloc Image ouvre le choix d'une image.
  */
-function addMenuItem(page: Page, menu: string, item: string) {
-  return page
-    .getByRole("menu", { name: menu })
-    .getByRole("menuitem", { name: item })
+async function addBlock(page: Page, type: "text" | "image" | "box") {
+  // Celui du bas de la colonne (le plan vide a le sien).
+  await page.locator("#colonne-gauche-ajouter").click()
+  await library(page)
+    .getByRole("button", { name: labels.library.addLabel(labels.blocks[type]) })
+    .click()
+}
+
+/** Un Texte ajouté, le curseur dedans. */
+async function addText(page: Page) {
+  await addBlock(page, "text")
+  await expect(textBlock(page).last()).toBeFocused()
+}
+
+/** La fenêtre de la lecture seule, ouverte par le cadenas. */
+async function lockDialog(page: Page) {
+  await page.getByRole("button", { name: labels.lock.button }).click()
+  return page.getByRole("alertdialog")
 }
 
 /** Un second navigateur, avec les mêmes réglages que le premier. */
@@ -60,7 +79,7 @@ async function secondBrowser(
   return { context, page: await context.newPage() }
 }
 
-test("écrire une page, déplacer un bloc par sa poignée, recharger et retrouver son texte", async ({
+test("écrire une page, ranger un bloc dans le plan au clavier, recharger et retrouver son texte", async ({
   page,
   team,
 }) => {
@@ -74,77 +93,57 @@ test("écrire une page, déplacer un bloc par sa poignée, recharger et retrouve
   await expect(
     page.getByRole("link", { name: labels.back(texts.sections.pages.title) })
   ).toBeVisible()
-  // Le plan est fermé par défaut.
-  await expect(
-    page.getByRole("navigation", { name: labels.outline.title })
-  ).toHaveCount(0)
+  // Éditeur du Fil : le plan est ouvert d'office.
+  const outline = page.getByRole("navigation", { name: labels.outline.title })
+  await expect(outline).toBeVisible()
 
   // Un titre unique : la base locale peut contenir d'autres pages.
   const title = `Mentions légales ${Date.now().toString(36)}`
   await page.getByLabel(labels.title.label).fill(title)
-  await page
-    .getByRole("button", { name: labels.blocks.text, exact: true })
-    .click()
-  await expect(textBlock(page)).toBeFocused()
+  await addText(page)
   await page.keyboard.type("Premier paragraphe, avec des espaces.")
   await page.keyboard.press("Enter")
   await page.keyboard.type("Deuxième paragraphe.")
 
-  // Un encadré, ajouté après le texte.
-  await page.getByRole("button", { name: labels.add.label }).first().click()
-  await addMenuItem(page, labels.add.label, labels.blocks.box).click()
+  // Une section, ajoutée après le texte.
+  await addBlock(page, "box")
+  await library(page)
+    .getByRole("button", { name: labels.library.close })
+    .click()
   const box = page.locator('[data-block-type="box"]')
-  await expect(box).toContainText(labels.emptyBox)
+  await expect(box).toContainText(labels.emptyBoxFeed)
   await saved(page)
 
-  // Glisser-déposer à la souris, par la poignée : le texte entre dans l'encadré.
-  const text = page.locator('[data-block-type="text"]').first()
-  await text.hover()
-  const handle = text.getByRole("button", { name: /^Déplacer : Texte/ })
-  const from = (await handle.boundingBox())!
-  const to = (await box.boundingBox())!
-  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
-  await page.mouse.down()
-  await page.mouse.move(from.x + 20, from.y + 20, { steps: 5 })
-  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, {
-    steps: 15,
-  })
-  await page.mouse.up()
-  await expect(box.locator('[data-block-type="text"]')).toContainText(
-    "Premier paragraphe"
-  )
-  await saved(page)
-
-  // Au clavier : le plan se déplie, puis le texte ressort de l'encadré (Espace, flèche, Espace).
-  await page.getByRole("button", { name: labels.outline.show }).click()
-  const outline = page.getByRole("navigation", { name: labels.outline.title })
-  await expect(outline.getByRole("listitem")).toHaveCount(2)
-  const innerHandle = box.getByRole("button", { name: /^Déplacer : Texte/ })
-  const announced = page.locator('[id^="DndLiveRegion"]')
-  await innerHandle.focus()
+  // Au clavier, dans le plan : la section monte au-dessus du texte (Espace, flèche, Espace).
+  const boxLabel = labels.blockLabel.box(labels.outline.box.fill, 0)
+  const handle = outline.getByRole("button", { name: labels.handle(boxLabel) })
+  const announced = page.locator('[id^="DndLiveRegion"]').first()
+  await outline.getByRole("listitem").last().hover()
+  await handle.focus()
   await page.keyboard.press("Space")
-  await expect(announced).toContainText("Tu as pris Texte")
+  await expect(announced).toContainText(labels.dnd.start(boxLabel))
   // dnd-kit n'écoute les flèches qu'au tour suivant de la boucle d'événements.
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)))
   await page.keyboard.press("ArrowUp")
-  await expect(announced).toContainText("dans la page")
+  await expect(announced).toContainText(labels.dnd.page)
   await page.keyboard.press("Space")
-  await expect(announced).toContainText("Bloc déposé dans la page : Texte")
-  await expect(box.locator('[data-block-type="text"]')).toHaveCount(0)
   await expect(page.locator("[data-block-id]").first()).toHaveAttribute(
     "data-block-type",
-    "text"
+    "box"
   )
   await saved(page)
 
-  // Recharger : tout est là.
+  // Recharger : tout est là, dans le nouvel ordre.
   await page.reload()
   await expect(page.getByLabel(labels.title.label)).toHaveValue(title)
   await expect(textBlock(page)).toContainText(
     "Premier paragraphe, avec des espaces."
   )
   await expect(textBlock(page)).toContainText("Deuxième paragraphe.")
-  await expect(page.locator('[data-block-type="box"]')).toHaveCount(1)
+  await expect(page.locator("[data-block-id]").first()).toHaveAttribute(
+    "data-block-type",
+    "box"
+  )
 
   // La liste des pages montre la page.
   await page
@@ -166,24 +165,27 @@ test("deux membres : lecture seule, reprise de la main, « Copier mon texte », 
   const alice = await team.createAdmin("Alice Martin")
   const bruno = await team.createAdmin("Bruno Petit")
 
+  const words = labels.lock.dialog
+
   // Alice crée la page et écrit.
   const url = await createPage(page, alice)
-  await page
-    .getByRole("button", { name: labels.blocks.text, exact: true })
-    .click()
+  await addText(page)
   await page.keyboard.type("Texte d'Alice.")
   await saved(page)
 
-  // Bruno ouvre la même page : lecture seule, avec le nom d'Alice.
+  // Bruno ouvre la même page : lecture seule (le cadenas), avec le nom d'Alice dans sa fenêtre.
   const second = await secondBrowser(browser, { baseURL, locale, timezoneId })
   const other = second.page
   try {
     await other.goto(url)
     await signIn(other, bruno)
     await expect(other).toHaveURL(url)
+    const otherDialog = await lockDialog(other)
     await expect(
-      other.getByText(labels.lock.readOnly("Alice Martin"))
+      otherDialog.getByText(words.title.readOnly("Alice Martin"))
     ).toBeVisible()
+    await otherDialog.getByRole("button", { name: words.stay }).click()
+    await expect(otherDialog).toBeHidden()
     await expect(textBlock(other)).toHaveAttribute("contenteditable", "false")
     await expect(textBlock(other)).toContainText("Texte d'Alice.")
 
@@ -194,22 +196,26 @@ test("deux membres : lecture seule, reprise de la main, « Copier mon texte », 
     await saved(page)
     await expect(textBlock(other)).toContainText("Texte d'Alice. Suite.")
 
-    // Alice écrit une phrase qui ne peut pas partir (enregistrement bloqué), puis Bruno reprend
-    // la main.
+    // Alice écrit une phrase qui ne peut pas partir (enregistrement bloqué), puis Bruno prend la
+    // main (sa fenêtre le dit déjà : pas de seconde confirmation).
     await page.route("**/rest/v1/rpc/save_draft", (route) => route.abort())
     await page.keyboard.type(" Pas encore enregistré.")
-    await other.getByRole("button", { name: labels.lock.forceTake }).click()
-    await other
-      .getByRole("alertdialog")
-      .getByRole("button", { name: labels.lock.confirmForce.confirm })
+    await (
+      await lockDialog(other)
+    )
+      .getByRole("button", { name: words.take.readOnly })
       .click()
     await expect(textBlock(other)).toHaveAttribute("contenteditable", "true")
 
-    // Alice passe en lecture seule, avec le nom de Bruno et « Copier mon texte ».
-    await expect(page.getByText(labels.lock.lost("Bruno Petit"))).toBeVisible()
+    // Alice passe en lecture seule : sa fenêtre s'ouvre, avec le nom de Bruno et « Copier mon
+    // texte ».
+    const dialog = page.getByRole("alertdialog")
+    await expect(
+      dialog.getByText(words.title.lost("Bruno Petit"))
+    ).toBeVisible()
     await expect(textBlock(page)).toHaveAttribute("contenteditable", "false")
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"])
-    await page.getByRole("button", { name: labels.lock.copy }).click()
+    await dialog.getByRole("button", { name: labels.lock.copy }).click()
     await expect(page.getByText(labels.lock.copied)).toBeVisible()
     const copied = await page.evaluate(() =>
       (
@@ -220,6 +226,8 @@ test("deux membres : lecture seule, reprise de la main, « Copier mon texte », 
     )
     expect(copied).toContain("Pas encore enregistré.")
     await page.unroute("**/rest/v1/rpc/save_draft")
+    await dialog.getByRole("button", { name: words.stay }).click()
+    await expect(dialog).toBeHidden()
 
     // Bruno écrit, puis quitte : Alice voit son texte, puis le verrou libéré.
     await textBlock(other).click()
@@ -231,25 +239,31 @@ test("deux membres : lecture seule, reprise de la main, « Copier mon texte », 
       .getByRole("link", { name: labels.back(texts.sections.pages.title) })
       .click()
     await expect(other).toHaveURL(/\/pages$/)
-    await expect(page.getByText(labels.lock.free)).toBeVisible()
 
-    // Alice reprend l'écriture.
-    await page
-      .getByRole("button", { name: labels.lock.take, exact: true })
-      .click()
+    // Alice voit le verrou libéré dans la fenêtre du cadenas, et reprend l'écriture.
+    const freed = await lockDialog(page)
+    await expect(freed.getByText(words.title.free)).toBeVisible()
+    await freed.getByRole("button", { name: words.take.free }).click()
     await expect(textBlock(page)).toHaveAttribute("contenteditable", "true")
-    await expect(page.getByText(labels.lock.free)).toHaveCount(0)
+    await expect(
+      page.getByRole("button", { name: labels.lock.button })
+    ).toHaveCount(0)
 
     // Bruno revient : lecture seule. Alice quitte à son tour : Bruno voit le verrou libéré.
     await other.goto(url)
+    const back = await lockDialog(other)
     await expect(
-      other.getByText(labels.lock.readOnly("Alice Martin"))
+      back.getByText(words.title.readOnly("Alice Martin"))
     ).toBeVisible()
+    await back.getByRole("button", { name: words.stay }).click()
+    await expect(back).toBeHidden()
     await page
       .getByRole("link", { name: labels.back(texts.sections.pages.title) })
       .click()
     await expect(page).toHaveURL(/\/pages$/)
-    await expect(other.getByText(labels.lock.free)).toBeVisible()
+    await expect(
+      (await lockDialog(other)).getByText(words.title.free)
+    ).toBeVisible()
     await expect(textBlock(other)).toHaveAttribute("contenteditable", "false")
     await expect(textBlock(other)).toContainText("Relu par Bruno.")
   } finally {
@@ -264,9 +278,7 @@ test("deux onglets du même membre : le plus récent a la main, fermer l'ancien 
   test.setTimeout(90_000)
   const admin = await team.createAdmin("Olivia Onglets")
   const url = await createPage(page, admin)
-  await page
-    .getByRole("button", { name: labels.blocks.text, exact: true })
-    .click()
+  await addText(page)
   await page.keyboard.type("Premier onglet.")
   await saved(page)
 
@@ -274,10 +286,15 @@ test("deux onglets du même membre : le plus récent a la main, fermer l'ancien 
   const tab = await page.context().newPage()
   await tab.goto(url)
   await expect(textBlock(tab)).toHaveAttribute("contenteditable", "true")
-  await expect(page.getByText(labels.lock.lostSelf)).toBeVisible()
+  const dialog = page.getByRole("alertdialog")
+  await expect(
+    dialog.getByText(labels.lock.dialog.title.lostSelf)
+  ).toBeVisible()
   await expect(textBlock(page)).toHaveAttribute("contenteditable", "false")
 
-  // Le premier onglet quitte l'éditeur : le second garde la main et enregistre.
+  // Le premier onglet reste en lecture seule et quitte l'éditeur : le second garde la main et
+  // enregistre.
+  await dialog.getByRole("button", { name: labels.lock.dialog.stay }).click()
   await page
     .getByRole("link", { name: labels.back(texts.sections.pages.title) })
     .click()
@@ -286,7 +303,9 @@ test("deux onglets du même membre : le plus récent a la main, fermer l'ancien 
   await tab.keyboard.press("End")
   await tab.keyboard.type(" Second onglet.")
   await saved(tab)
-  await expect(tab.getByText(labels.lock.free)).toHaveCount(0)
+  await expect(
+    tab.getByRole("button", { name: labels.lock.button })
+  ).toHaveCount(0)
   await expect(textBlock(tab)).toHaveAttribute("contenteditable", "true")
   await tab.reload()
   await expect(textBlock(tab)).toContainText("Premier onglet. Second onglet.")
@@ -323,14 +342,11 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
   await createBlankPage(page)
   const url = page.url()
   await page.getByLabel(labels.title.label).fill(title)
-  await page
-    .getByRole("button", { name: labels.blocks.text, exact: true })
-    .click()
+  await addText(page)
   await page.keyboard.type("Un vitrail de l'église.")
 
   const picker = page.getByRole("dialog", { name: labels.picker.title })
-  await page.getByRole("button", { name: labels.add.label }).first().click()
-  await addMenuItem(page, labels.add.label, labels.blocks.image).click()
+  await addBlock(page, "image")
   await picker
     .getByRole("button", { name: labels.picker.choose(fileName) })
     .click()
@@ -351,12 +367,13 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
   // Pas de légende : elle est retirée de l'admin (02/10/2026).
   await expect(image.getByRole("textbox")).toHaveCount(0)
 
-  // Un encadré, avec la même image dedans.
-  await page.getByRole("button", { name: labels.add.label }).first().click()
-  await addMenuItem(page, labels.add.label, labels.blocks.box).click()
+  // Une section, avec la même image dedans (« Ajouter dans la section » ouvre les Blocs).
+  await addBlock(page, "box")
   const box = page.locator('[data-block-type="box"]')
   await box.getByRole("button", { name: labels.add.inBox }).click()
-  await addMenuItem(page, labels.add.inBox, labels.blocks.image).click()
+  await library(page)
+    .getByRole("button", { name: labels.library.addLabel(labels.blocks.image) })
+    .click()
   await picker
     .getByRole("button", { name: labels.picker.choose(fileName) })
     .click()
@@ -397,12 +414,16 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
   await expect(page).toHaveURL(url)
   // On vient de quitter ce brouillon : on reprend bien la main en le rouvrant.
   await expect(textBlock(page)).toHaveAttribute("contenteditable", "true")
+  // Chaque bloc choisi dans l'aperçu : « Supprimer » dans la barre de ses réglages.
   for (const block of [
     box,
     page.locator('[data-block-type="image"]').first(),
   ]) {
     await block.click({ position: { x: 5, y: 5 } })
-    await settings.getByRole("button", { name: labels.settings.remove }).click()
+    await settings
+      .getByRole("toolbar", { name: labels.settings.actions })
+      .getByRole("button", { name: labels.settings.remove })
+      .click()
   }
   await expect(page.locator('[data-block-type="image"]')).toHaveCount(0)
   await saved(page)
@@ -433,12 +454,9 @@ test("une image envoyée depuis le bloc Image est choisie dès qu'elle est prêt
 
   await createPage(page, admin)
   await page.getByLabel(labels.title.label).fill(`La falaise ${id}`)
-  await page
-    .getByRole("button", { name: labels.blocks.text, exact: true })
-    .click()
+  await addText(page)
   await page.keyboard.type("Une falaise au soleil.")
-  await page.getByRole("button", { name: labels.add.label }).first().click()
-  await addMenuItem(page, labels.add.label, labels.blocks.image).click()
+  await addBlock(page, "image")
 
   // Une grande photo (réduite dans le navigateur avant l'envoi).
   const picker = page.getByRole("dialog", { name: labels.picker.title })

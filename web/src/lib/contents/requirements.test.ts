@@ -168,14 +168,20 @@ describe("prêt à publier (éditeur du Fil)", () => {
           ],
           advice: [],
         },
-        false
+        { accessChosen: false, slug: null }
       )
     ).toEqual([
       { key: "title", done: false },
       { key: "cover", done: false },
       { key: "access", done: false },
     ])
-    expect(readyItems("article", { missing: [], advice: [] }, true)).toEqual([
+    expect(
+      readyItems(
+        "article",
+        { missing: [], advice: [] },
+        { accessChosen: true, slug: null }
+      )
+    ).toEqual([
       { key: "title", done: true },
       { key: "cover", done: true },
       { key: "access", done: true },
@@ -190,7 +196,7 @@ describe("prêt à publier (éditeur du Fil)", () => {
           missing: [{ key: "audio", state: "unavailable" }],
           advice: [{ key: "transcript", mediaId: AUDIO }],
         },
-        true
+        { accessChosen: true, slug: null }
       )
     ).toEqual([
       { key: "title", done: true },
@@ -200,11 +206,24 @@ describe("prêt à publier (éditeur du Fil)", () => {
     ])
   })
 
-  it("ce que la sorte ne demande pas n'a pas de ligne (une page : ni image ni audio)", () => {
+  it("une page : son adresse, sans image ni audio", () => {
     expect(
-      readyItems("page", { missing: [], advice: [] }, false).map(
-        (item) => item.key
+      readyItems(
+        "page",
+        { missing: [], advice: [] },
+        { accessChosen: false, slug: null }
       )
-    ).toEqual(["title", "access"])
+    ).toEqual([
+      { key: "title", done: true },
+      { key: "address", done: false },
+      { key: "access", done: false },
+    ])
+    expect(
+      readyItems(
+        "page",
+        { missing: [], advice: [] },
+        { accessChosen: true, slug: "mentions-legales" }
+      ).find((item) => item.key === "address")
+    ).toEqual({ key: "address", done: true })
   })
 })
