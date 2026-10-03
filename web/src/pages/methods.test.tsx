@@ -1002,6 +1002,71 @@ describe("publier une méthode d'un seul geste ([D29])", () => {
 })
 
 describe("éditeur d'une leçon", () => {
+  it("ancien éditeur : « Un modèle… » insère une mise en forme en copie, sans point de départ ni bloc partagé vide", async () => {
+    const STYLE = "00000000-0000-4000-8000-00000000a501"
+    const INNER = "00000000-0000-4000-8000-00000000a502"
+    const item = (
+      id: string,
+      title: string,
+      sort: templatesApi.TemplateSort,
+      blocks: Draft["blocks"]
+    ): templatesApi.TemplateItem => ({
+      id,
+      title,
+      sort,
+      templateFor: sort === "starter" ? "lesson" : null,
+      draft: { v: 1, title, summary: null, cover: null, audio: null, blocks },
+      draft_saved_at: "2026-09-28T12:30:00Z",
+    })
+    const text: Draft["blocks"][number] = {
+      id: INNER,
+      type: "text",
+      doc: {
+        type: "doc",
+        content: [
+          { type: "paragraph", content: [{ type: "text", text: "À retenir" }] },
+        ],
+      },
+    }
+    vi.mocked(templatesApi.listTemplates).mockResolvedValue([
+      item(STYLE, "À retenir", "style", [text]),
+      item("00000000-0000-4000-8000-00000000a503", "Vide", "shared", []),
+      item("00000000-0000-4000-8000-00000000a504", "Interview", "starter", [
+        { ...text, id: "00000000-0000-4000-8000-00000000a505" },
+      ]),
+    ])
+    vi.mocked(api.saveDraft).mockResolvedValue({
+      rev: 5,
+      savedAt: "2026-09-28T12:31:00Z",
+    })
+    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    await editable()
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: texts.templates.insert.menu })
+    )
+    const picker = await screen.findByRole("dialog", {
+      name: texts.templates.insert.title,
+    })
+    expect(
+      await within(picker).findByRole("button", {
+        name: texts.templates.insert.insertLabel("Vide"),
+      })
+    ).toBeDisabled()
+    expect(within(picker).queryByText("Interview")).toBeNull()
+    fireEvent.click(
+      within(picker).getByRole("button", {
+        name: texts.templates.insert.insertLabel("À retenir"),
+      })
+    )
+    await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
+      timeout: 4000,
+    })
+    const [copy] = vi.mocked(api.saveDraft).mock.calls.at(-1)![2].blocks
+    expect(copy).toMatchObject({ type: "text", doc: text.doc })
+    expect(copy.id).not.toBe(INNER)
+  })
+
   it("« ← nom de la méthode », un rappel au lieu de la barre de publication", async () => {
     renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()

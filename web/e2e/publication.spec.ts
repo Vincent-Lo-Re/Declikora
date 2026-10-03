@@ -65,10 +65,20 @@ async function newPage(page: Page, title: string) {
   await createBlankPage(page, title)
 }
 
-async function addText(page: Page, text: string) {
+/** Éditeur du Fil : un bloc ajouté par les Blocs (« Ajouter un bloc » en bas à gauche). */
+async function addBlock(page: Page, type: "text" | "image") {
+  await page.locator("#colonne-gauche-ajouter").click()
   await page
-    .getByRole("button", { name: texts.editor.blocks.text, exact: true })
+    .getByRole("region", { name: texts.editor.columns.blocks })
+    .getByRole("button", {
+      name: texts.editor.library.addLabel(texts.editor.blocks[type]),
+    })
     .click()
+}
+
+async function addText(page: Page, text: string) {
+  await addBlock(page, "text")
+  await expect(textBlock(page)).toBeFocused()
   await page.keyboard.type(text)
 }
 
@@ -90,9 +100,27 @@ function textBlock(page: Page, index = 0) {
   return page.locator('[data-block-type="text"] [contenteditable]').nth(index)
 }
 
-/** Le badge de l'état de publication, dans l'en-tête de l'éditeur. */
+/** Le badge de l'état de publication, en bas de la colonne de droite (data-publication : l'état). */
 function liveBadge(page: Page) {
-  return page.locator("header [data-publication]")
+  return page.locator("[data-publication]")
+}
+
+/**
+ * Ferme la glissière du bloc choisi (un bloc ajouté l'est) : la colonne de droite montre de
+ * nouveau les cartes de la page.
+ */
+async function closeBlockPanel(page: Page) {
+  const close = page
+    .getByRole("region", { name: texts.editor.settings.label })
+    .getByRole("button", { name: texts.common.close })
+  if (await close.isVisible()) await close.click()
+}
+
+/** Le champ de la carte « Adresse de la page ». */
+function addressField(page: Page) {
+  return page
+    .getByRole("region", { name: labels.settings.slug.label })
+    .getByRole("textbox", { name: labels.settings.slug.label })
 }
 
 function backToPages(page: Page) {
@@ -108,17 +136,19 @@ function nav(page: Page, title: string) {
     .click()
 }
 
-/** Réglages du contenu : adresse, et niveau d'accès si demandé. */
+/** Les cartes de la colonne de droite : l'adresse, et le niveau d'accès si demandé. */
 async function setSettings(page: Page, slug: string, level?: string) {
-  await page.getByRole("button", { name: labels.actions.settings }).click()
-  const settings = page.getByRole("dialog", { name: labels.settings.title })
-  const address = settings.getByLabel(labels.settings.slug.label)
-  await address.fill(slug)
-  await address.press("Enter")
-  if (level) await settings.getByRole("radio", { name: level }).check()
+  await closeBlockPanel(page)
+  await addressField(page).fill(slug)
+  await addressField(page).press("Enter")
+  if (level) {
+    await page
+      .getByRole("region", { name: labels.settings.access.label })
+      .getByRole("combobox")
+      .click()
+    await page.getByRole("option", { name: level }).click()
+  }
   await saved(page)
-  await page.keyboard.press("Escape")
-  await expect(settings).toHaveCount(0)
 }
 
 /** « Publier », puis la fenêtre de confirmation. */
@@ -193,44 +223,49 @@ test("publier une page, la modifier sans toucher à l'app, republier, revenir à
   await newPage(page, title)
   await addText(page, "Première version.")
   await saved(page)
-  await expect(liveBadge(page)).toHaveText(labels.status.draft)
+  await expect(liveBadge(page)).toHaveAttribute("data-publication", "draft")
 
-  // L'adresse vient du titre ; sans adresse (effacée), « Publier » ouvre les réglages, sur
-  // l'adresse.
-  await page.getByRole("button", { name: labels.actions.settings }).click()
-  const cleared = page.getByRole("dialog", { name: labels.settings.title })
-  await expect(cleared.getByLabel(labels.settings.slug.label)).toHaveValue(
-    slugFromTitle(title)
-  )
-  await cleared.getByLabel(labels.settings.slug.label).fill("")
-  await cleared.getByLabel(labels.settings.slug.label).press("Enter")
+  // L'adresse vient du titre ; sans adresse (effacée), « Publier » allume la carte de l'adresse
+  // et y met le curseur.
+  await closeBlockPanel(page)
+  const address = addressField(page)
+  await expect(address).toHaveValue(slugFromTitle(title))
+  await address.fill("")
+  await address.press("Enter")
   await saved(page)
-  await page.keyboard.press("Escape")
-  await expect(cleared).toHaveCount(0)
   await page
     .getByRole("button", { name: labels.actions.publish, exact: true })
     .click()
-  const settings = page.getByRole("dialog", { name: labels.settings.title })
-  await expect(settings).toBeVisible()
-  const address = settings.getByLabel(labels.settings.slug.label)
+  await expect(page.getByText(labels.settings.slug.missing)).toBeVisible()
+  await expect(page.getByRole("dialog")).toHaveCount(0)
   await expect(address).toBeFocused()
+  // Vérifiée en tapant.
   await address.fill("Pas Valide")
-  await address.press("Enter")
-  await expect(settings.getByText(labels.settings.slug.invalid)).toBeVisible()
+  await expect(
+    page
+      .getByRole("region", { name: labels.settings.slug.label })
+      .getByText(labels.settings.slug.invalid)
+  ).toBeVisible()
   await address.fill(slug)
   await address.press("Enter")
   await saved(page)
   await expect(
-    settings.getByText(labels.settings.access.notChosen)
+    page
+      .getByRole("region", { name: labels.settings.access.label })
+      .getByText(labels.settings.access.notChosenShort)
   ).toBeVisible()
-  await page.keyboard.press("Escape")
-  await expect(settings).toHaveCount(0)
+  // Le message, en bas à droite, passe par-dessus « Publier » le temps de s'effacer (la souris
+  // ailleurs : survolé, il reste).
+  await page.mouse.move(0, 0)
+  await expect(page.getByText(labels.settings.slug.missing)).toBeHidden({
+    timeout: 15_000,
+  })
 
   // Première publication : le niveau d'accès est demandé ([D41]), on choisit « Gratuit ».
   expect(await appPage(slug)).toBeNull()
   await publish(page, labels.settings.access.free)
   await expect(page.getByText(labels.published(1))).toBeVisible()
-  await expect(liveBadge(page)).toHaveText(labels.status.live)
+  await expect(liveBadge(page)).toHaveAttribute("data-publication", "live")
   const live = await appPage(slug)
   expect(live).toMatchObject({ kind: "page", title, slug, locked: false })
   expect(live?.level).toBeNull()
@@ -238,7 +273,7 @@ test("publier une page, la modifier sans toucher à l'app, republier, revenir à
 
   // Le brouillon change : l'app montre toujours la version publiée.
   await appendText(page, " Puis une correction.")
-  await expect(liveBadge(page)).toHaveText(labels.status.modified)
+  await expect(liveBadge(page)).toHaveAttribute("data-publication", "modified")
   expect(await appPageText(slug)).not.toContain("Puis une correction.")
 
   // Republier : le niveau est déjà choisi, la fenêtre le rappelle.
@@ -254,11 +289,11 @@ test("publier une page, la modifier sans toucher à l'app, republier, revenir à
     .getByRole("button", { name: labels.publishDialog.confirm })
     .click()
   await expect(page.getByText(labels.published(2))).toBeVisible()
-  await expect(liveBadge(page)).toHaveText(labels.status.live)
+  await expect(liveBadge(page)).toHaveAttribute("data-publication", "live")
   expect(await appPageText(slug)).toContain("Puis une correction.")
 
-  // Historique : deux versions, la n° 2 en ligne.
-  await page.getByRole("button", { name: labels.actions.history }).click()
+  // Historique (dans le menu de « Publier ») : deux versions, la n° 2 en ligne.
+  await publicationAction(page, labels.actions.history)
   const history = page.getByRole("dialog", { name: labels.history.title })
   await expect(history.locator("[data-version]")).toHaveCount(2)
   const second = history.locator('[data-version="2"]')
@@ -281,13 +316,13 @@ test("publier une page, la modifier sans toucher à l'app, republier, revenir à
   await page.keyboard.press("Escape")
   await expect(history).toHaveCount(0)
   await expect(textBlock(page)).toHaveText("Première version.")
-  await expect(liveBadge(page)).toHaveText(labels.status.modified)
+  await expect(liveBadge(page)).toHaveAttribute("data-publication", "modified")
   expect(await appPageText(slug)).toContain("Puis une correction.")
 
   // Le brouillon repris est bien celui de la base (relu après rechargement).
   await page.reload()
   await expect(textBlock(page)).toHaveText("Première version.")
-  await expect(liveBadge(page)).toHaveText(labels.status.modified)
+  await expect(liveBadge(page)).toHaveAttribute("data-publication", "modified")
 })
 
 test("programmer : la tâche attend pendant qu'on écrit, publie le dernier brouillon, échoue au bout d'une heure", async ({
@@ -310,7 +345,6 @@ test("programmer : la tâche attend pendant qu'on écrit, publie le dernier brou
 
   // Programmer dans deux jours à 8 h (heure de Paris) : le bandeau le rappelle.
   await scheduleInTwoDays(page)
-  await expect(page.locator("header [data-schedule]")).toHaveCount(0)
 
   // On écrit encore après avoir programmé, l'éditeur ouvert (verrou tenu).
   await appendText(page, " Ajouté après la programmation.")
@@ -357,8 +391,8 @@ test("programmer : la tâche attend pendant qu'on écrit, publie le dernier brou
 
   // L'historique dit qui avait programmé et comment c'est parti.
   await row.getByRole("link", { name: title }).click()
-  await expect(liveBadge(page)).toHaveText(labels.status.live)
-  await page.getByRole("button", { name: labels.actions.history }).click()
+  await expect(liveBadge(page)).toHaveAttribute("data-publication", "live")
+  await publicationAction(page, labels.actions.history)
   const history = page.getByRole("dialog", { name: labels.history.title })
   const version = history.locator('[data-version="1"]')
   await expect(version).toContainText(labels.history.origins.scheduled)
@@ -432,9 +466,7 @@ test("page réservée à une formule : verrouillée dans l'app, image de présen
     // Une page avec une image dans ses blocs, réservée à la formule.
     await nav(page, texts.sections.pages.title)
     await newPage(page, title)
-    await page
-      .getByRole("button", { name: texts.editor.blocks.image, exact: true })
-      .click()
+    await addBlock(page, "image")
     await page
       .getByRole("dialog", { name: texts.editor.picker.title })
       .getByRole("button", { name: texts.editor.picker.choose(innerName) })
@@ -540,7 +572,7 @@ test("retirer de l'app, supprimer, restaurer en brouillon, vider la corbeille", 
     .getByRole("button", { name: labels.unpublishDialog.confirm })
     .click()
   await expect(page.getByText(labels.unpublishDialog.done)).toBeVisible()
-  await expect(liveBadge(page)).toHaveText(labels.status.withdrawn)
+  await expect(liveBadge(page)).toHaveAttribute("data-publication", "withdrawn")
   expect(await appPage(slug)).toBeNull()
 
   // Republier, puis supprimer depuis la liste : la corbeille retire aussi de l'app.
@@ -754,9 +786,7 @@ test("texte alternatif figé dans l'app, puis mis à jour depuis la fiche du fic
   // Une page avec cette image (texte alternatif repris de la médiathèque), publiée.
   await nav(page, texts.sections.pages.title)
   await newPage(page, `La plage ${id}`)
-  await page
-    .getByRole("button", { name: texts.editor.blocks.image, exact: true })
-    .click()
+  await addBlock(page, "image")
   await page
     .getByRole("dialog", { name: texts.editor.picker.title })
     .getByRole("button", { name: texts.editor.picker.choose(fileName) })

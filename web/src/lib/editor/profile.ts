@@ -45,11 +45,23 @@ export type ContentProfile = {
 export type PresentationKind = "method" | "chapter" | "lesson"
 
 /** Les sortes qui ont déjà l'éditeur du Fil (layout « feed ») : leurs mots dans la colonne de droite. */
-export type FeedKind = "article" | "episode"
+export type FeedKind = "article" | "episode" | "page"
 
 /** Vrai pour une sorte qui a l'éditeur du Fil. */
 export function isFeedKind(kind: ContentKind): kind is FeedKind {
   return contentProfile(kind).layout === "feed"
+}
+
+/**
+ * Celles qui ont une carte dans une liste de l'app (le Fil, Radio Éclaircies) : leur image de
+ * présentation est exigée ([D45]), et la colonne de droite montre cette carte.
+ */
+export type ListedFeedKind = Exclude<FeedKind, "page">
+
+/** Vrai pour une sorte de l'éditeur du Fil qui a une carte dans une liste de l'app. */
+export function isListedFeedKind(kind: ContentKind): kind is ListedFeedKind {
+  const profile = contentProfile(kind)
+  return profile.layout === "feed" && profile.cover === "required"
 }
 
 /** Le profil d'une sorte de contenu ; templateSort : la sorte d'un modèle de bloc. */
@@ -81,7 +93,7 @@ export function contentProfile(
         categories: "podcasts",
       }
     case "page":
-      return { ...base, address: true }
+      return { ...base, layout: "feed", address: true }
     case "method":
       return {
         ...base,

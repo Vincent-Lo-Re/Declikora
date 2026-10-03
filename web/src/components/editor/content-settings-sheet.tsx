@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Plus } from "lucide-react"
-import { useRef, useState, type KeyboardEvent, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 
 import { singleLine } from "@/blocks/components/fields"
 import { TITLE_MAX } from "@/blocks/draft"
 import { AccessLevelChoice } from "@/components/editor/access-level-choice"
+import { SlugField } from "@/components/editor/slug-field"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -32,13 +33,9 @@ import {
   type Category,
   type CategorySection,
 } from "@/lib/categories"
-import {
-  findPageBySlug,
-  type ContentKind,
-  type ContentSettings,
-} from "@/lib/contents/api"
+import type { ContentKind, ContentSettings } from "@/lib/contents/api"
 import type { LiveVersion } from "@/lib/contents/publication"
-import { checkSlug, slugFromTitle } from "@/lib/contents/slug"
+import type { RefusedSlug } from "@/lib/contents/slug"
 import { errorMessage } from "@/lib/errors"
 import { categoryNameSchema } from "@/lib/schemas"
 import { texts } from "@/texts"
@@ -54,15 +51,6 @@ export type SectionCategories = {
   retry: () => void
 }
 
-/** Le champ à mettre en avant à l'ouverture des réglages. */
-export type SettingsFocus = "slug" | null
-
-/**
- * Une adresse refusée par la base (prise ou invalide) : le brouillon garde son adresse
- * enregistrée, et le champ montre celle qui a été refusée, avec la raison.
- */
-export type RefusedSlug = { slug: string | null; message: string }
-
 /**
  * « Réglages du contenu » : le niveau d'accès (obligatoire avant la publication, [D41]), pour
  * une page son adresse, pour un article ou un épisode ses catégories (facultatives, [D44]). Ils
@@ -72,28 +60,21 @@ export type RefusedSlug = { slug: string | null; message: string }
 export function ContentSettingsSheet({
   open,
   onOpenChange,
-  focus,
   footer,
   notice,
   ...fields
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  // Le champ à mettre en avant à l'ouverture (adresse manquante ou déjà prise).
-  focus: SettingsFocus
   // Depuis une liste : « Enregistrer » et « Annuler » (dans l'éditeur, tout part tout seul).
   footer?: ReactNode
   // À la place de « Lecture seule… » : pourquoi on ne peut pas modifier (quelqu'un écrit ce
   // contenu), ou ce qui se vérifie encore.
   notice?: string
-} & Omit<SettingsFieldsProps, "slugRef" | "highlightSlug">) {
-  const slugRef = useRef<HTMLInputElement>(null)
+} & SettingsFieldsProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        className="w-full gap-0 overflow-y-auto sm:max-w-md"
-        initialFocus={focus === "slug" ? slugRef : undefined}
-      >
+      <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-md">
         <SheetHeader className="pr-12">
           <SheetTitle>{labels.title}</SheetTitle>
           <SheetDescription>{labels.description}</SheetDescription>
@@ -108,11 +89,7 @@ export function ContentSettingsSheet({
               <p className="text-sm text-muted-foreground">{labels.readOnly}</p>
             )
           )}
-          <ContentSettingsFields
-            {...fields}
-            slugRef={slugRef}
-            highlightSlug={focus === "slug"}
-          />
+          <ContentSettingsFields {...fields} />
         </div>
         {footer && <SheetFooter>{footer}</SheetFooter>}
       </SheetContent>
@@ -146,8 +123,6 @@ type SettingsFieldsProps = {
   // Article ou épisode : les catégories de sa section.
   categories?: SectionCategories
   onChange: (next: ContentSettings) => void
-  slugRef?: React.RefObject<HTMLInputElement | null>
-  highlightSlug?: boolean
 }
 
 /**
@@ -171,10 +146,7 @@ export function ContentSettingsFields({
   refusedSlug,
   categories,
   onChange,
-  slugRef,
-  highlightSlug = false,
 }: SettingsFieldsProps) {
-  const ownSlugRef = useRef<HTMLInputElement>(null)
   return (
     <>
       {onTitleChange && (
@@ -236,13 +208,12 @@ export function ContentSettingsFields({
         <>
           <Separator />
           <SlugField
+            id="reglages-adresse"
             contentId={contentId}
-            inputRef={slugRef ?? ownSlugRef}
             slug={settings.slug}
             title={title}
             editable={editable}
             live={live}
-            highlight={highlightSlug}
             refused={refusedSlug}
             onCommit={(slug) => onChange({ ...settings, slug })}
           />
@@ -535,141 +506,5 @@ function AccessSection({
         </p>
       )}
     </section>
-  )
-}
-
-function SlugField({
-  contentId,
-  inputRef,
-  slug,
-  title,
-  editable,
-  live,
-  highlight,
-  refused,
-  onCommit,
-}: {
-  contentId: string | null
-  inputRef: React.RefObject<HTMLInputElement | null>
-  slug: string | null
-  title: string
-  editable: boolean
-  live: LiveVersion | null
-  highlight: boolean
-  refused: RefusedSlug | null
-  onCommit: (slug: string | null) => void
-}) {
-  const [text, setText] = useState(
-    refused ? (refused.slug ?? "") : (slug ?? "")
-  )
-  const [error, setError] = useState<string | null>(null)
-  const [checking, setChecking] = useState(false)
-  // L'adresse a changé ailleurs (relecture du brouillon) ou vient d'être refusée : le champ
-  // reprend celle du brouillon, ou garde celle qui a été refusée.
-  const [shown, setShown] = useState({ slug, refused })
-  if (shown.slug !== slug || shown.refused !== refused) {
-    setShown({ slug, refused })
-    setText(refused ? (refused.slug ?? "") : (slug ?? ""))
-    setError(null)
-  }
-
-  const commit = async (value: string) => {
-    const checked = checkSlug(value)
-    if (!checked.ok) {
-      setError(
-        checked.reason === "too_long"
-          ? labels.slug.tooLong
-          : labels.slug.invalid
-      )
-      return
-    }
-    setError(null)
-    setText(checked.slug ?? "")
-    if (checked.slug === slug) return
-    // Déjà prise par une autre page : refusée tout de suite (la base refuse aussi, à
-    // l'enregistrement, si une autre page la prend entre-temps).
-    if (checked.slug) {
-      setChecking(true)
-      try {
-        const other = await findPageBySlug(checked.slug, contentId)
-        if (other) {
-          setError(labels.slug.taken(other.title))
-          return
-        }
-      } catch {
-        // Vérification impossible (réseau) : la base tranchera à l'enregistrement.
-      } finally {
-        setChecking(false)
-      }
-    }
-    onCommit(checked.slug)
-  }
-
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault()
-      void commit(event.currentTarget.value)
-    }
-  }
-
-  const serverError = refused?.message ?? null
-  const missing = highlight && !slug && !error && !serverError
-  const message = error ?? serverError ?? (missing ? labels.slug.missing : null)
-  const suggestion = slugFromTitle(title)
-
-  return (
-    <div className="space-y-3">
-      <Field data-invalid={message !== null}>
-        <FieldLabel htmlFor="reglages-adresse">{labels.slug.label}</FieldLabel>
-        <Input
-          ref={inputRef}
-          id="reglages-adresse"
-          value={text}
-          readOnly={!editable}
-          autoComplete="off"
-          spellCheck={false}
-          placeholder={labels.slug.placeholder}
-          aria-invalid={message !== null}
-          aria-describedby="reglages-adresse-aide"
-          onChange={(event) => {
-            setText(event.target.value)
-            setError(null)
-          }}
-          onBlur={(event) => {
-            // Quitter le champ sans rien changer ne renvoie pas une adresse déjà refusée.
-            if (
-              !editable ||
-              (refused && event.target.value === (refused.slug ?? ""))
-            )
-              return
-            void commit(event.target.value)
-          }}
-          onKeyDown={onKeyDown}
-        />
-        <FieldDescription id="reglages-adresse-aide">
-          {checking ? labels.slug.checking : labels.slug.description}
-        </FieldDescription>
-        <FieldError>{message}</FieldError>
-      </Field>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {editable && suggestion && suggestion !== slug ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => void commit(suggestion)}
-          >
-            {labels.slug.fromTitle}
-          </Button>
-        ) : (
-          <span />
-        )}
-        {live?.slug && (
-          <span className="text-sm text-muted-foreground">
-            {labels.slug.live(live.slug)}
-          </span>
-        )}
-      </div>
-    </div>
   )
 }

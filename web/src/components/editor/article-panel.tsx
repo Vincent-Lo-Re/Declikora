@@ -10,6 +10,7 @@ import {
   ImagePlus,
   KeyRound,
   LayoutList,
+  Link2,
   Pencil,
   Plus,
   Tags,
@@ -29,7 +30,8 @@ import {
   AddCategory,
   type SectionCategories,
 } from "@/components/editor/content-settings-sheet"
-import { CONTENT_TITLE_ID, CoverAlt } from "@/components/editor/presentation"
+import { CoverAlt } from "@/components/editor/presentation"
+import { SlugField } from "@/components/editor/slug-field"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -52,8 +54,15 @@ import type { ContentSettings } from "@/lib/contents/api"
 import type { LiveVersion } from "@/lib/contents/publication"
 import type { ReadyItem } from "@/lib/contents/requirements"
 import { formatDateTime, formatShortDateTime } from "@/lib/dates"
-import type { FeedKind } from "@/lib/editor/profile"
-import { focusSoon, highlightSoon } from "@/lib/focus"
+import type { RefusedSlug } from "@/lib/contents/slug"
+import {
+  contentProfile,
+  isListedFeedKind,
+  type FeedKind,
+  type ListedFeedKind,
+} from "@/lib/editor/profile"
+import { READY_IDS, showReadySetting } from "@/lib/editor/ready-targets"
+import { focusSoon } from "@/lib/focus"
 import { formatDuration } from "@/lib/media/format"
 import { texts } from "@/texts"
 
@@ -61,6 +70,7 @@ const labels = texts.editor.article
 const access = texts.publication.settings.access
 const categoryWords = texts.publication.settings.categories
 const audioWords = texts.editor.presentation.audio
+const slugWords = texts.publication.settings.slug
 
 // Nombres en français (« 1 000 »).
 const integer = new Intl.NumberFormat("fr-FR")
@@ -69,29 +79,8 @@ const integer = new Intl.NumberFormat("fr-FR")
 const NOT_CHOSEN = "pas-encore-choisi"
 const FREE = "gratuit"
 
-// Carte Audio d'un épisode : la place de l'audio, qui le choisit tant qu'il n'y en a pas, et
-// « Changer d'audio ».
+// Carte Audio d'un épisode : la place de l'audio, qui le choisit tant qu'il n'y en a pas.
 const AUDIO_CHOOSE_ID = "article-audio-choisir"
-const AUDIO_REPLACE_ID = "article-audio-changer"
-
-// Où mène chaque ligne de « Prêt à publier ? » : le réglage qui reçoit le curseur, et la zone qui
-// s'allume (la carte qui le contient, ou le champ du titre lui-même).
-const targets: Record<ReadyItem["key"], { control: string; zone: string }> = {
-  title: { control: CONTENT_TITLE_ID, zone: `#${CONTENT_TITLE_ID}` },
-  cover: {
-    control: "article-image",
-    zone: '[aria-labelledby="article-carte"]',
-  },
-  // L'audio qui manque ouvre son choix (ReadyCard) ; choisi, la ligne mène à « Changer d'audio ».
-  audio: {
-    control: AUDIO_REPLACE_ID,
-    zone: '[aria-labelledby="article-audio"]',
-  },
-  access: {
-    control: "article-niveau",
-    zone: '[aria-labelledby="article-niveau-titre"]',
-  },
-}
 
 // Une ligne de « Prêt à publier ? » (un bouton qui mène au réglage).
 const readyRow =
@@ -112,8 +101,10 @@ export function ArticlePanel({
   kind,
   draft,
   editable,
+  contentId,
   settings,
   onSettingsChange,
+  refusedSlug,
   levels,
   levelsFailed,
   retryLevels,
@@ -129,15 +120,19 @@ export function ArticlePanel({
   onRemoveAudio,
 }: {
   kind: FeedKind
+  contentId: string
   draft: Draft
   editable: boolean
   settings: ContentSettings
   onSettingsChange: (next: ContentSettings) => void
+  // Une page : la dernière adresse refusée par l'enregistrement (prise ou invalide).
+  refusedSlug: RefusedSlug | null
   levels: AccessLevel[] | undefined
   levelsFailed: boolean
   retryLevels: () => void
   live: LiveVersion | null
-  categories: SectionCategories
+  // Les catégories de la section ; null pour une sorte sans catégories (une page).
+  categories: SectionCategories | null
   cover: BlockMedia
   // L'audio d'un épisode ; null pour une sorte sans audio.
   audio: BlockMedia | null
@@ -149,6 +144,8 @@ export function ArticlePanel({
   onChooseAudio: () => void
   onRemoveAudio: () => void
 }) {
+  // Une page n'est dans aucune liste de l'app : ni carte, ni image de présentation.
+  const listed = isListedFeedKind(kind) ? kind : null
   return (
     <div className="space-y-3">
       <ReadyCard
@@ -161,14 +158,16 @@ export function ArticlePanel({
           {texts.editor.settings.readOnly}
         </p>
       )}
-      <FeedCard
-        kind={kind}
-        draft={draft}
-        editable={editable}
-        cover={cover}
-        onChooseCover={onChooseCover}
-        onRemoveCover={onRemoveCover}
-      />
+      {listed && (
+        <FeedCard
+          kind={listed}
+          draft={draft}
+          editable={editable}
+          cover={cover}
+          onChooseCover={onChooseCover}
+          onRemoveCover={onRemoveCover}
+        />
+      )}
       {audio && (
         <AudioCard
           audio={audio}
@@ -176,6 +175,26 @@ export function ArticlePanel({
           onChoose={onChooseAudio}
           onRemove={onRemoveAudio}
         />
+      )}
+      {contentProfile(kind).address && (
+        <PanelCard
+          id={READY_IDS.address.card}
+          icon={Link2}
+          title={slugWords.label}
+          aside={<InfoTip text={slugWords.description} />}
+        >
+          <SlugField
+            id={READY_IDS.address.control}
+            contentId={contentId}
+            slug={settings.slug}
+            title={draft.title}
+            editable={editable}
+            live={live}
+            refused={refusedSlug}
+            inCard
+            onCommit={(slug) => onSettingsChange({ ...settings, slug })}
+          />
+        </PanelCard>
       )}
       <AccessCard
         settings={settings}
@@ -188,14 +207,16 @@ export function ArticlePanel({
           onSettingsChange({ ...settings, accessChosen: true, accessLevelId })
         }
       />
-      <CategoriesCard
-        categories={categories}
-        chosen={settings.categoryIds}
-        editable={editable}
-        onChange={(categoryIds) =>
-          onSettingsChange({ ...settings, categoryIds })
-        }
-      />
+      {categories && (
+        <CategoriesCard
+          categories={categories}
+          chosen={settings.categoryIds}
+          editable={editable}
+          onChange={(categoryIds) =>
+            onSettingsChange({ ...settings, categoryIds })
+          }
+        />
+      )}
     </div>
   )
 }
@@ -340,16 +361,8 @@ function ReadyCard({
                       onChooseAudio()
                       return
                     }
-                    const target = targets[item.key]
                     // La carte vient sous les yeux et s'allume ; le curseur va sur son réglage.
-                    highlightSoon(() =>
-                      document.querySelector<HTMLElement>(target.zone)
-                    )
-                    focusSoon(
-                      () => document.getElementById(target.control),
-                      undefined,
-                      { preventScroll: true }
-                    )
+                    showReadySetting(item.key)
                   }}
                 >
                   {item.done ? (
@@ -408,7 +421,7 @@ function FeedCard({
   onChooseCover,
   onRemoveCover,
 }: {
-  kind: FeedKind
+  kind: ListedFeedKind
   draft: Draft
   editable: boolean
   cover: BlockMedia
@@ -420,7 +433,7 @@ function FeedCard({
   const chosen = cover.state !== "none"
   return (
     <PanelCard
-      id="article-carte"
+      id={READY_IDS.cover.card}
       icon={LayoutList}
       title={labels.feed.title[kind]}
       aside={<InfoTip text={labels.feed.hint[kind]} />}
@@ -430,7 +443,7 @@ function FeedCard({
             (choix fait depuis l'aperçu ou depuis la fenêtre Publier). */}
         <button
           type="button"
-          id="article-image"
+          id={READY_IDS.cover.control}
           data-presentation-choose="cover"
           disabled={!editable}
           aria-label={
@@ -480,7 +493,7 @@ function FeedCard({
             onClick={() => {
               onRemoveCover()
               // « Retirer » disparaît : le focus passe à la vignette, juste au-dessus.
-              document.getElementById("article-image")?.focus()
+              document.getElementById(READY_IDS.cover.control)?.focus()
             }}
           >
             <X />
@@ -513,7 +526,7 @@ function AudioCard({
   const chosen = audio.state !== "none"
   return (
     <PanelCard
-      id="article-audio"
+      id={READY_IDS.audio.card}
       icon={AudioLines}
       title={audioWords.label}
       aside={<InfoTip text={audioWords.hint} />}
@@ -606,7 +619,7 @@ function AudioCard({
                 type="button"
                 size="xs"
                 variant="outline"
-                id={AUDIO_REPLACE_ID}
+                id={READY_IDS.audio.control}
                 data-presentation-choose="audio"
                 onClick={onChoose}
               >
@@ -663,7 +676,7 @@ function AccessCard({
   ]
   const liveLevel = live ? liveLevelName(live.access_level_id, levels) : null
   return (
-    <PanelCard id="article-niveau-titre" icon={KeyRound} title={access.label}>
+    <PanelCard id={READY_IDS.access.card} icon={KeyRound} title={access.label}>
       {levels === undefined ? (
         <LoadState
           query={{ isError: levelsFailed, error: null, refetch: retryLevels }}
@@ -682,13 +695,13 @@ function AccessCard({
           }}
         >
           <SelectTrigger
-            id="article-niveau"
+            id={READY_IDS.access.control}
             // Pas encore choisi : le « ! » et le bord orangé de « Prêt à publier ? ».
             className={cn(
               "w-full",
               !settings.accessChosen && "border-warning/60"
             )}
-            aria-labelledby="article-niveau-titre"
+            aria-labelledby={READY_IDS.access.card}
           >
             {!settings.accessChosen && (
               <CircleAlert aria-hidden className="text-warning" />

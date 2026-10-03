@@ -5,7 +5,7 @@
 
 import type { BlockMedia } from "@/blocks/components/context"
 import type { Draft } from "@/blocks/types"
-import type { ContentKind } from "@/lib/contents/api"
+import type { ContentKind, ContentSettings } from "@/lib/contents/api"
 import { contentProfile } from "@/lib/editor/profile"
 
 /**
@@ -79,23 +79,23 @@ export function publishChecks(
 
 /**
  * Une ligne de « Prêt à publier ? » (éditeur du Fil) : le titre, l'image de présentation, l'audio,
- * le niveau d'accès.
+ * l'adresse d'une page, le niveau d'accès.
  */
 export type ReadyItem = {
-  key: "title" | "cover" | "audio" | "access"
+  key: "title" | "cover" | "audio" | "address" | "access"
   done: boolean
 }
 
 /**
  * « Prêt à publier ? », selon ce que la sorte demande : le titre ([D49]), l'image de présentation
- * ([D45]), l'audio d'un épisode, et le niveau d'accès, que « Publier » demande tant qu'il n'est
- * pas choisi ([D41]). Un fichier en cours de lecture compte comme fait (la base tranchera), comme
- * pour publishChecks.
+ * ([D45]), l'audio d'un épisode, l'adresse d'une page, et le niveau d'accès, que « Publier »
+ * demande tant qu'il n'est pas choisi ([D41]). Un fichier en cours de lecture compte comme fait
+ * (la base tranchera), comme pour publishChecks.
  */
 export function readyItems(
   kind: ContentKind,
   checks: PublishChecks,
-  accessChosen: boolean
+  settings: Pick<ContentSettings, "accessChosen" | "slug">
 ): ReadyItem[] {
   const profile = contentProfile(kind)
   const done = (key: Requirement["key"]) =>
@@ -106,8 +106,9 @@ export function readyItems(
     items.push({ key: "cover", done: done("cover") })
   }
   if (profile.audio) items.push({ key: "audio", done: done("audio") })
+  if (profile.address) items.push({ key: "address", done: !!settings.slug })
   if (profile.access === "own") {
-    items.push({ key: "access", done: accessChosen })
+    items.push({ key: "access", done: settings.accessChosen })
   }
   return items
 }

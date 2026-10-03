@@ -88,10 +88,13 @@ async function createBlank(page: Page, kind: "article" | "episode") {
 }
 
 /**
- * L'Article (ou l'Épisode), dans la colonne de droite de l'éditeur du Fil : image, audio, niveau
- * d'accès, catégories.
+ * L'Article (l'Épisode, la Page), dans la colonne de droite de l'éditeur du Fil : image, audio,
+ * adresse, niveau d'accès, catégories.
  */
-function articleTab(page: Page, kind: "article" | "episode" = "article") {
+function articleTab(
+  page: Page,
+  kind: "article" | "episode" | "page" = "article"
+) {
   return page.getByRole("region", { name: editor.columns.content[kind] })
 }
 
@@ -105,7 +108,7 @@ function audioCard(page: Page) {
 /** Éditeur du Fil : niveau d'accès « Gratuit », dans la colonne de droite. */
 async function articleFree(
   page: Page,
-  kind: "article" | "episode" = "article"
+  kind: "article" | "episode" | "page" = "article"
 ) {
   await articleTab(page, kind).getByRole("combobox").click()
   await page
@@ -151,23 +154,14 @@ async function publishFree(page: Page) {
   await expect(page.getByText(publication.published(1))).toBeVisible()
 }
 
-/** Réglages du contenu : niveau d'accès « Gratuit », adresse d'une page si donnée. */
-async function settingsFree(page: Page, slug?: string) {
-  await page.getByRole("button", { name: publication.actions.settings }).click()
-  const settings = page.getByRole("dialog", {
-    name: publication.settings.title,
-  })
-  if (slug) {
-    const address = settings.getByLabel(publication.settings.slug.label)
-    await address.fill(slug)
-    await address.press("Enter")
-  }
-  await settings
-    .getByRole("radio", { name: publication.settings.access.free })
-    .check()
-  await saved(page)
-  await page.keyboard.press("Escape")
-  await expect(settings).toHaveCount(0)
+/** Une page, dans l'éditeur du Fil : son adresse (dans sa carte), puis « Gratuit ». */
+async function pageFree(page: Page, slug: string) {
+  const address = articleTab(page, "page")
+    .getByRole("region", { name: publication.settings.slug.label })
+    .getByRole("textbox", { name: publication.settings.slug.label })
+  await address.fill(slug)
+  await address.press("Enter")
+  await articleFree(page, "page")
 }
 
 /** Jour et heure à Paris, dans deux jours à 8 h : { date: "2026-09-30", time: "08:00" }. */
@@ -787,7 +781,7 @@ test("Pages : recherche (accents, casse, adresse) et filtre par état dans la li
   await open(page, "/pages", admin)
   await createBlankPage(page)
   await page.getByLabel(editor.title.label).fill(livePage)
-  await settingsFree(page, slug)
+  await pageFree(page, slug)
   await openPublish(page).then((dialog) =>
     dialog
       .getByRole("button", { name: publication.publishDialog.confirm })

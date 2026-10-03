@@ -12,9 +12,6 @@ import { texts } from "@/texts"
 
 const labels = texts.editor.presentation
 
-// Le titre du contenu, en tête de l'aperçu : « Prêt à publier ? » et « Écrire le titre » y mènent.
-export const CONTENT_TITLE_ID = "contenu-titre"
-
 // ---------------------------------------------------------------------------------------------
 // Dans l'aperçu du téléphone : ce que l'app montre en tête d'un article ou d'un épisode.
 // ---------------------------------------------------------------------------------------------

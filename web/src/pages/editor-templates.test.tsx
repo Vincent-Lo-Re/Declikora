@@ -193,7 +193,7 @@ afterEach(() => {
 })
 
 describe("bloc lié dans un contenu", () => {
-  it("montre le bloc du modèle tel qu'il est, non modifiable, avec « Modifier le modèle »", async () => {
+  it("montre le bloc du modèle tel qu'il est, non modifiable ; choisi, « Modifier le modèle » et « Détacher » dans sa barre", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       page([
         textBlock(TEXT_ID, "Bonjour"),
@@ -209,29 +209,39 @@ describe("bloc lié dans un contenu", () => {
     const linked = await screen.findByText("Écris-nous à contact@exemple.fr")
     const view = linked.closest("[data-linked-template]") as HTMLElement
     expect(view).toHaveAttribute("data-linked-template", TEMPLATE_ID)
-    expect(view).toHaveTextContent(texts.templates.linked.label("Contact"))
     // Non modifiable sur place : aucun champ éditable dans le bloc lié.
     expect(view.querySelector('[contenteditable="true"]')).toBeNull()
+    expect(templatesApi.getTemplatesByIds).toHaveBeenCalledWith([TEMPLATE_ID])
+    // Le plan le nomme d'après son modèle.
     expect(
-      within(view).getByRole("link", {
+      within(
+        screen.getByRole("navigation", { name: texts.editor.outline.title })
+      ).getByRole("button", {
+        name: texts.editor.outline.select(
+          texts.editor.blockLabel.linked("Contact")
+        ),
+      })
+    ).toHaveTextContent("Contact")
+    // Choisi : « Modifier le modèle » et « Détacher » dans la barre de ses réglages, pas
+    // « Enregistrer comme modèle » (c'est déjà un modèle).
+    fireEvent.pointerDown(view)
+    const bar = await screen.findByRole("toolbar", {
+      name: texts.editor.settings.actions,
+    })
+    expect(
+      within(bar).getByRole("link", {
         name: texts.templates.linked.editLabel("Contact"),
       })
     ).toHaveAttribute("href", `/modeles/${TEMPLATE_ID}`)
-    expect(templatesApi.getTemplatesByIds).toHaveBeenCalledWith([TEMPLATE_ID])
-    // Le plan le nomme d'après son modèle.
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.editor.outline.show })
-    )
     expect(
-      screen.getByRole("navigation", { name: texts.editor.outline.title })
-    ).toHaveTextContent(texts.editor.blockLabel.linked("Contact"))
-    // Choisi, il ne propose pas « Enregistrer comme modèle » : c'est déjà un modèle.
-    fireEvent.pointerDown(view)
-    expect(
-      await screen.findByRole("button", { name: texts.templates.linked.detach })
+      within(bar).getByRole("button", {
+        name: texts.templates.linked.detachLabel("Contact"),
+      })
     ).toBeVisible()
     expect(
-      screen.queryByRole("button", { name: texts.templates.saveAs.action })
+      within(bar).queryByRole("button", {
+        name: texts.templates.saveAs.action,
+      })
     ).toBeNull()
   })
 
@@ -245,8 +255,17 @@ describe("bloc lié dans un contenu", () => {
     renderApp(`/pages/${PAGE_ID}`)
     await editable()
 
+    // Choisi, « Détacher » est dans la barre de ses réglages.
+    await screen.findByText("Écris-nous à contact@exemple.fr")
+    fireEvent.pointerDown(
+      document.querySelector(`[data-block-id="${LINKED_ID}"]`)!
+    )
     fireEvent.click(
-      await screen.findByRole("button", {
+      within(
+        await screen.findByRole("toolbar", {
+          name: texts.editor.settings.actions,
+        })
+      ).getByRole("button", {
         name: texts.templates.linked.detachLabel("Contact"),
       })
     )
@@ -325,7 +344,7 @@ describe("bloc lié dans un contenu", () => {
   })
 })
 
-describe("insérer un modèle", () => {
+describe("insérer un modèle depuis « Mes blocs »", () => {
   beforeEach(() => {
     vi.mocked(templatesApi.listTemplates).mockResolvedValue([
       templateItem(STYLE_ID, "À retenir", "style", [
@@ -340,34 +359,42 @@ describe("insérer un modèle", () => {
     vi.mocked(api.getContent).mockResolvedValue(page([]))
   })
 
-  async function openPicker() {
+  /** Les Blocs (« Ajouter un bloc »), puis « Mes blocs ». */
+  async function openMine() {
+    fireEvent.click(document.getElementById("colonne-gauche-ajouter")!)
+    const library = screen.getByRole("region", {
+      name: texts.editor.columns.blocks,
+    })
     fireEvent.click(
-      await screen.findByRole("button", { name: texts.templates.insert.menu })
+      await within(library).findByRole("button", {
+        name: new RegExp(texts.editor.library.mine.title),
+      })
     )
-    return screen.findByRole("dialog", { name: texts.templates.insert.title })
+    return within(library).findByRole("region", {
+      name: texts.editor.library.mine.title,
+    })
   }
 
-  it("une mise en forme s'insère en copie (nouveaux id), un bloc identique partout en bloc lié", async () => {
+  it("une mise en forme s'insère en copie (nouveaux id), un bloc partagé en bloc lié", async () => {
     vi.mocked(templatesApi.getTemplatesByIds).mockResolvedValue([
       contactTemplate,
     ])
     renderApp(`/pages/${PAGE_ID}`)
     await editable()
 
-    let picker = await openPicker()
-    // Un point de départ ne s'insère pas ; un bloc identique partout vide non plus.
-    expect(within(picker).queryByText("Interview")).toBeNull()
-    expect(
-      await within(picker).findByRole("button", {
-        name: texts.templates.insert.insertLabel("Vide"),
-      })
-    ).toBeDisabled()
-    expect(
-      within(picker).getByText(texts.templates.insert.emptyTemplate)
-    ).toBeInTheDocument()
+    const mine = await openMine()
+    // Un point de départ ne s'insère pas ; un bloc partagé vide non plus.
+    expect(within(mine).queryByText("Interview")).toBeNull()
+    const empty = await within(mine).findByRole("button", {
+      name: texts.editor.library.mine.insertLabel("Vide"),
+    })
+    expect(empty).toBeDisabled()
+    expect(empty).toHaveAccessibleDescription(
+      texts.templates.insert.emptyTemplate
+    )
     fireEvent.click(
-      within(picker).getByRole("button", {
-        name: texts.templates.insert.insertLabel("À retenir"),
+      within(mine).getByRole("button", {
+        name: texts.editor.library.mine.insertLabel("À retenir"),
       })
     )
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
@@ -380,19 +407,10 @@ describe("insérer un modèle", () => {
       content: [{ text: "À retenir" }],
     })
 
-    // Le bloc identique partout : ajouté après le bloc choisi, par le menu « Ajouter un bloc ».
+    // Le bloc partagé : ajouté après le bloc choisi (la copie, qui vient d'arriver).
     fireEvent.click(
-      screen.getAllByRole("button", { name: texts.editor.add.label })[0]
-    )
-    fireEvent.click(
-      await screen.findByRole("menuitem", { name: texts.templates.insert.menu })
-    )
-    picker = await screen.findByRole("dialog", {
-      name: texts.templates.insert.title,
-    })
-    fireEvent.click(
-      await within(picker).findByRole("button", {
-        name: texts.templates.insert.insertLabel("Contact"),
+      within(mine).getByRole("button", {
+        name: texts.editor.library.mine.insertLabel("Contact"),
       })
     )
     await waitFor(() => expect(lastSaved().blocks).toHaveLength(2), {
@@ -403,8 +421,8 @@ describe("insérer un modèle", () => {
       templateId: TEMPLATE_ID,
     })
     expect(
-      await screen.findByText("Écris-nous à contact@exemple.fr")
-    ).toBeInTheDocument()
+      await screen.findAllByText("Écris-nous à contact@exemple.fr")
+    ).not.toHaveLength(0)
   })
 })
 
@@ -431,9 +449,7 @@ describe("« Enregistrer comme modèle »", () => {
     await editable()
     const saveAs = texts.templates.saveAs
 
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.editor.outline.show })
-    )
+    // Le plan est ouvert d'office (éditeur du Fil).
     const outline = screen.getByRole("navigation", {
       name: texts.editor.outline.title,
     })
