@@ -160,6 +160,7 @@ describe("prêt à publier (éditeur du Fil)", () => {
   it("le titre, l'image de présentation, puis le niveau d'accès", () => {
     expect(
       readyItems(
+        "article",
         {
           missing: [
             { key: "title", state: "missing" },
@@ -174,10 +175,36 @@ describe("prêt à publier (éditeur du Fil)", () => {
       { key: "cover", done: false },
       { key: "access", done: false },
     ])
-    expect(readyItems({ missing: [], advice: [] }, true)).toEqual([
+    expect(readyItems("article", { missing: [], advice: [] }, true)).toEqual([
       { key: "title", done: true },
       { key: "cover", done: true },
       { key: "access", done: true },
     ])
+  })
+
+  it("un épisode : l'audio, avant le niveau d'accès ; un audio supprimé n'est pas fait", () => {
+    expect(
+      readyItems(
+        "episode",
+        {
+          missing: [{ key: "audio", state: "unavailable" }],
+          advice: [{ key: "transcript", mediaId: AUDIO }],
+        },
+        true
+      )
+    ).toEqual([
+      { key: "title", done: true },
+      { key: "cover", done: true },
+      { key: "audio", done: false },
+      { key: "access", done: true },
+    ])
+  })
+
+  it("ce que la sorte ne demande pas n'a pas de ligne (une page : ni image ni audio)", () => {
+    expect(
+      readyItems("page", { missing: [], advice: [] }, false).map(
+        (item) => item.key
+      )
+    ).toEqual(["title", "access"])
   })
 })

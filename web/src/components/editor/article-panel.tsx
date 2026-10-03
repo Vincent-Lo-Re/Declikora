@@ -1,10 +1,12 @@
 import { cn } from "cn"
 import {
+  AudioLines,
   Check,
   ChevronRight,
   CircleAlert,
   CircleCheck,
   Clock,
+  Headphones,
   ImagePlus,
   KeyRound,
   LayoutList,
@@ -18,6 +20,7 @@ import { useState, type ReactNode } from "react"
 
 import type { BlockMedia } from "@/blocks/components/context"
 import type { Draft } from "@/blocks/types"
+import { MediaFileLink } from "@/components/media/media-file-link"
 import { MediaThumbnail } from "@/components/media/media-visuals"
 import { InfoTip } from "@/components/info-tip"
 import { LoadState } from "@/components/load-state"
@@ -49,12 +52,15 @@ import type { ContentSettings } from "@/lib/contents/api"
 import type { LiveVersion } from "@/lib/contents/publication"
 import type { ReadyItem } from "@/lib/contents/requirements"
 import { formatDateTime, formatShortDateTime } from "@/lib/dates"
+import type { FeedKind } from "@/lib/editor/profile"
 import { focusSoon, highlightSoon } from "@/lib/focus"
+import { formatDuration } from "@/lib/media/format"
 import { texts } from "@/texts"
 
 const labels = texts.editor.article
 const access = texts.publication.settings.access
 const categoryWords = texts.publication.settings.categories
+const audioWords = texts.editor.presentation.audio
 
 // Nombres en français (« 1 000 »).
 const integer = new Intl.NumberFormat("fr-FR")
@@ -63,6 +69,11 @@ const integer = new Intl.NumberFormat("fr-FR")
 const NOT_CHOSEN = "pas-encore-choisi"
 const FREE = "gratuit"
 
+// Carte Audio d'un épisode : la place de l'audio, qui le choisit tant qu'il n'y en a pas, et
+// « Changer d'audio ».
+const AUDIO_CHOOSE_ID = "article-audio-choisir"
+const AUDIO_REPLACE_ID = "article-audio-changer"
+
 // Où mène chaque ligne de « Prêt à publier ? » : le réglage qui reçoit le curseur, et la zone qui
 // s'allume (la carte qui le contient, ou le champ du titre lui-même).
 const targets: Record<ReadyItem["key"], { control: string; zone: string }> = {
@@ -70,6 +81,11 @@ const targets: Record<ReadyItem["key"], { control: string; zone: string }> = {
   cover: {
     control: "article-image",
     zone: '[aria-labelledby="article-carte"]',
+  },
+  // L'audio qui manque ouvre son choix (ReadyCard) ; choisi, la ligne mène à « Changer d'audio ».
+  audio: {
+    control: AUDIO_REPLACE_ID,
+    zone: '[aria-labelledby="article-audio"]',
   },
   access: {
     control: "article-niveau",
@@ -87,11 +103,13 @@ const statTrigger =
   "flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
 /**
- * L'Article, dans la colonne de droite de l'éditeur du Fil (ADMIN § 4) : ce qui manque pour
- * publier, la carte de la liste du Fil (image de présentation), le niveau d'accès et les
- * catégories. Tout part avec le brouillon, comme dans la glissière Réglages des autres éditeurs.
+ * L'Article (ou l'Épisode), dans la colonne de droite de l'éditeur du Fil (ADMIN § 4) : ce qui
+ * manque pour publier, la carte de la liste (image de présentation), l'audio d'un épisode, le
+ * niveau d'accès et les catégories. Tout part avec le brouillon, comme dans la glissière Réglages
+ * des autres éditeurs.
  */
 export function ArticlePanel({
+  kind,
   draft,
   editable,
   settings,
@@ -102,11 +120,15 @@ export function ArticlePanel({
   live,
   categories,
   cover,
+  audio,
   ready,
   warnings,
   onChooseCover,
   onRemoveCover,
+  onChooseAudio,
+  onRemoveAudio,
 }: {
+  kind: FeedKind
   draft: Draft
   editable: boolean
   settings: ContentSettings
@@ -117,27 +139,44 @@ export function ArticlePanel({
   live: LiveVersion | null
   categories: SectionCategories
   cover: BlockMedia
+  // L'audio d'un épisode ; null pour une sorte sans audio.
+  audio: BlockMedia | null
   ready: ReadyItem[]
   // Les points à vérifier du plan (une section vide…), et y aller.
   warnings: { count: number; onShow: () => void }
   onChooseCover: () => void
   onRemoveCover: () => void
+  onChooseAudio: () => void
+  onRemoveAudio: () => void
 }) {
   return (
     <div className="space-y-3">
-      <ReadyCard items={ready} warnings={warnings} />
+      <ReadyCard
+        items={ready}
+        warnings={warnings}
+        onChooseAudio={onChooseAudio}
+      />
       {!editable && (
         <p className="text-sm text-muted-foreground">
           {texts.editor.settings.readOnly}
         </p>
       )}
       <FeedCard
+        kind={kind}
         draft={draft}
         editable={editable}
         cover={cover}
         onChooseCover={onChooseCover}
         onRemoveCover={onRemoveCover}
       />
+      {audio && (
+        <AudioCard
+          audio={audio}
+          editable={editable}
+          onChoose={onChooseAudio}
+          onRemove={onRemoveAudio}
+        />
+      )}
       <AccessCard
         settings={settings}
         editable={editable}
@@ -163,16 +202,20 @@ export function ArticlePanel({
 
 /**
  * La section fixe en bas de la colonne de droite (éditeur du Fil) : l'état de l'enregistrement
- * (une icône), le temps de lecture et les mots, la dernière modification (le détail dans les
- * infobulles), puis les actions (le cadenas, l'état de publication et « Publier »).
+ * (une icône), le temps de lecture (un épisode : la durée de son audio) et les mots, la dernière
+ * modification (le détail dans les infobulles), puis les actions (le cadenas, l'état de
+ * publication et « Publier »).
  */
 export function ArticleFooter({
   stats,
+  audio,
   savedAt,
   saveStatus,
   children,
 }: {
   stats: { words: number; minutes: number }
+  // Un épisode : son audio, dont la durée remplace le temps de lecture.
+  audio: BlockMedia | null
   savedAt: string | null
   // L'état de l'enregistrement, en icône (son infobulle dit l'état et l'heure).
   saveStatus: ReactNode
@@ -180,6 +223,13 @@ export function ArticleFooter({
 }) {
   const saved = savedAt ? formatShortDateTime(savedAt) : null
   const words = labels.stats.words(integer.format(stats.words))
+  const length = audio
+    ? audioLength(audio, words)
+    : {
+        Icon: Clock,
+        short: labels.stats.short(stats.minutes, words),
+        tip: labels.stats.readingTip(stats.minutes, words),
+      }
   return (
     <div className="grid h-feed-footer shrink-0 content-center gap-2 border-t bg-background px-4">
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -189,12 +239,10 @@ export function ArticleFooter({
           <TooltipTrigger
             render={<span tabIndex={0} className={statTrigger} />}
           >
-            <Clock aria-hidden className="size-3.5" />
-            {labels.stats.short(stats.minutes, words)}
+            <length.Icon aria-hidden className="size-3.5" />
+            {length.short}
           </TooltipTrigger>
-          <TooltipContent>
-            {labels.stats.readingTip(stats.minutes, words)}
-          </TooltipContent>
+          <TooltipContent>{length.tip}</TooltipContent>
         </Tooltip>
         {savedAt && saved && (
           <Tooltip>
@@ -219,16 +267,42 @@ export function ArticleFooter({
   )
 }
 
+/** Un épisode, en bas de la colonne : la durée de son audio (ou pourquoi elle manque) et les mots. */
+function audioLength(audio: BlockMedia, words: string) {
+  if (audio.state === "none") {
+    return {
+      Icon: Headphones,
+      short: labels.stats.audioShort(labels.stats.noAudio, words),
+      tip: labels.stats.noAudioTip(words),
+    }
+  }
+  const seconds = audio.state === "ready" ? audio.media.duration_s : null
+  return {
+    Icon: Headphones,
+    short: labels.stats.audioShort(
+      seconds !== null ? formatDuration(seconds) : audioWords.noDuration,
+      words
+    ),
+    tip: labels.stats.audioTip(
+      seconds !== null ? formatDuration(seconds) : labels.stats.unknownDuration,
+      words
+    ),
+  }
+}
+
 /**
- * « Prêt à publier ? » : toujours visible en haut ; une ligne à régler mène à son réglage. Les
- * points à vérifier du plan suivent : ils n'empêchent pas de publier, et ne comptent pas.
+ * « Prêt à publier ? » : toujours visible en haut ; une ligne mène à son réglage (l'audio qui
+ * manque : son choix s'ouvre). Les points à vérifier du plan suivent : ils n'empêchent pas de
+ * publier, et ne comptent pas.
  */
 function ReadyCard({
   items,
   warnings,
+  onChooseAudio,
 }: {
   items: ReadyItem[]
   warnings: { count: number; onShow: () => void }
+  onChooseAudio: () => void
 }) {
   const done = items.filter((item) => item.done).length
   return (
@@ -262,6 +336,10 @@ function ReadyCard({
                       : labels.ready.todo(label)
                   }
                   onClick={() => {
+                    if (item.key === "audio" && !item.done) {
+                      onChooseAudio()
+                      return
+                    }
                     const target = targets[item.key]
                     // La carte vient sous les yeux et s'allume ; le curseur va sur son réglage.
                     highlightSoon(() =>
@@ -318,16 +396,19 @@ function ReadyCard({
 }
 
 /**
- * La carte de l'article dans la liste du Fil : son image de présentation (la vignette, qui est
- * aussi en tête de l'article) et son titre. Pas de résumé (03/10/2026, ADMIN § 4).
+ * La carte du contenu dans la liste de sa section (le Fil, Radio Éclaircies) : son image de
+ * présentation (la vignette, qui est aussi en tête du contenu) et son titre. Pas de résumé
+ * (03/10/2026, ADMIN § 4).
  */
 function FeedCard({
+  kind,
   draft,
   editable,
   cover,
   onChooseCover,
   onRemoveCover,
 }: {
+  kind: FeedKind
   draft: Draft
   editable: boolean
   cover: BlockMedia
@@ -341,8 +422,8 @@ function FeedCard({
     <PanelCard
       id="article-carte"
       icon={LayoutList}
-      title={labels.feed.title}
-      aside={<InfoTip text={labels.feed.hint} />}
+      title={labels.feed.title[kind]}
+      aside={<InfoTip text={labels.feed.hint[kind]} />}
     >
       <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-2">
         {/* data-presentation-choose : là où revient le focus quand le bouton utilisé a disparu
@@ -407,6 +488,147 @@ function FeedCard({
           </Button>
         )}
       </div>
+    </PanelCard>
+  )
+}
+
+/**
+ * L'audio d'un épisode (ADMIN § 4) : le fichier, sa durée et sa fiche dans la Médiathèque,
+ * « Changer d'audio » et « Retirer l'audio », et l'avertissement [D46] s'il n'a pas de
+ * transcription.
+ */
+function AudioCard({
+  audio,
+  editable,
+  onChoose,
+  onRemove,
+}: {
+  audio: BlockMedia
+  editable: boolean
+  onChoose: () => void
+  onRemove: () => void
+}) {
+  const file =
+    audio.state === "ready" || audio.state === "not_ready" ? audio.media : null
+  const chosen = audio.state !== "none"
+  return (
+    <PanelCard
+      id="article-audio"
+      icon={AudioLines}
+      title={audioWords.label}
+      aside={<InfoTip text={audioWords.hint} />}
+    >
+      <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-2">
+        {chosen ? (
+          <span className="flex size-16 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+            <AudioLines aria-hidden className="size-5" />
+          </span>
+        ) : (
+          // Pas encore d'audio : la place de la vignette le choisit.
+          <button
+            type="button"
+            id={AUDIO_CHOOSE_ID}
+            data-presentation-choose="audio"
+            disabled={!editable}
+            aria-label={audioWords.choose}
+            className="flex size-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md border border-dashed bg-background text-xs text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:text-foreground"
+            onClick={onChoose}
+          >
+            <AudioLines aria-hidden className="size-5" />
+            {editable && labels.feed.choose}
+          </button>
+        )}
+        <div className="grid min-w-0 gap-0.5">
+          {file ? (
+            <>
+              <p className="truncate text-sm font-semibold">{file.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {file.duration_s !== null
+                  ? audioWords.duration(formatDuration(file.duration_s))
+                  : audioWords.noDuration}
+              </p>
+              <MediaFileLink mediaId={file.id} />
+            </>
+          ) : (
+            <p
+              className={cn(
+                "text-sm",
+                audio.state === "missing" || audio.state === "error"
+                  ? "text-destructive"
+                  : "text-muted-foreground"
+              )}
+            >
+              {audio.state === "missing"
+                ? audioWords.missing
+                : audio.state === "error"
+                  ? audioWords.loadFailed
+                  : audio.state === "loading"
+                    ? texts.common.loading
+                    : audioWords.none}
+            </p>
+          )}
+        </div>
+      </div>
+      {audio.state === "not_ready" && (
+        <p className="mt-2 text-xs text-destructive">{audioWords.notReady}</p>
+      )}
+      {audio.state === "ready" &&
+        (audio.media.transcript?.trim() ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {audioWords.transcriptOk}
+          </p>
+        ) : (
+          <p
+            className="mt-2 flex items-start gap-1.5 text-xs text-warning"
+            data-warning="transcript"
+          >
+            <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
+            {audioWords.transcriptMissing}
+          </p>
+        ))}
+      {(audio.state === "error" || (editable && chosen)) && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {audio.state === "error" && (
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              onClick={audio.retry}
+            >
+              {texts.common.retry}
+            </Button>
+          )}
+          {editable && chosen && (
+            <>
+              {/* data-presentation-choose : là où revient le focus quand le bouton utilisé a
+                  disparu (choix fait depuis l'aperçu ou depuis la fenêtre Publier). */}
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                id={AUDIO_REPLACE_ID}
+                data-presentation-choose="audio"
+                onClick={onChoose}
+              >
+                {audioWords.replace}
+              </Button>
+              <Button
+                type="button"
+                size="xs"
+                variant="ghost"
+                onClick={() => {
+                  onRemove()
+                  // « Retirer » disparaît : le focus passe à la place de l'audio, qui le choisit.
+                  focusSoon(() => document.getElementById(AUDIO_CHOOSE_ID))
+                }}
+              >
+                <X />
+                {audioWords.remove}
+              </Button>
+            </>
+          )}
+        </div>
+      )}
     </PanelCard>
   )
 }

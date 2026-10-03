@@ -4,7 +4,6 @@ import {
   ArrowUp,
   BookmarkPlus,
   Copy,
-  ExternalLink,
   ImageIcon,
   SquarePen,
   Trash2,
@@ -37,6 +36,7 @@ import {
 } from "@/blocks/types"
 import { LoadState } from "@/components/load-state"
 import { ColumnHeader } from "@/components/editor/column-header"
+import { MediaFileLink } from "@/components/media/media-file-link"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Separator } from "@/components/ui/separator"
@@ -48,7 +48,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { editorPath, mediaFilePath, sections } from "@/navigation"
+import { editorPath, sections } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.editor.settings
@@ -582,18 +582,7 @@ function ImageSettings({
             )}
             <div className="grid min-w-0 gap-0.5">
               <p className="truncate text-sm font-medium">{media.media.name}</p>
-              <a
-                href={mediaFilePath(media.media.id)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-              >
-                <ExternalLink aria-hidden className="size-3" />
-                {image.openInLibrary}{" "}
-                <span className="sr-only">
-                  {texts.editor.presentation.openFileHint}
-                </span>
-              </a>
+              <MediaFileLink mediaId={media.media.id} />
             </div>
           </div>
         ) : (

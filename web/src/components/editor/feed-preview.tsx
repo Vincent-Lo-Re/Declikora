@@ -33,7 +33,7 @@ import type { BlockMedia } from "@/blocks/components/context"
 import { StaticBlock } from "@/blocks/components/static-block"
 import { AndroidLogo, AppleLogo } from "@/components/brand-icons"
 import type { Block, Draft } from "@/blocks/types"
-import { CoverPreview } from "@/components/editor/presentation"
+import { AudioPreview, CoverPreview } from "@/components/editor/presentation"
 import { Kbd } from "@/components/ui/kbd"
 import { Separator } from "@/components/ui/separator"
 import { Toggle } from "@/components/ui/toggle"
@@ -54,6 +54,7 @@ import {
   previewThemes,
   type PreviewSettings,
 } from "@/lib/editor/preview"
+import type { FeedKind } from "@/lib/editor/profile"
 import { texts } from "@/texts"
 
 const labels = texts.editor.preview
@@ -373,22 +374,27 @@ export function ReadAppBar({ section }: { section: string }) {
 }
 
 /**
- * En Lecture : l'article comme dans l'app, sans outils. Réservé et lu par une personne sans la
- * formule, il ne montre pas ses blocs (l'app ne les reçoit pas) : seulement l'image, le titre et
- * l'invitation à prendre la formule.
+ * En Lecture : l'article ou l'épisode comme dans l'app, sans outils. Réservé et lu par une
+ * personne sans la formule, il ne montre ni ses blocs ni son audio (l'app ne les reçoit pas) :
+ * seulement l'image, le titre et l'invitation à prendre la formule.
  */
 export function ReadView({
+  kind,
   draft,
   title,
   cover,
+  audio,
   meta,
   locked,
   resolve,
 }: {
+  kind: FeedKind
   draft: Draft
   title: string
   cover: BlockMedia
-  // Catégorie et temps de lecture, sous le titre.
+  // L'audio d'un épisode, sous le titre ; null pour une sorte sans audio.
+  audio: BlockMedia | null
+  // Catégorie et temps de lecture (un épisode : la durée de son audio), sous le titre.
   meta: string
   // `false` : tout se lit ; sinon le nom de la formule (ou `null` s'il n'est pas encore lu).
   locked: string | null | false
@@ -405,12 +411,22 @@ export function ReadView({
       />
       <h1 className="blocks-title">{title}</h1>
       <p className="blocks-meta">{meta}</p>
+      {audio && locked === false && (
+        <AudioPreview
+          media={audio}
+          editable={false}
+          onChoose={() => undefined}
+          onSelect={() => undefined}
+        />
+      )}
       {locked !== false ? (
         <div className="blocks-locked">
           <Lock aria-hidden className="size-6" />
           <p className="blocks-locked-title">{labels.locked.title}</p>
           <p className="blocks-locked-text">
-            {locked ? labels.locked.text(locked) : labels.locked.textUnknown}
+            {locked
+              ? labels.locked.text[kind](locked)
+              : labels.locked.textUnknown[kind]}
           </p>
           <span className="blocks-locked-action">{labels.locked.action}</span>
         </div>

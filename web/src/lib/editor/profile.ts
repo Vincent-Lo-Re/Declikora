@@ -37,8 +37,20 @@ export type ContentProfile = {
   rootLimit: number | undefined
 }
 
-/** Les sortes qui ont une présentation en tête de l'éditeur (une image de présentation). */
-export type PresentationKind = Exclude<ContentKind, "page" | "template">
+/**
+ * Les sortes dont l'éditeur a un panneau de présentation (l'image de présentation, à droite) :
+ * celles qui ont une image sans avoir encore l'éditeur du Fil, où elle se règle dans la colonne de
+ * droite.
+ */
+export type PresentationKind = "method" | "chapter" | "lesson"
+
+/** Les sortes qui ont déjà l'éditeur du Fil (layout « feed ») : leurs mots dans la colonne de droite. */
+export type FeedKind = "article" | "episode"
+
+/** Vrai pour une sorte qui a l'éditeur du Fil. */
+export function isFeedKind(kind: ContentKind): kind is FeedKind {
+  return contentProfile(kind).layout === "feed"
+}
 
 /** Le profil d'une sorte de contenu ; templateSort : la sorte d'un modèle de bloc. */
 export function contentProfile(
@@ -63,6 +75,7 @@ export function contentProfile(
     case "episode":
       return {
         ...base,
+        layout: "feed",
         cover: "required",
         audio: true,
         categories: "podcasts",
@@ -96,7 +109,8 @@ export function contentProfile(
   }
 }
 
-/** Vrai pour une sorte qui a une présentation (une image de présentation) en tête de l'éditeur. */
+/** Vrai pour une sorte dont l'éditeur a un panneau de présentation (PresentationKind). */
 export function hasPresentation(kind: ContentKind): kind is PresentationKind {
-  return contentProfile(kind).cover !== null
+  const profile = contentProfile(kind)
+  return profile.cover !== null && profile.layout !== "feed"
 }

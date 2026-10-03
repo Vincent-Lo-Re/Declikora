@@ -262,6 +262,17 @@
 .blocks-audio {
   margin-bottom: var(--blocks-space-block-gap);
   cursor: pointer;
+  /* Le lecteur (boutons et barre de l'admin) prend les couleurs du téléphone, dont le thème peut
+     différer de celui de l'admin (éditeur du Fil). */
+  --background: var(--blocks-color-background);
+  --foreground: var(--blocks-color-text);
+  --muted: var(--blocks-color-box-border);
+  --muted-foreground: var(--blocks-color-text-muted);
+  --border: var(--blocks-color-box-border);
+  --input: var(--blocks-color-box-border);
+  --primary: var(--blocks-color-text);
+  --accent: var(--blocks-color-box-border);
+  --accent-foreground: var(--blocks-color-text);
 }
 
 /* « Mes blocs » (éditeur du Fil) : l'aperçu réduit d'un bloc enregistré, avec les mesures de
@@ -483,7 +494,8 @@
   height: 20px;
 }
 
-.blocks-read .blocks-cover {
+.blocks-read .blocks-cover,
+.blocks-read .blocks-audio {
   cursor: default;
 }
 

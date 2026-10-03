@@ -1726,8 +1726,6 @@ export const texts = {
     // catégories. [D45], [D46]. Plus de résumé depuis le 03/10/2026.
     presentation: {
       panelTitle: {
-        article: "Présentation de l'article",
-        episode: "Présentation de l'épisode",
         method: "Fiche de la méthode",
         chapter: "Présentation du chapitre",
         lesson: "Présentation de la leçon",
@@ -1753,8 +1751,8 @@ export const texts = {
         alt: (alt: string) => `Texte alternatif (médiathèque) : « ${alt} »`,
       },
       audio: {
-        label: "Audio de l'épisode",
-        hint: "Obligatoire pour publier : un fichier MP3 ou M4A de la médiathèque.",
+        label: "Audio",
+        hint: "Obligatoire pour publier : un fichier MP3 ou M4A de la médiathèque. L'app le lit sous le titre de l'épisode.",
         choose: "Choisir l'audio",
         replace: "Changer d'audio",
         remove: "Retirer l'audio",
@@ -1768,22 +1766,21 @@ export const texts = {
         transcriptOk: "Transcription renseignée dans la médiathèque.",
         transcriptMissing:
           "Pas de transcription : ajoute-la dans la fiche du fichier, pour les personnes qui ne peuvent pas écouter. Elle est conseillée, pas obligatoire.",
-        openFile: "Ouvrir sa fiche dans la Médiathèque",
       },
-      categories: {
-        label: "Catégories",
-        none: "Aucune catégorie (facultatives)",
-        edit: "Choisir les catégories",
-      },
+      // La fiche d'un fichier, dans un nouvel onglet (une image d'un bloc, l'audio d'un épisode).
+      openInLibrary: "Ouvrir sa fiche dans la Médiathèque",
       openFileHint: "(nouvel onglet)",
     },
     // Éditeur du Fil (ADMIN § 4) : le nom des deux colonnes (lecteurs d'écran), le titre de la
-    // glissière des Blocs, et celui de l'Article.
+    // glissière des Blocs, et celui de la colonne de droite (l'Article, l'Épisode).
     columns: {
       left: "Plan et blocs",
-      right: "Article et réglages du bloc",
+      right: {
+        article: "Article et réglages du bloc",
+        episode: "Épisode et réglages du bloc",
+      },
       blocks: "Blocs",
-      article: "Article",
+      content: { article: "Article", episode: "Épisode" },
     },
     // Le mode Concentration de l'éditeur du Fil : les deux colonnes se cachent.
     focusMode: {
@@ -1805,7 +1802,7 @@ export const texts = {
       mode: {
         label: "Mode",
         edit: "Édition",
-        read: "Lecture : l'article comme dans l'app",
+        read: "Lecture : comme dans l'app",
       },
       theme: {
         label: "Thème du téléphone",
@@ -1832,9 +1829,16 @@ export const texts = {
       minutes: (count: number) => `${count} min de lecture`,
       locked: {
         title: "La suite est réservée",
-        text: (level: string) =>
-          `Avec la formule ${level}, tu lis tout l'article.`,
-        textUnknown: "Avec la bonne formule, tu lis tout l'article.",
+        text: {
+          article: (level: string) =>
+            `Avec la formule ${level}, tu lis tout l'article.`,
+          episode: (level: string) =>
+            `Avec la formule ${level}, tu écoutes tout l'épisode.`,
+        },
+        textUnknown: {
+          article: "Avec la bonne formule, tu lis tout l'article.",
+          episode: "Avec la bonne formule, tu écoutes tout l'épisode.",
+        },
         action: "Voir les formules",
       },
     },
@@ -1876,8 +1880,8 @@ export const texts = {
               : `Bloc partagé : suit son modèle · dans ${count} contenus`,
         insertLabel: (name: string) => `Ajouter « ${name} »`,
         empty:
-          "Aucun bloc enregistré pour l'instant : dans un article, utilise « Enregistrer comme modèle… », ou crée-le dans Modèles de bloc.",
-        // Un bloc de « Mes blocs » ajouté à l'article.
+          "Aucun bloc enregistré pour l'instant : dans un contenu, utilise « Enregistrer comme modèle… », ou crée-le dans Modèles de bloc.",
+        // Un bloc de « Mes blocs » ajouté au contenu.
         added: (name: string) => `« ${name} » ajouté.`,
         noResult: "Aucun bloc ne correspond.",
         manage: "Gérer dans Modèles de bloc",
@@ -1890,6 +1894,7 @@ export const texts = {
         items: {
           title: "Titre",
           cover: "Image de présentation",
+          audio: "Audio",
           access: "Niveau d'accès",
         },
         done: (label: string) => `${label} : fait`,
@@ -1901,11 +1906,19 @@ export const texts = {
             : `${count} points à vérifier dans le plan`,
       },
       feed: {
-        title: "Dans la liste du Fil",
+        title: {
+          article: "Dans la liste du Fil",
+          episode: "Dans la liste de Radio Éclaircies",
+        },
         choose: "Choisir",
         chooseLabel: "Choisir l'image de présentation",
         replaceLabel: "Changer l'image de présentation",
-        hint: "L'image est obligatoire pour publier : c'est aussi celle en tête de l'article.",
+        hint: {
+          article:
+            "L'image est obligatoire pour publier : c'est aussi celle en tête de l'article.",
+          episode:
+            "L'image est obligatoire pour publier : c'est aussi celle en tête de l'épisode.",
+        },
       },
       categories: {
         add: "Nouvelle",
@@ -1919,6 +1932,14 @@ export const texts = {
         short: (minutes: number, words: string) => `${minutes} min · ${words}`,
         readingTip: (minutes: number, words: string) =>
           `Environ ${minutes} min de lecture, ${words}`,
+        // Un épisode : la durée de son audio au lieu du temps de lecture.
+        audioShort: (duration: string, words: string) =>
+          `${duration} · ${words}`,
+        audioTip: (duration: string, words: string) =>
+          `Durée de l'audio : ${duration}, ${words}`,
+        noAudio: "Pas d'audio",
+        noAudioTip: (words: string) => `Pas encore d'audio, ${words}`,
+        unknownDuration: "inconnue",
         savedAt: (time: string) => `Modifié à ${time}`,
         savedOn: (day: string) => `Modifié le ${day}`,
       },
@@ -1933,7 +1954,6 @@ export const texts = {
       text: "Écris directement dans l'aperçu. Sélectionne des mots pour les mettre en gras, en italique ou en lien.",
       image: {
         file: "Fichier",
-        openInLibrary: "Ouvrir sa fiche dans la Médiathèque",
         alt: "Texte alternatif",
         altFromLibrary: "Reprendre celui de la médiathèque",
         libraryAlt: (alt: string) => `Médiathèque : « ${alt} »`,
