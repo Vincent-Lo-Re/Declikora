@@ -189,17 +189,18 @@
 }
 
 /* Une zone à régler, montrée du doigt (« Prêt à publier ? », points à vérifier du plan) : sa
-   bordure s'allume deux fois à la couleur de l'avertissement, puis s'efface. highlightSoon
+   bordure s'allume deux fois à la couleur de l'avertissement, puis s'efface. Dessinée à
+   l'intérieur (inset) : rien de collé au-dessus ne la coupe. highlightSoon
    (lib/focus.ts) pose data-highlight et le retire à la fin de l'animation. */
 @keyframes highlight-pulse {
   0%,
   50%,
   100% {
-    box-shadow: 0 0 0 0 transparent;
+    box-shadow: inset 0 0 0 0 transparent;
   }
   25%,
   75% {
-    box-shadow: 0 0 0 2px var(--warning);
+    box-shadow: inset 0 0 0 2px var(--warning);
   }
 }
 
@@ -207,7 +208,7 @@
 @keyframes highlight-hold {
   from,
   to {
-    box-shadow: 0 0 0 2px var(--warning);
+    box-shadow: inset 0 0 0 2px var(--warning);
   }
 }
 

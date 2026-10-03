@@ -9,6 +9,7 @@ import {
   readingStats,
   shiftBlock,
   shiftLeavesBox,
+  summaryFit,
 } from "@/blocks/draft"
 import type { Block, Doc, Draft, TextBlock } from "@/blocks/types"
 
@@ -232,5 +233,15 @@ describe("Monter et Descendre", () => {
     expect(canShift(draft(), BOX_ID, 1)).toBe(false)
     expect(canShift(draft(), INNER_ID, -1)).toBe(true)
     expect(canShift(draft(), INNER_ID, -1, 2)).toBe(false)
+  })
+})
+
+describe("summaryFit", () => {
+  it("vide, court sous 120 caractères, idéal de 120 à 160, long au-delà", () => {
+    expect(summaryFit(0)).toBe("empty")
+    expect(summaryFit(119)).toBe("short")
+    expect(summaryFit(120)).toBe("ideal")
+    expect(summaryFit(160)).toBe("ideal")
+    expect(summaryFit(161)).toBe("long")
   })
 })

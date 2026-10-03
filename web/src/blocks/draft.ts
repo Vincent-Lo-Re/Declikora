@@ -28,6 +28,17 @@ export const SUMMARY_MAX = 1000
 // Le résumé d'un article ne sert qu'à sa carte dans la liste du Fil (ADMIN § 4) : l'admin
 // s'arrête à 200 caractères ; le schéma garde 1 000 (la règle des blocs ne fait que s'élargir).
 export const FEED_SUMMARY_MAX = 200
+// La longueur idéale de ce résumé (la glissière de l'onglet Article).
+export const FEED_SUMMARY_IDEAL = { min: 120, max: 160 } as const
+
+/** Où en est le résumé d'un article : vide, trop court, idéal ou trop long. */
+export function summaryFit(
+  length: number
+): "empty" | "short" | "ideal" | "long" {
+  if (length === 0) return "empty"
+  if (length < FEED_SUMMARY_IDEAL.min) return "short"
+  return length <= FEED_SUMMARY_IDEAL.max ? "ideal" : "long"
+}
 // Vitesse de lecture retenue pour « Environ n min de lecture » (mots par minute).
 const WORDS_PER_MINUTE = 200
 export const ALT_MAX = 1000

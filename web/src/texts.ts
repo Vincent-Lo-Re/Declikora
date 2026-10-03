@@ -1633,7 +1633,6 @@ export const texts = {
       // Une ligne de section : son aspect, puis le nombre de ses blocs.
       box: { fill: "Section à fond", border: "Section à bordure" },
       boxCount: (count: number) => `${count}`,
-      shared: "Partagé",
       dropInBox: "Glisse un texte ou une image ici",
       move: (label: string) => `Ranger dans le plan : ${label}`,
       collapse: (label: string) => `Replier ${label}`,
@@ -1924,8 +1923,17 @@ export const texts = {
         label: "Résumé",
         optional: "facultatif",
         placeholder: "Une ou deux phrases pour donner envie de lire…",
-        ideal: "Idéal : 120 à 160 caractères",
         count: (count: number, max: number) => `${count} / ${max}`,
+        // La glissière de longueur : son état, écrit dedans.
+        fit: {
+          empty: "Vide",
+          short: "Court",
+          ideal: "Idéal",
+          long: "Long",
+        },
+        // Pour les lecteurs d'écran : l'état, et la longueur idéale.
+        fitLabel: (fit: string, min: number, max: number) =>
+          `Longueur du résumé : ${fit} (idéal : ${min} à ${max} caractères)`,
       },
       categories: {
         add: "Nouvelle",
@@ -1936,6 +1944,11 @@ export const texts = {
         words: (count: string) =>
           count === "0" || count === "1" ? `${count} mot` : `${count} mots`,
         saved: (date: string) => `Modifié le ${date}`,
+        // En bas de la colonne : court (la date complète dans l'infobulle).
+        short: (minutes: number, words: string) =>
+          `${Math.max(minutes, 1)} min · ${words}`,
+        savedAt: (time: string) => `Modifié à ${time}`,
+        savedOn: (day: string) => `Modifié le ${day}`,
       },
     },
     settings: {
@@ -2403,7 +2416,7 @@ export const texts = {
         // La dernière formule : il n'y en a pas de plus complète.
         levelHintTop: "Pour les abonnés de cette formule, la plus complète.",
         notChosen: "Pas encore choisi : « Publier » le demandera.",
-        notChosenShort: "Pas encore choisi",
+        notChosenShort: "Choisis un niveau",
         noLevels:
           "Aucune formule d'abonnement pour l'instant : un admin peut en créer dans Paramètres.",
         loadFailed: "Les formules d'abonnement n'ont pas pu être chargées.",

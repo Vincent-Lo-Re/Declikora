@@ -558,7 +558,13 @@ describe("éditeur d'un article (Le Fil)", () => {
     // Ses autres intertitres n'apparaissent pas dans le plan.
     expect(within(plan).queryByText("Le soir")).toBeNull()
     expect(await within(plan).findByText("plage.png")).toBeVisible()
-    expect(within(plan).getByText(outline.shared)).toBeVisible()
+    // Le bloc partagé : son nom, sans pastille « Partagé » (« Bloc choisi » le dit, 03/10/2026).
+    expect(
+      within(plan).getByRole("button", {
+        name: outline.select(texts.editor.blockLabel.linked(null)),
+      })
+    ).toBeVisible()
+    expect(within(plan).queryByText("Partagé")).toBeNull()
     // Le modèle n'existe plus : écrit en clair.
     expect(
       await within(plan).findByText(outline.warnings.missingTemplate)
@@ -931,9 +937,13 @@ describe("éditeur d'un article (Le Fil)", () => {
     expect(
       within(tab).getByRole("button", { name: "Sommeil" })
     ).toHaveAttribute("aria-pressed", "false")
+    // Pas encore choisi : la liste le dit elle-même, sans phrase orange dessous.
+    expect(within(tab).getByRole("combobox")).toHaveTextContent(
+      texts.publication.settings.access.notChosenShort
+    )
     expect(
-      within(tab).getByText(texts.publication.settings.access.notChosen)
-    ).toBeVisible()
+      within(tab).queryByText(texts.publication.settings.access.notChosen)
+    ).toBeNull()
 
     await pick(within(tab).getByRole("combobox"), "Essentiel")
     fireEvent.click(within(tab).getByRole("button", { name: "Sommeil" }))
@@ -1771,6 +1781,42 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
     await waitFor(() =>
       expect(document.getElementById("article-image")).toHaveFocus()
     )
+  })
+
+  it("colonne de droite : les onglets en tête, et en bas la lecture, l'état et « Publier » ; le résumé a sa glissière, l'image son icône Info", async () => {
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const right = screen.getByRole("complementary", { name: columns.right })
+    // « Publier » et l'état sont après les onglets : dans la section du bas.
+    const tabs = within(right).getByRole("tablist")
+    const publish = within(right).getByRole("button", {
+      name: texts.publication.actions.publish,
+    })
+    expect(
+      tabs.compareDocumentPosition(publish) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(within(right).getByText(/min · \d+ mots?$/)).toBeVisible()
+    // Elle reste là dans « Bloc choisi ».
+    fireEvent.click(within(right).getByRole("tab", { name: columns.block }))
+    expect(
+      within(right).getByRole("button", {
+        name: texts.publication.actions.publish,
+      })
+    ).toBeVisible()
+    fireEvent.click(within(right).getByRole("tab", { name: columns.article }))
+
+    // La phrase de l'image est dans l'infobulle de l'icône Info.
+    expect(
+      within(articleTab()).getByRole("button", { name: article.feed.hint })
+    ).toBeVisible()
+    // La glissière du résumé dit où on en est.
+    const gauge = within(articleTab()).getByRole("meter")
+    expect(gauge).toHaveTextContent(article.summary.fit.empty)
+    fireEvent.change(within(articleTab()).getByLabelText(/Résumé/), {
+      target: { value: "x".repeat(140) },
+    })
+    expect(gauge).toHaveTextContent(article.summary.fit.ideal)
+    expect(gauge).toHaveAttribute("aria-valuenow", "140")
   })
 
   it("un texte se résume par sa première ligne, dans le plan comme dans « Bloc choisi »", async () => {

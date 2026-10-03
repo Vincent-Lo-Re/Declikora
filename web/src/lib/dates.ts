@@ -25,6 +25,28 @@ function formatTime(value: Date): string {
   return `${hour}${texts.dates.hour}${minute}`
 }
 
+const dayFormat = new Intl.DateTimeFormat("fr-FR", {
+  day: "numeric",
+  month: "short",
+  timeZone,
+})
+
+/**
+ * Une date courte, à l'heure de Paris : l'heure seule le jour même (« 16h31 »), sinon le jour
+ * (« 3 oct. »). `today` dit lequel.
+ */
+export function formatShortDateTime(
+  date: Date | string,
+  now: Date = new Date()
+): { today: boolean; text: string } {
+  const value = typeof date === "string" ? new Date(date) : date
+  const today = toParisParts(value).date === toParisParts(now).date
+  return {
+    today,
+    text: today ? formatTime(value) : dayFormat.format(value),
+  }
+}
+
 /** « 27 sept. 2026 à 18h42 », à l'heure de Paris. */
 export function formatDateTime(date: Date | string): string {
   const value = typeof date === "string" ? new Date(date) : date

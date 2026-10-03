@@ -14,12 +14,17 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 
 import type { BlockMedia } from "@/blocks/components/context"
-import { FEED_SUMMARY_MAX } from "@/blocks/draft"
+import {
+  FEED_SUMMARY_IDEAL,
+  FEED_SUMMARY_MAX,
+  summaryFit,
+} from "@/blocks/draft"
 import type { Draft } from "@/blocks/types"
 import { MediaThumbnail } from "@/components/media/media-visuals"
+import { InfoTip } from "@/components/info-tip"
 import { PanelCard } from "@/components/panel-card"
 import {
   AddCategory,
@@ -36,11 +41,16 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { isMostComplete, type AccessLevel } from "@/lib/access-levels"
 import type { ContentSettings } from "@/lib/contents/api"
 import type { LiveVersion } from "@/lib/contents/publication"
 import type { ReadyItem } from "@/lib/contents/requirements"
-import { formatDateTime } from "@/lib/dates"
+import { formatDateTime, formatShortDateTime } from "@/lib/dates"
 import { focusSoon, highlightSoon } from "@/lib/focus"
 import { texts } from "@/texts"
 
@@ -89,8 +99,6 @@ export function ArticlePanel({
   coverUrl,
   ready,
   warnings,
-  stats,
-  savedAt,
   onChooseCover,
   onRemoveCover,
 }: {
@@ -108,8 +116,6 @@ export function ArticlePanel({
   ready: ReadyItem[]
   // Les points à vérifier du plan (une section vide…), et y aller.
   warnings: { count: number; onShow: () => void }
-  stats: { words: number; minutes: number }
-  savedAt: string | null
   onChooseCover: () => void
   onRemoveCover: () => void
 }) {
@@ -148,19 +154,57 @@ export function ArticlePanel({
           onSettingsChange({ ...settings, categoryIds })
         }
       />
-      <div className="space-y-1 pb-2 text-xs text-muted-foreground">
-        <p className="flex items-center gap-1.5">
+    </div>
+  )
+}
+
+/**
+ * La section fixe en bas de la colonne de droite (éditeur du Fil), dans les deux onglets : le
+ * temps de lecture, les mots et la dernière modification (la date complète dans l'infobulle),
+ * puis les actions (le cadenas, l'état de publication et « Publier »).
+ */
+export function ArticleFooter({
+  stats,
+  savedAt,
+  children,
+}: {
+  stats: { words: number; minutes: number }
+  savedAt: string | null
+  children: ReactNode
+}) {
+  const saved = savedAt ? formatShortDateTime(savedAt) : null
+  return (
+    <div className="grid shrink-0 gap-2 border-t bg-background px-4 pt-2.5 pb-3">
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
           <Clock aria-hidden className="size-3.5" />
-          {labels.stats.reading(stats.minutes)} ·{" "}
-          {labels.stats.words(integer.format(stats.words))}
-        </p>
-        {savedAt && (
-          <p className="flex items-center gap-1.5">
-            <Pencil aria-hidden className="size-3.5" />
-            {labels.stats.saved(formatDateTime(savedAt))}
-          </p>
+          {labels.stats.short(
+            stats.minutes,
+            labels.stats.words(integer.format(stats.words))
+          )}
+        </span>
+        {savedAt && saved && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span
+                  tabIndex={0}
+                  className="ml-auto flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              }
+            >
+              <Pencil aria-hidden className="size-3.5" />
+              {saved.today
+                ? labels.stats.savedAt(saved.text)
+                : labels.stats.savedOn(saved.text)}
+            </TooltipTrigger>
+            <TooltipContent>
+              {labels.stats.saved(formatDateTime(savedAt))}
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
+      <div className="flex items-center gap-2">{children}</div>
     </div>
   )
 }
@@ -289,7 +333,12 @@ function FeedCard({
     cover.state === "ready" || cover.state === "not_ready" ? cover.media : null
   const chosen = cover.state !== "none"
   return (
-    <PanelCard id="article-carte" icon={LayoutList} title={labels.feed.title}>
+    <PanelCard
+      id="article-carte"
+      icon={LayoutList}
+      title={labels.feed.title}
+      aside={<InfoTip text={labels.feed.hint} />}
+    >
       <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-2">
         {/* data-presentation-choose : là où revient le focus quand le bouton utilisé a disparu
             (choix fait depuis l'aperçu ou depuis la fenêtre Publier). */}
@@ -357,7 +406,6 @@ function FeedCard({
             {texts.editor.presentation.cover.remove}
           </Button>
         )}
-        <p className="text-xs text-muted-foreground">{labels.feed.hint}</p>
       </div>
       <div className="mt-3 space-y-1.5">
         <label htmlFor="article-resume" className="block text-sm font-medium">
@@ -381,15 +429,77 @@ function FeedCard({
             )
           }
         />
-        <p
-          id="article-resume-compte"
-          className="flex justify-between text-xs text-muted-foreground tabular-nums"
-        >
-          <span>{labels.summary.ideal}</span>
-          <span>{labels.summary.count(summary.length, FEED_SUMMARY_MAX)}</span>
-        </p>
+        <SummaryGauge id="article-resume-compte" length={summary.length} />
       </div>
     </PanelCard>
+  )
+}
+
+// La couleur de la glissière selon la longueur (jetons du thème, adoucis : le texte reste lisible
+// dessus, en clair comme en sombre).
+const fitFill = {
+  empty: "bg-transparent",
+  short: "bg-muted-foreground/25",
+  ideal: "bg-status-live/35",
+  long: "bg-warning/35",
+} as const
+
+/**
+ * La glissière du résumé : elle se remplit avec le texte et dit dedans « Court », « Idéal »
+ * ou « Long » ; la zone idéale est marquée, le compte est à droite.
+ */
+function SummaryGauge({ id, length }: { id: string; length: number }) {
+  const fit = summaryFit(length)
+  const words = labels.summary.fit
+  const percent = (value: number) => `${(value / FEED_SUMMARY_MAX) * 100}%`
+  return (
+    <div className="flex items-center gap-2">
+      <div
+        id={id}
+        role="meter"
+        aria-valuemin={0}
+        aria-valuemax={FEED_SUMMARY_MAX}
+        aria-valuenow={length}
+        aria-valuetext={labels.summary.fitLabel(
+          words[fit],
+          FEED_SUMMARY_IDEAL.min,
+          FEED_SUMMARY_IDEAL.max
+        )}
+        className="relative h-5 flex-1 overflow-hidden rounded-full bg-muted"
+      >
+        <span
+          aria-hidden
+          className="absolute inset-y-0 bg-status-live/10"
+          // eslint-disable-next-line no-restricted-syntax -- la zone idéale, tirée de FEED_SUMMARY_IDEAL
+          style={{
+            left: percent(FEED_SUMMARY_IDEAL.min),
+            width: percent(FEED_SUMMARY_IDEAL.max - FEED_SUMMARY_IDEAL.min),
+          }}
+        />
+        <span
+          aria-hidden
+          className={cn(
+            // Sans arrondi : seul le fond est arrondi (et coupe le début de la barre).
+            "absolute inset-y-0 left-0 transition-[width] motion-reduce:transition-none",
+            fitFill[fit]
+          )}
+          // eslint-disable-next-line no-restricted-syntax -- la longueur du résumé, en direct
+          style={{ width: percent(length) }}
+        />
+        <span
+          aria-hidden
+          className={cn(
+            "absolute inset-0 flex items-center justify-center text-xs font-medium",
+            fit === "empty" && "font-normal text-muted-foreground"
+          )}
+        >
+          {words[fit]}
+        </span>
+      </div>
+      <span className="text-xs text-muted-foreground tabular-nums">
+        {labels.summary.count(length, FEED_SUMMARY_MAX)}
+      </span>
+    </div>
   )
 }
 
@@ -447,10 +557,21 @@ function AccessCard({
         >
           <SelectTrigger
             id="article-niveau"
-            className="w-full"
+            // Pas encore choisi : le « ! » et le bord orangé de « Prêt à publier ? ».
+            className={cn(
+              "w-full",
+              !settings.accessChosen && "border-warning/60"
+            )}
             aria-labelledby="article-niveau-titre"
           >
-            <SelectValue />
+            {!settings.accessChosen && (
+              <CircleAlert aria-hidden className="text-warning" />
+            )}
+            <SelectValue
+              className={cn(
+                !settings.accessChosen && "flex-1 text-muted-foreground"
+              )}
+            />
           </SelectTrigger>
           <SelectContent>
             {items.map((item) => (
@@ -465,20 +586,16 @@ function AccessCard({
           </SelectContent>
         </Select>
       )}
-      <p
-        className={cn(
-          "mt-1.5 text-xs",
-          settings.accessChosen ? "text-muted-foreground" : "text-warning"
-        )}
-      >
-        {!settings.accessChosen
-          ? access.notChosen
-          : settings.accessLevelId === null
+      {/* Pas encore choisi : la liste le dit elle-même ; ensuite, ce que le niveau ouvre. */}
+      {settings.accessChosen && (
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          {settings.accessLevelId === null
             ? access.freeHint
             : levels && isMostComplete(levels, settings.accessLevelId)
               ? access.levelHintTop
               : access.levelHint}
-      </p>
+        </p>
+      )}
       {levels?.length === 0 && (
         <p className="mt-1 text-xs text-muted-foreground">{access.noLevels}</p>
       )}
