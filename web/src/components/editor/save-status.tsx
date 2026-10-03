@@ -28,13 +28,14 @@ export function SaveStatus({
   state: AutosaveState
   // Faux en lecture seule sans rien à enregistrer : seule la région annoncée reste.
   visible: boolean
-  // Éditeur du Fil : l'icône seule, l'état (et l'heure) dans l'infobulle.
+  // Éditeur du Fil : l'icône seule, l'état dans l'infobulle (l'heure est juste à côté, dans
+  // « Modifié à … »).
   compact?: boolean
 }) {
   const announcement = useAnnouncement(state.status)
   const { icon: Icon, text, spin, tone } = describe(state.status)
   const date =
-    state.status === "saved" && state.savedAt
+    !compact && state.status === "saved" && state.savedAt
       ? formatDateTime(state.savedAt)
       : null
 

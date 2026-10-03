@@ -21,6 +21,23 @@ export function isMostComplete(levels: AccessLevel[], id: string): boolean {
   return levels.some((level) => level.id === id && level.rank === top)
 }
 
+/**
+ * Le niveau d'une version en ligne, à afficher : « Gratuit », le nom de sa formule, ou une
+ * formule supprimée depuis. null tant que les formules ne sont pas lues (ni chargées, ni en
+ * échec) : on ne dit pas « supprimée » d'une formule qu'on n'a pas encore vue.
+ */
+export function liveLevelName(
+  accessLevelId: string | null,
+  levels: AccessLevel[] | undefined
+): string | null {
+  const words = texts.publication.settings.access
+  if (accessLevelId === null) return words.free
+  if (!levels) return null
+  return (
+    levels.find((level) => level.id === accessLevelId)?.name ?? words.deleted
+  )
+}
+
 type AccessLevelErrorCode = keyof typeof texts.settings.accessLevels.errors
 
 /** Erreur de la base sur une formule, avec son code (s'il est connu). */

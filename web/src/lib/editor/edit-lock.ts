@@ -403,7 +403,7 @@ export class EditLockController {
       try {
         await this.beforeRelease?.()
       } catch {
-        // Ce qui n'est pas enregistré est perdu : le navigateur a prévenu avant de quitter.
+        // L'enregistrement prévient lui-même de ce qu'il n'a pas pu envoyer (onUnsavedAtClose).
       }
     }
     await this.stop()

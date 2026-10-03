@@ -1,5 +1,5 @@
 /**
- * Glisser un bloc de l'onglet Blocs dans l'aperçu (éditeur du Fil, docs/ADMINISTRATION.md,
+ * Glisser un bloc des Blocs dans l'aperçu (éditeur du Fil, docs/ADMINISTRATION.md,
  * § 4) : ce que porte le glisser-déposer du navigateur, et la place où le bloc tombe. Sans React.
  */
 
@@ -15,7 +15,7 @@ export function encodeLibraryDrag(drag: LibraryDrag): string {
   return JSON.stringify(drag)
 }
 
-/** Relit ce qui a été glissé ; `null` pour tout ce qui ne vient pas de l'onglet Blocs. */
+/** Relit ce qui a été glissé ; `null` pour tout ce qui ne vient pas des Blocs. */
 export function decodeLibraryDrag(value: string): LibraryDrag | null {
   try {
     const drag = JSON.parse(value) as Partial<Record<string, unknown>>
@@ -29,7 +29,7 @@ export function decodeLibraryDrag(value: string): LibraryDrag | null {
       return { kind: "template", id: drag.id }
     }
   } catch {
-    // Pas du JSON : ce n'est pas un bloc de l'onglet Blocs.
+    // Pas du JSON : ce n'est pas un bloc des Blocs.
   }
   return null
 }

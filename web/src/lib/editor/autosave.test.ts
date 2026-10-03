@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { ContentError, type SavedDraft } from "@/lib/contents/api"
 import { AutosaveController } from "@/lib/editor/autosave"
+import * as sentry from "@/lib/sentry"
+
+vi.mock("@/lib/sentry", () => ({ reportError: vi.fn() }))
 
 type Call = {
   value: string
@@ -243,6 +246,70 @@ describe("enregistrement automatique", () => {
     calls[0].resolve()
     await done
     expect(autosave.state.status).toBe("saved")
+  })
+
+  it("une erreur qui n'est pas le réseau : « Non enregistré », sans nouvel essai, et signalée", async () => {
+    const { save, calls } = fakeSave()
+    const autosave = new AutosaveController({ save, rev: 1, savedAt: null })
+    autosave.change("texte")
+    await vi.advanceTimersByTimeAsync(1500)
+    const bug = new TypeError("Cannot read properties of undefined")
+    calls[0].reject(bug)
+    await flushPromises()
+    expect(autosave.state).toMatchObject({ status: "failed", unsaved: true })
+    expect(sentry.reportError).toHaveBeenCalledWith(bug)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(save).toHaveBeenCalledTimes(1)
+  })
+
+  it("éditeur fermé : le dernier envoi échoue sans nouvel essai, et la valeur est confiée", async () => {
+    const { save, calls } = fakeSave()
+    const onUnsavedAtClose = vi.fn()
+    const autosave = new AutosaveController({ save, rev: 1, savedAt: null })
+    autosave.setHandlers({ onUnsavedAtClose })
+    autosave.change("dernier mot")
+    autosave.close()
+    const done = autosave.flush()
+    calls[0].reject(new ContentError(null, { retryable: true }))
+    await done
+    expect(onUnsavedAtClose).toHaveBeenCalledWith("dernier mot")
+    // Plus rien ne part, même longtemps après.
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(save).toHaveBeenCalledTimes(1)
+  })
+
+  it("éditeur fermé après un refus : la valeur est confiée sans nouvel envoi", async () => {
+    const { save, calls } = fakeSave()
+    const onUnsavedAtClose = vi.fn()
+    const autosave = new AutosaveController({ save, rev: 1, savedAt: null })
+    autosave.setHandlers({ onUnsavedAtClose })
+    autosave.change("trop lourd")
+    await vi.advanceTimersByTimeAsync(1500)
+    calls[0].reject(new ContentError("brouillon_trop_lourd"))
+    await flushPromises()
+    expect(autosave.state.status).toBe("failed")
+    autosave.close()
+    await autosave.flush()
+    expect(onUnsavedAtClose).toHaveBeenCalledWith("trop lourd")
+    expect(save).toHaveBeenCalledTimes(1)
+  })
+
+  it("éditeur fermé, tout enregistré : rien à confier ; rouvert, il enregistre de nouveau", async () => {
+    const { save, calls } = fakeSave()
+    const onUnsavedAtClose = vi.fn()
+    const autosave = new AutosaveController({ save, rev: 1, savedAt: null })
+    autosave.setHandlers({ onUnsavedAtClose })
+    autosave.change("mot")
+    autosave.close()
+    const done = autosave.flush()
+    calls[0].resolve()
+    await done
+    expect(onUnsavedAtClose).not.toHaveBeenCalled()
+    // React monte deux fois en développement : le même enregistrement repart.
+    autosave.reopen()
+    autosave.change("suite")
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(save).toHaveBeenCalledTimes(2)
   })
 
   it("reset repart d'une révision relue, sans modification en attente", async () => {

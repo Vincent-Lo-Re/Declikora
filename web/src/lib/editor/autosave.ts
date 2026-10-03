@@ -7,9 +7,12 @@
 //   arrive : le nouvel essai renvoie d'abord LA MÊME valeur sur la même révision (save_draft
 //   reconnaît ce rejeu et renvoie la révision déjà enregistrée), puis la plus récente ;
 // - verrou perdu, révision dépassée, contenu supprimé : on s'arrête, sans rien perdre de ce qui
-//   est à l'écran (« Copier mon texte »).
+//   est à l'écran (« Copier mon texte ») ;
+// - éditeur fermé (close) : un dernier envoi, sans nouvel essai ensuite ; s'il échoue, la valeur
+//   est confiée à onUnsavedAtClose (« Copier mon texte » dans un message).
 
 import { ContentError, type SavedDraft } from "@/lib/contents/api"
+import { reportError } from "@/lib/sentry"
 
 export type AutosaveStatus =
   | "saved" // tout est enregistré
@@ -38,7 +41,14 @@ type AutosaveOptions<T> = {
   retryDelaysMs?: number[]
   onSaved?: (result: SavedDraft, value: T) => void
   onStopped?: (error: ContentError) => void
+  // L'éditeur s'est fermé sans que la dernière valeur soit enregistrée.
+  onUnsavedAtClose?: (value: T) => void
 }
+
+type Handlers<T> = Pick<
+  AutosaveOptions<T>,
+  "onSaved" | "onStopped" | "onUnsavedAtClose"
+>
 
 const AUTOSAVE_DEBOUNCE_MS = 1500
 const AUTOSAVE_MAX_WAIT_MS = 10_000
@@ -55,11 +65,19 @@ const STOPPING_CODES = new Set([
 
 type Timer = ReturnType<typeof setTimeout>
 
+/** Une requête qui n'a pas pu partir (fetch rejette alors une TypeError, selon le navigateur). */
+function isNetworkFailure(error: unknown): boolean {
+  return (
+    error instanceof TypeError &&
+    /fetch|network|load failed/i.test(error.message)
+  )
+}
+
 export class AutosaveController<T> {
   private readonly options: Required<
-    Omit<AutosaveOptions<T>, "onSaved" | "onStopped">
+    Omit<AutosaveOptions<T>, keyof Handlers<T>>
   > &
-    Pick<AutosaveOptions<T>, "onSaved" | "onStopped">
+    Handlers<T>
   private latest: T | null = null
   private dirty = false
   private firstChangeAt: number | null = null
@@ -70,6 +88,8 @@ export class AutosaveController<T> {
   private dueWhileSaving = false
   // Envoi resté sans réponse (réseau, serveur) : peut-être enregistré. Il repart tel quel.
   private uncertain: { value: T; baseRev: number } | null = null
+  // L'éditeur est fermé : plus de nouvel essai programmé (voir close).
+  private closed = false
   private readonly listeners = new Set<() => void>()
   private current: AutosaveState
 
@@ -114,10 +134,14 @@ export class AutosaveController<T> {
     for (const listener of this.listeners) listener()
   }
 
-  /** Rappels après un enregistrement réussi, ou quand l'enregistrement s'arrête. */
-  setHandlers(handlers: Pick<AutosaveOptions<T>, "onSaved" | "onStopped">) {
+  /**
+   * Rappels après un enregistrement réussi, quand l'enregistrement s'arrête, ou quand l'éditeur
+   * se ferme sans avoir pu enregistrer.
+   */
+  setHandlers(handlers: Handlers<T>) {
     this.options.onSaved = handlers.onSaved
     this.options.onStopped = handlers.onStopped
+    this.options.onUnsavedAtClose = handlers.onUnsavedAtClose
   }
 
   /** Une modification : elle sera enregistrée 1,5 s après la dernière (10 s au plus). */
@@ -185,10 +209,20 @@ export class AutosaveController<T> {
     try {
       result = await this.options.save(value, baseRev)
     } catch (caught) {
+      // Le réseau qui lâche (fetch) : hors ligne, nouvel essai. Une autre erreur est un défaut
+      // de l'admin : « Non enregistré », sans nouvel essai avant la prochaine modification, et
+      // l'équipe est prévenue. De même pour une erreur que la base n'explique pas, ou un
+      // brouillon que notre validateur refuse.
       error =
         caught instanceof ContentError
           ? caught
-          : new ContentError(null, { retryable: true })
+          : new ContentError(null, { retryable: isNetworkFailure(caught) })
+      if (
+        !error.retryable &&
+        (error.code === null || error.code === "forme_invalide")
+      ) {
+        reportError(caught)
+      }
     }
     this.inFlight = null
 
@@ -221,6 +255,9 @@ export class AutosaveController<T> {
       this.timer = null
       this.update({ status: "stopped", error })
       this.options.onStopped?.(error)
+    } else if (error.retryable && this.closed) {
+      // Éditeur fermé : pas de nouvel essai (flush prévient de ce qui n'est pas enregistré).
+      this.update({ status: "offline", error })
     } else if (error.retryable) {
       const delays = this.options.retryDelaysMs
       const delay = delays[Math.min(this.attempt, delays.length - 1)]
@@ -254,6 +291,24 @@ export class AutosaveController<T> {
     ) {
       await this.run()
     }
+    if (this.closed && this.dirty && this.latest !== null) {
+      this.clearTimers()
+      this.options.onUnsavedAtClose?.(this.latest)
+    }
+  }
+
+  /**
+   * L'éditeur se ferme : plus aucun envoi programmé. Le dernier envoi part par flush (en rendant
+   * le verrou) ; s'il échoue, il n'est pas réessayé, et onUnsavedAtClose reçoit la valeur.
+   */
+  close() {
+    this.closed = true
+    this.clearTimers()
+  }
+
+  /** L'éditeur se rouvre avec ce même enregistrement (React, en développement, monte deux fois). */
+  reopen() {
+    this.closed = false
   }
 
   /** Le navigateur est de nouveau en ligne : on réessaie sans attendre. */
@@ -285,10 +340,5 @@ export class AutosaveController<T> {
     if (this.retryTimer) clearTimeout(this.retryTimer)
     this.timer = null
     this.retryTimer = null
-  }
-
-  dispose() {
-    this.clearTimers()
-    this.listeners.clear()
   }
 }

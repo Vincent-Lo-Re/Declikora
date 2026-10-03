@@ -39,7 +39,8 @@ export const defaultPreview: PreviewSettings = {
   fit: "adjust",
 }
 
-// La hauteur du téléphone entier (écran et cadre), comme .blocks-device dans preview.css.
+// La hauteur du téléphone entier : --blocks-screen-height et deux fois --blocks-device-padding
+// de preview.css (.blocks-preview-layout[data-device]) ; les changer des deux côtés.
 const deviceHeights: Record<Device, number> = {
   ios: 874 + 2 * 10,
   android: 915 + 2 * 9,

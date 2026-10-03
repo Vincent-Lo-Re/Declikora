@@ -1,6 +1,6 @@
 // Glisser-déposer des blocs, sans React : où va un bloc, et ce qui est refusé
-// (docs/ARCHITECTURE-CONTENUS.md, § 2.7). Un SortableContext pour la page, un par encadré,
-// chacun dans une zone de dépôt (pour déposer dans un encadré vide).
+// (docs/ARCHITECTURE-CONTENUS.md, § 2.7). Un SortableContext pour la page, un par section,
+// chacun dans une zone de dépôt (pour déposer dans une section vide).
 
 import {
   closestCenter,
@@ -19,7 +19,7 @@ import {
 
 const ZONE_PREFIX = "zone:"
 
-/** La zone de dépôt d'un encadré. */
+/** La zone de dépôt d'une section. */
 export function zoneId(boxId: string): string {
   return `${ZONE_PREFIX}${boxId}`
 }
@@ -34,7 +34,7 @@ export type DropData =
   | { kind: "block"; type: BlockType; container: ContainerId }
   | { kind: "zone"; container: ContainerId }
 
-/** Le conteneur visé par une cible : la page, ou un encadré. */
+/** Le conteneur visé par une cible : la page, ou une section. */
 export function targetContainer(
   draft: Draft,
   overId: UniqueIdentifier
@@ -58,7 +58,7 @@ export function canDropOn(
 }
 
 /**
- * Pendant le survol : le bloc passe dans un autre conteneur (de la page vers un encadré, ou
+ * Pendant le survol : le bloc passe dans un autre conteneur (de la page vers une section, ou
  * l'inverse), juste avant ou après la cible. Null si rien ne change ou si c'est refusé.
  */
 export function moveOver(
@@ -93,9 +93,9 @@ export function moveOnDrop(
 }
 
 /**
- * Détection des cibles : on ne propose jamais un encadré (ou un bloc lié) comme cible dans un
- * encadré, ni au pointeur ni au clavier (les annonces n'en parlent donc pas). Au pointeur, la
- * cible la plus intérieure gagne : un bloc d'un encadré, puis la zone de l'encadré, puis la page.
+ * Détection des cibles : on ne propose jamais une section (ou un bloc lié) comme cible dans une
+ * section, ni au pointeur ni au clavier (les annonces n'en parlent donc pas). Au pointeur, la
+ * cible la plus intérieure gagne : un bloc d'une section, puis la zone de la section, puis la page.
  */
 export const blocksCollision: CollisionDetection = (args) => {
   const activeType =
@@ -108,7 +108,7 @@ export const blocksCollision: CollisionDetection = (args) => {
     return activeType === null || canDropInto(activeType, data.container)
   })
 
-  // L'encadré qui contient déjà le bloc déplacé (null s'il est dans la page).
+  // La section qui contient déjà le bloc déplacé (null s'il est dans la page).
   const activeData = args.active.data.current as DropData | undefined
   const ownBox =
     activeData?.kind === "block" && activeData.container !== ROOT
@@ -137,9 +137,9 @@ export const blocksCollision: CollisionDetection = (args) => {
       const closest = closestCenter({ ...args, droppableContainers: children })
       return closest.length > 0 ? closest : [zone]
     }
-    // Sur l'encadré qui contient déjà le bloc, mais hors de sa liste (marges, bouton
-    // « Ajouter dans l'encadré ») : le bloc y reste. Pour sortir d'un encadré, on passe
-    // au-dessus ou au-dessous de lui. Sans cette règle, le bloc sortirait, l'encadré
+    // Sur la section qui contient déjà le bloc, mais hors de sa liste (marges, bouton
+    // « Ajouter dans la section ») : le bloc y reste. Pour sortir d'une section, on passe
+    // au-dessus ou au-dessous de lui. Sans cette règle, le bloc sortirait, la section
     // rétrécirait sous le pointeur, et le bloc rentrerait aussitôt.
     if (ownBox && within.some((collision) => collision.id === ownBox)) {
       return [{ id: zoneId(ownBox) }]
@@ -148,8 +148,8 @@ export const blocksCollision: CollisionDetection = (args) => {
     return within
   }
 
-  // Au clavier, depuis un encadré : une flèche qui mène au-dessus ou au-dessous de sa liste
-  // fait sortir le bloc, juste avant ou juste après l'encadré.
+  // Au clavier, depuis une section : une flèche qui mène au-dessus ou au-dessous de sa liste
+  // fait sortir le bloc, juste avant ou juste après la section.
   const list = ownBox ? args.droppableRects.get(zoneId(ownBox)) : undefined
   if (
     ownBox &&

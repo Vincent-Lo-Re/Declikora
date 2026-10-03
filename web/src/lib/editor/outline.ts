@@ -1,6 +1,6 @@
 /**
- * Le plan de l'éditeur du Fil (docs/ADMINISTRATION.md, § 4, « Les finitions ») : intertitres
- * d'un texte, points à vérifier, copie d'un bloc. Sans React.
+ * Le plan de l'éditeur du Fil (docs/ADMINISTRATION.md, § 4, « Les finitions ») : la ligne d'un
+ * texte, points à vérifier, copie d'un bloc. Sans React.
  */
 
 import type {
@@ -33,7 +33,7 @@ export function textOutline(doc: Doc): TextOutline {
     flat(textDocToPlainText({ type: "doc", content: [node] }))
   const first = doc.content.find((node) => plain(node) !== "")
   if (!first) return { lead: "empty", text: "" }
-  // La première ligne, comme le nom du bloc dans « Bloc choisi » (blockLabel).
+  // La première ligne, comme le nom du bloc dans ses réglages (blockLabel).
   return {
     lead: first.type === "heading" ? "heading" : "text",
     text: textFirstLine(doc),
@@ -46,8 +46,9 @@ export type BlockWarning =
 
 /**
  * Ce qui manque à un bloc : une image sans fichier, un fichier qui ne s'affiche plus ; un bloc
- * partagé dont le modèle n'existe plus ; une section vide (l'app ne l'affiche pas). Ce qui se charge encore (ou un échec du réseau) n'est pas
- * signalé. Le texte alternatif n'est plus réclamé (02/10/2026, [D15]).
+ * partagé dont le modèle n'existe plus ; une section vide (l'app ne l'affiche pas). Ce qui se
+ * charge encore (ou un échec du réseau) n'est pas signalé. Le texte alternatif n'est plus
+ * réclamé (02/10/2026, [D15]).
  */
 export function blockWarning(
   block: Block,

@@ -6,8 +6,8 @@ import {
   CircleCheck,
   Clock,
   ImagePlus,
+  KeyRound,
   LayoutList,
-  LockOpen,
   Pencil,
   Plus,
   Tags,
@@ -20,6 +20,7 @@ import type { BlockMedia } from "@/blocks/components/context"
 import type { Draft } from "@/blocks/types"
 import { MediaThumbnail } from "@/components/media/media-visuals"
 import { InfoTip } from "@/components/info-tip"
+import { LoadState } from "@/components/load-state"
 import { PanelCard } from "@/components/panel-card"
 import {
   AddCategory,
@@ -34,13 +35,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { isMostComplete, type AccessLevel } from "@/lib/access-levels"
+import {
+  isMostComplete,
+  liveLevelName,
+  type AccessLevel,
+} from "@/lib/access-levels"
 import type { ContentSettings } from "@/lib/contents/api"
 import type { LiveVersion } from "@/lib/contents/publication"
 import type { ReadyItem } from "@/lib/contents/requirements"
@@ -73,11 +77,19 @@ const targets: Record<ReadyItem["key"], { control: string; zone: string }> = {
   },
 }
 
+// Une ligne de « Prêt à publier ? » (un bouton qui mène au réglage).
+const readyRow =
+  "flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm outline-none hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/50"
+
+// Une mesure du bas de la colonne (lecture, dernière modification) : son détail dans l'infobulle,
+// au survol comme au clavier.
+const statTrigger =
+  "flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+
 /**
- * L'onglet « Article » de l'éditeur du Fil (ADMIN § 4) : ce qui manque pour publier, la carte de
- * la liste du Fil (image de présentation), le niveau d'accès, les catégories, puis le
- * temps de lecture. Tout part avec le brouillon, comme dans la glissière Réglages des autres
- * éditeurs.
+ * L'Article, dans la colonne de droite de l'éditeur du Fil (ADMIN § 4) : ce qui manque pour
+ * publier, la carte de la liste du Fil (image de présentation), le niveau d'accès et les
+ * catégories. Tout part avec le brouillon, comme dans la glissière Réglages des autres éditeurs.
  */
 export function ArticlePanel({
   draft,
@@ -86,10 +98,10 @@ export function ArticlePanel({
   onSettingsChange,
   levels,
   levelsFailed,
+  retryLevels,
   live,
   categories,
   cover,
-  coverUrl,
   ready,
   warnings,
   onChooseCover,
@@ -101,10 +113,10 @@ export function ArticlePanel({
   onSettingsChange: (next: ContentSettings) => void
   levels: AccessLevel[] | undefined
   levelsFailed: boolean
+  retryLevels: () => void
   live: LiveVersion | null
   categories: SectionCategories
   cover: BlockMedia
-  coverUrl: string | undefined
   ready: ReadyItem[]
   // Les points à vérifier du plan (une section vide…), et y aller.
   warnings: { count: number; onShow: () => void }
@@ -123,7 +135,6 @@ export function ArticlePanel({
         draft={draft}
         editable={editable}
         cover={cover}
-        coverUrl={coverUrl}
         onChooseCover={onChooseCover}
         onRemoveCover={onRemoveCover}
       />
@@ -132,6 +143,7 @@ export function ArticlePanel({
         editable={editable}
         levels={levels}
         levelsFailed={levelsFailed}
+        retryLevels={retryLevels}
         live={live}
         onChange={(accessLevelId) =>
           onSettingsChange({ ...settings, accessChosen: true, accessLevelId })
@@ -175,12 +187,7 @@ export function ArticleFooter({
         <span className="flex [&_svg]:size-3.5">{saveStatus}</span>
         <Tooltip>
           <TooltipTrigger
-            render={
-              <span
-                tabIndex={0}
-                className="flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            }
+            render={<span tabIndex={0} className={statTrigger} />}
           >
             <Clock aria-hidden className="size-3.5" />
             {labels.stats.short(stats.minutes, words)}
@@ -193,10 +200,7 @@ export function ArticleFooter({
           <Tooltip>
             <TooltipTrigger
               render={
-                <span
-                  tabIndex={0}
-                  className="ml-auto flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
+                <span tabIndex={0} className={cn(statTrigger, "ml-auto")} />
               }
             >
               <Pencil aria-hidden className="size-3.5" />
@@ -205,7 +209,7 @@ export function ArticleFooter({
                 : labels.stats.savedOn(saved.text)}
             </TooltipTrigger>
             <TooltipContent>
-              {labels.stats.saved(formatDateTime(savedAt))}
+              {labels.stats.savedOn(formatDateTime(savedAt))}
             </TooltipContent>
           </Tooltip>
         )}
@@ -251,7 +255,7 @@ function ReadyCard({
               <li key={item.key}>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm outline-none hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/50"
+                  className={readyRow}
                   aria-label={
                     item.done
                       ? labels.ready.done(label)
@@ -293,7 +297,7 @@ function ReadyCard({
             <li>
               <button
                 type="button"
-                className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm outline-none hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/50"
+                className={readyRow}
                 onClick={warnings.onShow}
               >
                 <TriangleAlert aria-hidden className="size-4 text-warning" />
@@ -321,14 +325,12 @@ function FeedCard({
   draft,
   editable,
   cover,
-  coverUrl,
   onChooseCover,
   onRemoveCover,
 }: {
   draft: Draft
   editable: boolean
   cover: BlockMedia
-  coverUrl: string | undefined
   onChooseCover: () => void
   onRemoveCover: () => void
 }) {
@@ -362,7 +364,7 @@ function FeedCard({
           {file ? (
             <MediaThumbnail
               media={file}
-              url={coverUrl}
+              url={cover.state === "ready" ? cover.url : undefined}
               className="size-16"
               iconClassName="size-5"
             />
@@ -415,6 +417,7 @@ function AccessCard({
   editable,
   levels,
   levelsFailed,
+  retryLevels,
   live,
   onChange,
 }: {
@@ -422,6 +425,7 @@ function AccessCard({
   editable: boolean
   levels: AccessLevel[] | undefined
   levelsFailed: boolean
+  retryLevels: () => void
   live: LiveVersion | null
   onChange: (levelId: string | null) => void
 }) {
@@ -435,22 +439,16 @@ function AccessCard({
     { value: FREE, label: access.free },
     ...(levels ?? []).map((level) => ({ value: level.id, label: level.name })),
   ]
-  const liveLevel = live
-    ? live.access_level_id === null
-      ? access.free
-      : (levels?.find((level) => level.id === live.access_level_id)?.name ??
-        access.deleted)
-    : null
+  const liveLevel = live ? liveLevelName(live.access_level_id, levels) : null
   return (
-    <PanelCard id="article-niveau-titre" icon={LockOpen} title={access.label}>
+    <PanelCard id="article-niveau-titre" icon={KeyRound} title={access.label}>
       {levels === undefined ? (
-        levelsFailed ? (
-          <p role="alert" className="text-sm text-destructive">
-            {access.loadFailed}
-          </p>
-        ) : (
-          <Skeleton className="h-8 w-full" />
-        )
+        <LoadState
+          query={{ isError: levelsFailed, error: null, refetch: retryLevels }}
+          failed={access.loadFailed}
+          rows={1}
+          rowClassName="h-8 w-full"
+        />
       ) : (
         <Select
           items={items}
@@ -543,23 +541,16 @@ function CategoriesCard({
   return (
     <PanelCard id="article-categories" icon={Tags} title={categoryWords.label}>
       {list === undefined ? (
-        categories.failed ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <p role="alert" className="text-sm text-destructive">
-              {categoryWords.loadFailed}
-            </p>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={categories.retry}
-            >
-              {texts.common.retry}
-            </Button>
-          </div>
-        ) : (
-          <Skeleton className="h-7 w-40" />
-        )
+        <LoadState
+          query={{
+            isError: categories.failed,
+            error: null,
+            refetch: categories.retry,
+          }}
+          failed={categoryWords.loadFailed}
+          rows={1}
+          rowClassName="h-7 w-40"
+        />
       ) : (
         <ul
           aria-labelledby="article-categories"
@@ -591,7 +582,7 @@ function CategoriesCard({
                 size="xs"
                 variant="outline"
                 className="rounded-full border-dashed text-muted-foreground"
-                aria-expanded={false}
+                aria-label={labels.categories.addLabel}
                 onClick={() => setAdding(true)}
               >
                 <Plus />

@@ -350,7 +350,6 @@ export const texts = {
       interrupted: "Envoi interrompu",
       checking: "Vérification…",
       ready: "Prêt",
-      rejected: "Refusé",
     },
     rejectedBecause: (reason: string) => `Refusé : ${reason}`,
     // Unités (web/src/lib/media/format.ts) : « 812 octets », « 3 min 05 s », « 1200 × 800 px ».
@@ -1016,7 +1015,7 @@ export const texts = {
       unchanged: "Rien n'a changé.",
       checking: "Vérification du brouillon…",
       heldBy: (name: string) =>
-        `${name} écrit ce contenu en ce moment : attends qu'il ait fini, ou ouvre-le pour reprendre la main.`,
+        `${name} écrit ce contenu en ce moment : attends que ${name} ait fini, ou ouvre-le pour reprendre la main.`,
       heldSelf:
         "Tu écris ce contenu dans un autre onglet : change ses réglages dans cet onglet-là.",
       yourselfElsewhere: "Toi (dans un autre onglet)",
@@ -1349,7 +1348,7 @@ export const texts = {
         description:
           "Le même bloc, avec le même texte, dans plusieurs contenus. On le corrige une seule fois dans le modèle, et il est corrigé dans tous les brouillons qui l'utilisent.",
         example:
-          "Exemple : une section « Contact ». Il contient un seul bloc : pour en regrouper plusieurs, mets-les dans une section.",
+          "Exemple : une section « Contact ». Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans une section.",
       },
       starter: {
         title: "Point de départ",
@@ -1374,7 +1373,7 @@ export const texts = {
         type: "Type",
         savedAt: "Dernière modification",
       },
-      // Les onglets : « Tous les blocs », puis un par sorte (texts.templates.sorts.*.tab).
+      // Les onglets : « Tous les modèles », puis un par sorte (texts.templates.sorts.*.tab).
       tabs: {
         label: "Types de modèles",
         all: "Tous les modèles",
@@ -1501,6 +1500,7 @@ export const texts = {
     linked: {
       label: (name: string) => `Bloc partagé « ${name} »`,
       loading: "Chargement du modèle…",
+      loadFailed: "Le modèle n'a pas pu être chargé.",
       missing:
         "Ce modèle n'existe plus ou est dans la corbeille : supprime ce bloc, ou restaure le modèle.",
       empty: "Ce modèle est vide.",
@@ -1510,9 +1510,9 @@ export const texts = {
       detachLabel: (name: string) => `Détacher du modèle « ${name} »`,
       detached: (name: string) =>
         `Bloc détaché de « ${name} » : c'est maintenant une copie ordinaire, que tu peux modifier ici.`,
-      // « Bloc choisi » d'un bloc partagé : deux points courts.
+      // Les réglages d'un bloc partagé (glissière du bloc) : deux points courts.
       settings: (name: string) =>
-        `Il vient du modèle « ${name} » : pour le corriger, modifie le modèle, et tous les brouillons qui l'utilisent suivront.`,
+        `Ce bloc vient du modèle « ${name} ». Corrige-le dans le modèle : tous les brouillons qui l'utilisent suivront.`,
       detachHint:
         "« Détacher » en fait une copie modifiable ici, qui ne suit plus le modèle ; les autres contenus restent liés.",
     },
@@ -1526,7 +1526,7 @@ export const texts = {
         "Aucun modèle à insérer pour l'instant. Crée-en un dans Modèles de bloc.",
       insert: "Insérer",
       insertLabel: (name: string) => `Insérer ${name}`,
-      emptyTemplate: "Vide : ajoute-lui son bloc dans Modèles de bloc.",
+      emptyTemplate: "Vide : complète-le dans Modèles de bloc.",
       loadFailed: "Les modèles n'ont pas pu être chargés.",
       manage: "Gérer les modèles",
       inserted: (name: string) => `Modèle « ${name} » inséré.`,
@@ -1578,12 +1578,13 @@ export const texts = {
       text: (excerpt: string) =>
         excerpt ? `Texte « ${excerpt} »` : "Texte vide",
       image: "Image",
-      box: (count: number) =>
+      // Une section : son aspect, comme dans le plan (« Section avec fond »), et ses blocs.
+      box: (look: string, count: number) =>
         count === 0
-          ? "Section vide"
+          ? `${look} (vide)`
           : count === 1
-            ? "Section (1 bloc)"
-            : `Section (${count} blocs)`,
+            ? `${look} (1 bloc)`
+            : `${look} (${count} blocs)`,
       linked: (name: string | null) =>
         name ? `Bloc partagé « ${name} »` : "Bloc partagé",
     },
@@ -1599,6 +1600,9 @@ export const texts = {
     },
     emptyBox:
       "Section vide : ajoute un texte ou une image, ou dépose un bloc ici.",
+    // Éditeur du Fil : rien ne se dépose dans une section (le bouton « Ajouter dans la section »
+    // est juste dessous) ; ce que dit aussi le plan.
+    emptyBoxFeed: "Section vide : elle n'apparaîtra pas dans l'app.",
     handle: (label: string) => `Déplacer : ${label}`,
     // Glisser-déposer : annonces lues par les lecteurs d'écran.
     dnd: {
@@ -1632,21 +1636,17 @@ export const texts = {
       count: (count: number) => (count === 1 ? "1 bloc" : `${count} blocs`),
       // Une ligne de section : son aspect, puis le nombre de ses blocs.
       box: { fill: "Section avec fond", border: "Section avec bordure" },
-      boxCount: (count: number) => `${count}`,
-      move: (label: string) => `Ranger dans le plan : ${label}`,
       collapse: (label: string) => `Replier ${label}`,
       expand: (label: string) => `Déplier ${label}`,
       actions: (label: string) => `Actions pour ${label}`,
       duplicate: "Dupliquer",
       duplicated: (label: string) => `${label} : copie ajoutée juste après.`,
-      // Comme dans « Bloc choisi » : le bloc devient un modèle, rangé ensuite dans « Mes blocs ».
-      saveToMine: "Enregistrer comme modèle…",
       leaveBox: "Sortir de la section",
       left: (label: string) =>
         `${label} : sorti de la section, juste après elle.`,
       remove: "Supprimer",
       warnings: {
-        noFile: "Pas encore de fichier",
+        noFile: "Pas encore d'image",
         unavailable: "Le fichier ne s'affiche plus",
         missingTemplate: "Le modèle n'existe plus",
         emptyBox: "Vide : n'apparaîtra pas dans l'app",
@@ -1656,8 +1656,8 @@ export const texts = {
       label: "Mise en forme",
       unavailable: "Clique dans un texte pour le mettre en forme.",
       paragraph: "Paragraphe",
-      h2: "Titre",
-      h3: "Sous-titre",
+      h2: "Intertitre",
+      h3: "Petit intertitre",
       bulletList: "Liste à puces",
       orderedList: "Liste numérotée",
       bold: "Gras",
@@ -1679,7 +1679,7 @@ export const texts = {
     image: {
       choose: "Choisir une image",
       replace: "Changer d'image",
-      none: "Aucune image choisie",
+      none: "Pas encore d'image",
       missing: "Image supprimée : choisis-en une autre.",
       loadFailed: "L'image n'a pas pu être chargée.",
       notReady: "Cette image n'est pas prête : choisis-en une autre.",
@@ -1768,7 +1768,7 @@ export const texts = {
         transcriptOk: "Transcription renseignée dans la médiathèque.",
         transcriptMissing:
           "Pas de transcription : ajoute-la dans la fiche du fichier, pour les personnes qui ne peuvent pas écouter. Elle est conseillée, pas obligatoire.",
-        openFile: "Ouvrir sa fiche dans la médiathèque",
+        openFile: "Ouvrir sa fiche dans la Médiathèque",
       },
       categories: {
         label: "Catégories",
@@ -1777,16 +1777,14 @@ export const texts = {
       },
       openFileHint: "(nouvel onglet)",
     },
-    // Éditeur du Fil (ADMIN § 4) : les onglets des deux colonnes, et l'onglet « Article ».
+    // Éditeur du Fil (ADMIN § 4) : le nom des deux colonnes (lecteurs d'écran), le titre de la
+    // glissière des Blocs, et celui de l'Article.
     columns: {
       left: "Plan et blocs",
       right: "Article et réglages du bloc",
-      plan: "Plan",
       blocks: "Blocs",
       article: "Article",
     },
-    // L'aperçu de l'éditeur du Fil : la barre d'outils à droite du téléphone, et ce que montre la
-    // Lecture (le rendu de l'app reste provisoire tant qu'elle n'est pas dessinée).
     // Le mode Concentration de l'éditeur du Fil : les deux colonnes se cachent.
     focusMode: {
       label: "Concentration",
@@ -1795,6 +1793,8 @@ export const texts = {
       off: "Les colonnes sont de retour.",
       shortcut: { apple: "⌘ .", other: "Ctrl + ." },
     },
+    // L'aperçu de l'éditeur du Fil : la barre d'outils à droite du téléphone, et ce que montre la
+    // Lecture (le rendu de l'app reste provisoire tant qu'elle n'est pas dessinée).
     preview: {
       tools: "Aperçu",
       device: {
@@ -1829,9 +1829,6 @@ export const texts = {
       screen: { ios: "Aperçu sur iPhone", android: "Aperçu sur Android" },
       // L'heure de la barre d'état, comme sur les photos des fabricants.
       time: { ios: "9:41", android: "12:00" },
-      back: "Retour",
-      bookmark: "Garder",
-      share: "Partager",
       minutes: (count: number) => `${count} min de lecture`,
       locked: {
         title: "La suite est réservée",
@@ -1841,7 +1838,7 @@ export const texts = {
         action: "Voir les formules",
       },
     },
-    // L'onglet « Blocs » de l'éditeur du Fil, et le panneau « Mes blocs ».
+    // Les Blocs de l'éditeur du Fil (en glissière par-dessus le Plan), et le panneau « Mes blocs ».
     library: {
       hint: "Clique sur un bloc pour l'ajouter sous le bloc choisi (ou à la fin), ou glisse-le dans le téléphone.",
       basics: "Blocs de base",
@@ -1851,7 +1848,7 @@ export const texts = {
       // La cible d'un ajout : « Ajouter dans la section ».
       target: {
         box: "Ajout dans la section : texte ou image.",
-        cancel: "Annuler",
+        cancel: "Annuler l'ajout dans la section",
       },
       mine: {
         title: "Mes blocs",
@@ -1879,7 +1876,9 @@ export const texts = {
               : `Bloc partagé : suit son modèle · dans ${count} contenus`,
         insertLabel: (name: string) => `Ajouter « ${name} »`,
         empty:
-          "Aucun bloc enregistré pour l'instant : enregistre un bloc depuis un article, ou crée-le dans Modèles de bloc.",
+          "Aucun bloc enregistré pour l'instant : dans un article, utilise « Enregistrer comme modèle… », ou crée-le dans Modèles de bloc.",
+        // Un bloc de « Mes blocs » ajouté à l'article.
+        added: (name: string) => `« ${name} » ajouté.`,
         noResult: "Aucun bloc ne correspond.",
         manage: "Gérer dans Modèles de bloc",
       },
@@ -1910,16 +1909,16 @@ export const texts = {
       },
       categories: {
         add: "Nouvelle",
+        addLabel: "Nouvelle catégorie",
       },
       stats: {
         words: (count: string) =>
           count === "0" || count === "1" ? `${count} mot` : `${count} mots`,
-        saved: (date: string) => `Modifié le ${date}`,
         // En bas de la colonne : court (la phrase entière et la date complète dans l'infobulle).
-        short: (minutes: number, words: string) =>
-          `${Math.max(minutes, 1)} min · ${words}`,
+        // 0 min pour un article vide, comme en Lecture (readingStats).
+        short: (minutes: number, words: string) => `${minutes} min · ${words}`,
         readingTip: (minutes: number, words: string) =>
-          `Environ ${Math.max(minutes, 1)} min de lecture, ${words}`,
+          `Environ ${minutes} min de lecture, ${words}`,
         savedAt: (time: string) => `Modifié à ${time}`,
         savedOn: (day: string) => `Modifié le ${day}`,
       },
@@ -1927,13 +1926,11 @@ export const texts = {
     settings: {
       label: "Réglages du bloc",
       title: (label: string) => `Réglages : ${label}`,
-      // Éditeur du Fil : fermer la glissière du bloc (plus de bloc choisi).
-      close: "Fermer",
       // Éditeur du Fil : la barre d'icônes en bas de la glissière du bloc.
       actions: "Actions du bloc",
       none: "Choisis un bloc dans l'aperçu pour voir ses réglages.",
       readOnly: "Lecture seule : tu ne peux rien modifier.",
-      text: "Écris directement dans l'aperçu. Sélectionne des mots pour les mettre en forme avec la barre de mise en forme.",
+      text: "Écris directement dans l'aperçu. Sélectionne des mots pour les mettre en gras, en italique ou en lien.",
       image: {
         file: "Fichier",
         openInLibrary: "Ouvrir sa fiche dans la Médiathèque",
@@ -1970,7 +1967,7 @@ export const texts = {
       savedAt: (date: string) => `Enregistré le ${date}`,
       // Lu après « Enregistré » par les lecteurs d'écran.
       savedOn: (date: string) => `le ${date}`,
-      pending: "En attente…",
+      pending: "Enregistrement dans un instant…",
       saving: "Enregistrement…",
       offline: "Hors ligne, nouvel essai…",
       failed: "Non enregistré",
@@ -1989,6 +1986,12 @@ export const texts = {
         stay: "Rester",
         confirm: "Quitter quand même",
       },
+      // Le brouillon a changé ailleurs et sa relecture a échoué : nouvel essai toutes les 3 s.
+      rereadFailed:
+        "Ce brouillon a changé ailleurs et n'a pas pu être relu : il reste en lecture seule le temps d'un nouvel essai.",
+      // L'éditeur fermé, la dernière modification n'a pas pu partir (message gardé à l'écran).
+      unsavedAtClose:
+        "Ta dernière modification n'a pas pu être enregistrée avant de quitter l'éditeur.",
       nearLimit:
         "Ce brouillon approche de la taille maximale. Pense à le découper en plusieurs contenus.",
       invalidAt: (position: number) =>
@@ -2114,7 +2117,7 @@ export const texts = {
       acces_a_choisir:
         "Choisis d'abord le niveau d'accès : Gratuit ou une formule d'abonnement.",
       verrou_tenu:
-        "Quelqu'un écrit ce brouillon en ce moment : reprends la main, ou attends qu'il ait fini.",
+        "Quelqu'un écrit ce brouillon en ce moment : reprends la main, ou attends que cette personne ait fini.",
       adresse_manquante: "Choisis l'adresse de la page avant de la publier.",
       son_manquant: "Choisis l'audio de l'épisode avant de le publier.",
       // [D49].
@@ -2166,7 +2169,10 @@ export const texts = {
       // Juste après l'heure prévue : la tâche planifiée n'est peut-être pas encore passée.
       due: "Publication en cours",
       waiting: "Programmation en attente : quelqu'un écrit",
-      failed: "Programmations échouées",
+      failed: "Programmation échouée",
+      // L'état n'a pas pu être lu (réseau) : « Publier » attend qu'il le soit.
+      unknownHint:
+        "L'état de publication n'a pas pu être lu : clique pour réessayer.",
     },
     // Éditeur du Fil : la pastille à côté de « Publier » (la phrase entière dans l'infobulle).
     short: {
@@ -2178,6 +2184,7 @@ export const texts = {
       due: "En cours",
       waiting: "En attente",
       failed: "Échec",
+      unknown: "État inconnu",
     },
     // Bandeau de l'éditeur ([D16], [D31]).
     banner: {
@@ -2280,12 +2287,12 @@ export const texts = {
     lockHeld: {
       title: "Quelqu'un écrit ce brouillon",
       description: (name: string) =>
-        `${name} écrit ce brouillon en ce moment. Pour publier, reprends la main (${name} passera en lecture seule), ou attends qu'il ait fini.`,
+        `${name} écrit ce brouillon en ce moment. Pour publier, reprends la main (${name} passera en lecture seule), ou attends que ${name} ait fini.`,
       take: "Reprendre la main",
       // Méthode : quelqu'un écrit un de ses chapitres ou une de ses leçons ([D14]).
       elementTitle: "Quelqu'un écrit un élément de la méthode",
       elementDescription: (name: string) =>
-        `${name} écrit un chapitre ou une leçon de cette méthode en ce moment : le plan montre lequel. Attends qu'il ait fini, ou ouvre cet élément pour reprendre la main, puis publie.`,
+        `${name} écrit un chapitre ou une leçon de cette méthode en ce moment : le plan montre lequel. Attends que cette personne ait fini, ou ouvre cet élément pour reprendre la main, puis publie.`,
     },
     unpublishDialog: {
       title: "Retirer de l'app ?",

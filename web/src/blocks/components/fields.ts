@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from "react"
 
-/** Hauteur d'un champ de texte ajustée à son contenu (légende, titre). */
+/** Hauteur d'un champ de texte ajustée à son contenu (le titre). */
 export function useAutoHeight(value: string) {
   const ref = useRef<HTMLTextAreaElement>(null)
   useLayoutEffect(() => {

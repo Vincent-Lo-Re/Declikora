@@ -32,7 +32,7 @@ export const ImageBlockView = memo(function ImageBlockView({
           icon={ImageIcon}
           editable={editable}
           onChoose={() => openPicker(block.id)}
-          className="blocks-image-placeholder flex flex-col items-center justify-center gap-3 p-4 text-center"
+          className="blocks-image-placeholder"
           iconClassName="size-6"
         />
       )}

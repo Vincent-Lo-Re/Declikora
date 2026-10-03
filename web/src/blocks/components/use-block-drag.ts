@@ -49,7 +49,7 @@ export function useBlockDrag({
   draft: Draft
   onChange: (update: (draft: Draft) => Draft) => void
   // Nombre maximal de blocs au premier niveau (1 dans un bloc identique partout, [D11]) : un
-  // bloc ne sort pas d'un encadré s'il faut dépasser ce nombre.
+  // bloc ne sort pas d'une section s'il faut dépasser ce nombre.
   rootLimit?: number
 }): { dndProps: DndContextProps; active: Block | null } {
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -167,13 +167,13 @@ function makeAnnouncements(draft: Draft): Announcements {
     onDragOver: ({ active, over }) => {
       const label = labelOf(draft, active.id)
       // Le bloc au-dessus de sa propre place (au début, ou juste après un changement
-      // d'encadré) : rien de neuf à dire, et « Tu as pris… » n'est pas écrasé.
+      // de section) : rien de neuf à dire, et « Tu as pris… » n'est pas écrasé.
       if (over?.id === active.id) return undefined
       if (!over) return dnd.outside(label)
       const container = targetContainer(draft, over.id)
       if (!container) return dnd.outside(label)
       const data = over.data.current as DropData | undefined
-      // La zone de l'encadré où le bloc est déjà : rien de neuf non plus.
+      // La zone de la section où le bloc est déjà : rien de neuf non plus.
       const place = findBlock(draft, String(active.id))
       if (data?.kind === "zone" && place?.container === container)
         return undefined

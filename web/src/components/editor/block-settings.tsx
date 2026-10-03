@@ -9,7 +9,6 @@ import {
   SquarePen,
   Trash2,
   Unlink,
-  X,
 } from "lucide-react"
 import type { ReactNode } from "react"
 import { Link } from "react-router"
@@ -36,6 +35,8 @@ import {
   type ImageBlock,
   type LinkedBlock,
 } from "@/blocks/types"
+import { LoadState } from "@/components/load-state"
+import { ColumnHeader } from "@/components/editor/column-header"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Separator } from "@/components/ui/separator"
@@ -175,36 +176,21 @@ function PanelHeader({
   templateFor: Props["templateFor"]
   onClose: () => void
 }) {
-  const Icon =
+  const icon =
     block.type === "linked"
       ? sections.templates.icon
       : blockRegistry[block.type].icon
   const name =
     block.type === "linked"
-      ? (templateNameOf(templateFor(block.templateId)) ??
-        texts.editor.blockLabel.linked(null))
+      ? templateNameOf(templateFor(block.templateId))?.trim() ||
+        texts.editor.blockLabel.linked(null)
       : blockRegistry[block.type].label
   return (
-    <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-      <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-      <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">{name}</h2>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="-mr-1.5"
-              aria-label={labels.close}
-              onClick={onClose}
-            />
-          }
-        >
-          <X />
-        </TooltipTrigger>
-        <TooltipContent>{labels.close}</TooltipContent>
-      </Tooltip>
-    </div>
+    <ColumnHeader
+      icon={icon}
+      title={name}
+      close={{ label: texts.common.close, onClick: onClose }}
+    />
   )
 }
 
@@ -352,7 +338,17 @@ function LinkedSettings({
   if (state.state === "missing") {
     return <p className="text-sm text-muted-foreground">{linked.missing}</p>
   }
-  if (state.state === "loading" || state.state === "error") {
+  // La lecture du modèle a échoué (réseau) : le dire, avec « Réessayer », plutôt qu'un
+  // « Chargement… » sans fin.
+  if (state.state === "error") {
+    return (
+      <LoadState
+        query={{ isError: true, error: null, refetch: state.retry }}
+        failed={linked.loadFailed}
+      />
+    )
+  }
+  if (state.state === "loading") {
     return <p className="text-sm text-muted-foreground">{linked.loading}</p>
   }
   const canDetach = editable && state.state === "ready"
@@ -396,8 +392,8 @@ function canSaveAs(
 
 /**
  * Éditeur du Fil : les actions du bloc choisi en icônes (leur nom dans l'infobulle), fixées en
- * bas de l'onglet « Bloc choisi » : la place (Monter, Descendre), la copie (Dupliquer,
- * Enregistrer comme modèle…), et à l'écart, Supprimer. Mêmes icônes que le menu du plan.
+ * bas de sa glissière : la place (Monter, Descendre), la copie (Dupliquer, Enregistrer comme
+ * modèle…), Modifier le modèle et Détacher pour un bloc partagé, et à l'écart, Supprimer. Mêmes icônes que le menu du plan.
  * Désactivées sans perdre le focus (aria-disabled) : on peut appuyer plusieurs fois de suite au
  * clavier, et la nouvelle place est annoncée.
  */
@@ -593,7 +589,10 @@ function ImageSettings({
                 className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
               >
                 <ExternalLink aria-hidden className="size-3" />
-                {image.openInLibrary}
+                {image.openInLibrary}{" "}
+                <span className="sr-only">
+                  {texts.editor.presentation.openFileHint}
+                </span>
               </a>
             </div>
           </div>

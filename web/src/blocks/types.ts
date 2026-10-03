@@ -22,12 +22,12 @@ export type {
   TextBlock,
 }
 
-/** Un bloc, au premier niveau ou dans un encadré. */
+/** Un bloc, au premier niveau ou dans une section. */
 export type Block = TopBlock
 export type BlockType = Block["type"]
 
-/** La page elle-même (liste principale), par opposition à un encadré. */
+/** La page elle-même (liste principale), par opposition à une section. */
 export const ROOT = "root"
 
-/** Où se trouve un bloc : la page (ROOT) ou l'id d'un encadré. */
+/** Où se trouve un bloc : la page (ROOT) ou l'id d'une section. */
 export type ContainerId = string
