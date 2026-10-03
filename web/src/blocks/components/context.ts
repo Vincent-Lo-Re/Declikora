@@ -41,9 +41,10 @@ export type BlocksEditorValue = {
   selectedId: string | null
   selectBlock: (id: string) => void
   updateBlock: <T extends Block>(id: string, update: (block: T) => T) => void
-  // Le texte qui a eu le curseur en dernier : la barre de mise en forme agit sur lui.
+  // Le texte qui a eu le curseur en dernier (et son bloc) : la barre de mise en forme agit sur
+  // lui tant que son bloc est le bloc choisi.
   // active faux : ce texte disparaît (bloc supprimé, déplacé ou aperçu rechargé).
-  setActiveText: (editor: Editor, active: boolean) => void
+  setActiveText: (blockId: string, editor: Editor, active: boolean) => void
   mediaFor: (mediaId: string | null) => BlockMedia
   openPicker: (blockId: string) => void
   addToBox: (boxId: string, type: "text" | "image") => void
@@ -53,6 +54,9 @@ export type BlocksEditorValue = {
   // Éditeur du Fil : pas de poignée dans l'aperçu, c'est le plan (toujours ouvert) qui range les
   // blocs (ADMIN § 4).
   withoutHandles?: boolean
+  // Éditeur du Fil : un bloc partagé sans barre au-dessus de lui dans l'aperçu (son nom est dans
+  // le plan ; « Modifier le modèle » et « Détacher », dans « Bloc choisi »).
+  linkedWithoutBar?: boolean
   // Éditeur du Fil : « / » au début d'un texte vide (absent ailleurs).
   slash?: {
     choices: (blockId: string) => SlashChoice[]

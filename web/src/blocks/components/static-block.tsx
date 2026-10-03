@@ -82,6 +82,8 @@ export function StaticBlock({ block: shown }: { block: Block }) {
     case "image":
       return <ImageBlockView block={shown} />
     case "box":
+      // Une section vide ne s'affiche pas (comme dans l'app) : le plan la signale.
+      if (shown.blocks.length === 0) return null
       return (
         <div className="blocks-box" data-look={shown.look}>
           <div className="blocks-box-list">

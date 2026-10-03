@@ -196,20 +196,49 @@ export function moveBlock(
   return insertBlock(without, place.block, container, target)
 }
 
-/** Monte (-1) ou descend (+1) un bloc dans son conteneur. */
+/**
+ * Monte (-1) ou descend (+1) un bloc dans son conteneur. Le premier bloc d'une section qu'on
+ * monte (le dernier qu'on descend) en sort : il se place juste au-dessus (au-dessous) d'elle,
+ * sauf si la page a déjà rootLimit blocs (un bloc partagé n'en a qu'un, [D11]). null : rien à
+ * faire.
+ */
 export function shiftBlock(
   draft: Draft,
   id: string,
-  offset: -1 | 1
+  offset: -1 | 1,
+  rootLimit = Number.POSITIVE_INFINITY
 ): Draft | null {
   const place = findBlock(draft, id)
   if (!place) return null
   const target = place.index + offset
-  if (target < 0 || target >= place.siblings) return null
+  if (target < 0 || target >= place.siblings) {
+    if (place.container === ROOT || draft.blocks.length >= rootLimit) {
+      return null
+    }
+    const box = findBlock(draft, place.container)
+    if (!box) return null
+    return moveBlock(draft, id, ROOT, box.index + (offset === 1 ? 1 : 0))
+  }
   const blocks = [...blocksOf(draft, place.container)]
   blocks.splice(place.index, 1)
   blocks.splice(target, 0, place.block)
   return withBlocks(draft, place.container, blocks)
+}
+
+/** Vrai si « Monter » (-1) ou « Descendre » (+1) déplace ce bloc (shiftBlock). */
+export function canShift(
+  draft: Draft,
+  id: string,
+  offset: -1 | 1,
+  rootLimit = Number.POSITIVE_INFINITY
+): boolean {
+  return shiftBlock(draft, id, offset, rootLimit) !== null
+}
+
+/** Vrai si « Monter » (-1) ou « Descendre » (+1) fait sortir ce bloc de sa section. */
+export function shiftLeavesBox(place: BlockPlace, offset: -1 | 1): boolean {
+  const target = place.index + offset
+  return place.container !== ROOT && (target < 0 || target >= place.siblings)
 }
 
 /** Tous les blocs, dans l'ordre de lecture (encadrés, puis leur contenu). */

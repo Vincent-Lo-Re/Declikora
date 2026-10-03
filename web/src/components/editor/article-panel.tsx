@@ -11,6 +11,7 @@ import {
   Pencil,
   Plus,
   Tags,
+  TriangleAlert,
   X,
 } from "lucide-react"
 import { useState } from "react"
@@ -40,7 +41,7 @@ import type { ContentSettings } from "@/lib/contents/api"
 import type { LiveVersion } from "@/lib/contents/publication"
 import type { ReadyItem } from "@/lib/contents/requirements"
 import { formatDateTime } from "@/lib/dates"
-import { focusSoon } from "@/lib/focus"
+import { focusSoon, highlightSoon } from "@/lib/focus"
 import { texts } from "@/texts"
 
 const labels = texts.editor.article
@@ -54,11 +55,18 @@ const integer = new Intl.NumberFormat("fr-FR")
 const NOT_CHOSEN = "pas-encore-choisi"
 const FREE = "gratuit"
 
-// Où mène chaque ligne de « Prêt à publier ? ».
-const targets: Record<ReadyItem["key"], string> = {
-  title: CONTENT_TITLE_ID,
-  cover: "article-image",
-  access: "article-niveau",
+// Où mène chaque ligne de « Prêt à publier ? » : le réglage qui reçoit le curseur, et la zone qui
+// s'allume (la carte qui le contient, ou le champ du titre lui-même).
+const targets: Record<ReadyItem["key"], { control: string; zone: string }> = {
+  title: { control: CONTENT_TITLE_ID, zone: `#${CONTENT_TITLE_ID}` },
+  cover: {
+    control: "article-image",
+    zone: '[aria-labelledby="article-carte"]',
+  },
+  access: {
+    control: "article-niveau",
+    zone: '[aria-labelledby="article-niveau-titre"]',
+  },
 }
 
 /**
@@ -80,6 +88,7 @@ export function ArticlePanel({
   cover,
   coverUrl,
   ready,
+  warnings,
   stats,
   savedAt,
   onChooseCover,
@@ -97,6 +106,8 @@ export function ArticlePanel({
   cover: BlockMedia
   coverUrl: string | undefined
   ready: ReadyItem[]
+  // Les points à vérifier du plan (une section vide…), et y aller.
+  warnings: { count: number; onShow: () => void }
   stats: { words: number; minutes: number }
   savedAt: string | null
   onChooseCover: () => void
@@ -104,7 +115,7 @@ export function ArticlePanel({
 }) {
   return (
     <div className="space-y-3">
-      <ReadyCard items={ready} />
+      <ReadyCard items={ready} warnings={warnings} />
       {!editable && (
         <p className="text-sm text-muted-foreground">
           {texts.editor.settings.readOnly}
@@ -154,8 +165,17 @@ export function ArticlePanel({
   )
 }
 
-/** « Prêt à publier ? » : toujours visible en haut ; une ligne à régler mène à son réglage. */
-function ReadyCard({ items }: { items: ReadyItem[] }) {
+/**
+ * « Prêt à publier ? » : toujours visible en haut ; une ligne à régler mène à son réglage. Les
+ * points à vérifier du plan suivent : ils n'empêchent pas de publier, et ne comptent pas.
+ */
+function ReadyCard({
+  items,
+  warnings,
+}: {
+  items: ReadyItem[]
+  warnings: { count: number; onShow: () => void }
+}) {
   const done = items.filter((item) => item.done).length
   return (
     // Collée en haut de la colonne, sur un fond plein : rien ne défile au-dessus d'elle (la
@@ -187,9 +207,18 @@ function ReadyCard({ items }: { items: ReadyItem[] }) {
                       ? labels.ready.done(label)
                       : labels.ready.todo(label)
                   }
-                  onClick={() =>
-                    focusSoon(() => document.getElementById(targets[item.key]))
-                  }
+                  onClick={() => {
+                    const target = targets[item.key]
+                    // La carte vient sous les yeux et s'allume ; le curseur va sur son réglage.
+                    highlightSoon(() =>
+                      document.querySelector<HTMLElement>(target.zone)
+                    )
+                    focusSoon(
+                      () => document.getElementById(target.control),
+                      undefined,
+                      { preventScroll: true }
+                    )
+                  }}
                 >
                   {item.done ? (
                     <CircleCheck
@@ -210,6 +239,24 @@ function ReadyCard({ items }: { items: ReadyItem[] }) {
               </li>
             )
           })}
+          {warnings.count > 0 && (
+            <li>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm outline-none hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/50"
+                onClick={warnings.onShow}
+              >
+                <TriangleAlert aria-hidden className="size-4 text-warning" />
+                <span className="flex-1">
+                  {labels.ready.warnings(warnings.count)}
+                </span>
+                <ChevronRight
+                  aria-hidden
+                  className="size-4 text-muted-foreground"
+                />
+              </button>
+            </li>
+          )}
         </ul>
       </section>
     </div>

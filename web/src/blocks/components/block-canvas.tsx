@@ -225,7 +225,7 @@ const LinkedBlockView = memo(function LinkedBlockView({
   block: LinkedBlock
 }) {
   const editor = useBlocksEditor()
-  const { editable, templateFor, detachBlock } = editor
+  const { editable, templateFor, detachBlock, linkedWithoutBar } = editor
   const template = templateFor(block.templateId)
   // Le bloc du modèle se lit ici sans pouvoir s'y modifier.
   const readOnly = useMemo(() => ({ ...editor, editable: false }), [editor])
@@ -241,37 +241,41 @@ const LinkedBlockView = memo(function LinkedBlockView({
       data-linked-template={block.templateId}
       data-linked-state={template.state}
     >
-      <div className="mb-2 flex flex-wrap items-center gap-x-1 gap-y-1 font-sans text-xs text-muted-foreground">
-        {/* L'icône de Modèles de bloc, dans le menu. */}
-        <sections.templates.icon aria-hidden className="size-3.5 shrink-0" />
-        <span className="min-w-0 flex-1 truncate">
-          {name
-            ? labels.label(name)
-            : template.state === "missing"
-              ? texts.editor.blockLabel.linked(null)
-              : labels.loading}
-        </span>
-        {template.state !== "missing" && (
-          <Link
-            to={editorPath("templates", block.templateId)}
-            aria-label={name ? labels.editLabel(name) : labels.edit}
-            className={buttonVariants({ variant: "ghost", size: "xs" })}
-          >
-            {labels.edit}
-          </Link>
-        )}
-        {editable && template.state === "ready" && name && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            aria-label={labels.detachLabel(name)}
-            onClick={() => detachBlock(block.id)}
-          >
-            {labels.detach}
-          </Button>
-        )}
-      </div>
+      {/* Éditeur du Fil : pas de barre au-dessus du bloc, son nom est dans le plan et ses
+          actions dans « Bloc choisi » ; le liseré suffit à le reconnaître. */}
+      {!linkedWithoutBar && (
+        <div className="mb-2 flex flex-wrap items-center gap-x-1 gap-y-1 font-sans text-xs text-muted-foreground">
+          {/* L'icône de Modèles de bloc, dans le menu. */}
+          <sections.templates.icon aria-hidden className="size-3.5 shrink-0" />
+          <span className="min-w-0 flex-1 truncate">
+            {name
+              ? labels.label(name)
+              : template.state === "missing"
+                ? texts.editor.blockLabel.linked(null)
+                : labels.loading}
+          </span>
+          {template.state !== "missing" && (
+            <Link
+              to={editorPath("templates", block.templateId)}
+              aria-label={name ? labels.editLabel(name) : labels.edit}
+              className={buttonVariants({ variant: "ghost", size: "xs" })}
+            >
+              {labels.edit}
+            </Link>
+          )}
+          {editable && template.state === "ready" && name && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              aria-label={labels.detachLabel(name)}
+              onClick={() => detachBlock(block.id)}
+            >
+              {labels.detach}
+            </Button>
+          )}
+        </div>
+      )}
       {template.state === "ready" ? (
         <BlocksEditorContext value={readOnly}>
           <StaticBlock block={template.block} />

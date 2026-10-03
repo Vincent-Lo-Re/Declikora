@@ -20,7 +20,12 @@ export function PanelCard({
   children: ReactNode
 }) {
   return (
-    <section aria-labelledby={id} className="rounded-xl border p-3">
+    // scroll-mt-48 : amenée sous les yeux (« Prêt à publier ? »), la carte ne passe pas sous ce qui
+    // reste collé en haut de la colonne.
+    <section
+      aria-labelledby={id}
+      className="scroll-mt-48 rounded-xl border p-3"
+    >
       <div className="mb-2.5 flex items-center gap-1.5">
         <h3 id={id} className="flex items-center gap-1.5 text-sm font-semibold">
           <Icon aria-hidden className="size-4 text-muted-foreground" />

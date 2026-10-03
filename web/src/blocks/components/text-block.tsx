@@ -105,7 +105,7 @@ export const TextBlockView = memo(function TextBlockView({
       }
     },
     onFocus: ({ editor: current }) =>
-      latest.current.setActiveText(current, true),
+      latest.current.setActiveText(blockId, current, true),
     onBlur: () => setActive(null),
   })
   useEffect(() => {
@@ -115,8 +115,8 @@ export const TextBlockView = memo(function TextBlockView({
   // Un texte supprimé ou déplacé ailleurs ne reste pas la cible de la barre de mise en forme.
   useEffect(() => {
     if (!editor) return
-    return () => latest.current.setActiveText(editor, false)
-  }, [editor])
+    return () => latest.current.setActiveText(blockId, editor, false)
+  }, [editor, blockId])
 
   useEffect(() => {
     // Sans événement « update » : changer de mode n'est pas une modification du texte.

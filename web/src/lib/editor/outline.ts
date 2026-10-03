@@ -8,6 +8,7 @@ import type {
   LinkedTemplateState,
 } from "@/blocks/components/context"
 import { findBlock, insertBlock } from "@/blocks/draft"
+import { textFirstLine } from "@/blocks/labels"
 import { textDocToPlainText } from "@/blocks/text/clean-text-doc"
 import { copyWithNewIds } from "@/blocks/templates"
 import type { Block, Doc, Draft } from "@/blocks/types"
@@ -23,24 +24,29 @@ type TextOutline = {
 const flat = (value: string) => value.replace(/\s+/g, " ").trim()
 
 /**
- * Le plan d'un texte (ADMIN § 4) : le contenu plutôt que le type. Un texte qui commence par un
- * intertitre prend son nom ; ses autres intertitres n'apparaissent pas dans le plan.
+ * Le plan d'un texte (ADMIN § 4) : le contenu plutôt que le type, sur une ligne. Un texte qui
+ * commence par un intertitre prend son nom, sinon sa première ligne ; ses autres intertitres
+ * n'apparaissent pas dans le plan.
  */
 export function textOutline(doc: Doc): TextOutline {
   const plain = (node: Doc["content"][number]) =>
     flat(textDocToPlainText({ type: "doc", content: [node] }))
   const first = doc.content.find((node) => plain(node) !== "")
   if (!first) return { lead: "empty", text: "" }
-  if (first.type === "heading") return { lead: "heading", text: plain(first) }
-  return { lead: "text", text: flat(textDocToPlainText(doc)) }
+  // La première ligne, comme le nom du bloc dans « Bloc choisi » (blockLabel).
+  return {
+    lead: first.type === "heading" ? "heading" : "text",
+    text: textFirstLine(doc),
+  }
 }
 
 // Ce que le plan signale sur une ligne.
-export type BlockWarning = "noFile" | "unavailable" | "missingTemplate"
+export type BlockWarning =
+  "noFile" | "unavailable" | "missingTemplate" | "emptyBox"
 
 /**
  * Ce qui manque à un bloc : une image sans fichier, un fichier qui ne s'affiche plus ; un bloc
- * partagé dont le modèle n'existe plus. Ce qui se charge encore (ou un échec du réseau) n'est pas
+ * partagé dont le modèle n'existe plus ; une section vide (l'app ne l'affiche pas). Ce qui se charge encore (ou un échec du réseau) n'est pas
  * signalé. Le texte alternatif n'est plus réclamé (02/10/2026, [D15]).
  */
 export function blockWarning(
@@ -53,6 +59,7 @@ export function blockWarning(
       ? "missingTemplate"
       : null
   }
+  if (block.type === "box") return block.blocks.length === 0 ? "emptyBox" : null
   if (block.type !== "image") return null
   if (block.mediaId === null) return "noFile"
   const media = mediaFor(block.mediaId)

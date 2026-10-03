@@ -1,4 +1,4 @@
-import { useEditorState, type Editor } from "@tiptap/react"
+import type { Editor } from "@tiptap/react"
 import { cn } from "cn"
 import {
   Bold,
@@ -13,7 +13,7 @@ import {
   Undo2,
   type LucideIcon,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useReducer, useState } from "react"
 
 import { LinkDialog } from "@/components/editor/link-dialog"
 import { Button } from "@/components/ui/button"
@@ -54,10 +54,42 @@ const none: Formats = {
   canRedo: false,
 }
 
+function readFormats(editor: Editor): Formats {
+  return {
+    paragraph: editor.isActive("paragraph"),
+    h2: editor.isActive("heading", { level: 2 }),
+    h3: editor.isActive("heading", { level: 3 }),
+    bulletList: editor.isActive("bulletList"),
+    orderedList: editor.isActive("orderedList"),
+    bold: editor.isActive("bold"),
+    italic: editor.isActive("italic"),
+    link: editor.isActive("link"),
+    canUndo: editor.can().undo(),
+    canRedo: editor.can().redo(),
+  }
+}
+
+/**
+ * L'état du texte, relu à chaque rendu : à chaque transaction du texte, et dès qu'on passe à un
+ * autre texte (useEditorState ne relisait le nouveau texte qu'à sa prochaine transaction : la
+ * barre montrait l'état du texte d'avant).
+ */
+function useFormats(editor: Editor | null): Formats {
+  const [, refresh] = useReducer((count: number) => count + 1, 0)
+  useEffect(() => {
+    if (!editor) return
+    editor.on("transaction", refresh)
+    return () => {
+      editor.off("transaction", refresh)
+    }
+  }, [editor])
+  return editor && !editor.isDestroyed ? readFormats(editor) : none
+}
+
 /**
  * Barre de mise en forme, au-dessus du téléphone (verticale à sa gauche dans l'éditeur du Fil) :
- * elle agit sur le dernier bloc Texte qui a eu le curseur. Désactivée en lecture seule ou sans
- * texte choisi.
+ * elle agit sur le texte du bloc choisi. Désactivée en lecture seule, ou quand le bloc choisi
+ * n'est pas un texte.
  */
 export function FormatToolbar({
   editor,
@@ -78,25 +110,7 @@ export function FormatToolbar({
     />
   )
   const [linkOpen, setLinkOpen] = useState(false)
-  const formats =
-    useEditorState({
-      editor,
-      selector: ({ editor: current }): Formats => {
-        if (!current || current.isDestroyed) return none
-        return {
-          paragraph: current.isActive("paragraph"),
-          h2: current.isActive("heading", { level: 2 }),
-          h3: current.isActive("heading", { level: 3 }),
-          bulletList: current.isActive("bulletList"),
-          orderedList: current.isActive("orderedList"),
-          bold: current.isActive("bold"),
-          italic: current.isActive("italic"),
-          link: current.isActive("link"),
-          canUndo: current.can().undo(),
-          canRedo: current.can().redo(),
-        }
-      },
-    }) ?? none
+  const formats = useFormats(editor)
 
   const usable = editable && editor !== null && !editor.isDestroyed
   const chain = () => editor!.chain().focus()
