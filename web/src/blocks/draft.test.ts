@@ -9,7 +9,6 @@ import {
   readingStats,
   shiftBlock,
   shiftLeavesBox,
-  summaryFit,
 } from "@/blocks/draft"
 import type { Block, Doc, Draft, TextBlock } from "@/blocks/types"
 
@@ -107,6 +106,17 @@ describe("prepareDraft", () => {
     expect((draft.blocks[0] as TextBlock).doc).toBe(messyDoc)
   })
 
+  it("retire le résumé d'un ancien brouillon (l'admin n'en écrit plus)", () => {
+    const prepared = prepareDraft({
+      ...draftWith([]),
+      summary: "Ancien résumé",
+    })
+    expect(prepared.ok).toBe(true)
+    if (!prepared.ok) return
+    expect(prepared.draft).not.toHaveProperty("summary")
+    expect(prepared.draft).toMatchObject({ title: "Page", blocks: [] })
+  })
+
   it("refuse un brouillon trop lourd", () => {
     const long = "a".repeat(DRAFT_MAX_BYTES)
     const prepared = prepareDraft(
@@ -159,11 +169,10 @@ describe("readingStats", () => {
     doc: paragraph(words),
   })
 
-  it("compte les mots du titre et des blocs, encadrés compris, sans le résumé", () => {
+  it("compte les mots du titre et des blocs, encadrés compris", () => {
     const draft: Draft = {
       v: 1,
       title: "Bien dormir",
-      summary: "Un résumé qui ne compte pas",
       blocks: [
         text(TEXT_ID, "Se coucher à heure fixe, c'est bien."),
         {
@@ -233,15 +242,5 @@ describe("Monter et Descendre", () => {
     expect(canShift(draft(), BOX_ID, 1)).toBe(false)
     expect(canShift(draft(), INNER_ID, -1)).toBe(true)
     expect(canShift(draft(), INNER_ID, -1, 2)).toBe(false)
-  })
-})
-
-describe("summaryFit", () => {
-  it("vide, court sous 120 caractères, idéal de 120 à 160, long au-delà", () => {
-    expect(summaryFit(0)).toBe("empty")
-    expect(summaryFit(119)).toBe("short")
-    expect(summaryFit(120)).toBe("ideal")
-    expect(summaryFit(160)).toBe("ideal")
-    expect(summaryFit(161)).toBe("long")
   })
 })

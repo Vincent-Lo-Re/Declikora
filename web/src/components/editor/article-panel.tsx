@@ -17,11 +17,6 @@ import {
 import { useState, type ReactNode } from "react"
 
 import type { BlockMedia } from "@/blocks/components/context"
-import {
-  FEED_SUMMARY_IDEAL,
-  FEED_SUMMARY_MAX,
-  summaryFit,
-} from "@/blocks/draft"
 import type { Draft } from "@/blocks/types"
 import { MediaThumbnail } from "@/components/media/media-visuals"
 import { InfoTip } from "@/components/info-tip"
@@ -40,7 +35,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Tooltip,
   TooltipContent,
@@ -81,7 +75,7 @@ const targets: Record<ReadyItem["key"], { control: string; zone: string }> = {
 
 /**
  * L'onglet « Article » de l'éditeur du Fil (ADMIN § 4) : ce qui manque pour publier, la carte de
- * la liste du Fil (image de présentation et résumé), le niveau d'accès, les catégories, puis le
+ * la liste du Fil (image de présentation), le niveau d'accès, les catégories, puis le
  * temps de lecture. Tout part avec le brouillon, comme dans la glissière Réglages des autres
  * éditeurs.
  */
@@ -90,7 +84,6 @@ export function ArticlePanel({
   editable,
   settings,
   onSettingsChange,
-  onSummaryChange,
   levels,
   levelsFailed,
   live,
@@ -106,7 +99,6 @@ export function ArticlePanel({
   editable: boolean
   settings: ContentSettings
   onSettingsChange: (next: ContentSettings) => void
-  onSummaryChange: (summary: string) => void
   levels: AccessLevel[] | undefined
   levelsFailed: boolean
   live: LiveVersion | null
@@ -134,7 +126,6 @@ export function ArticlePanel({
         coverUrl={coverUrl}
         onChooseCover={onChooseCover}
         onRemoveCover={onRemoveCover}
-        onSummaryChange={onSummaryChange}
       />
       <AccessCard
         settings={settings}
@@ -308,8 +299,8 @@ function ReadyCard({
 }
 
 /**
- * La carte de l'article dans la liste du Fil : on y choisit l'image de présentation (la vignette,
- * qui est aussi en tête de l'article), et le résumé, qui ne sert qu'à cette carte, s'écrit dessous.
+ * La carte de l'article dans la liste du Fil : son image de présentation (la vignette, qui est
+ * aussi en tête de l'article) et son titre. Pas de résumé (03/10/2026, ADMIN § 4).
  */
 function FeedCard({
   draft,
@@ -318,7 +309,6 @@ function FeedCard({
   coverUrl,
   onChooseCover,
   onRemoveCover,
-  onSummaryChange,
 }: {
   draft: Draft
   editable: boolean
@@ -326,9 +316,7 @@ function FeedCard({
   coverUrl: string | undefined
   onChooseCover: () => void
   onRemoveCover: () => void
-  onSummaryChange: (summary: string) => void
 }) {
-  const summary = draft.summary ?? ""
   const file =
     cover.state === "ready" || cover.state === "not_ready" ? cover.media : null
   const chosen = cover.state !== "none"
@@ -370,14 +358,9 @@ function FeedCard({
             </>
           )}
         </button>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">
-            {draft.title.trim() || texts.common.untitled}
-          </p>
-          <p className="line-clamp-3 text-xs text-muted-foreground">
-            {summary.trim() || labels.feed.summaryEmpty}
-          </p>
-        </div>
+        <p className="line-clamp-3 min-w-0 text-sm font-semibold">
+          {draft.title.trim() || texts.common.untitled}
+        </p>
       </div>
       {cover.state === "missing" && (
         <p className="mt-2 text-xs text-destructive">
@@ -407,99 +390,7 @@ function FeedCard({
           </Button>
         )}
       </div>
-      <div className="mt-3 space-y-1.5">
-        <label htmlFor="article-resume" className="block text-sm font-medium">
-          {labels.summary.label}{" "}
-          <span className="font-normal text-muted-foreground">
-            · {labels.summary.optional}
-          </span>
-        </label>
-        <Textarea
-          id="article-resume"
-          value={summary}
-          maxLength={FEED_SUMMARY_MAX}
-          readOnly={!editable}
-          placeholder={labels.summary.placeholder}
-          aria-describedby="article-resume-compte"
-          onChange={(event) =>
-            onSummaryChange(
-              event.target.value
-                .replace(/\s*\n\s*/g, " ")
-                .slice(0, FEED_SUMMARY_MAX)
-            )
-          }
-        />
-        <SummaryGauge id="article-resume-compte" length={summary.length} />
-      </div>
     </PanelCard>
-  )
-}
-
-// La couleur de la glissière selon la longueur (jetons du thème, adoucis : le texte reste lisible
-// dessus, en clair comme en sombre).
-const fitFill = {
-  empty: "bg-transparent",
-  short: "bg-muted-foreground/25",
-  ideal: "bg-status-live/35",
-  long: "bg-warning/35",
-} as const
-
-/**
- * La glissière du résumé : elle se remplit avec le texte et dit dedans « Court », « Idéal »
- * ou « Long » ; la zone idéale est marquée, le compte est à droite.
- */
-function SummaryGauge({ id, length }: { id: string; length: number }) {
-  const fit = summaryFit(length)
-  const words = labels.summary.fit
-  const percent = (value: number) => `${(value / FEED_SUMMARY_MAX) * 100}%`
-  return (
-    <div className="flex items-center gap-2">
-      <div
-        id={id}
-        role="meter"
-        aria-valuemin={0}
-        aria-valuemax={FEED_SUMMARY_MAX}
-        aria-valuenow={length}
-        aria-valuetext={labels.summary.fitLabel(
-          words[fit],
-          FEED_SUMMARY_IDEAL.min,
-          FEED_SUMMARY_IDEAL.max
-        )}
-        className="relative h-5 flex-1 overflow-hidden rounded-full bg-muted"
-      >
-        <span
-          aria-hidden
-          className="absolute inset-y-0 bg-status-live/10"
-          // eslint-disable-next-line no-restricted-syntax -- la zone idéale, tirée de FEED_SUMMARY_IDEAL
-          style={{
-            left: percent(FEED_SUMMARY_IDEAL.min),
-            width: percent(FEED_SUMMARY_IDEAL.max - FEED_SUMMARY_IDEAL.min),
-          }}
-        />
-        <span
-          aria-hidden
-          className={cn(
-            // Sans arrondi : seul le fond est arrondi (et coupe le début de la barre).
-            "absolute inset-y-0 left-0 transition-[width] motion-reduce:transition-none",
-            fitFill[fit]
-          )}
-          // eslint-disable-next-line no-restricted-syntax -- la longueur du résumé, en direct
-          style={{ width: percent(length) }}
-        />
-        <span
-          aria-hidden
-          className={cn(
-            "absolute inset-0 flex items-center justify-center text-xs font-medium",
-            fit === "empty" && "font-normal text-muted-foreground"
-          )}
-        >
-          {words[fit]}
-        </span>
-      </div>
-      <span className="text-xs text-muted-foreground tabular-nums">
-        {labels.summary.count(length, FEED_SUMMARY_MAX)}
-      </span>
-    </div>
   )
 }
 

@@ -12,7 +12,7 @@ import type { Media } from "@/lib/media/constants"
 import { renderApp, testProfile } from "@/test/render"
 import { texts } from "@/texts"
 
-// L'éditeur d'un article et d'un épisode (étape 7) : image de présentation, résumé, catégories,
+// L'éditeur d'un article et d'un épisode (étape 7) : image de présentation, catégories,
 // audio et sa durée, [D45] (ce qui manque pour publier) et [D46] (transcription conseillée). La
 // base, Realtime et Storage sont simulés.
 
@@ -256,12 +256,12 @@ describe("éditeur d'un article (Le Fil)", () => {
       })
     ).toBeVisible()
     expect(categoriesApi.listCategories).toHaveBeenCalledWith("blog")
-    // Un article n'a pas d'audio, et son résumé n'est pas dans l'aperçu.
+    // Un article n'a pas d'audio, ni de résumé (03/10/2026).
     expect(screen.queryByText(words.audio.label)).toBeNull()
-    expect(screen.queryByPlaceholderText(words.summary.placeholder)).toBeNull()
+    expect(screen.queryByLabelText(/Résumé/)).toBeNull()
   })
 
-  it("choisit l'image de présentation dans l'aperçu, puis écrit le résumé de la carte", async () => {
+  it("choisit l'image de présentation dans l'aperçu ; la carte du Fil n'a pas de résumé", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     vi.mocked(mediaApi.listMedia).mockResolvedValue([plage])
     renderApp(`/blog/${ARTICLE}`)
@@ -297,22 +297,14 @@ describe("éditeur d'un article (Le Fil)", () => {
       })
     ).toBeVisible()
 
-    const summary = within(articleTab()).getByLabelText(/^Résumé/)
-    expect(summary).toHaveAttribute("maxlength", "200")
-    fireEvent.change(summary, { target: { value: "Cinq gestes\npour l'été" } })
+    // La carte montre l'image et le titre, sans résumé.
+    expect(within(articleTab()).queryByLabelText(/Résumé/)).toBeNull()
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
       timeout: 4000,
     })
     const saved = vi.mocked(api.saveDraft).mock.calls.at(-1)![2]
     expect(saved.cover).toEqual({ mediaId: PLAGE })
-    // Texte simple, sur une ligne, montré dans la carte de la liste du Fil.
-    expect(saved.summary).toBe("Cinq gestes pour l'été")
-    expect(
-      within(articleTab()).getByText(article.summary.count(22, 200))
-    ).toBeVisible()
-    expect(
-      within(articleTab()).getAllByText("Cinq gestes pour l'été")
-    ).not.toHaveLength(0)
+    expect(saved).not.toHaveProperty("summary")
   }, 10_000)
 
   it("« Retirer l'image » la retire, avec « Annuler »", async () => {
@@ -1141,7 +1133,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     )
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
 
-    // L'image choisie, « Publier » est possible (le résumé reste facultatif).
+    // L'image choisie, « Publier » est possible.
     vi.mocked(publicationApi.publishContent).mockResolvedValue({
       versionId: "v1",
       versionNumber: 1,
@@ -1783,7 +1775,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
     )
   })
 
-  it("colonne de droite : les onglets en tête, et en bas la lecture, l'état et « Publier » ; le résumé a sa glissière, l'image son icône Info", async () => {
+  it("colonne de droite : les onglets en tête, et en bas la lecture, l'état et « Publier » ; l'image a son icône Info", async () => {
     renderApp(`/blog/${ARTICLE}`)
     await editable()
     const right = screen.getByRole("complementary", { name: columns.right })
@@ -1809,14 +1801,8 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
     expect(
       within(articleTab()).getByRole("button", { name: article.feed.hint })
     ).toBeVisible()
-    // La glissière du résumé dit où on en est.
-    const gauge = within(articleTab()).getByRole("meter")
-    expect(gauge).toHaveTextContent(article.summary.fit.empty)
-    fireEvent.change(within(articleTab()).getByLabelText(/Résumé/), {
-      target: { value: "x".repeat(140) },
-    })
-    expect(gauge).toHaveTextContent(article.summary.fit.ideal)
-    expect(gauge).toHaveAttribute("aria-valuenow", "140")
+    // Plus de résumé, donc plus de glissière.
+    expect(within(articleTab()).queryByRole("meter")).toBeNull()
   })
 
   it("un texte se résume par sa première ligne, dans le plan comme dans « Bloc choisi »", async () => {

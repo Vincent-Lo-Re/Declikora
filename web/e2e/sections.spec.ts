@@ -2,7 +2,7 @@
 // par app_feed et app_categories, avec la clé publishable, comme un anonyme.
 //
 // 1. Blog : deux catégories, rangées au clavier ; un article que « Publier » refuse tant qu'il
-//    n'a pas d'image de présentation ([D45]) ; l'image, un résumé et une catégorie, puis
+//    n'a pas d'image de présentation ([D45]) ; l'image et une catégorie, puis
 //    publier ; l'app le liste avec sa vignette (publique, question 1) ; filtres par catégorie
 //    (admin et app) ; la catégorie supprimée, l'app l'ignore ([D28]).
 // 1 bis. L'éditeur du Fil : « / » dans un texte vide, un Texte glissé depuis l'onglet Blocs, un
@@ -100,7 +100,7 @@ function panel(page: Page) {
   })
 }
 
-/** L'onglet « Article » de l'éditeur du Fil : image, résumé, niveau d'accès, catégories. */
+/** L'onglet « Article » de l'éditeur du Fil : image, niveau d'accès, catégories. */
 function articleTab(page: Page) {
   return page.getByRole("tabpanel", { name: editor.columns.article })
 }
@@ -483,7 +483,7 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     const sommeilId = await categoryId(sommeil)
     const stressId = await categoryId(stress)
 
-    // --- Un article : titre, résumé, catégorie ------------------------------------------
+    // --- Un article : titre et catégorie (sans résumé) ------------------------------------
     await page
       .getByRole("link", { name: categories.back(texts.sections.blog.title) })
       .click()
@@ -491,12 +491,8 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     await createBlank(page, "article")
     const articleId = contentIdFromUrl(page.url())
     const title = `Bien dormir ${id}`
-    const summary = "Cinq gestes simples pour les nuits chaudes."
     await page.getByLabel(editor.title.label).fill(title)
-    // Éditeur du Fil : le résumé et les catégories sont dans l'onglet « Article ».
-    await articleTab(page)
-      .getByLabel(/^Résumé/)
-      .fill(summary)
+    // Éditeur du Fil : les catégories sont dans l'onglet « Article ».
     const pill = articleTab(page).getByRole("button", {
       name: sommeil,
       exact: true,
@@ -533,7 +529,7 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     )
     await publishFree(page)
 
-    // --- L'app : l'article, son résumé, sa vignette (publique) et sa catégorie --------
+    // --- L'app : l'article, sa vignette (publique) et sa catégorie, sans résumé ------------
     const feedItem = async () =>
       (await appFeed("blog")).find((item) => item.id === articleId)
     await expect.poll(feedItem).toBeDefined()
@@ -541,7 +537,7 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     expect(item).toMatchObject({
       kind: "article",
       title,
-      summary,
+      summary: null,
       locked: false,
       durationS: null,
       categoryIds: [sommeilId],

@@ -1725,8 +1725,8 @@ export const texts = {
         `« ${name} » est dans la médiathèque, mais un épisode n'accepte qu'un audio (MP3 ou M4A).`,
       noTranscript: "Sans transcription",
     },
-    // Présentation d'un article ou d'un épisode (étape 7) : image de présentation, résumé,
-    // audio, catégories. [D45], [D46].
+    // Présentation d'un article ou d'un épisode (étape 7) : image de présentation, audio,
+    // catégories. [D45], [D46]. Plus de résumé depuis le 03/10/2026.
     presentation: {
       panelTitle: {
         article: "Présentation de l'article",
@@ -1754,12 +1754,6 @@ export const texts = {
         missing: "Image supprimée : choisis-en une autre.",
         notReady: "Cette image n'est pas prête : choisis-en une autre.",
         alt: (alt: string) => `Texte alternatif (médiathèque) : « ${alt} »`,
-      },
-      summary: {
-        label: "Résumé",
-        placeholder: "Résumé (facultatif)",
-        hint: "Facultatif. Affiché sous le titre et dans les listes de l'app.",
-        count: (count: string) => `${count} / 1 000 caractères`,
       },
       audio: {
         label: "Audio de l'épisode",
@@ -1916,24 +1910,7 @@ export const texts = {
         choose: "Choisir",
         chooseLabel: "Choisir l'image de présentation",
         replaceLabel: "Changer l'image de présentation",
-        summaryEmpty: "Le résumé apparaît ici.",
         hint: "L'image est obligatoire pour publier : c'est aussi celle en tête de l'article.",
-      },
-      summary: {
-        label: "Résumé",
-        optional: "facultatif",
-        placeholder: "Une ou deux phrases pour donner envie de lire…",
-        count: (count: number, max: number) => `${count} / ${max}`,
-        // La glissière de longueur : son état, écrit dedans.
-        fit: {
-          empty: "Vide",
-          short: "Court",
-          ideal: "Idéal",
-          long: "Long",
-        },
-        // Pour les lecteurs d'écran : l'état, et la longueur idéale.
-        fitLabel: (fit: string, min: number, max: number) =>
-          `Longueur du résumé : ${fit} (idéal : ${min} à ${max} caractères)`,
       },
       categories: {
         add: "Nouvelle",
@@ -2371,7 +2348,7 @@ export const texts = {
         // catégories d'un article ou d'un épisode.
         description: (kind: string) =>
           kind === "method"
-            ? "Seule la fiche revient : le titre, le résumé, l'image de présentation et le niveau d'accès. Le plan, les chapitres et les leçons ne changent pas : chacun a son propre historique. Rien ne change dans l'app avant la prochaine publication."
+            ? "Seule la fiche revient : le titre, l'image de présentation et le niveau d'accès. Le plan, les chapitres et les leçons ne changent pas : chacun a son propre historique. Rien ne change dans l'app avant la prochaine publication."
             : kind === "chapter"
               ? "L'introduction du chapitre sera remplacée par cette version. Rien ne change dans l'app avant la prochaine publication de la méthode."
               : kind === "lesson"

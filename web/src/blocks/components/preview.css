@@ -215,30 +215,11 @@
   border-radius: 4px;
 }
 
-/* Présentation d'un article ou d'un épisode (étape 7) : image de présentation, résumé, audio,
+/* Présentation d'un article ou d'un épisode (étape 7) : image de présentation, audio,
    en tête du contenu comme dans l'app. */
 .blocks-cover {
   margin-bottom: var(--blocks-space-block-gap);
   cursor: pointer;
-}
-
-.blocks-summary {
-  display: block;
-  width: 100%;
-  resize: none;
-  overflow: hidden;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--blocks-color-text-muted);
-  font: inherit;
-  margin-top: calc(var(--blocks-space-block-gap) * -0.5);
-  margin-bottom: var(--blocks-space-block-gap);
-}
-
-.blocks-summary::placeholder {
-  color: var(--blocks-color-text-muted);
-  opacity: 0.7;
 }
 
 .blocks-audio {
@@ -247,12 +228,6 @@
   padding: var(--blocks-space-box-padding);
   background: var(--blocks-color-box-fill);
   cursor: pointer;
-}
-
-.blocks-summary:focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent);
-  outline-offset: 4px;
-  border-radius: 4px;
 }
 
 /* « Mes blocs » (éditeur du Fil) : l'aperçu réduit d'un bloc enregistré, avec les mesures de

@@ -27,6 +27,7 @@ type FeedItem = {
   id: string
   kind: string
   title: string
+  // Toujours null : l'admin n'écrit plus de résumé (03/10/2026).
   summary: string | null
   cover: { mediaId: string } | null
   // La vignette seulement : jamais les fichiers des blocs ni l'audio.
