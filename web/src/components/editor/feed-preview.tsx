@@ -102,60 +102,73 @@ export function FeedPreview({
       ? fullScreenScale(preview.device, available)
       : null
   return (
-    // Centré sans rien cacher : trop étroit, l'aperçu défile au lieu de déborder des deux côtés.
-    <div className="flex min-h-0 flex-1 justify-center-safe gap-4 px-3 py-4 wide:gap-9 wide:px-4">
+    // Une grille : les messages au-dessus du téléphone, puis la barre de mise en forme, le
+    // téléphone et la barre de l'aperçu, ces deux barres alignées sur le début du contenu de
+    // l'écran (preview.css). Centré sans rien cacher : trop étroit, l'aperçu défile.
+    // data-backdrop : le fond autour du téléphone (un clic remet l'éditeur à son état de base).
+    <div
+      data-backdrop
+      data-device={preview.device}
+      className="blocks-preview-layout min-h-0 flex-1 gap-x-4 px-3 py-4 wide:gap-x-9 wide:px-4"
+      // eslint-disable-next-line no-restricted-syntax -- réduction tirée d'une mesure (hauteur de la fenêtre)
+      style={
+        scale !== null
+          ? ({ "--blocks-device-scale": scale } as CSSProperties)
+          : undefined
+      }
+    >
+      <div
+        data-backdrop
+        className="blocks-preview-notices grid gap-3 empty:hidden"
+      >
+        {notices}
+      </div>
       <div
         className={cn(
-          "shrink-0 self-start",
+          "blocks-preview-toolbar",
           preview.mode === "read" && "invisible"
         )}
       >
         {toolbar}
       </div>
-      <div className="flex min-h-0 flex-col items-center gap-3">
-        {notices}
+      <div
+        ref={frame}
+        data-backdrop
+        className="blocks-preview-frame flex min-h-0 flex-col items-center"
+      >
         <div
-          ref={frame}
-          className="flex min-h-0 w-full flex-1 flex-col items-center"
+          role="region"
+          aria-label={labels.screen[preview.device]}
+          className="blocks-device"
+          data-device={preview.device}
+          data-blocks-theme={preview.theme}
+          data-large-text={preview.largeText || undefined}
+          data-fit={scale !== null ? "full" : undefined}
         >
-          <div
-            role="region"
-            aria-label={labels.screen[preview.device]}
-            className="blocks-device"
-            data-device={preview.device}
-            data-blocks-theme={preview.theme}
-            data-large-text={preview.largeText || undefined}
-            data-fit={scale !== null ? "full" : undefined}
-            // eslint-disable-next-line no-restricted-syntax -- réduction tirée d'une mesure (hauteur de la fenêtre)
-            style={
-              scale !== null
-                ? ({ "--blocks-device-scale": scale } as CSSProperties)
-                : undefined
-            }
-          >
-            <div className="blocks-screen">
-              <div aria-hidden className="blocks-status">
-                <span>{labels.time[preview.device]}</span>
-                <span className="blocks-camera" />
-                <span className="blocks-status-icons">
-                  <Signal />
-                  <Wifi />
-                  <BatteryFull />
-                </span>
-              </div>
-              {appBar}
-              <div className="blocks-screen-scroll">{children}</div>
-              <div aria-hidden className="blocks-home" />
+          <div className="blocks-screen">
+            <div aria-hidden className="blocks-status">
+              <span>{labels.time[preview.device]}</span>
+              <span className="blocks-camera" />
+              <span className="blocks-status-icons">
+                <Signal />
+                <Wifi />
+                <BatteryFull />
+              </span>
             </div>
+            {appBar}
+            <div className="blocks-screen-scroll">{children}</div>
+            <div aria-hidden className="blocks-home" />
           </div>
         </div>
       </div>
-      <PreviewTools
-        preview={preview}
-        onChange={onPreviewChange}
-        scale={scale}
-        focus={focus}
-      />
+      <div className="blocks-preview-tools">
+        <PreviewTools
+          preview={preview}
+          onChange={onPreviewChange}
+          scale={scale}
+          focus={focus}
+        />
+      </div>
     </div>
   )
 }

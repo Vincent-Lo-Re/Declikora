@@ -5,7 +5,7 @@
 //    n'a pas d'image de présentation ([D45]) ; l'image et une catégorie, puis
 //    publier ; l'app le liste avec sa vignette (publique, question 1) ; filtres par catégorie
 //    (admin et app) ; la catégorie supprimée, l'app l'ignore ([D28]).
-// 1 bis. L'éditeur du Fil : « / » dans un texte vide, un Texte glissé depuis l'onglet Blocs, un
+// 1 bis. L'éditeur du Fil : « Ajouter un bloc » ouvre les Blocs, un Texte glissé depuis les Blocs, un
 //    intertitre qui nomme sa ligne du plan, « … » › Dupliquer, le plan rangé au clavier, la Concentration,
 //    puis recharger.
 // 1 ter. L'éditeur du Fil en lecture seule : un second onglet prend la main, la fenêtre s'ouvre
@@ -100,9 +100,9 @@ function panel(page: Page) {
   })
 }
 
-/** L'onglet « Article » de l'éditeur du Fil : image, niveau d'accès, catégories. */
+/** L'Article, dans la colonne de droite de l'éditeur du Fil : image, niveau d'accès, catégories. */
 function articleTab(page: Page) {
-  return page.getByRole("tabpanel", { name: editor.columns.article })
+  return page.getByRole("region", { name: editor.columns.article })
 }
 
 /** Éditeur du Fil : niveau d'accès « Gratuit », dans l'onglet « Article ». */
@@ -282,7 +282,7 @@ test("Le Fil : un article neuf arrive en tête ; rangé au clavier, l'ordre tien
   ).toBeDisabled()
 })
 
-test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (intertitre, Dupliquer), Concentration", async ({
+test("Éditeur du Fil : « Ajouter un bloc » ouvre les Blocs, bloc glissé, plan (intertitre, Dupliquer), Concentration", async ({
   page,
   team,
 }) => {
@@ -293,33 +293,40 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
   const plan = page.getByRole("navigation", { name: outline.title })
   const rows = plan.getByRole("button", { name: /^Aller à (Texte|Section)/ })
   // Ce que montre une ligne du plan : le contenu (l'icône dit le type).
-  // Une section vide : son nom, et dessous ce qui manque (elle n'apparaîtra pas dans l'app).
-  const emptyBox = `${outline.box.fill}${outline.warnings.emptyBox}`
+  // Une section vide : une icône devant son nom, ce qui manque dans son infobulle (et pour les
+  // lecteurs d'écran) : elle n'apparaîtra pas dans l'app.
+  const emptyBox = `${outline.warnings.emptyBox}${outline.box.fill}`
   const phone = page.getByRole("region", { name: editor.preview.screen.ios })
 
-  // « / » dans un texte vide : la liste des blocs, au clavier.
-  await phone.getByRole("button", { name: texts.editor.blocks.text }).click()
-  const text = phone.getByRole("textbox", { name: texts.editor.blocks.text })
-  await text.click()
-  await page.keyboard.type("/")
-  const slash = page.getByRole("listbox", { name: editor.slash.title })
-  await expect(slash).toBeVisible()
-  await page.keyboard.press("ArrowDown")
-  await page.keyboard.press("ArrowDown")
-  await page.keyboard.press("Enter")
-  await expect(slash).toBeHidden()
-  await expect(rows).toHaveText([emptyBox])
-
-  // Un Texte glissé depuis l'onglet Blocs, au-dessus de l'encadré.
-  await page.getByRole("tab", { name: editor.columns.blocks }).click()
-  await page
+  // « Ajouter un bloc » (le téléphone vide) ouvre les Blocs par-dessus le Plan, le curseur sur
+  // Texte ; une Section s'ajoute ; × les referme.
+  const library = page.getByRole("region", { name: editor.columns.blocks })
+  const closeBlocks = () =>
+    library.getByRole("button", { name: editor.library.close }).click()
+  const addText = library.getByRole("button", {
+    name: editor.library.addLabel(texts.editor.blocks.text),
+  })
+  await phone.getByRole("button", { name: editor.add.label }).click()
+  await expect(addText).toBeFocused()
+  await library
     .getByRole("button", {
-      name: editor.library.addLabel(texts.editor.blocks.text),
+      name: editor.library.addLabel(texts.editor.blocks.box),
     })
-    .dragTo(phone.locator("[data-block-id]").first(), {
-      targetPosition: { x: 40, y: 2 },
-    })
-  await page.getByRole("tab", { name: editor.columns.plan }).click()
+    .click()
+  await closeBlocks()
+  await expect(rows).toHaveText([emptyBox])
+  const text = phone.getByRole("textbox", { name: texts.editor.blocks.text })
+
+  // Un Texte glissé depuis les Blocs (ouverts par « Ajouter un bloc » en bas à gauche), au-dessus
+  // de l'encadré.
+  await page
+    .getByRole("complementary", { name: editor.columns.left })
+    .getByRole("button", { name: editor.add.label })
+    .click()
+  await addText.dragTo(phone.locator("[data-block-id]").first(), {
+    targetPosition: { x: 40, y: 2 },
+  })
+  await closeBlocks()
   await expect(rows).toHaveText([texts.editor.blockLabel.text(""), emptyBox])
 
   // Un texte qui commence par un intertitre prend son nom dans le plan.

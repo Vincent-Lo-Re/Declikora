@@ -17,6 +17,7 @@ import {
   PanelTop,
   Plus,
   Settings2,
+  X,
 } from "lucide-react"
 import {
   useCallback,
@@ -73,6 +74,7 @@ import {
   singleBlock,
 } from "@/blocks/templates"
 import { ROOT, type Block, type Draft, type ImageBlock } from "@/blocks/types"
+import { AddBlockButton } from "@/components/editor/add-block-button"
 import { BlockSettings } from "@/components/editor/block-settings"
 import {
   ContentSettingsSheet,
@@ -97,7 +99,10 @@ import {
   type FeedOutline,
 } from "@/components/editor/outline-panel"
 import { ArticleFooter, ArticlePanel } from "@/components/editor/article-panel"
-import { BlocksLibrary } from "@/components/editor/blocks-library"
+import {
+  BlocksLibrary,
+  LIBRARY_FIRST_ID,
+} from "@/components/editor/blocks-library"
 import {
   CONTENT_TITLE_ID,
   AudioPreview,
@@ -153,7 +158,7 @@ import {
 } from "@/components/ui/empty"
 import { Separator } from "@/components/ui/separator"
 import { Kbd } from "@/components/ui/kbd"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TruncatedText } from "@/components/truncated-text"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -237,14 +242,9 @@ import {
   LIBRARY_DRAG_TYPE,
   type LibraryDrag,
 } from "@/lib/editor/library-drag"
-import {
-  isEmptyText,
-  replaceBlock,
-  slashChoices,
-  type SlashChoice,
-} from "@/lib/editor/slash"
+import { liveBoxTarget } from "@/lib/editor/library-target"
 import { errorMessage } from "@/lib/errors"
-import { highlightSoon } from "@/lib/focus"
+import { focusSoon, highlightSoon } from "@/lib/focus"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
 import type { TemplateValues } from "@/lib/schemas"
@@ -396,7 +396,8 @@ function BackLink({
   section: SectionKey
   // Un chapitre ou une leçon : « ← nom de la méthode ».
   method?: { id: string; title: string } | null
-  // Éditeur du Fil : la flèche seule, le nom de la section dans l'infobulle.
+  // Éditeur du Fil : la flèche seule, sur toute la hauteur du bas de la colonne de gauche, le nom
+  // de la section dans l'infobulle.
   compact?: boolean
 }) {
   if (method) {
@@ -424,7 +425,7 @@ function BackLink({
             <Link
               to={sections[section].path}
               aria-label={texts.editor.back(title)}
-              className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+              className="flex h-full w-14 shrink-0 items-center justify-center border-r text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset [&_svg]:size-4"
             />
           }
         >
@@ -481,9 +482,12 @@ function presentationChooseButton(key: "cover" | "audio"): HTMLElement | null {
 
 const ADD_BLOCK_ID = "editeur-ajouter"
 
-// Les onglets des colonnes de l'éditeur du Fil.
-type LeftTab = "plan" | "blocks"
-type RightTab = "article" | "block"
+// Éditeur du Fil : « Ajouter un bloc » en bas de la colonne de gauche (le focus y revient quand
+// la glissière des blocs se ferme).
+const LEFT_ADD_ID = "colonne-gauche-ajouter"
+// Éditeur du Fil : le titre de la colonne de droite (le focus y revient quand la glissière du bloc
+// se ferme).
+const ARTICLE_TITLE_ID = "colonne-article-titre"
 
 /**
  * Met le curseur dans un bloc qui vient d'apparaître (l'éditeur Tiptap se crée juste après).
@@ -565,14 +569,13 @@ function ContentEditor({
   const [viewKey, setViewKey] = useState(0)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [outlineOpen, setOutlineOpen] = useState(feed)
-  // Éditeur du Fil : l'onglet de gauche, et celui de droite. Celui de droite suit le bloc choisi
-  // (« Bloc choisi » dès qu'un bloc l'est, « Article » sinon), sauf si on a changé d'onglet à la
-  // main depuis ce choix.
-  const [leftTab, setLeftTab] = useState<LeftTab>("plan")
-  const [rightChoice, setRightChoice] = useState<{
-    tab: RightTab
-    selectedId: string | null
-  } | null>(null)
+  // Éditeur du Fil : pas d'onglets. À gauche, le Plan, et les Blocs en glissière par-dessus ; à
+  // droite, l'Article, et les réglages du bloc choisi en glissière par-dessus.
+  const [libraryOpen, setLibraryOpen] = useState(false)
+  // Éditeur du Fil : après « Ajouter dans la section », la section où les Blocs ajouteront ;
+  // valable tant qu'elle est le bloc choisi (liveBoxTarget).
+  const [boxTarget, setBoxTarget] = useState<string | null>(null)
+  const targetBox = liveBoxTarget(draft, boxTarget, selectedId)
   // Le texte qui a eu le curseur en dernier, avec son bloc.
   const [activeText, setActiveText] = useState<{
     blockId: string
@@ -590,12 +593,6 @@ function ContentEditor({
     element?.setAttribute("data-hovered", "")
     return () => element?.removeAttribute("data-hovered")
   }, [hoveredId])
-  const rightTab: RightTab =
-    rightChoice && rightChoice.selectedId === selectedId
-      ? rightChoice.tab
-      : selectedId
-        ? "block"
-        : "article"
   const [pickerFor, setPickerFor] = useState<string | null>(null)
   // Le choix de l'image de présentation ou de l'audio : ce qui avait le focus à l'ouverture. Si
   // ce bouton a disparu à la fermeture (« Choisir… » de l'aperçu, remplacé par l'image, ou la
@@ -1322,12 +1319,6 @@ function ContentEditor({
     setTemplatePickerOpen(false)
     const result = insertTemplate(draft, template, selectedId, at)
     if (!result) return
-    // Venu de « / » : le bloc enregistré prend la place du texte resté vide.
-    const target = slashTarget.current
-    slashTarget.current = null
-    if (target && target === selectedId && isEmptyText(result.draft, target)) {
-      result.draft = removeBlock(result.draft, target)
-    }
     if (template.sort === "shared") {
       setPickedTemplates((current) => ({
         ...current,
@@ -1394,50 +1385,50 @@ function ContentEditor({
     else requestAnimationFrame(() => focusBlockSoon(block.id))
   }
 
-  // Éditeur du Fil : les modèles s'insèrent depuis « Mes blocs », dans la colonne de gauche
-  // (pas dans une fenêtre) ; ailleurs, la fenêtre des modèles.
-  const openMine = () => {
+  // « Ajouter un bloc » › « Un modèle… » (hors de l'éditeur du Fil, qui passe par « Mes blocs »).
+  const openTemplates = () => setTemplatePickerOpen(true)
+
+  // Éditeur du Fil : ajouter un bloc ouvre les Blocs, le curseur sur le premier ; depuis une
+  // section, elle devient le bloc choisi et un bandeau le dit (ADMIN § 4).
+  const openLibrary = (box: string | null = null) => {
     setFocusMode(false)
     setOutlineOpen(true)
-    setLeftTab("blocks")
-    setSavedOpen(true)
+    setLibraryOpen(true)
+    setSavedOpen(false)
+    setBoxTarget(box)
+    if (box) setSelectedId(box)
+    focusSoon(() => document.getElementById(LIBRARY_FIRST_ID))
   }
-  const openTemplates = feed ? openMine : () => setTemplatePickerOpen(true)
-
-  // « / » au début d'un texte vide (éditeur du Fil) : le texte devient le bloc choisi, ou
-  // « Mes blocs » s'ouvre à gauche (le bloc enregistré prendra alors la place du texte vide).
-  const slashTarget = useRef<string | null>(null)
-  const onSlash = (blockId: string, choice: SlashChoice) => {
-    if (choice === "text") return
-    if (choice === "mine") {
-      slashTarget.current = blockId
-      setSelectedId(blockId)
-      openMine()
-      return
-    }
-    const block = blockRegistry[choice].create()
-    setDraft((current) => replaceBlock(current, blockId, block) ?? current)
-    setSelectedId(block.id)
-    if (choice === "image") setPickerFor(block.id)
-    else
-      requestAnimationFrame(() => focusOnceShown(() => blockHandle(block.id)))
-  }
-  const slashRef = useRef(onSlash)
+  const openLibraryRef = useRef(openLibrary)
   useEffect(() => {
-    slashRef.current = onSlash
+    openLibraryRef.current = openLibrary
   })
-  const draftRef = useRef(draft)
-  useEffect(() => {
-    draftRef.current = draft
-  })
-  const slash = useMemo(
-    () => ({
-      choices: (blockId: string) => slashChoices(draftRef.current, blockId),
-      choose: (blockId: string, choice: SlashChoice) =>
-        slashRef.current(blockId, choice),
-    }),
+  const onAddInBox = useCallback(
+    (boxId: string) => openLibraryRef.current(boxId),
     []
   )
+  // Un bloc des Blocs : à la fin de la section visée, sinon sous le bloc choisi (ou à la fin).
+  const addFromLibrary = (type: InsertableType) => {
+    toEdit()
+    setBoxTarget(null)
+    addBlock(type, targetBox ?? undefined)
+  }
+  // La glissière des Blocs refermée : le Plan, sans cible.
+  const closeLibrary = () => {
+    setLibraryOpen(false)
+    setSavedOpen(false)
+    setBoxTarget(null)
+  }
+  // Un clic sur le fond autour du téléphone : aucun bloc choisi, le Plan, l'Article.
+  const resetFeedEditor = () => {
+    setSelectedId(null)
+    closeLibrary()
+  }
+  // La glissière du bloc fermée : plus de bloc choisi, le focus au titre de la colonne.
+  const closeBlockPanel = () => {
+    setSelectedId(null)
+    focusSoon(() => document.getElementById(ARTICLE_TITLE_ID))
+  }
 
   const blocksValue = useMemo<BlocksEditorValue>(
     () => ({
@@ -1451,13 +1442,13 @@ function ContentEditor({
       addToBox,
       templateFor,
       detachBlock,
-      slash: feed ? slash : undefined,
+      onAddInBox: feed ? onAddInBox : undefined,
       withoutHandles: feed,
       linkedWithoutBar: feed,
     }),
     [
       feed,
-      slash,
+      onAddInBox,
       editable,
       selectedId,
       onUpdateBlock,
@@ -1472,7 +1463,11 @@ function ContentEditor({
 
   // La Lecture (éditeur du Fil) : les mêmes fichiers et modèles, rien de modifiable.
   const readOnlyBlocks = useMemo<BlocksEditorValue>(
-    () => ({ ...blocksValue, editable: false, slash: undefined }),
+    () => ({
+      ...blocksValue,
+      editable: false,
+      onAddInBox: undefined,
+    }),
     [blocksValue]
   )
 
@@ -1912,7 +1907,7 @@ function ContentEditor({
           onShow: () => {
             const first = warnedIds[0]
             if (!first) return
-            setLeftTab("plan")
+            closeLibrary()
             selectAndShow(first)
             // Sa ligne s'allume dans le plan, une fois l'onglet ouvert.
             highlightSoon(() =>
@@ -1926,13 +1921,13 @@ function ContentEditor({
         onRemoveCover={() => removePresentationFile("cover")}
       />
     ) : null
+  // Éditeur du Fil : le bloc choisi, dont les réglages glissent par-dessus l'Article.
+  const selectedBlock = selectedId
+    ? (findBlock(draft, selectedId)?.block ?? null)
+    : null
   const blockSettings = (
     <BlockSettings
-      empty={
-        <p className="text-sm text-muted-foreground">
-          {texts.editor.columns.noBlock}
-        </p>
-      }
+      onClose={closeBlockPanel}
       draft={draft}
       selectedId={selectedId}
       editable={editable}
@@ -1961,6 +1956,8 @@ function ContentEditor({
         onHover: setHoveredId,
         warningOf: (block) => blockWarning(block, mediaFor, templateFor),
         onMove: editable ? setDraft : undefined,
+        onAdd: editable ? () => openLibrary() : undefined,
+        onAddInBox: editable ? onAddInBox : undefined,
         actions: editable
           ? {
               onDuplicate,
@@ -2117,7 +2114,17 @@ function ContentEditor({
           rootLimit={rootLimit}
         />
       </BlocksEditorContext>
-      {draft.blocks.length === 0 && (
+      {/* Éditeur du Fil : un seul bouton, qui ouvre l'onglet Blocs ; c'est aussi là que va le
+          focus quand le dernier bloc est supprimé. */}
+      {feed && editable && draft.blocks.length === 0 && (
+        <AddBlockButton
+          id={ADD_BLOCK_ID}
+          large
+          label={texts.editor.add.label}
+          onClick={() => openLibrary()}
+        />
+      )}
+      {!feed && draft.blocks.length === 0 && (
         <Empty className="border border-dashed font-sans">
           <EmptyHeader>
             <EmptyTitle>
@@ -2135,12 +2142,9 @@ function ContentEditor({
           </EmptyHeader>
           {editable && (
             <div className="flex flex-wrap justify-center gap-2">
-              {insertableBlocks.map((definition, index) => (
+              {insertableBlocks.map((definition) => (
                 <Button
                   key={definition.type}
-                  // Éditeur du Fil (sans « Ajouter un bloc » en haut) : là où va le
-                  // focus quand le dernier bloc est supprimé.
-                  id={feed && index === 0 ? ADD_BLOCK_ID : undefined}
                   variant="outline"
                   size="sm"
                   onClick={() => addBlock(definition.type)}
@@ -2159,7 +2163,14 @@ function ContentEditor({
           )}
         </Empty>
       )}
-      {editable && draft.blocks.length > 0 && canAddRoot && (
+      {editable && draft.blocks.length > 0 && canAddRoot && feed && (
+        <AddBlockButton
+          className="mt-6"
+          label={texts.editor.add.label}
+          onClick={() => openLibrary()}
+        />
+      )}
+      {editable && draft.blocks.length > 0 && canAddRoot && !feed && (
         <div className="mt-6 flex justify-center font-sans">
           <AddBlockMenu
             variant="ghost"
@@ -2177,6 +2188,7 @@ function ContentEditor({
   )
 
   const sectionTitle = texts.sections[section].title
+  const SectionIcon = sections[section].icon
   const untitled = isTemplate
     ? texts.templates.list.untitled
     : texts.common.untitled
@@ -2399,58 +2411,91 @@ function ContentEditor({
                 focusMode && "hidden"
               )}
             >
-              {/* Une ligne, de la même hauteur que l'en-tête de droite : le retour, le titre,
-                  l'état de l'enregistrement en icône. */}
-              <div className="flex h-12 shrink-0 items-center gap-1 border-b px-4">
-                {/* La flèche alignée sur la marge de 16 px (son bouton déborde dans la marge). */}
-                <span className="-ml-1.5 flex">
-                  <BackLink section={section} compact />
-                </span>
-                <p
-                  className="min-w-0 flex-1 truncate font-semibold"
-                  aria-hidden
-                >
-                  {title.trim() || untitled}
-                </p>
-                {feedSaveStatus}
-              </div>
-              <Tabs
-                value={leftTab}
-                onValueChange={(value: LeftTab) => setLeftTab(value)}
-                className="min-h-0 flex-1 gap-0"
-              >
-                <div className="px-4 pt-3">
-                  <TabsList className="w-full">
-                    <TabsTrigger value="plan">
-                      <ListTree />
-                      {texts.editor.columns.plan}
-                    </TabsTrigger>
-                    <TabsTrigger value="blocks">
-                      <LayoutGrid />
-                      {texts.editor.columns.blocks}
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-                <TabsContent value="plan" className="min-h-0">
+              <div className="relative min-h-0 flex-1">
+                {/* Sous la glissière des Blocs : hors du clavier et des lecteurs d'écran. */}
+                <div inert={libraryOpen} className="h-full">
                   {outlinePanel}
-                </TabsContent>
-                <TabsContent value="blocks" className="min-h-0">
-                  <BlocksLibrary
-                    open={savedOpen}
-                    onOpenChange={setSavedOpen}
-                    editable={editable}
-                    canAdd={canAddRoot}
-                    onAdd={(type) => {
-                      toEdit()
-                      addBlock(type)
+                </div>
+                {/* Les Blocs, en glissière par-dessus le Plan : × ou Échap la referment. */}
+                {libraryOpen && (
+                  <section
+                    aria-labelledby="colonne-blocs-titre"
+                    className="absolute inset-0 z-20 flex flex-col bg-background motion-safe:animate-in motion-safe:slide-in-from-left-4"
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape" && !event.defaultPrevented) {
+                        event.preventDefault()
+                        closeLibrary()
+                        focusSoon(() => document.getElementById(LEFT_ADD_ID))
+                      }
                     }}
-                    onInsert={(template) => {
-                      toEdit()
-                      onInsertTemplate(template)
-                    }}
+                  >
+                    <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+                      <LayoutGrid
+                        aria-hidden
+                        className="size-4 shrink-0 text-muted-foreground"
+                      />
+                      <h2
+                        id="colonne-blocs-titre"
+                        className="min-w-0 flex-1 truncate text-sm font-semibold"
+                      >
+                        {texts.editor.columns.blocks}
+                      </h2>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="-mr-1.5"
+                              aria-label={texts.editor.library.close}
+                              onClick={() => {
+                                closeLibrary()
+                                focusSoon(() =>
+                                  document.getElementById(LEFT_ADD_ID)
+                                )
+                              }}
+                            />
+                          }
+                        >
+                          <X />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {texts.editor.library.close}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <div className="min-h-0 flex-1">
+                      <BlocksLibrary
+                        open={savedOpen}
+                        onOpenChange={setSavedOpen}
+                        editable={editable}
+                        canAdd={canAddRoot}
+                        inBox={targetBox !== null}
+                        onCancelTarget={() => setBoxTarget(null)}
+                        onAdd={addFromLibrary}
+                        onInsert={(template) => {
+                          toEdit()
+                          onInsertTemplate(template)
+                        }}
+                      />
+                    </div>
+                  </section>
+                )}
+              </div>
+              {/* En bas, de la même hauteur que le bas de la colonne de droite : le retour sur
+                  toute la hauteur, puis « Ajouter un bloc » sur toute la largeur qui reste. */}
+              <div className="flex h-feed-footer shrink-0 items-stretch border-t">
+                <BackLink section={section} compact />
+                <div className="flex min-w-0 flex-1 items-center px-4">
+                  {/* Le même bouton que dans le téléphone. */}
+                  <AddBlockButton
+                    id={LEFT_ADD_ID}
+                    label={texts.editor.add.label}
+                    disabled={!editable || !canAddRoot}
+                    onClick={() => openLibrary()}
                   />
-                </TabsContent>
-              </Tabs>
+                </div>
+              </div>
             </aside>
           )}
           {outlineOpen && !feed && (
@@ -2467,6 +2512,20 @@ function ContentEditor({
               feed
                 ? "flex min-w-0 flex-1 flex-col overflow-x-auto"
                 : "min-w-0 flex-1 overflow-y-auto"
+            }
+            data-backdrop={feed || undefined}
+            // Éditeur du Fil : un clic sur le fond autour du téléphone (data-backdrop) remet
+            // l'éditeur à son état de base. La souris seulement : au clavier, Échap et les onglets.
+            onClick={
+              feed
+                ? (event) => {
+                    if (
+                      event.target instanceof Element &&
+                      event.target.hasAttribute("data-backdrop")
+                    )
+                      resetFeedEditor()
+                  }
+                : undefined
             }
           >
             {feed ? (
@@ -2545,37 +2604,42 @@ function ContentEditor({
                 focusMode && "hidden"
               )}
             >
-              <Tabs
-                value={rightTab}
-                onValueChange={(value: RightTab) =>
-                  setRightChoice({ tab: value, selectedId })
-                }
-                className="min-h-0 flex-1 gap-0"
-              >
-                {/* Les onglets en tête de la colonne, à la hauteur de l'en-tête de gauche. */}
-                <div className="flex h-12 shrink-0 items-center border-b px-4">
-                  <TabsList className="w-full">
-                    <TabsTrigger value="article">
-                      {texts.editor.columns.article}
-                    </TabsTrigger>
-                    <TabsTrigger value="block">
-                      {texts.editor.columns.block}
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-                <TabsContent
-                  value="article"
-                  className="min-h-0 overflow-y-auto px-4 py-3"
+              {/* En tête, l'icône de la section et le titre de l'article (en entier dans
+                  l'infobulle s'il est coupé). */}
+              <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+                <SectionIcon
+                  aria-hidden
+                  className="size-5 shrink-0 text-muted-foreground"
+                />
+                <TruncatedText
+                  id={ARTICLE_TITLE_ID}
+                  text={title.trim() || untitled}
+                  className="text-base font-semibold outline-none"
+                />
+              </div>
+              <div className="relative min-h-0 flex-1">
+                <section
+                  aria-label={texts.editor.columns.article}
+                  // Sous la glissière du bloc : hors du clavier et des lecteurs d'écran.
+                  inert={selectedBlock !== null}
+                  className="h-full overflow-y-auto px-4 py-3"
                 >
                   {articlePanel}
-                </TabsContent>
-                <TabsContent value="block" className="min-h-0">
-                  {blockSettings}
-                </TabsContent>
-              </Tabs>
-              {/* En bas, dans les deux onglets : la lecture, la dernière modification, puis le
-                  cadenas (en lecture seule), l'état de publication et « Publier ». */}
-              <ArticleFooter stats={stats} savedAt={autosave.state.savedAt}>
+                </section>
+                {/* Les réglages du bloc choisi, en glissière par-dessus l'Article. */}
+                {selectedBlock && (
+                  <div className="absolute inset-0 z-10 bg-background motion-safe:animate-in motion-safe:slide-in-from-right-4">
+                    {blockSettings}
+                  </div>
+                )}
+              </div>
+              {/* En bas, toujours : la lecture, la dernière modification, puis le cadenas (en
+                  lecture seule), l'état de publication et « Publier ». */}
+              <ArticleFooter
+                stats={stats}
+                savedAt={autosave.state.savedAt}
+                saveStatus={feedSaveStatus}
+              >
                 {lockButton}
                 <PublicationBadge pub={pub} />
                 <span className="flex-1" />

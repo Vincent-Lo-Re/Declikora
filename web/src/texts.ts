@@ -1631,9 +1631,8 @@ export const texts = {
       // Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions »).
       count: (count: number) => (count === 1 ? "1 bloc" : `${count} blocs`),
       // Une ligne de section : son aspect, puis le nombre de ses blocs.
-      box: { fill: "Section à fond", border: "Section à bordure" },
+      box: { fill: "Section avec fond", border: "Section avec bordure" },
       boxCount: (count: number) => `${count}`,
-      dropInBox: "Glisse un texte ou une image ici",
       move: (label: string) => `Ranger dans le plan : ${label}`,
       collapse: (label: string) => `Replier ${label}`,
       expand: (label: string) => `Déplier ${label}`,
@@ -1651,8 +1650,6 @@ export const texts = {
         unavailable: "Le fichier ne s'affiche plus",
         missingTemplate: "Le modèle n'existe plus",
         emptyBox: "Vide : n'apparaîtra pas dans l'app",
-        count: (count: number) =>
-          count === 1 ? "1 point à vérifier" : `${count} points à vérifier`,
       },
     },
     toolbar: {
@@ -1783,21 +1780,13 @@ export const texts = {
     // Éditeur du Fil (ADMIN § 4) : les onglets des deux colonnes, et l'onglet « Article ».
     columns: {
       left: "Plan et blocs",
-      right: "Article et bloc choisi",
+      right: "Article et réglages du bloc",
       plan: "Plan",
       blocks: "Blocs",
       article: "Article",
-      block: "Bloc choisi",
-      noBlock: "Clique sur un bloc dans le téléphone pour voir ses réglages.",
     },
     // L'aperçu de l'éditeur du Fil : la barre d'outils à droite du téléphone, et ce que montre la
     // Lecture (le rendu de l'app reste provisoire tant qu'elle n'est pas dessinée).
-    // « / » au début d'un texte vide (éditeur du Fil).
-    slash: {
-      placeholder: "Écris ici, ou tape « / » pour ajouter un bloc",
-      title: "Ajouter un bloc",
-      mine: "Mes blocs…",
-    },
     // Le mode Concentration de l'éditeur du Fil : les deux colonnes se cachent.
     focusMode: {
       label: "Concentration",
@@ -1857,6 +1846,13 @@ export const texts = {
       hint: "Clique sur un bloc pour l'ajouter sous le bloc choisi (ou à la fin), ou glisse-le dans le téléphone.",
       basics: "Blocs de base",
       addLabel: (label: string) => `Ajouter un bloc ${label}`,
+      // La glissière des Blocs, par-dessus le Plan (éditeur du Fil).
+      close: "Fermer les blocs",
+      // La cible d'un ajout : « Ajouter dans la section ».
+      target: {
+        box: "Ajout dans la section : texte ou image.",
+        cancel: "Annuler",
+      },
       mine: {
         title: "Mes blocs",
         count: (count: number) =>
@@ -1916,14 +1912,14 @@ export const texts = {
         add: "Nouvelle",
       },
       stats: {
-        reading: (minutes: number) =>
-          `Environ ${Math.max(minutes, 1)} min de lecture`,
         words: (count: string) =>
           count === "0" || count === "1" ? `${count} mot` : `${count} mots`,
         saved: (date: string) => `Modifié le ${date}`,
-        // En bas de la colonne : court (la date complète dans l'infobulle).
+        // En bas de la colonne : court (la phrase entière et la date complète dans l'infobulle).
         short: (minutes: number, words: string) =>
           `${Math.max(minutes, 1)} min · ${words}`,
+        readingTip: (minutes: number, words: string) =>
+          `Environ ${Math.max(minutes, 1)} min de lecture, ${words}`,
         savedAt: (time: string) => `Modifié à ${time}`,
         savedOn: (day: string) => `Modifié le ${day}`,
       },
@@ -1931,7 +1927,9 @@ export const texts = {
     settings: {
       label: "Réglages du bloc",
       title: (label: string) => `Réglages : ${label}`,
-      // Éditeur du Fil : la barre d'icônes en bas de l'onglet « Bloc choisi ».
+      // Éditeur du Fil : fermer la glissière du bloc (plus de bloc choisi).
+      close: "Fermer",
+      // Éditeur du Fil : la barre d'icônes en bas de la glissière du bloc.
       actions: "Actions du bloc",
       none: "Choisis un bloc dans l'aperçu pour voir ses réglages.",
       readOnly: "Lecture seule : tu ne peux rien modifier.",
