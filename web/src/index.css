@@ -139,6 +139,17 @@
   height: --spacing(20);
 }
 
+/* Éditeur du Fil : une trame de points au fond de la colonne centrale, tous les 16 px ; la couleur
+   du texte, presque transparente (pas de couleur nouvelle), en clair comme en sombre. */
+@utility bg-dot-grid {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--foreground) 12%, transparent) 1px,
+    transparent 1.2px
+  );
+  background-size: --spacing(4) --spacing(4);
+}
+
 /* Fenêtre de formulaire longue (création d'un contenu) : elle défile au-delà de 9/10 de l'écran. */
 @utility max-h-dialog {
   max-height: 90svh;
@@ -175,6 +186,20 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /* La main au survol de ce qui se clique (Tailwind CSS 4 laisse la flèche sur les boutons). Une
+     classe cursor-… d'un composant l'emporte (poignées, lignes de menu). */
+  :is(
+    button,
+    [role="button"],
+    [role="tab"],
+    [role="checkbox"],
+    [role="switch"],
+    [role="radio"],
+    [role="option"],
+    summary
+  ):not(:disabled, [aria-disabled="true"], [data-disabled]) {
+    cursor: pointer;
   }
   html {
     @apply font-sans;

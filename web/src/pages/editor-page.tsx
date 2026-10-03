@@ -2510,7 +2510,7 @@ function ContentEditor({
           <main
             className={
               feed
-                ? "flex min-w-0 flex-1 flex-col overflow-x-auto"
+                ? "flex min-w-0 flex-1 flex-col overflow-x-auto bg-dot-grid"
                 : "min-w-0 flex-1 overflow-y-auto"
             }
             data-backdrop={feed || undefined}
