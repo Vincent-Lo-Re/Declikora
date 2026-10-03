@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest"
 import {
   CategoryError,
   categoryNames,
-  categorySectionOf,
   isCategoryAccessLost,
   toCategoryError,
   versionCategoryNames,
@@ -30,13 +29,6 @@ function pgError(changes: Partial<PostgrestError>): PostgrestError {
 }
 
 describe("catégories", () => {
-  it("Blog pour un article, Podcasts pour un épisode, rien sinon", () => {
-    expect(categorySectionOf("article")).toBe("blog")
-    expect(categorySectionOf("episode")).toBe("podcasts")
-    expect(categorySectionOf("page")).toBeNull()
-    expect(categorySectionOf("method")).toBeNull()
-  })
-
   it("donne les noms dans l'ordre de la section, sans les catégories supprimées ([D28])", () => {
     expect(categoryNames(["c3", "c1", "disparue"], categories)).toEqual([
       "Sommeil",

@@ -5,45 +5,8 @@
 
 import type { BlockMedia } from "@/blocks/components/context"
 import type { Draft } from "@/blocks/types"
-
-/** Sortes dont le titre est obligatoire pour publier ([D49]) : tout sauf un modèle de bloc. */
-export function titleRequired(kind: string): boolean {
-  return kind !== "template"
-}
-
-/** Sortes dont l'image de présentation est obligatoire pour publier ([D45]). */
-export function coverRequired(kind: string): boolean {
-  return kind === "article" || kind === "episode" || kind === "method"
-}
-
-/** Sortes qui ont un audio (obligatoire pour publier). */
-export function hasAudio(kind: string): boolean {
-  return kind === "episode"
-}
-
-/** Sortes qui montrent une présentation (image de présentation) en tête de l'éditeur. */
-export type PresentationKind =
-  "article" | "episode" | "method" | "chapter" | "lesson"
-
-/**
- * Sortes qui montrent une présentation en tête de l'éditeur : l'image de présentation n'est
- * exigée que pour un article, un épisode ou une méthode ([D45]) ; un chapitre et une leçon
- * peuvent en avoir une (app_method la donne), sans obligation.
- */
-export function hasPresentation(kind: string): kind is PresentationKind {
-  return (
-    kind === "article" ||
-    kind === "episode" ||
-    kind === "method" ||
-    kind === "chapter" ||
-    kind === "lesson"
-  )
-}
-
-/** Sortes qui ont des catégories (Blog, Podcasts). */
-export function hasCategories(kind: string): boolean {
-  return kind === "article" || kind === "episode"
-}
+import type { ContentKind } from "@/lib/contents/api"
+import { contentProfile } from "@/lib/editor/profile"
 
 /**
  * Ce qui manque : le titre, l'image de présentation ou l'audio, absent (missing) ou plus
@@ -84,21 +47,22 @@ function fileState(
  * l'éditeur sait des fichiers cités (le même que pour les blocs Image).
  */
 export function publishChecks(
-  kind: string,
+  kind: ContentKind,
   draft: Pick<Draft, "title" | "cover" | "audio">,
   mediaFor: (mediaId: string | null) => BlockMedia
 ): PublishChecks {
+  const profile = contentProfile(kind)
   const missing: Requirement[] = []
   const advice: Advice[] = []
   // Comme la base : des espaces ne font pas un titre, et il est demandé en premier.
-  if (titleRequired(kind) && draft.title.trim() === "") {
+  if (profile.titleRequired && draft.title.trim() === "") {
     missing.push({ key: "title", state: "missing" })
   }
-  if (coverRequired(kind)) {
+  if (profile.cover === "required") {
     const state = fileState(mediaFor(draft.cover?.mediaId ?? null), "image")
     if (state) missing.push({ key: "cover", state })
   }
-  if (hasAudio(kind)) {
+  if (profile.audio) {
     const audio = mediaFor(draft.audio?.mediaId ?? null)
     const state = fileState(audio, "audio")
     if (state) missing.push({ key: "audio", state })

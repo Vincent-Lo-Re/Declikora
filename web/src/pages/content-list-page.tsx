@@ -83,11 +83,7 @@ import {
   listAccessLevels,
   type AccessLevel,
 } from "@/lib/access-levels"
-import {
-  categoryNames,
-  categorySectionOf,
-  type Category,
-} from "@/lib/categories"
+import { categoryNames, type Category } from "@/lib/categories"
 import {
   ContentError,
   contentKeys,
@@ -108,7 +104,7 @@ import {
 } from "@/lib/contents/list-filters"
 import { restoreContent, trashContent } from "@/lib/contents/publication"
 import { createWithSettings } from "@/lib/contents/settings"
-import { coverRequired } from "@/lib/contents/requirements"
+import { contentProfile } from "@/lib/editor/profile"
 import { listStarters, templateKeys } from "@/lib/contents/templates"
 import { useCategories } from "@/hooks/use-categories"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
@@ -145,7 +141,7 @@ export function ContentListPage({
 }) {
   const { title, description } = texts.sections[section]
   const kindLabels = labels.kinds[kind]
-  const categorySection = categorySectionOf(kind)
+  const categorySection = contentProfile(kind).categories
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
@@ -646,10 +642,11 @@ function ContentTable({
   // recherche, un filtre ou un enregistrement (on ne range que la liste complète).
   order?: { disabled: boolean; onReorder: (ids: string[]) => void }
 }) {
-  const withCategories = kind === "article" || kind === "episode"
+  const profile = contentProfile(kind)
+  const withCategories = profile.categories !== null
   const isMethod = kind === "method"
   // Le Fil, Radio Éclaircies, Méthodes : l'image de présentation de chacun, en vignette.
-  const withCover = coverRequired(kind)
+  const withCover = profile.cover === "required"
   const coverFor = useCovers(withCover ? items : [])
   const table = (
     <Table>

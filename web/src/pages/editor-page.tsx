@@ -1,9 +1,4 @@
-import {
-  keepPreviousData,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { Editor } from "@tiptap/react"
 import { cn } from "cn"
 import {
@@ -27,7 +22,7 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from "react"
-import { Link, useBlocker, useNavigate, useParams } from "react-router"
+import { Link, useBlocker, useParams } from "react-router"
 import { toast } from "sonner"
 
 import "@/blocks/components/preview.css"
@@ -35,16 +30,13 @@ import "@/blocks/components/preview.css"
 import { BlockCanvas } from "@/blocks/components/block-canvas"
 import {
   BlocksEditorContext,
-  type BlockMedia,
   type BlocksEditorValue,
-  type LinkedTemplateState,
 } from "@/blocks/components/context"
 import { singleLine, useAutoHeight } from "@/blocks/components/fields"
 import {
   blocksOf,
   DRAFT_WARN_BYTES,
   draftBytes,
-  draftToPlainText,
   findBlock,
   flattenBlocks,
   insertBlock,
@@ -67,18 +59,19 @@ import {
   detachLinked,
   insertTemplate,
   linkedBlock,
-  linkedTemplateIds,
-  selectedRootIds,
-  SHARED_ROOT_LIMIT,
-  singleBlock,
 } from "@/blocks/templates"
-import { ROOT, type Block, type Draft, type ImageBlock } from "@/blocks/types"
+import { ROOT, type Block, type ImageBlock } from "@/blocks/types"
 import { AddBlockButton } from "@/components/editor/add-block-button"
 import { BlockSettings } from "@/components/editor/block-settings"
+import { useDraftMedia } from "@/components/editor/use-draft-media"
+import { useDraftSync } from "@/components/editor/use-draft-sync"
+import { useLinkedTemplates } from "@/components/editor/use-linked-templates"
+import { useMethodContext } from "@/components/editor/use-method-context"
+import { usePhoneDrop } from "@/components/editor/use-phone-drop"
+import { useSaveAsTemplate } from "@/components/editor/use-save-as-template"
 import { ColumnHeader } from "@/components/editor/column-header"
 import {
   ContentSettingsSheet,
-  type RefusedSlug,
   type SettingsFocus,
 } from "@/components/editor/content-settings-sheet"
 import {
@@ -117,13 +110,9 @@ import {
   ScheduleBanner,
 } from "@/components/editor/publication"
 import { SaveStatus } from "@/components/editor/save-status"
-import {
-  usePublication,
-  type MethodPublication,
-} from "@/components/editor/use-publication"
+import { usePublication } from "@/components/editor/use-publication"
 import { ElementBanner } from "@/components/methods/element-banner"
 import { MethodOutline } from "@/components/methods/method-outline"
-import { usePreviewUrlsState } from "@/components/media/use-preview-urls"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TemplateDialog } from "@/components/templates/template-dialog"
 import {
@@ -164,67 +153,26 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import {
-  saveCheckedDraft,
-  useAutosave,
-  type EditorValue,
-} from "@/hooks/use-autosave"
 import { useCategories } from "@/hooks/use-categories"
-import { useEditLock } from "@/hooks/use-edit-lock"
 import { useLockDialog } from "@/hooks/use-lock-dialog"
 import { accessLevelsKey, listAccessLevels } from "@/lib/access-levels"
-import {
-  categoryKeys,
-  categoryNames,
-  categorySectionOf,
-} from "@/lib/categories"
+import { categoryNames } from "@/lib/categories"
 import {
   ContentError,
   contentKeys,
   contentProblemText,
   getContent,
-  getMediaByIds,
-  sameCategories,
-  settingsDiff,
-  settingsOf,
   type Content,
   type ContentKind,
-  type ContentSettings,
-  type SettingsPayload,
 } from "@/lib/contents/api"
+import { methodKeys } from "@/lib/contents/methods"
+import { parseLiveOutline } from "@/lib/contents/outline"
+import { revertToVersion, type VersionItem } from "@/lib/contents/publication"
+import { publishChecks, readyItems } from "@/lib/contents/requirements"
 import {
-  getElementContext,
-  getMethodPreview,
-  getMethodTree,
-  methodKeys,
-} from "@/lib/contents/methods"
-import {
-  elementState,
-  liveIds,
-  parseLiveOutline,
-  previewByElement,
-} from "@/lib/contents/outline"
-import {
-  getPublication,
-  publicationStatus,
-  revertToVersion,
-  type ScheduleState,
-  type VersionItem,
-} from "@/lib/contents/publication"
-import {
-  coverRequired,
-  hasPresentation,
-  publishChecks,
-  readyItems,
-  titleRequired,
-} from "@/lib/contents/requirements"
-import {
-  createTemplateFrom,
-  getTemplatesByIds,
   isTemplateFor,
   isTemplateSort,
   templateKeys,
-  type LinkedTemplate,
   type TemplateItem,
 } from "@/lib/contents/templates"
 import {
@@ -232,29 +180,23 @@ import {
   previewLocked,
   type PreviewSettings,
 } from "@/lib/editor/preview"
+import {
+  blockAnchor,
+  focusBlockSoon,
+  focusOnceShown,
+} from "@/lib/editor/block-focus"
 import { isApple, isFocusShortcut } from "@/lib/editor/focus-mode"
+import { contentProfile, hasPresentation } from "@/lib/editor/profile"
 import { lockSituation } from "@/lib/editor/lock-view"
 import { blockWarning, duplicateBlock } from "@/lib/editor/outline"
-import {
-  decodeLibraryDrag,
-  dropIndex,
-  LIBRARY_DRAG_TYPE,
-  type LibraryDrag,
-} from "@/lib/editor/library-drag"
+import { type LibraryDrag } from "@/lib/editor/library-drag"
 import { liveBoxTarget } from "@/lib/editor/library-target"
 import { errorMessage } from "@/lib/errors"
 import { focusSoon, highlightSoon } from "@/lib/focus"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
-import type { TemplateValues } from "@/lib/schemas"
 import { editorPath, sections, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
-
-// Nouvel essai de relecture du brouillon après un échec (réseau).
-const RELOAD_RETRY_MS = 3000
-
-// Refus de save_draft qui viennent d'un réglage (et non du brouillon).
-const SLUG_REFUSALS = new Set(["adresse_prise", "adresse_invalide"])
 
 // Le choix d'un fichier pour la présentation (et non pour un bloc Image, dont l'id est un uuid).
 const COVER_PICKER = "presentation:cover"
@@ -446,39 +388,6 @@ function BackLink({
   )
 }
 
-/**
- * Met le focus sur un élément dès qu'il apparaît (dans les prochains rendus), même si un panneau
- * est ouvert : contrairement à focusSoon (lib/focus.ts), qui attend qu'aucune fenêtre ne le soit.
- */
-function focusOnceShown(find: () => HTMLElement | null, attempts = 20) {
-  const element = find()
-  if (element) {
-    element.focus()
-    return
-  }
-  if (attempts > 0) {
-    requestAnimationFrame(() => focusOnceShown(find, attempts - 1))
-  }
-}
-
-/**
- * Où va le focus après un geste sur un bloc (voisin d'un bloc supprimé, bloc détaché, modèle
- * inséré) : sa poignée dans l'aperçu (et non celle d'un bloc de sa section) ; dans l'éditeur du
- * Fil, dont l'aperçu n'a pas de poignée, sa ligne du plan.
- */
-function blockAnchor(id: string, feed: boolean): HTMLElement | null {
-  if (feed) {
-    return document.querySelector<HTMLElement>(`[data-outline-id="${id}"]`)
-  }
-  return (
-    document
-      .querySelector(`[data-block-id="${id}"]`)
-      ?.querySelector<HTMLElement>(
-        ":scope > .blocks-handle-rail [data-block-handle]"
-      ) ?? null
-  )
-}
-
 /** « Choisir… » ou « Changer… » de l'image de présentation ou de l'audio, dans le panneau. */
 function presentationChooseButton(key: "cover" | "audio"): HTMLElement | null {
   return document.querySelector<HTMLElement>(
@@ -495,46 +404,6 @@ const LEFT_ADD_ID = "colonne-gauche-ajouter"
 // se ferme).
 const ARTICLE_TITLE_ID = "colonne-article-titre"
 
-/** « Copier mon texte » : le brouillon en texte simple, dans le presse-papiers. */
-async function copyText(draft: Draft) {
-  try {
-    await navigator.clipboard.writeText(draftToPlainText(draft))
-    toast.success(texts.editor.lock.copied)
-  } catch {
-    toast.error(texts.editor.lock.copyFailed)
-  }
-}
-
-/**
- * Met le curseur dans un bloc qui vient d'apparaître (l'éditeur Tiptap se crée juste après).
- * `top` : le bloc monte en haut de l'écran du téléphone (choisi dans le plan du Fil) ; sinon,
- * l'écran ne défile que s'il le faut.
- */
-function focusBlockSoon(id: string, attempts = 20, top = false) {
-  const element = document.querySelector<HTMLElement>(`[data-block-id="${id}"]`)
-  const found = element?.querySelector<HTMLElement>('[contenteditable="true"]')
-  // Le texte du bloc lui-même : pas celui d'un bloc de sa section, qui deviendrait le bloc
-  // choisi en recevant le curseur.
-  const editable =
-    found && found.closest("[data-block-id]") === element ? found : null
-  const scroll = () =>
-    element?.scrollIntoView({
-      block: top ? "start" : "nearest",
-      behavior: "smooth",
-    })
-  if (editable) {
-    // D'abord le curseur, puis le défilement : le navigateur ramène l'écran au curseur quand il
-    // le pose, ce qui interromprait un défilement déjà commencé.
-    editable.focus({ preventScroll: true })
-    requestAnimationFrame(scroll)
-    return
-  }
-  scroll()
-  if (attempts > 0) {
-    requestAnimationFrame(() => focusBlockSoon(id, attempts - 1, top))
-  }
-}
-
 function ContentEditor({
   initial,
   section,
@@ -547,42 +416,27 @@ function ContentEditor({
   const contentId = initial.id
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
-  const navigate = useNavigate()
-  // Un modèle : le même éditeur, sans publication ni réglages d'accès (ADMIN § 5).
+  // Un modèle : le même éditeur, sans publication ni réglages d'accès (ADMIN § 5) ; son nom et sa
+  // liste sont les siens.
   const isTemplate = kind === "template"
   const templateSort =
     isTemplate && isTemplateSort(initial.template_sort)
       ? initial.template_sort
       : null
   const isShared = templateSort === "shared"
-  // Une méthode : sa fiche et son plan, sans blocs ([D4]). Un chapitre ou une leçon : l'éditeur
-  // de blocs, sans barre de publication (tout part avec la méthode, [D29]).
-  const isMethod = kind === "method"
+  // Ce que demande cette sorte de contenu et ce que montre son éditeur (lib/editor/profile.ts).
+  const [profile] = useState(() => contentProfile(kind, templateSort))
+  // Une méthode : sa fiche et son plan, sans blocs ([D4]).
+  const isMethod = profile.layout === "method"
   // L'éditeur du Fil (ADMIN § 4) : le Plan à gauche, l'Article à droite, sans onglets ni barre du
-  // haut. Les autres éditeurs gardent leur mise en page.
-  const feed = kind === "article"
+  // haut. Les autres sortes y passent une à une (« Le builder du Fil partout »).
+  const feed = profile.layout === "feed"
+  // Un chapitre ou une leçon : publié avec sa méthode, sans barre de publication ([D29]).
   const elementKind = kind === "chapter" || kind === "lesson" ? kind : null
-  const isElement = elementKind !== null
-  // Image de présentation (article, épisode, méthode, chapitre, leçon) ; catégories pour un
-  // article ou un épisode, audio pour un épisode.
+  const isElement = profile.publication === "method"
+  // Image de présentation (article, épisode, méthode, chapitre, leçon), catégories, audio.
   const presentationKind = hasPresentation(kind) ? kind : null
-  const categorySection = categorySectionOf(kind)
-  // Cette ouverture de l'éditeur : le verrou est tenu par elle, pas seulement par le membre.
-  const [editorSession] = useState(() => crypto.randomUUID())
-
-  const [draft, setDraft] = useState<Draft>(initial.draft)
-  // Réglages du contenu (niveau d'accès, adresse) : enregistrés avec le brouillon.
-  const [initialSettings] = useState(() => settingsOf(initial))
-  const [settings, setSettings] = useState<ContentSettings>(initialSettings)
-  // Les réglages tels qu'ils sont dans la base : seuls ceux qui changent partent.
-  const savedSettings = useRef<ContentSettings>(initialSettings)
-  // Les réglages du dernier envoi (pour reconnaître le refus d'un réglage).
-  const sentSettings = useRef<SettingsPayload | null>(null)
-  const [refusedSlug, setRefusedSlug] = useState<RefusedSlug | null>(null)
-  // Révision du brouillon affiché (celle de la base au dernier chargement ou enregistrement).
-  const [loadedRev, setLoadedRev] = useState(initial.draft_rev)
-  // Change à chaque rechargement depuis la base : les blocs repartent du nouveau brouillon.
-  const [viewKey, setViewKey] = useState(0)
+  const categorySection = profile.categories
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [outlineOpen, setOutlineOpen] = useState(feed)
   // Éditeur du Fil : pas d'onglets. À gauche, le Plan, et les Blocs en glissière par-dessus ; à
@@ -591,7 +445,6 @@ function ContentEditor({
   // Éditeur du Fil : après « Ajouter dans la section », la section où les Blocs ajouteront ;
   // valable tant qu'elle est le bloc choisi (liveBoxTarget).
   const [boxTarget, setBoxTarget] = useState<string | null>(null)
-  const targetBox = liveBoxTarget(draft, boxTarget, selectedId)
   // Le texte qui a eu le curseur en dernier, avec son bloc.
   const [activeText, setActiveText] = useState<{
     blockId: string
@@ -617,18 +470,6 @@ function ContentEditor({
     key: "cover" | "audio"
     returnTo: Element | null
   } | null>(null)
-  // Ce qui n'était pas enregistré quand on a perdu la main (« Copier mon texte »).
-  const [stash, setStash] = useState<Draft | null>(null)
-  // Fichiers choisis à l'instant : affichés sans attendre la relecture de la base.
-  const [picked, setPicked] = useState<Record<string, Media>>({})
-  // La dernière valeur venue de la base ou confiée à l'enregistrement : un rendu qui ne la
-  // change pas n'est pas une modification à enregistrer.
-  const synced = useRef<EditorValue>({
-    draft: initial.draft,
-    settings: initialSettings,
-  })
-  // Vrai après « Reprendre la main » ou « Modifier » : l'enregistrement reprend.
-  const resume = useRef(false)
   // Annonce pour les lecteurs d'écran (bloc monté ou descendu).
   const [announcement, setAnnouncement] = useState("")
   // Éditeur du Fil : le mode Concentration cache les deux colonnes (⌘ . ou Ctrl + ., Échap).
@@ -668,441 +509,79 @@ function ContentEditor({
   // Méthode : le moment (dans ce navigateur) où sa fiche a été enregistrée pour la dernière fois.
   const [ficheSavedAt, setFicheSavedAt] = useState(0)
 
-  const autosave = useAutosave(
-    { rev: initial.draft_rev, savedAt: initial.draft_saved_at },
-    {
-      onSaved: (result, saved) => {
-        setLoadedRev(result.rev)
-        savedSettings.current = saved.settings
-        queryClient.setQueryData<Content | null>(
-          contentKeys.detail(contentId),
-          (old) =>
-            old && {
-              ...old,
-              draft: saved.draft,
-              title: saved.draft.title,
-              draft_rev: result.rev,
-              draft_saved_at: result.savedAt,
-              access_chosen: saved.settings.accessChosen,
-              access_level_id: saved.settings.accessLevelId,
-              slug: saved.settings.slug,
-              category_ids: saved.settings.categoryIds,
-              // Un chapitre ou une leçon : rouvert plus tard, il montre les cases enregistrées.
-              in_app: saved.settings.inApp,
-              is_free: saved.settings.isFree,
-            }
-        )
-        // « Utilisé dans » de la médiathèque et liste des pages.
+  // Le brouillon et ses réglages, tenus à jour avec la base (enregistrement, verrou, relecture).
+  // Après chaque enregistrement : ce qui en dépend ailleurs est relu.
+  const {
+    editorSession,
+    draft,
+    setDraft,
+    settings,
+    setSettings,
+    refusedSlug,
+    setRefusedSlug,
+    loadedRev,
+    viewKey,
+    autosave,
+    lock,
+    editable,
+    mustReload,
+    reloadFailed,
+    reload,
+    take,
+    prepare,
+    applySettings,
+    canCopy,
+    copy: onCopy,
+    dismissStash,
+  } = useDraftSync({
+    initial,
+    afterSave: () => {
+      // « Utilisé dans » de la médiathèque et liste des pages.
+      void queryClient.invalidateQueries({ queryKey: mediaKeys.allUses })
+      // Une méthode, un chapitre ou une leçon : le plan (titres, dernières modifications) et ce
+      // qui changera dans l'app (état de l'élément, ce qui ferait refuser la publication).
+      if (isMethod || isElement) {
+        void queryClient.invalidateQueries({ queryKey: methodKeys.allTrees })
         void queryClient.invalidateQueries({
-          queryKey: mediaKeys.allUses,
+          queryKey: methodKeys.allPreviews,
         })
-        // Une méthode, un chapitre ou une leçon : le plan (titres, dernières modifications) et ce
-        // qui changera dans l'app (état de l'élément, ce qui ferait refuser la publication).
-        if (isMethod || isElement) {
-          void queryClient.invalidateQueries({
-            queryKey: methodKeys.allTrees,
-          })
-          void queryClient.invalidateQueries({
-            queryKey: methodKeys.allPreviews,
-          })
-        }
-        // La fiche d'une méthode vient de changer : « Modifié depuis la publication ».
-        if (isMethod) setFicheSavedAt(Date.now())
+      }
+      // La fiche d'une méthode vient de changer : « Modifié depuis la publication ».
+      if (isMethod) setFicheSavedAt(Date.now())
+      void queryClient.invalidateQueries({ queryKey: contentKeys.list(kind) })
+      // Un modèle : sa liste, les contenus à mettre à jour dans l'app, les brouillons qui le
+      // montrent (bloc lié). Un contenu : les brouillons qui utilisent chaque modèle, et ce qui
+      // est à mettre à jour dans l'app (un bloc lié ajouté, retiré ou détaché).
+      if (isTemplate) {
+        void queryClient.invalidateQueries({ queryKey: templateKeys.all })
+      } else {
+        void queryClient.invalidateQueries({ queryKey: templateKeys.uses })
         void queryClient.invalidateQueries({
-          queryKey: contentKeys.list(kind),
+          queryKey: templateKeys.allOutdated,
         })
-        // Un modèle : sa liste, les contenus à mettre à jour dans l'app, les brouillons qui le
-        // montrent (bloc lié). Un contenu : les brouillons qui utilisent chaque modèle, et ce qui
-        // est à mettre à jour dans l'app (un bloc lié ajouté, retiré ou détaché).
-        if (isTemplate) {
-          void queryClient.invalidateQueries({ queryKey: templateKeys.all })
-        } else {
-          void queryClient.invalidateQueries({ queryKey: templateKeys.uses })
-          void queryClient.invalidateQueries({
-            queryKey: templateKeys.allOutdated,
-          })
-        }
-      },
-      onStopped: (error) => checkAccess(error),
-      // L'éditeur fermé sans que la dernière modification ait pu partir : le message reste
-      // après la fermeture, avec « Copier mon texte ».
-      onUnsavedAtClose: (value) =>
-        toast.error(texts.editor.save.unsavedAtClose, {
-          duration: Infinity,
-          action: {
-            label: texts.editor.lock.copy,
-            onClick: () => void copyText(value.draft),
-          },
-        }),
+      }
     },
-    // Les réglages envoyés sont ceux qui diffèrent de la base au moment de l'envoi : une
-    // valeur rejouée après une réponse perdue repart avec les mêmes.
-    (value, baseRev) => {
-      const payload = settingsDiff(savedSettings.current, value.settings)
-      sentSettings.current = payload
-      return saveCheckedDraft(
-        contentId,
-        editorSession,
-        value.draft,
-        baseRev,
-        payload
-      )
-    }
-  )
-  const saving = autosave.controller
-  const lock = useEditLock(contentId, editorSession, () => saving.flush())
-  const { notifyLost } = lock
+  })
   const phase = lock.state.phase
   const serverRev = lock.state.draftRev
   const holderIsMe = lock.state.holderId === lock.myId
   // Éditeur du Fil : la lecture seule passe par le cadenas et sa fenêtre (ADMIN § 4).
   const lockView = feed ? lockSituation(lock.state, holderIsMe) : null
   const lockDialog = useLockDialog(lockView)
+  // Éditeur du Fil : la section où les Blocs ajouteront, tant qu'elle est le bloc choisi.
+  const targetBox = liveBoxTarget(draft, boxTarget, selectedId)
 
-  // serverRev ne suit que les autres (edit-lock.ts) : nos propres enregistrements, vus par
-  // Realtime avant leur réponse, ne rendent pas l'aperçu non modifiable.
-  const editable =
-    phase === "mine" &&
-    autosave.state.status !== "stopped" &&
-    (serverRev ?? loadedRev) <= loadedRev
+  // --- Blocs liés (blocs partagés) et fichiers ----------------------------------------------
 
-  // Chaque modification du brouillon ou des réglages part à l'enregistrement automatique.
-  useEffect(() => {
-    const last = synced.current
-    if (draft === last.draft && settings === last.settings) return
-    synced.current = { draft, settings }
-    saving.change(synced.current)
-  }, [draft, settings, saving])
-
-  // Un réglage refusé (adresse prise ou invalide, formule supprimée) : la base refuse tout
-  // l'envoi. Le réglage revient à sa valeur enregistrée et le brouillon repart sans lui ;
-  // sinon chaque enregistrement suivant le renverrait et serait refusé à son tour.
-  const failedError =
-    autosave.state.status === "failed" ? autosave.state.error : null
-  useEffect(() => {
-    const sent = sentSettings.current
-    const code = failedError?.code
-    if (!failedError || !sent || !code) return
-    const saved = savedSettings.current
-    const latest = synced.current.settings
-    let next = latest
-    if (SLUG_REFUSALS.has(code) && sent.slug !== undefined) {
-      setRefusedSlug({ slug: sent.slug, message: failedError.message })
-      if (latest.slug === sent.slug) next = { ...latest, slug: saved.slug }
-    } else if (
-      code === "categorie_invalide" &&
-      sent.category_ids !== undefined
-    ) {
-      // Une catégorie a été supprimée entre-temps ([D28]) : la liste est relue, et le choix
-      // revient à celui de la base (qui l'a déjà perdue).
-      void queryClient.invalidateQueries({ queryKey: categoryKeys.all })
-      if (sameCategories(latest.categoryIds, sent.category_ids)) {
-        next = { ...latest, categoryIds: saved.categoryIds }
-      }
-    } else if (
-      code === "niveau_invalide" &&
-      sent.access_level_id !== undefined
-    ) {
-      void queryClient.invalidateQueries({ queryKey: accessLevelsKey })
-      if (
-        latest.accessChosen &&
-        latest.accessLevelId === sent.access_level_id
-      ) {
-        next = {
-          ...latest,
-          accessChosen: saved.accessChosen,
-          accessLevelId: saved.accessLevelId,
-        }
-      }
-    } else {
-      return
-    }
-    sentSettings.current = null
-    toast.error(failedError.message, {
-      description: texts.publication.settings.refused,
-    })
-    // Le réglage revient en arrière : l'effet ci-dessus renvoie le brouillon. Sinon, un réglage
-    // plus récent attend déjà : on le renvoie.
-    if (next !== latest) setSettings(next)
-    else saving.change(synced.current)
-  }, [failedError, queryClient, saving])
-
-  // La base a refusé l'enregistrement parce qu'un autre a pris la main.
-  useEffect(() => {
-    if (autosave.state.error?.code === "verrou_perdu") notifyLost()
-  }, [autosave.state.error, notifyLost])
-
-  // Main perdue : plus d'enregistrement ; ce qui est à l'écran reste copiable.
-  useEffect(() => {
-    if (lock.state.lost) saving.stop()
-  }, [lock.state.lost, saving])
-
-  /**
-   * Relit le brouillon dans la base. Une vraie lecture à chaque appel (jamais celle d'une
-   * relecture déjà en cours, qui peut être plus ancienne), hors de la requête observée par
-   * EditorPage : son échec ne ferme pas l'éditeur.
-   */
-  const fetchFresh = useCallback(async () => {
-    const fresh = await getContent(contentId)
-    if (fresh && !fresh.deleted_at) {
-      queryClient.setQueryData(contentKeys.detail(contentId), fresh)
-    }
-    return fresh
-  }, [queryClient, contentId])
-
-  /** Remplace le brouillon affiché par celui de la base. */
-  const applyFresh = useCallback(
-    (fresh: Content | null) => {
-      // Une lecture plus ancienne que la révision affichée (arrivée en retard) : sans effet.
-      if (!fresh || fresh.draft_rev < saving.state.rev) return
-      const pending = saving.unsavedValue
-      if (pending) setStash(pending.draft)
-      const freshSettings = settingsOf(fresh)
-      savedSettings.current = freshSettings
-      synced.current = { draft: fresh.draft, settings: freshSettings }
-      saving.reset(fresh.draft_rev, fresh.draft_saved_at)
-      setDraft(fresh.draft)
-      setSettings(freshSettings)
-      setRefusedSlug(null)
-      setLoadedRev(fresh.draft_rev)
-      setViewKey((key) => key + 1)
-    },
-    [saving]
-  )
-
-  const reload = () => {
-    void fetchFresh()
-      .then(applyFresh)
-      .catch((error: unknown) => {
-        checkAccess(error)
-        toast.error(texts.editor.lock.reloadFailed)
-      })
-  }
-
-  // Le brouillon a changé dans la base (quelqu'un d'autre écrit) : on le relit.
-  const mustReload =
-    serverRev !== null &&
-    serverRev > loadedRev &&
-    !(
-      phase === "mine" &&
-      autosave.state.status !== "stopped" &&
-      autosave.state.unsaved
-    )
-  // Relu tant que la révision affichée (loadedRev) est en retard ; nouvel essai après un échec.
-  // En attendant, le brouillon reste en lecture seule : un échec le dit au-dessus du téléphone.
-  const [reloadAttempt, setReloadAttempt] = useState(0)
-  const [reloadFailed, setReloadFailed] = useState(false)
-  useEffect(() => {
-    if (!mustReload) return
-    let cancelled = false
-    let retry: ReturnType<typeof setTimeout> | undefined
-    fetchFresh()
-      .then((fresh) => {
-        if (cancelled) return
-        setReloadFailed(false)
-        applyFresh(fresh)
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          checkAccess(error)
-          setReloadFailed(true)
-          retry = setTimeout(
-            () => setReloadAttempt((attempt) => attempt + 1),
-            RELOAD_RETRY_MS
-          )
-        }
-      })
-    return () => {
-      cancelled = true
-      clearTimeout(retry)
-    }
-  }, [
-    mustReload,
-    serverRev,
-    loadedRev,
-    reloadAttempt,
-    fetchFresh,
-    applyFresh,
-    checkAccess,
-  ])
-
-  // Main reprise sans que personne n'ait écrit entre-temps : l'enregistrement reprend là où
-  // il s'était arrêté, avec ce qui est à l'écran.
-  useEffect(() => {
-    if (phase !== "mine" || !resume.current) return
-    if (autosave.state.status !== "stopped") {
-      resume.current = false
-      return
-    }
-    if ((serverRev ?? loadedRev) > loadedRev) return
-    resume.current = false
-    const pending = saving.unsavedValue
-    saving.reset(loadedRev, autosave.state.savedAt)
-    if (pending) saving.change(pending)
-  }, [
-    phase,
-    serverRev,
-    loadedRev,
-    autosave.state.status,
-    autosave.state.savedAt,
-    saving,
-  ])
-
-  const take = (force: boolean) => {
-    resume.current = true
-    void lock.take(force)
-  }
-
-  // --- Blocs liés (blocs identiques partout) -----------------------------------------------
-
-  const linkedIds = useMemo(() => linkedTemplateIds(draft), [draft])
-  // Modèles insérés ou créés à l'instant : montrés sans attendre la relecture de la base.
-  const [pickedTemplates, setPickedTemplates] = useState<
-    Record<string, LinkedTemplate>
-  >({})
-  const linkedQuery = useQuery({
-    queryKey: templateKeys.byIds(linkedIds),
-    queryFn: () => getTemplatesByIds(linkedIds),
-    enabled: linkedIds.length > 0,
-    placeholderData: keepPreviousData,
-    // Un autre membre peut corriger le modèle pendant qu'on écrit : relu régulièrement.
-    refetchInterval: 30_000,
-  })
-  const templatesById = useMemo(() => {
-    const map = new Map<string, LinkedTemplate>(Object.entries(pickedTemplates))
-    for (const template of linkedQuery.data ?? [])
-      map.set(template.id, template)
-    return map
-  }, [linkedQuery.data, pickedTemplates])
-  const linkedLoading =
-    (linkedQuery.isPending || linkedQuery.isPlaceholderData) &&
-    linkedIds.length > 0
-  const linkedFailed = linkedQuery.isError
-  const { refetch: refetchLinked } = linkedQuery
-
-  const templateFor = useCallback(
-    (templateId: string): LinkedTemplateState => {
-      const template = templatesById.get(templateId)
-      if (!template) {
-        if (linkedLoading) return { state: "loading" }
-        if (linkedFailed) {
-          return { state: "error", retry: () => void refetchLinked() }
-        }
-        return { state: "missing" }
-      }
-      if (template.inTrash || template.sort !== "shared") {
-        return { state: "missing" }
-      }
-      const block = singleBlock(template.draft)
-      return block
-        ? { state: "ready", name: template.title, block }
-        : { state: "empty", name: template.title }
-    },
-    [templatesById, linkedLoading, linkedFailed, refetchLinked]
-  )
-  const templateName = useCallback(
-    (block: Block) => {
-      if (block.type !== "linked") return null
-      const state = templateFor(block.templateId)
-      return state.state === "ready" || state.state === "empty"
-        ? state.name
-        : null
-    },
-    [templateFor]
-  )
-
-  // Les blocs des modèles cités (et ceux de leurs sections), pour leurs images.
-  const linkedBlocks = useMemo(
-    () =>
-      linkedIds.flatMap((id): Block[] => {
-        const template = templatesById.get(id)
-        const block = template ? singleBlock(template.draft) : null
-        if (!block) return []
-        return block.type === "box" ? [block, ...block.blocks] : [block]
-      }),
-    [linkedIds, templatesById]
-  )
-
-  // --- Fichiers des blocs Image -----------------------------------------------------------
-
-  const mediaIds = useMemo(
-    () =>
-      [
-        ...new Set([
-          ...[
-            ...flattenBlocks(draft).map(({ block }) => block),
-            ...linkedBlocks,
-          ].flatMap((block) =>
-            block.type === "image" && block.mediaId ? [block.mediaId] : []
-          ),
-          // L'image de présentation et l'audio d'un épisode.
-          ...(draft.cover?.mediaId ? [draft.cover.mediaId] : []),
-          ...(draft.audio?.mediaId ? [draft.audio.mediaId] : []),
-        ]),
-      ].sort(),
-    [draft, linkedBlocks]
-  )
-  const mediaQuery = useQuery({
-    queryKey: contentKeys.media(mediaIds),
-    queryFn: () => getMediaByIds(mediaIds),
-    enabled: mediaIds.length > 0,
-    placeholderData: keepPreviousData,
-    // Un texte alternatif ou une transcription ajoutés dans la Médiathèque (autre onglet) :
-    // relus au retour dans l'éditeur.
-    refetchOnWindowFocus: "always",
-  })
-  const mediaById = useMemo(() => {
-    const map = new Map<string, Media>(Object.entries(picked))
-    for (const media of mediaQuery.data ?? []) map.set(media.id, media)
-    return map
-  }, [mediaQuery.data, picked])
-  const readyMedia = useMemo(
-    () =>
-      [...mediaById.values()].filter(
-        (media) => media.status === "ready" && !media.deleted_at
-      ),
-    [mediaById]
-  )
-  const previews = usePreviewUrlsState(readyMedia)
-  const { urlFor } = previews
-  // keepPreviousData : pendant la lecture d'une nouvelle liste, les anciennes données restent
-  // affichées (isPlaceholderData) ; un fichier absent n'est pas encore « supprimé ».
-  const mediaLoading =
-    (mediaQuery.isPending || mediaQuery.isPlaceholderData) &&
-    mediaIds.length > 0
-  const mediaFailed = mediaQuery.isError
-  const { refetch: refetchMedia } = mediaQuery
-  const retryMedia = useCallback(() => void refetchMedia(), [refetchMedia])
-
-  const mediaFor = useCallback(
-    (mediaId: string | null): BlockMedia => {
-      if (!mediaId) return { state: "none" }
-      const media = mediaById.get(mediaId)
-      if (!media) {
-        if (mediaLoading) return { state: "loading" }
-        if (mediaFailed) return { state: "error", retry: retryMedia }
-        return { state: "missing" }
-      }
-      if (media.deleted_at) return { state: "missing" }
-      if (media.status !== "ready") return { state: "not_ready", media }
-      const url = urlFor(media)
-      // Pas d'adresse d'aperçu une fois sa demande finie : elle a échoué (« Réessayer »), plutôt
-      // qu'un « Chargement… » sans fin.
-      if (!url && !previews.fetching) {
-        return { state: "error", retry: previews.retry }
-      }
-      return { state: "ready", media, url }
-    },
-    [
-      mediaById,
-      mediaLoading,
-      mediaFailed,
-      retryMedia,
-      urlFor,
-      previews.fetching,
-      previews.retry,
-    ]
-  )
+  const {
+    linkedIds,
+    linkedBlocks,
+    templateFor,
+    templateName,
+    resolveLinked,
+    rememberShared,
+  } = useLinkedTemplates(draft)
+  const { mediaFor, rememberMedia } = useDraftMedia(draft, linkedBlocks)
 
   // --- Actions sur les blocs ---------------------------------------------------------------
 
@@ -1127,7 +606,7 @@ function ContentEditor({
   const onUpdateBlock = useCallback(
     <T extends Block>(id: string, update: (block: T) => T) =>
       setDraft((current) => updateBlock(current, id, update)),
-    []
+    [setDraft]
   )
 
   const onActiveText = useCallback(
@@ -1188,7 +667,7 @@ function ContentEditor({
   }
 
   // Un bloc partagé n'a qu'un bloc au premier niveau ([D11]).
-  const rootLimit = isShared ? SHARED_ROOT_LIMIT : undefined
+  const { rootLimit } = profile
   const onShift = (id: string, offset: -1 | 1) => {
     const next = shiftBlock(draft, id, offset, rootLimit)
     if (!next) return
@@ -1280,7 +759,7 @@ function ContentEditor({
     const blockId = pickerFor
     setPickerFor(null)
     if (!blockId) return
-    setPicked((current) => ({ ...current, [media.id]: media }))
+    rememberMedia(media)
     if (blockId === COVER_PICKER) {
       setDraft((current) => ({ ...current, cover: { mediaId: media.id } }))
       return
@@ -1383,18 +862,7 @@ function ContentEditor({
     setTemplatePickerOpen(false)
     const result = insertTemplate(draft, template, selectedId, at)
     if (!result) return
-    if (template.sort === "shared") {
-      setPickedTemplates((current) => ({
-        ...current,
-        [template.id]: {
-          id: template.id,
-          title: template.title,
-          sort: "shared",
-          inTrash: false,
-          draft: template.draft,
-        },
-      }))
-    }
+    if (template.sort === "shared") rememberShared(template)
     setDraft(result.draft)
     setSelectedId(result.firstId)
     // Éditeur du Fil : le plan est caché sous les Blocs ; le bloc vient sous les yeux dans le
@@ -1413,33 +881,7 @@ function ContentEditor({
     )
   }
 
-  // Éditeur du Fil : un bloc des Blocs glissé dans l'aperçu, et le trait qui montre où il
-  // tombera (seulement au premier niveau, entre deux blocs).
-  const phoneRef = useRef<HTMLDivElement>(null)
-  const [dropLine, setDropLine] = useState<{
-    index: number
-    top: number
-  } | null>(null)
-  const dropPlace = (clientY: number) => {
-    const phone = phoneRef.current
-    const list = phone?.querySelector(".blocks-list")
-    if (!phone || !list) return null
-    const rows = [...list.children].map((row) => row.getBoundingClientRect())
-    const index = dropIndex(
-      rows.map((row) => row.top + row.height / 2),
-      clientY
-    )
-    const origin = phone.getBoundingClientRect().top
-    const gap = parseFloat(getComputedStyle(list).rowGap) || 0
-    const top =
-      rows.length === 0
-        ? list.getBoundingClientRect().top - origin
-        : index < rows.length
-          ? rows[index].top - origin - gap / 2
-          : rows[rows.length - 1].bottom - origin + gap / 2
-    return { index, top }
-  }
-  const libraryDrop = feed && editable && phoneView.mode === "edit"
+  // Éditeur du Fil : un bloc des Blocs glissé dans l'aperçu, à la place montrée par un trait.
   const onLibraryDrop = (drag: LibraryDrag, index: number) => {
     if (drag.kind === "template") {
       const template = queryClient
@@ -1454,6 +896,11 @@ function ContentEditor({
     if (drag.type === "image") setPickerFor(block.id)
     else requestAnimationFrame(() => focusBlockSoon(block.id))
   }
+  const {
+    phoneRef,
+    lineTop: dropLineTop,
+    handlers: dropHandlers,
+  } = usePhoneDrop(feed && editable && phoneView.mode === "edit", onLibraryDrop)
 
   // « Ajouter un bloc » › « Un modèle… » (hors de l'éditeur du Fil, qui passe par « Mes blocs »).
   const openTemplates = () => setTemplatePickerOpen(true)
@@ -1555,41 +1002,6 @@ function ContentEditor({
     setSettingsOpen(true)
   }, [])
 
-  /**
-   * Avant de publier : termine l'enregistrement en attente et renvoie la révision enregistrée.
-   * En lecture seule, la révision affichée (la base refuse si elle a changé, ou si quelqu'un
-   * d'autre écrit : [D14]).
-   */
-  const prepare = async (): Promise<number | null> => {
-    if (phase !== "mine") return loadedRev
-    await saving.flush()
-    const state = saving.state
-    if (
-      state.unsaved ||
-      state.status === "failed" ||
-      state.status === "stopped" ||
-      state.status === "offline"
-    ) {
-      toast.error(texts.publication.needsSaved, {
-        description: state.error?.message,
-      })
-      return null
-    }
-    return state.rev
-  }
-
-  /** Enregistre des réglages avec le brouillon (sous le verrou), puis comme prepare. */
-  const applySettings = async (next: ContentSettings) => {
-    if (!editable) {
-      toast.error(texts.publication.levelNeedsLock)
-      return null
-    }
-    setSettings(next)
-    synced.current = { draft, settings: next }
-    saving.change(synced.current)
-    return prepare()
-  }
-
   /** « Revenir à cette version » : recopiée dans le brouillon par la base, puis relue. */
   const onRevert = async (version: VersionItem) => {
     try {
@@ -1607,7 +1019,7 @@ function ContentEditor({
       checkAccess(error)
       toast.error(errorMessage(error))
       if (error instanceof ContentError && error.code === "verrou_perdu") {
-        notifyLost()
+        lock.notifyLost()
       }
     } finally {
       void queryClient.invalidateQueries({
@@ -1633,111 +1045,33 @@ function ContentEditor({
   // Ce qui manque pour publier ([D45], audio) et le conseil [D46] : expliqués avant l'envoi.
   const checks = useMemo(
     () =>
-      titleRequired(kind) ? publishChecks(kind, draft, mediaFor) : undefined,
-    [kind, draft, mediaFor]
+      profile.titleRequired ? publishChecks(kind, draft, mediaFor) : undefined,
+    [profile, kind, draft, mediaFor]
   )
 
-  // --- Méthodes : le plan, ce qui changera dans l'app, la méthode d'un élément ----------------
+  // --- Méthodes : ce qui changera dans l'app, la méthode d'un élément -----------------------
 
-  // Un chapitre ou une leçon : sa méthode (et son chapitre), pour « ← méthode » et le rappel.
-  const elementContext = useQuery({
-    queryKey: methodKeys.context(contentId),
-    queryFn: () => getElementContext(contentId),
-    enabled: isElement,
-  })
-  const methodId = isMethod
-    ? contentId
-    : (elementContext.data?.method.id ?? null)
-  const methodInTrash = elementContext.data?.method.deleted ?? false
-  // Ce qui changera dans l'app si l'on publie la méthode ([D29]) : relu régulièrement (les
-  // autres écrivent ses leçons), après chaque geste du plan, et à l'ouverture de « Publier ».
-  const preview = useQuery({
-    queryKey: methodKeys.preview(methodId ?? ""),
-    queryFn: () => getMethodPreview(methodId ?? ""),
-    enabled: methodId !== null && !methodInTrash,
-    // Relue à chaque ouverture d'un éditeur (on revient souvent d'une leçon modifiée).
-    staleTime: 0,
-    refetchInterval: 30_000,
-  })
-  // Un chapitre ou une leçon : la publication de sa méthode (plan en ligne, programmation) et
-  // son plan (le chapitre d'une leçon est-il montré ?).
-  const methodPublication = useQuery({
-    queryKey: contentKeys.publication(methodId ?? ""),
-    queryFn: () => getPublication(methodId ?? ""),
-    enabled: isElement && methodId !== null,
-    refetchInterval: 30_000,
-  })
-  const methodTree = useQuery({
-    queryKey: methodKeys.tree(methodId ?? ""),
-    queryFn: () => getMethodTree(methodId ?? ""),
-    enabled: isElement && methodId !== null,
-  })
-  const ownState = useMemo(() => {
-    if (!isElement || !methodPublication.data || !methodTree.data) {
-      return undefined
-    }
-    const place = methodTree.data
-      .flatMap((chapter) => [
-        { element: chapter, chapterInApp: true },
-        ...chapter.lessons.map((lesson) => ({
-          element: lesson,
-          chapterInApp: chapter.inApp,
-        })),
-      ])
-      .find((entry) => entry.element.id === contentId)
-    if (!place) return undefined
-    return elementState(
-      { ...place.element, inApp: settings.inApp },
-      place.chapterInApp,
-      liveIds(parseLiveOutline(methodPublication.data.live?.outline)),
-      preview.data ? previewByElement(preview.data) : undefined
-    )
-  }, [
-    isElement,
-    methodPublication.data,
-    methodTree.data,
+  const {
+    element: elementContext,
+    preview: methodPreview,
+    ownState,
+    methodSchedule,
+    ownProblem,
+    methodBridge,
+  } = useMethodContext({
     contentId,
-    settings.inApp,
-    preview.data,
-  ])
-
-  // La programmation de la méthode, vue depuis cet élément ([D31]).
-  const methodSchedule: ScheduleState = methodPublication.data
-    ? publicationStatus(
-        methodPublication.data,
-        methodPublication.data.draft_rev,
-        methodPublication.dataUpdatedAt
-      ).schedule
-    : { kind: "none" }
-
-  // Ce qui ferait refuser la publication de la méthode à cause de cet élément.
-  const ownProblem = isElement
-    ? (preview.data?.find(
-        (row) => row.elementId === contentId && row.problem !== null
-      ) ?? null)
-    : null
-
-  const methodBridge: MethodPublication | undefined = isMethod
-    ? {
-        preview: preview.data,
-        // La fiche enregistrée après la dernière lecture de la liste compte aussi.
-        pending:
-          preview.data === undefined
-            ? undefined
-            : preview.data.length > 0 || ficheSavedAt > preview.dataUpdatedAt,
-        fetching: preview.isFetching,
-        failed: preview.isError,
-        refresh: () => preview.refetch(),
-      }
-    : undefined
+    role: isMethod ? "method" : isElement ? "element" : null,
+    inApp: settings.inApp,
+    ficheSavedAt,
+  })
 
   const pub = usePublication({
     contentId,
     kind,
-    enabled: !isTemplate && !isElement,
+    enabled: profile.publication === "own",
     method: methodBridge,
-    draftRev: Math.max(autosave.state.rev, serverRev ?? 0, loadedRev),
-    unsaved: autosave.state.unsaved,
+    draftRev: Math.max(autosave.rev, serverRev ?? 0, loadedRev),
+    unsaved: autosave.unsaved,
     editable,
     settings,
     levels: levels.data,
@@ -1759,65 +1093,23 @@ function ContentEditor({
 
   // --- « Enregistrer comme modèle » (contenus) ----------------------------------------------
 
-  // Les blocs cochés dans le plan (ou le bloc choisi), puis la fenêtre du nouveau modèle.
-  const [choosing, setChoosing] = useState(false)
-  const [chosen, setChosen] = useState<ReadonlySet<string>>(() => new Set())
-  const [saveAsIds, setSaveAsIds] = useState<string[] | null>(null)
-  const saveAs = useMutation({
-    mutationFn: async ({
-      ids,
-      values,
-    }: {
-      ids: string[]
-      values: TemplateValues
-    }) => {
-      // Le modèle est fait du brouillon ENREGISTRÉ : l'enregistrement en attente part d'abord.
-      if ((await prepare()) === null) return null
-      return createTemplateFrom(contentId, ids, values)
+  const saveAs = useSaveAsTemplate({
+    contentId,
+    draft,
+    editable,
+    prepare,
+    // Le bloc devenu bloc partagé : remplacé par son bloc lié.
+    onLinked: (created, blockId) => {
+      rememberShared(created)
+      setDraft((current) => ({
+        ...current,
+        blocks: current.blocks.map((block) =>
+          block.id === blockId ? linkedBlock(created.id, blockId) : block
+        ),
+      }))
     },
-    onSuccess: (created, { ids, values }) => {
-      if (!created) return
-      setSaveAsIds(null)
-      setChoosing(false)
-      setChosen(new Set())
-      void queryClient.invalidateQueries({ queryKey: templateKeys.all })
-      const name = created.title.trim() || texts.templates.list.untitled
-      const open = {
-        label: texts.templates.saveAs.open,
-        onClick: () => void navigate(editorPath("templates", created.id)),
-      }
-      if (values.sort === "shared" && ids.length === 1 && editable) {
-        // Le bloc devient lié à son modèle : on le corrige désormais dans le modèle.
-        setPickedTemplates((current) => ({
-          ...current,
-          [created.id]: {
-            id: created.id,
-            title: created.title,
-            sort: "shared",
-            inTrash: false,
-            draft: created.draft,
-          },
-        }))
-        setDraft((current) => ({
-          ...current,
-          blocks: current.blocks.map((block) =>
-            block.id === ids[0] ? linkedBlock(created.id, ids[0]) : block
-          ),
-        }))
-        toast.success(texts.templates.saveAs.saved(name), {
-          description: texts.templates.saveAs.sharedReplaced,
-          action: open,
-        })
-      } else {
-        toast.success(texts.templates.saveAs.saved(name), { action: open })
-      }
-    },
-    onError: (error) => checkAccess(error),
   })
-  const openSaveAs = (ids: string[]) => {
-    saveAs.reset()
-    setSaveAsIds(ids)
-  }
+  const openSaveAs = saveAs.openFor
 
   // Un bloc identique partout garde son bloc tant qu'un brouillon l'utilise ([D11]).
   const templateUses = useTemplateUses(contentId, isShared)
@@ -1830,21 +1122,13 @@ function ContentEditor({
       : null
   const canAddRoot = canAddRootBlock(draft, templateSort)
 
-  // --- Copier mon texte, quitter -----------------------------------------------------------
-
-  const lostOrStopped = lock.state.lost || autosave.state.status === "stopped"
-  // Après une perte de main : ce qui n'était pas enregistré (encore à l'écran, ou mis de côté
-  // quand le brouillon a été relu).
-  const canCopy =
-    stash !== null || (lostOrStopped && saving.unsavedValue !== null)
-
-  const onCopy = () => copyText(saving.unsavedValue?.draft ?? stash ?? draft)
+  // --- Quitter -----------------------------------------------------------------------------
 
   const risky =
-    autosave.state.unsaved &&
-    (autosave.state.status === "offline" ||
-      autosave.state.status === "failed" ||
-      autosave.state.status === "stopped")
+    autosave.unsaved &&
+    (autosave.status === "offline" ||
+      autosave.status === "failed" ||
+      autosave.status === "stopped")
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
       risky && currentLocation.pathname !== nextLocation.pathname
@@ -1858,15 +1142,6 @@ function ContentEditor({
   }
 
   const nearLimit = useMemo(() => draftBytes(draft) > DRAFT_WARN_BYTES, [draft])
-  // Le bloc d'un modèle partagé, tel qu'il est aujourd'hui (Lecture, temps de lecture).
-  const resolveLinked = useCallback(
-    (block: Block) => {
-      if (block.type !== "linked") return null
-      const state = templateFor(block.templateId)
-      return state.state === "ready" ? state.block : null
-    },
-    [templateFor]
-  )
   // Éditeur du Fil : temps de lecture et nombre de mots (blocs partagés compris).
   const stats = useMemo(
     () => readingStats(draft, resolveLinked),
@@ -1879,7 +1154,7 @@ function ContentEditor({
     <>
       {/* Un chapitre ou une leçon : l'image est facultative, montrée seulement une fois choisie
           (le panneau propose de la choisir). */}
-      {presentationKind && (coverRequired(kind) || draft.cover) && (
+      {presentationKind && (profile.cover === "required" || draft.cover) && (
         <CoverPreview
           media={mediaFor(draft.cover?.mediaId ?? null)}
           editable={editable}
@@ -2036,29 +1311,7 @@ function ContentEditor({
       onSelect={selectAndShow}
       templateName={templateName}
       feed={feedOutline}
-      selection={
-        !isTemplate && editable
-          ? {
-              active: choosing,
-              chosen,
-              onToggleActive: () => {
-                setChoosing((active) => !active)
-                setChosen(new Set())
-              },
-              onChoose: (id, checked) =>
-                setChosen((current) => {
-                  const next = new Set(current)
-                  if (checked) next.add(id)
-                  else next.delete(id)
-                  return next
-                }),
-              onSave: () => {
-                const ids = selectedRootIds(draft, new Set(chosen))
-                if (ids.length > 0) openSaveAs(ids)
-              },
-            }
-          : undefined
-      }
+      selection={profile.savedBlocks && editable ? saveAs.selection : undefined}
     />
   )
 
@@ -2081,9 +1334,9 @@ function ContentEditor({
           {texts.editor.save.rereadFailed}
         </p>
       )}
-      {autosave.state.status === "failed" && autosave.state.error && (
+      {autosave.status === "failed" && autosave.error && (
         <p role="alert" className={cn(notice, "text-destructive")}>
-          {autosave.state.error.message} {autosave.state.error.detail}
+          {autosave.error.message} {autosave.error.detail}
         </p>
       )}
     </>
@@ -2125,48 +1378,14 @@ function ContentEditor({
           : undefined
       }
       onPointerLeave={feed ? () => setHoveredId(null) : undefined}
-      // En capture : le texte (Tiptap) ne reçoit pas un bloc glissé depuis les Blocs.
-      onDragOverCapture={
-        libraryDrop
-          ? (event) => {
-              if (!event.dataTransfer.types.includes(LIBRARY_DRAG_TYPE)) return
-              event.preventDefault()
-              event.stopPropagation()
-              event.dataTransfer.dropEffect = "copy"
-              setDropLine(dropPlace(event.clientY))
-            }
-          : undefined
-      }
-      onDragLeave={(event) => {
-        if (
-          !(event.relatedTarget instanceof Node) ||
-          !event.currentTarget.contains(event.relatedTarget)
-        ) {
-          setDropLine(null)
-        }
-      }}
-      onDropCapture={
-        libraryDrop
-          ? (event) => {
-              const drag = decodeLibraryDrag(
-                event.dataTransfer.getData(LIBRARY_DRAG_TYPE)
-              )
-              if (!drag) return
-              event.preventDefault()
-              event.stopPropagation()
-              const place = dropPlace(event.clientY)
-              setDropLine(null)
-              if (place) onLibraryDrop(drag, place.index)
-            }
-          : undefined
-      }
+      {...dropHandlers}
     >
-      {dropLine && (
+      {dropLineTop !== null && (
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-5 z-10 h-0.5 -translate-y-1/2 rounded-full bg-primary"
           // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer
-          style={{ top: dropLine.top }}
+          style={{ top: dropLineTop }}
         />
       )}
       {phoneTop}
@@ -2215,7 +1434,7 @@ function ContentEditor({
                   {definition.label}
                 </Button>
               ))}
-              {!isTemplate && (
+              {profile.savedBlocks && (
                 <Button variant="outline" size="sm" onClick={openTemplates}>
                   <LayoutTemplate />
                   {texts.templates.insert.menu}
@@ -2237,7 +1456,7 @@ function ContentEditor({
           <AddBlockMenu
             variant="ghost"
             onAdd={(type) => addBlock(type, undefined)}
-            onTemplate={isTemplate ? undefined : openTemplates}
+            onTemplate={profile.savedBlocks ? openTemplates : undefined}
           />
         </div>
       )}
@@ -2265,12 +1484,12 @@ function ContentEditor({
     <LockBanner
       lock={lock.state}
       holderIsMe={holderIsMe}
-      autosave={autosave.state}
+      autosave={autosave}
       canCopy={canCopy}
       onTake={take}
       onCopy={() => void onCopy()}
       onReload={reload}
-      onDismissCopy={() => setStash(null)}
+      onDismissCopy={dismissStash}
       lockInDialog={feed}
       inline={feed}
     />
@@ -2291,10 +1510,10 @@ function ContentEditor({
   )
   // L'état de l'enregistrement : en tête des autres éditeurs et dans la pastille de la
   // Concentration ; en icône seule en bas de la colonne de droite du Fil.
-  const saveVisible = phase === "mine" || autosave.state.unsaved
-  const saveStatus = <SaveStatus state={autosave.state} visible={saveVisible} />
+  const saveVisible = phase === "mine" || autosave.unsaved
+  const saveStatus = <SaveStatus state={autosave} visible={saveVisible} />
   const feedSaveStatus = (
-    <SaveStatus state={autosave.state} visible={saveVisible} compact />
+    <SaveStatus state={autosave} visible={saveVisible} compact />
   )
   const lockButton = lockView && (
     <LockButton
@@ -2310,7 +1529,7 @@ function ContentEditor({
         <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
           <BackLink
             section={section}
-            method={isElement ? (elementContext.data?.method ?? null) : null}
+            method={isElement ? (elementContext?.method ?? null) : null}
           />
           {!isMethod && (
             <>
@@ -2380,11 +1599,13 @@ function ContentEditor({
               disabled={!editable || !canAddRoot}
               onAdd={(type) => addBlock(type)}
               onTemplate={
-                isTemplate ? undefined : () => setTemplatePickerOpen(true)
+                profile.savedBlocks
+                  ? () => setTemplatePickerOpen(true)
+                  : undefined
               }
             />
           )}
-          {!isTemplate && !isElement && (
+          {profile.publication === "own" && (
             <>
               <Separator orientation="vertical" className="h-6" />
               <PublishBar
@@ -2405,7 +1626,7 @@ function ContentEditor({
       {elementKind && (
         <ElementBanner
           kind={elementKind}
-          context={elementContext.data}
+          context={elementContext}
           state={ownState}
           isFree={settings.isFree}
           problem={
@@ -2418,7 +1639,7 @@ function ContentEditor({
           onOpenSettings={() => openSettings(null)}
         />
       )}
-      {!feed && !isTemplate && !isElement && scheduleBanner}
+      {!feed && profile.publication === "own" && scheduleBanner}
 
       {isMethod ? (
         // Une méthode : sa fiche (dans l'aperçu du téléphone, puis son panneau) et son plan.
@@ -2447,7 +1668,7 @@ function ContentEditor({
               session={editorSession}
               myId={lock.myId ?? ""}
               live={parseLiveOutline(pub.publication?.live?.outline)}
-              preview={preview.data}
+              preview={methodPreview}
             />
           </aside>
         </div>
@@ -2661,7 +1882,7 @@ function ContentEditor({
                   lecture seule), l'état de publication et « Publier ». */}
               <ArticleFooter
                 stats={stats}
-                savedAt={autosave.state.savedAt}
+                savedAt={autosave.savedAt}
                 saveStatus={feedSaveStatus}
               >
                 {lockButton}
@@ -2710,7 +1931,7 @@ function ContentEditor({
                 onDetach={detachBlock}
                 removeBlocked={removeBlocked}
                 onSaveAsTemplate={
-                  isTemplate ? undefined : (id) => openSaveAs([id])
+                  profile.savedBlocks ? (id) => openSaveAs([id]) : undefined
                 }
               />
             </aside>
@@ -2801,26 +2022,22 @@ function ContentEditor({
             onChoose={onInsertTemplate}
           />
           <TemplateDialog
-            open={saveAsIds !== null}
+            open={saveAs.dialog.open}
             onOpenChange={(open) => {
-              if (!open) setSaveAsIds(null)
+              if (!open) saveAs.dialog.onClose()
             }}
             title={texts.templates.saveAs.title}
             description={texts.templates.saveAs.description(
-              saveAsIds?.length ?? 1
+              saveAs.dialog.count
             )}
             submitLabel={texts.templates.saveAs.submit}
             defaultSection={isTemplateFor(kind) ? kind : null}
             sharedDisabled={
-              (saveAsIds?.length ?? 0) > 1
-                ? texts.templates.saveAs.sharedOne
-                : null
+              saveAs.dialog.count > 1 ? texts.templates.saveAs.sharedOne : null
             }
-            pending={saveAs.isPending}
-            error={saveAs.error ? saveAs.error.message : null}
-            onSubmit={(values) => {
-              if (saveAsIds) saveAs.mutate({ ids: saveAsIds, values })
-            }}
+            pending={saveAs.dialog.pending}
+            error={saveAs.dialog.error}
+            onSubmit={saveAs.dialog.submit}
           />
         </>
       )}
