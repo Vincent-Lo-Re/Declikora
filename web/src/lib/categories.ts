@@ -20,13 +20,6 @@ export type Category = {
   uses: number
 }
 
-/** La section des catégories d'une sorte de contenu (null : pas de catégories). */
-export function categorySectionOf(kind: string): CategorySection | null {
-  if (kind === "article") return "blog"
-  if (kind === "episode") return "podcasts"
-  return null
-}
-
 export const categoryKeys = {
   all: ["categories"] as const,
   list: (section: CategorySection) => ["categories", section] as const,

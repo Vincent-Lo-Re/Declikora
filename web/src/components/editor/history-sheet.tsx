@@ -29,11 +29,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { useCategories } from "@/hooks/use-categories"
-import {
-  categorySectionOf,
-  versionCategoryNames,
-  type Category,
-} from "@/lib/categories"
+import { versionCategoryNames, type Category } from "@/lib/categories"
 import { contentKeys, type ContentKind } from "@/lib/contents/api"
 import {
   listVersions,
@@ -41,6 +37,7 @@ import {
   type VersionItem,
 } from "@/lib/contents/publication"
 import { formatDateTime } from "@/lib/dates"
+import { contentProfile } from "@/lib/editor/profile"
 import { texts } from "@/texts"
 
 const labels = texts.publication.history
@@ -93,7 +90,7 @@ export function HistorySheet({
   })
   // Les catégories de la section (déjà en cache dans l'éditeur). Tant qu'elles ne sont pas
   // lues, rien n'est affiché : un identifiant inconnu passerait à tort pour supprimé.
-  const categories = useCategories(categorySectionOf(kind))
+  const categories = useCategories(contentProfile(kind).categories)
   const revert = useMutation({
     mutationFn: onRevert,
     onSettled: () => setConfirming(null),

@@ -2,15 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import type { BlockMedia } from "@/blocks/components/context"
 import type { Media } from "@/lib/media/constants"
-import {
-  coverRequired,
-  titleRequired,
-  hasAudio,
-  hasCategories,
-  hasPresentation,
-  publishChecks,
-  readyItems,
-} from "@/lib/contents/requirements"
+import { publishChecks, readyItems } from "@/lib/contents/requirements"
 
 const IMAGE = "00000000-0000-4000-8000-0000000000f1"
 const AUDIO = "00000000-0000-4000-8000-0000000000f2"
@@ -45,27 +37,6 @@ const readyAudio = (transcript: string | null): BlockMedia => ({
   url: "blob:audio",
 })
 
-describe("sortes", () => {
-  it("[D45] : image de présentation pour un article, un épisode et une méthode", () => {
-    expect(coverRequired("article")).toBe(true)
-    expect(coverRequired("episode")).toBe(true)
-    expect(coverRequired("method")).toBe(true)
-    expect(coverRequired("page")).toBe(false)
-    expect(coverRequired("template")).toBe(false)
-    expect(hasAudio("episode")).toBe(true)
-    expect(hasAudio("article")).toBe(false)
-    expect(hasPresentation("article")).toBe(true)
-    expect(hasPresentation("page")).toBe(false)
-    // Une méthode, un chapitre, une leçon : image et résumé ; exigée pour la méthode seule.
-    expect(hasPresentation("method")).toBe(true)
-    expect(hasPresentation("lesson")).toBe(true)
-    expect(coverRequired("chapter")).toBe(false)
-    expect(coverRequired("lesson")).toBe(false)
-    expect(hasCategories("article")).toBe(true)
-    expect(hasCategories("method")).toBe(false)
-  })
-})
-
 describe("ce qui manque pour publier", () => {
   it("une page : seulement le titre ([D49])", () => {
     expect(publishChecks("page", { title: "À propos" }, mediaFor({}))).toEqual({
@@ -82,15 +53,18 @@ describe("ce qui manque pour publier", () => {
       "method",
       "chapter",
       "lesson",
-    ]) {
+    ] as const) {
       expect(
         publishChecks(kind, { title: "  " }, mediaFor({})).missing[0]
       ).toEqual({ key: "title", state: "missing" })
     }
-    expect(titleRequired("template")).toBe(false)
+    // Un modèle de bloc ne se publie pas : rien n'y est exigé.
+    expect(
+      publishChecks("template", { title: "  " }, mediaFor({})).missing
+    ).toEqual([])
   })
 
-  it("un article sans image de présentation (le résumé reste facultatif)", () => {
+  it("un article sans image de présentation", () => {
     expect(
       publishChecks("article", { title: "Titre", cover: null }, mediaFor({}))
         .missing

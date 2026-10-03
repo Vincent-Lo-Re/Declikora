@@ -16,12 +16,7 @@ import { AudioPlayer } from "@/components/media/audio-player"
 import { MediaThumbnail } from "@/components/media/media-visuals"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import {
-  coverRequired,
-  hasAudio,
-  hasCategories,
-  type PresentationKind,
-} from "@/lib/contents/requirements"
+import { contentProfile, type PresentationKind } from "@/lib/editor/profile"
 import { formatDuration } from "@/lib/media/format"
 import { mediaFilePath } from "@/navigation"
 import { texts } from "@/texts"
@@ -200,6 +195,7 @@ export function PresentationPanel({
   onRemoveAudio: () => void
   onEditCategories: () => void
 }) {
+  const profile = contentProfile(kind)
   const cover = mediaFor(draft.cover?.mediaId ?? null)
   const audio = mediaFor(draft.audio?.mediaId ?? null)
   return (
@@ -226,7 +222,9 @@ export function PresentationPanel({
       <PanelSection
         title={labels.cover.label}
         hint={
-          coverRequired(kind) ? labels.cover.hint : labels.cover.optionalHint
+          profile.cover === "required"
+            ? labels.cover.hint
+            : labels.cover.optionalHint
         }
       >
         <FileChoice
@@ -241,7 +239,7 @@ export function PresentationPanel({
         <CoverAlt cover={cover} />
       </PanelSection>
 
-      {hasAudio(kind) && (
+      {profile.audio && (
         <>
           <Separator />
           <PanelSection title={labels.audio.label} hint={labels.audio.hint}>
@@ -266,7 +264,7 @@ export function PresentationPanel({
         </>
       )}
 
-      {hasCategories(kind) && (
+      {profile.categories && (
         <>
           <Separator />
           <PanelSection title={labels.categories.label}>
