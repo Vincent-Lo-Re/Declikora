@@ -186,7 +186,11 @@ import {
   focusOnceShown,
 } from "@/lib/editor/block-focus"
 import { isApple, isFocusShortcut } from "@/lib/editor/focus-mode"
-import { contentProfile, hasPresentation } from "@/lib/editor/profile"
+import {
+  contentProfile,
+  hasPresentation,
+  isFeedKind,
+} from "@/lib/editor/profile"
 import { lockSituation } from "@/lib/editor/lock-view"
 import { blockWarning, duplicateBlock } from "@/lib/editor/outline"
 import { type LibraryDrag } from "@/lib/editor/library-drag"
@@ -195,6 +199,7 @@ import { errorMessage } from "@/lib/errors"
 import { focusSoon, highlightSoon } from "@/lib/focus"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
+import { formatDuration } from "@/lib/media/format"
 import { editorPath, sections, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -428,13 +433,15 @@ function ContentEditor({
   const [profile] = useState(() => contentProfile(kind, templateSort))
   // Une méthode : sa fiche et son plan, sans blocs ([D4]).
   const isMethod = profile.layout === "method"
-  // L'éditeur du Fil (ADMIN § 4) : le Plan à gauche, l'Article à droite, sans onglets ni barre du
-  // haut. Les autres sortes y passent une à une (« Le builder du Fil partout »).
-  const feed = profile.layout === "feed"
+  // L'éditeur du Fil (ADMIN § 4) : le Plan à gauche, l'Article (ou l'Épisode) à droite, sans
+  // onglets ni barre du haut. Les autres sortes y passent une à une (« Le builder du Fil
+  // partout »).
+  const feedKind = isFeedKind(kind) ? kind : null
+  const feed = feedKind !== null
   // Un chapitre ou une leçon : publié avec sa méthode, sans barre de publication ([D29]).
   const elementKind = kind === "chapter" || kind === "lesson" ? kind : null
   const isElement = profile.publication === "method"
-  // Image de présentation (article, épisode, méthode, chapitre, leçon), catégories, audio.
+  // Hors de l'éditeur du Fil, le panneau de présentation (méthode, chapitre, leçon).
   const presentationKind = hasPresentation(kind) ? kind : null
   const categorySection = profile.categories
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -1154,7 +1161,8 @@ function ContentEditor({
     <>
       {/* Un chapitre ou une leçon : l'image est facultative, montrée seulement une fois choisie
           (le panneau propose de la choisir). */}
-      {presentationKind && (profile.cover === "required" || draft.cover) && (
+      {(profile.cover === "required" ||
+        (profile.cover === "optional" && draft.cover)) && (
         <CoverPreview
           media={mediaFor(draft.cover?.mediaId ?? null)}
           editable={editable}
@@ -1181,12 +1189,12 @@ function ContentEditor({
             : texts.editor.title.label
         }
         onChange={onTitle}
-        onFocus={presentationKind ? () => setSelectedId(null) : undefined}
+        onFocus={profile.cover !== null ? () => setSelectedId(null) : undefined}
         onKeyDown={(event) => {
           if (event.key === "Enter") event.preventDefault()
         }}
       />
-      {presentationKind === "episode" && (
+      {profile.audio && (
         <AudioPreview
           media={mediaFor(draft.audio?.mediaId ?? null)}
           editable={editable}
@@ -1197,27 +1205,36 @@ function ContentEditor({
     </>
   )
 
-  // La présentation dans un panneau : image (changer, retirer, texte alternatif), catégories,
-  // audio.
+  // La présentation dans un panneau (méthode, chapitre, leçon) : image (changer, retirer, texte
+  // alternatif).
   const presentationPanel = presentationKind ? (
     <PresentationPanel
       kind={presentationKind}
       draft={draft}
       editable={editable}
       mediaFor={mediaFor}
-      urlFor={(media) => (media.state === "ready" ? media.url : undefined)}
-      categoryNames={chosenCategoryNames}
       onChooseCover={() => openPresentationPicker("cover")}
       onRemoveCover={() => removePresentationFile("cover")}
-      onChooseAudio={() => openPresentationPicker("audio")}
-      onRemoveAudio={() => removePresentationFile("audio")}
-      onEditCategories={() => openSettings("categories")}
     />
   ) : undefined
-  // Éditeur du Fil : la colonne de droite, tout ce qui concerne l'article.
+  // Un épisode : son audio (carte Audio, téléphone, Lecture, bas de la colonne de droite).
+  const audio = profile.audio ? mediaFor(draft.audio?.mediaId ?? null) : null
+  // En Lecture, sous le titre : la première catégorie, puis le temps de lecture (un épisode : la
+  // durée de son audio, une fois connue).
+  const length = audio
+    ? audio.state === "ready" && audio.media.duration_s !== null
+      ? formatDuration(audio.media.duration_s)
+      : null
+    : texts.editor.preview.minutes(stats.minutes)
+  const readMeta = [
+    ...(chosenCategoryNames ?? []).slice(0, 1),
+    ...(length ? [length] : []),
+  ].join(" · ")
+  // Éditeur du Fil : la colonne de droite, tout ce qui concerne l'article (ou l'épisode).
   const articlePanel =
-    feed && categorySection ? (
+    feedKind && categorySection ? (
       <ArticlePanel
+        kind={feedKind}
         draft={draft}
         editable={editable}
         settings={settings}
@@ -1233,7 +1250,9 @@ function ContentEditor({
           retry: () => void categories.refetch(),
         }}
         cover={mediaFor(draft.cover?.mediaId ?? null)}
+        audio={audio}
         ready={readyItems(
+          kind,
           checks ?? { missing: [], advice: [] },
           settings.accessChosen
         )}
@@ -1255,6 +1274,8 @@ function ContentEditor({
         }}
         onChooseCover={() => openPresentationPicker("cover")}
         onRemoveCover={() => removePresentationFile("cover")}
+        onChooseAudio={() => openPresentationPicker("audio")}
+        onRemoveAudio={() => removePresentationFile("audio")}
       />
     ) : null
   // Éditeur du Fil : le bloc choisi, dont les réglages glissent par-dessus l'Article.
@@ -1778,7 +1799,7 @@ function ContentEditor({
                 : undefined
             }
           >
-            {feed ? (
+            {feedKind ? (
               <FeedPreview
                 preview={phoneView}
                 onPreviewChange={onPreviewChange}
@@ -1814,13 +1835,12 @@ function ContentEditor({
                   // Les images lisent l'éditeur (fichier, aperçu), en lecture seule.
                   <BlocksEditorContext value={readOnlyBlocks}>
                     <ReadView
+                      kind={feedKind}
                       draft={draft}
                       title={title.trim() || untitled}
                       cover={mediaFor(draft.cover?.mediaId ?? null)}
-                      meta={[
-                        ...(chosenCategoryNames ?? []).slice(0, 1),
-                        texts.editor.preview.minutes(stats.minutes),
-                      ].join(" · ")}
+                      audio={audio}
+                      meta={readMeta}
                       locked={
                         previewLocked(phoneView, settings)
                           ? (levels.data?.find(
@@ -1846,15 +1866,15 @@ function ContentEditor({
             )}
           </main>
 
-          {feed ? (
+          {feedKind ? (
             <aside
-              aria-label={texts.editor.columns.right}
+              aria-label={texts.editor.columns.right[feedKind]}
               className={cn(
                 "flex w-feed-column shrink-0 flex-col border-l bg-background",
                 focusMode && "hidden"
               )}
             >
-              {/* En tête, l'icône de la section et le titre de l'article (en entier dans
+              {/* En tête, l'icône de la section et le titre du contenu (en entier dans
                   l'infobulle s'il est coupé). */}
               <ColumnHeader
                 icon={SectionIcon}
@@ -1864,7 +1884,7 @@ function ContentEditor({
               />
               <div className="relative min-h-0 flex-1">
                 <section
-                  aria-label={texts.editor.columns.article}
+                  aria-label={texts.editor.columns.content[feedKind]}
                   // Sous la glissière du bloc : hors du clavier et des lecteurs d'écran.
                   inert={selectedBlock !== null}
                   className="h-full overflow-y-auto px-4 py-3"
@@ -1878,10 +1898,12 @@ function ContentEditor({
                   </div>
                 )}
               </div>
-              {/* En bas, toujours : la lecture, la dernière modification, puis le cadenas (en
-                  lecture seule), l'état de publication et « Publier ». */}
+              {/* En bas, toujours : la lecture (un épisode : la durée de son audio), la dernière
+                  modification, puis le cadenas (en lecture seule), l'état de publication et
+                  « Publier ». */}
               <ArticleFooter
                 stats={stats}
+                audio={audio}
                 savedAt={autosave.savedAt}
                 saveStatus={feedSaveStatus}
               >
@@ -1975,37 +1997,30 @@ function ContentEditor({
 
       {!isTemplate && (
         <>
-          <ContentSettingsSheet
-            open={settingsOpen}
-            onOpenChange={setSettingsOpen}
-            focus={settingsFocus}
-            kind={kind}
-            contentId={contentId}
-            title={title}
-            onTitleChange={(value) =>
-              setDraft((current) => ({ ...current, title: value }))
-            }
-            settings={settings}
-            editable={editable}
-            levels={levels.data}
-            levelsFailed={levels.isError}
-            live={pub.publication?.live ?? null}
-            refusedSlug={refusedSlug}
-            categories={
-              categorySection
-                ? {
-                    section: categorySection,
-                    list: categories.data,
-                    failed: categories.isError,
-                    retry: () => void categories.refetch(),
-                  }
-                : undefined
-            }
-            onChange={(next) => {
-              if (next.slug !== settings.slug) setRefusedSlug(null)
-              setSettings(next)
-            }}
-          />
+          {/* L'éditeur du Fil règle tout dans sa colonne de droite. */}
+          {!feed && (
+            <ContentSettingsSheet
+              open={settingsOpen}
+              onOpenChange={setSettingsOpen}
+              focus={settingsFocus}
+              kind={kind}
+              contentId={contentId}
+              title={title}
+              onTitleChange={(value) =>
+                setDraft((current) => ({ ...current, title: value }))
+              }
+              settings={settings}
+              editable={editable}
+              levels={levels.data}
+              levelsFailed={levels.isError}
+              live={pub.publication?.live ?? null}
+              refusedSlug={refusedSlug}
+              onChange={(next) => {
+                if (next.slug !== settings.slug) setRefusedSlug(null)
+                setSettings(next)
+              }}
+            />
+          )}
           <HistorySheet
             open={historyOpen}
             onOpenChange={setHistoryOpen}

@@ -55,7 +55,7 @@ export type SectionCategories = {
 }
 
 /** Le champ à mettre en avant à l'ouverture des réglages. */
-export type SettingsFocus = "slug" | "categories" | null
+export type SettingsFocus = "slug" | null
 
 /**
  * Une adresse refusée par la base (prise ou invalide) : le brouillon garde son adresse
@@ -79,27 +79,20 @@ export function ContentSettingsSheet({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  // Le champ à mettre en avant à l'ouverture (adresse manquante ou déjà prise, catégories).
+  // Le champ à mettre en avant à l'ouverture (adresse manquante ou déjà prise).
   focus: SettingsFocus
   // Depuis une liste : « Enregistrer » et « Annuler » (dans l'éditeur, tout part tout seul).
   footer?: ReactNode
   // À la place de « Lecture seule… » : pourquoi on ne peut pas modifier (quelqu'un écrit ce
   // contenu), ou ce qui se vérifie encore.
   notice?: string
-} & Omit<SettingsFieldsProps, "slugRef" | "categoriesRef" | "highlightSlug">) {
+} & Omit<SettingsFieldsProps, "slugRef" | "highlightSlug">) {
   const slugRef = useRef<HTMLInputElement>(null)
-  const categoriesRef = useRef<HTMLHeadingElement>(null)
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         className="w-full gap-0 overflow-y-auto sm:max-w-md"
-        initialFocus={
-          focus === "slug"
-            ? slugRef
-            : focus === "categories" && fields.categories
-              ? categoriesRef
-              : undefined
-        }
+        initialFocus={focus === "slug" ? slugRef : undefined}
       >
         <SheetHeader className="pr-12">
           <SheetTitle>{labels.title}</SheetTitle>
@@ -118,7 +111,6 @@ export function ContentSettingsSheet({
           <ContentSettingsFields
             {...fields}
             slugRef={slugRef}
-            categoriesRef={categoriesRef}
             highlightSlug={focus === "slug"}
           />
         </div>
@@ -155,7 +147,6 @@ type SettingsFieldsProps = {
   categories?: SectionCategories
   onChange: (next: ContentSettings) => void
   slugRef?: React.RefObject<HTMLInputElement | null>
-  categoriesRef?: React.RefObject<HTMLHeadingElement | null>
   highlightSlug?: boolean
 }
 
@@ -181,11 +172,9 @@ export function ContentSettingsFields({
   categories,
   onChange,
   slugRef,
-  categoriesRef,
   highlightSlug = false,
 }: SettingsFieldsProps) {
   const ownSlugRef = useRef<HTMLInputElement>(null)
-  const ownCategoriesRef = useRef<HTMLHeadingElement>(null)
   return (
     <>
       {onTitleChange && (
@@ -236,7 +225,6 @@ export function ContentSettingsFields({
         <>
           <Separator />
           <CategoriesSection
-            headingRef={categoriesRef ?? ownCategoriesRef}
             categories={categories}
             chosen={settings.categoryIds}
             editable={editable}
@@ -270,13 +258,11 @@ export function ContentSettingsFields({
  * changement ([D28]).
  */
 function CategoriesSection({
-  headingRef,
   categories,
   chosen,
   editable,
   onChange,
 }: {
-  headingRef: React.RefObject<HTMLHeadingElement | null>
   categories: SectionCategories
   chosen: string[]
   editable: boolean
@@ -293,14 +279,9 @@ function CategoriesSection({
     onChange([...next].sort())
   }
   return (
-    <section className="space-y-3" data-settings="categories">
+    <section className="space-y-3">
       <div className="space-y-1">
-        <h3
-          ref={headingRef}
-          id="reglages-categories"
-          tabIndex={-1}
-          className="text-sm font-medium outline-none"
-        >
+        <h3 id="reglages-categories" className="text-sm font-medium">
           {words.label}
         </h3>
         <p className="text-sm text-muted-foreground">{words.description}</p>

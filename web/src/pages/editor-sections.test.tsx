@@ -12,7 +12,7 @@ import type { Media } from "@/lib/media/constants"
 import { renderApp, testProfile } from "@/test/render"
 import { texts } from "@/texts"
 
-// L'éditeur d'un article et d'un épisode (étape 7) : image de présentation, catégories,
+// L'éditeur d'un article et d'un épisode (l'éditeur du Fil) : image de présentation, catégories,
 // audio et sa durée, [D45] (ce qui manque pour publier) et [D46] (transcription conseillée). La
 // base, Realtime et Storage sont simulés.
 
@@ -213,9 +213,9 @@ const article = texts.editor.article
 const preview = texts.editor.preview
 const outline = texts.editor.outline
 
-/** L'Article, dans la colonne de droite (éditeur du Fil). */
-function articleTab() {
-  return screen.getByRole("region", { name: columns.article })
+/** L'Article (ou l'Épisode), dans la colonne de droite (éditeur du Fil). */
+function articleTab(kind: "article" | "episode" = "article") {
+  return screen.getByRole("region", { name: columns.content[kind] })
 }
 
 /** Les Blocs, en glissière par-dessus le Plan (éditeur du Fil). */
@@ -412,7 +412,9 @@ describe("éditeur d'un article (Le Fil)", () => {
     )
     renderApp(`/blog/${ARTICLE}`)
     const title = await editable()
-    const right = screen.getByRole("complementary", { name: columns.right })
+    const right = screen.getByRole("complementary", {
+      name: columns.right.article,
+    })
     // Pas d'onglets : en tête, le titre de l'article.
     expect(within(right).queryByRole("tablist")).toBeNull()
     expect(
@@ -572,7 +574,7 @@ describe("éditeur d'un article (Le Fil)", () => {
       within(tools).getByRole("button", { name: preview.reader.visitor })
     )
     expect(
-      await within(phone).findByText(preview.locked.text("Essentiel"))
+      await within(phone).findByText(preview.locked.text.article("Essentiel"))
     ).toBeVisible()
     expect(within(phone).queryByText("Respire lentement.")).toBeNull()
 
@@ -1455,7 +1457,9 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
         name: texts.editor.back(texts.sections.blog.title),
       })
     ).toBeInTheDocument()
-    const right = screen.getByRole("complementary", { name: columns.right })
+    const right = screen.getByRole("complementary", {
+      name: columns.right.article,
+    })
     expect(within(right).getByText(texts.editor.save.saved)).toBeInTheDocument()
     for (const name of [
       texts.publication.actions.publish,
@@ -1513,7 +1517,9 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
     })
     renderApp(`/blog/${ARTICLE}`)
     await editable()
-    const right = screen.getByRole("complementary", { name: columns.right })
+    const right = screen.getByRole("complementary", {
+      name: columns.right.article,
+    })
     // Une pastille courte à côté de « Publier », la phrase entière pour les lecteurs d'écran (et
     // dans l'infobulle).
     const badge = await within(right).findByText(
@@ -1534,7 +1540,9 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
     )
     renderApp(`/blog/${ARTICLE}`)
     await editable()
-    const right = screen.getByRole("complementary", { name: columns.right })
+    const right = screen.getByRole("complementary", {
+      name: columns.right.article,
+    })
     const unknown = await within(right).findByRole("button", {
       name: texts.publication.status.unknownHint,
     })
@@ -1653,54 +1661,69 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
   })
 })
 
-describe("éditeur d'un épisode", () => {
-  it("« Voir la présentation » donne le focus au titre du panneau", async () => {
-    const BLOCK = "00000000-0000-4000-8000-0000000000d1"
-    vi.mocked(api.getContent).mockResolvedValue(
-      contentOf(EPISODE, "episode", {
-        blocks: [
-          {
-            id: BLOCK,
-            type: "image",
-            mediaId: PLAGE,
-            caption: null,
-            alt: null,
-          },
-        ],
-      })
-    )
+describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", () => {
+  const episodeTab = () => articleTab("episode")
+  const audioCard = () =>
+    within(episodeTab()).getByRole("region", { name: words.audio.label })
+
+  it("s'ouvre à /podcasts/<id> avec le plan à gauche et l'Épisode à droite, sa carte Audio", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(contentOf(EPISODE, "episode"))
     renderApp(`/podcasts/${EPISODE}`)
     await editable()
-    fireEvent.pointerDown(
-      document.querySelector<HTMLElement>(`[data-block-id="${BLOCK}"]`)!
-    )
-    await waitFor(() =>
-      expect(panel()).toHaveAccessibleName(texts.editor.settings.label)
-    )
-    fireEvent.click(within(panel()).getByRole("button", { name: words.show }))
-    const title = await within(panel()).findByRole("heading", {
-      name: words.panelTitle.episode,
+    const left = screen.getByRole("complementary", { name: columns.left })
+    expect(
+      within(left).getByRole("link", {
+        name: texts.editor.back(texts.sections.podcasts.title),
+      })
+    ).toHaveAttribute("href", "/podcasts")
+    expect(
+      screen.getByRole("navigation", { name: outline.title })
+    ).toBeVisible()
+    // Ni barre du haut, ni panneau de présentation : tout est dans la colonne de droite.
+    expect(
+      screen.queryByRole("button", { name: texts.publication.actions.settings })
+    ).toBeNull()
+    expect(screen.queryByRole("button", { name: words.show })).toBeNull()
+    const right = screen.getByRole("complementary", {
+      name: columns.right.episode,
     })
-    await waitFor(() => expect(title).toHaveFocus())
-    expect(panel()).toHaveAccessibleName(words.panelTitle.episode)
+    expect(
+      within(right).getByRole("heading", { level: 2, name: "Entretien" })
+    ).toBeVisible()
+    // « Prêt à publier ? » : l'audio en plus, avant le niveau d'accès.
+    const ready = within(episodeTab())
+      .getAllByRole("button")
+      .map((button) => button.getAttribute("aria-label"))
+      .filter((label) => label?.endsWith(" : à régler"))
+    expect(ready).toEqual([
+      article.ready.todo(article.ready.items.cover),
+      article.ready.todo(article.ready.items.audio),
+    ])
+    expect(
+      within(episodeTab()).getByRole("region", {
+        name: article.feed.title.episode,
+      })
+    ).toBeVisible()
+    expect(within(audioCard()).getByText(words.audio.none)).toBeVisible()
+    expect(categoriesApi.listCategories).toHaveBeenCalledWith("podcasts")
+    // En bas : pas encore d'audio, à la place du temps de lecture.
+    expect(
+      within(right).getByText(
+        new RegExp(`^${article.stats.noAudio} · \\d+ mots?$`)
+      )
+    ).toBeVisible()
   })
 
-  it("choisit l'audio parmi les audios de la médiathèque et montre sa durée", async () => {
+  it("choisit l'audio depuis sa carte : sa durée dans la carte et en bas, son lecteur dans le téléphone", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(EPISODE, "episode", { cover: { mediaId: PLAGE } })
     )
     vi.mocked(mediaApi.listMedia).mockResolvedValue([son])
     renderApp(`/podcasts/${EPISODE}`)
     await editable()
-    expect(
-      screen.getByRole("link", {
-        name: texts.editor.back(texts.sections.podcasts.title),
-      })
-    ).toHaveAttribute("href", "/podcasts")
-    expect(within(panel()).getByText(words.audio.none)).toBeVisible()
 
     fireEvent.click(
-      within(panel()).getByRole("button", { name: words.audio.choose })
+      within(audioCard()).getByRole("button", { name: words.audio.choose })
     )
     const dialog = await screen.findByRole("dialog", {
       name: texts.editor.audioPicker.title,
@@ -1718,12 +1741,28 @@ describe("éditeur d'un épisode", () => {
     fireEvent.click(choice)
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
 
-    // Dans l'aperçu et dans le panneau : la durée.
-    const preview = document.querySelector<HTMLElement>(
+    // La carte : le fichier et sa durée ; le focus sur « Changer d'audio ».
+    expect(within(audioCard()).getByText("entretien.mp3")).toBeVisible()
+    expect(
+      within(audioCard()).getByText(words.audio.duration("3 min 05 s"))
+    ).toBeVisible()
+    await waitFor(() =>
+      expect(
+        within(audioCard()).getByRole("button", { name: words.audio.replace })
+      ).toHaveFocus()
+    )
+    // En bas de la colonne, la durée de l'audio.
+    expect(screen.getByText(/^3 min 05 s · \d+ mots?$/)).toBeVisible()
+    // Dans le téléphone, sous le titre : le lecteur, sans l'avertissement (il est dans la carte).
+    const phoneAudio = document.querySelector<HTMLElement>(
       '[data-presentation="audio"]'
     )!
-    expect(preview).toHaveTextContent(words.audio.duration("3 min 05 s"))
-    expect(within(panel()).getByText("entretien.mp3")).toBeVisible()
+    expect(
+      await within(phoneAudio).findByRole("button", {
+        name: texts.audioPlayer.play("entretien.mp3"),
+      })
+    ).toBeVisible()
+    expect(phoneAudio.querySelector('[data-warning="transcript"]')).toBeNull()
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
       timeout: 4000,
     })
@@ -1732,7 +1771,25 @@ describe("éditeur d'un épisode", () => {
     })
   }, 10_000)
 
-  it("[D46] : avertit quand l'audio n'a pas de transcription, avec un lien vers sa fiche", async () => {
+  it("« Audio » dans « Prêt à publier ? » ouvre le choix de l'audio", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(EPISODE, "episode", { cover: { mediaId: PLAGE } })
+    )
+    renderApp(`/podcasts/${EPISODE}`)
+    await editable()
+    fireEvent.click(
+      within(episodeTab()).getByRole("button", {
+        name: article.ready.todo(article.ready.items.audio),
+      })
+    )
+    expect(
+      await screen.findByRole("dialog", {
+        name: texts.editor.audioPicker.title,
+      })
+    ).toBeVisible()
+  })
+
+  it("« Retirer l'audio » le retire, avec « Annuler » ; le focus va à la place de l'audio", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(EPISODE, "episode", {
         cover: { mediaId: PLAGE },
@@ -1741,11 +1798,40 @@ describe("éditeur d'un épisode", () => {
     )
     renderApp(`/podcasts/${EPISODE}`)
     await editable()
+    fireEvent.click(
+      await within(audioCard()).findByRole("button", {
+        name: words.audio.remove,
+      })
+    )
+    await waitFor(() =>
+      expect(
+        within(audioCard()).getByRole("button", { name: words.audio.choose })
+      ).toHaveFocus()
+    )
+    const toast = await screen.findByText(words.audio.removed)
+    fireEvent.click(
+      within(toast.closest("li")!).getByRole("button", {
+        name: texts.editor.settings.undo,
+      })
+    )
+    expect(await within(audioCard()).findByText("entretien.mp3")).toBeVisible()
+  })
+
+  it("[D46] : la carte Audio avertit quand l'audio n'a pas de transcription, avec un lien vers sa fiche", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(EPISODE, "episode", {
+        cover: { mediaId: PLAGE },
+        audio: { mediaId: SON },
+      })
+    )
+    renderApp(`/podcasts/${EPISODE}`)
+    await editable()
+    // Dans la carte seulement.
     const warnings = await screen.findAllByText(words.audio.transcriptMissing)
-    // Dans l'aperçu et dans le panneau.
-    expect(warnings).toHaveLength(2)
-    const link = within(panel()).getByRole("link", {
-      name: new RegExp(words.audio.openFile),
+    expect(warnings).toHaveLength(1)
+    expect(audioCard()).toContainElement(warnings[0])
+    const link = within(audioCard()).getByRole("link", {
+      name: `${words.openInLibrary} ${words.openFileHint}`,
     })
     expect(link).toHaveAttribute("href", `/mediatheque?fichier=${SON}`)
     expect(link).toHaveAttribute("target", "_blank")
@@ -1778,9 +1864,73 @@ describe("éditeur d'un épisode", () => {
     renderApp(`/podcasts/${EPISODE}`)
     await editable()
     expect(
-      await within(panel()).findByText(words.audio.transcriptOk)
+      await within(audioCard()).findByText(words.audio.transcriptOk)
     ).toBeVisible()
     expect(screen.queryByText(words.audio.transcriptMissing)).toBeNull()
+  })
+
+  it("un audio supprimé de la médiathèque : la carte le dit, « Prêt à publier ? » aussi", async () => {
+    vi.mocked(api.getMediaByIds).mockResolvedValue([plage])
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(EPISODE, "episode", {
+        cover: { mediaId: PLAGE },
+        audio: { mediaId: SON },
+      })
+    )
+    renderApp(`/podcasts/${EPISODE}`)
+    await editable()
+    expect(
+      await within(audioCard()).findByText(words.audio.missing)
+    ).toBeVisible()
+    expect(
+      within(episodeTab()).getByRole("button", {
+        name: article.ready.todo(article.ready.items.audio),
+      })
+    ).toBeVisible()
+    expect(
+      within(audioCard()).getByRole("button", { name: words.audio.replace })
+    ).toBeVisible()
+  })
+
+  it("en Lecture : le lecteur sous le titre et la durée de l'audio ; réservé, ni audio ni blocs", async () => {
+    const LEVEL = "00000000-0000-4000-8000-0000000000b1"
+    vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([
+      { id: LEVEL, name: "Essentiel", rank: 1 },
+    ])
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(
+        EPISODE,
+        "episode",
+        { cover: { mediaId: PLAGE }, audio: { mediaId: SON } },
+        { access_level_id: LEVEL }
+      )
+    )
+    renderApp(`/podcasts/${EPISODE}`)
+    await editable()
+    const tools = screen.getByRole("toolbar", { name: preview.tools })
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.mode.read })
+    )
+    const phone = screen.getByRole("region", { name: preview.screen.ios })
+    expect(await within(phone).findByText("3 min 05 s")).toBeVisible()
+    expect(
+      await within(phone).findByRole("button", {
+        name: texts.audioPlayer.play("entretien.mp3"),
+      })
+    ).toBeVisible()
+
+    // Comme une personne sans la formule : l'app ne reçoit pas l'audio.
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.reader.visitor })
+    )
+    expect(
+      await within(phone).findByText(preview.locked.text.episode("Essentiel"))
+    ).toBeVisible()
+    expect(
+      within(phone).queryByRole("button", {
+        name: texts.audioPlayer.play("entretien.mp3"),
+      })
+    ).toBeNull()
   })
 
   it("« Publier » et « Programmer » demandent l'image et l'audio qui manquent", async () => {
@@ -1833,7 +1983,7 @@ describe("éditeur d'un épisode", () => {
     )
     renderApp(`/podcasts/${EPISODE}`)
     await editable()
-    await within(panel()).findByText("entretien.mp3")
+    await within(audioCard()).findByText("entretien.mp3")
     fireEvent.click(
       screen.getByRole("button", { name: texts.publication.actions.publish })
     )
@@ -1985,7 +2135,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
       })
     )
     const card = within(articleTab()).getByRole("region", {
-      name: article.feed.title,
+      name: article.feed.title.article,
     })
     expect(card).toHaveAttribute("data-highlight")
     await waitFor(() =>
@@ -1996,7 +2146,9 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
   it("colonne de droite : le titre en tête, et en bas la lecture, l'état et « Publier » ; l'image a son icône Info", async () => {
     renderApp(`/blog/${ARTICLE}`)
     await editable()
-    const right = screen.getByRole("complementary", { name: columns.right })
+    const right = screen.getByRole("complementary", {
+      name: columns.right.article,
+    })
     // « Publier » et l'état sont après l'Article : dans la section du bas.
     const publish = within(right).getByRole("button", {
       name: texts.publication.actions.publish,
@@ -2016,7 +2168,9 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
 
     // La phrase de l'image est dans l'infobulle de l'icône Info.
     expect(
-      within(articleTab()).getByRole("button", { name: article.feed.hint })
+      within(articleTab()).getByRole("button", {
+        name: article.feed.hint.article,
+      })
     ).toBeVisible()
     // Plus de résumé, donc plus de glissière.
     expect(within(articleTab()).queryByRole("meter")).toBeNull()
@@ -2123,7 +2277,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
     choose(texts.editor.blockLabel.image)
     // Le lien dit aussi qu'il ouvre un nouvel onglet (lecteurs d'écran).
     const link = await screen.findByRole("link", {
-      name: `${texts.editor.settings.image.openInLibrary} ${texts.editor.presentation.openFileHint}`,
+      name: `${words.openInLibrary} ${words.openFileHint}`,
     })
     expect(link).toHaveAttribute("href", `/mediatheque?fichier=${PLAGE}`)
     expect(link).toHaveAttribute("target", "_blank")

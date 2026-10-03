@@ -78,29 +78,36 @@ export function publishChecks(
 }
 
 /**
- * Une ligne de « Prêt à publier ? » (éditeur du Fil) : le titre, l'image de présentation, le
- * niveau d'accès.
+ * Une ligne de « Prêt à publier ? » (éditeur du Fil) : le titre, l'image de présentation, l'audio,
+ * le niveau d'accès.
  */
-export type ReadyItem = { key: "title" | "cover" | "access"; done: boolean }
+export type ReadyItem = {
+  key: "title" | "cover" | "audio" | "access"
+  done: boolean
+}
 
 /**
- * « Prêt à publier ? » : le titre ([D49]), l'image de présentation ([D45]) et le niveau d'accès,
- * que « Publier » demande tant qu'il n'est pas choisi ([D41]). Une image en cours de lecture
- * compte comme faite (la base tranchera), comme pour publishChecks.
+ * « Prêt à publier ? », selon ce que la sorte demande : le titre ([D49]), l'image de présentation
+ * ([D45]), l'audio d'un épisode, et le niveau d'accès, que « Publier » demande tant qu'il n'est
+ * pas choisi ([D41]). Un fichier en cours de lecture compte comme fait (la base tranchera), comme
+ * pour publishChecks.
  */
 export function readyItems(
+  kind: ContentKind,
   checks: PublishChecks,
   accessChosen: boolean
 ): ReadyItem[] {
-  return [
-    {
-      key: "title",
-      done: !checks.missing.some((item) => item.key === "title"),
-    },
-    {
-      key: "cover",
-      done: !checks.missing.some((item) => item.key === "cover"),
-    },
-    { key: "access", done: accessChosen },
-  ]
+  const profile = contentProfile(kind)
+  const done = (key: Requirement["key"]) =>
+    !checks.missing.some((item) => item.key === key)
+  const items: ReadyItem[] = []
+  if (profile.titleRequired) items.push({ key: "title", done: done("title") })
+  if (profile.cover === "required") {
+    items.push({ key: "cover", done: done("cover") })
+  }
+  if (profile.audio) items.push({ key: "audio", done: done("audio") })
+  if (profile.access === "own") {
+    items.push({ key: "access", done: accessChosen })
+  }
+  return items
 }

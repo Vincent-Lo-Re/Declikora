@@ -10,9 +10,10 @@
 //    puis recharger.
 // 1 ter. L'éditeur du Fil en lecture seule : un second onglet prend la main, la fenêtre s'ouvre
 //    dans le premier, Échap y laisse le cadenas, qui la rouvre pour reprendre la main.
-// 2. Podcasts : un épisode que « Publier » refuse sans audio ; l'audio choisi dans la
-//    médiathèque, sa durée affichée, la transcription conseillée ([D46]) ; publier ; l'app le
-//    liste avec sa durée ; la transcription ajoutée depuis sa fiche fait taire l'avertissement.
+// 2. Podcasts, dans l'éditeur du Fil : un épisode que « Publier » refuse sans audio ; l'audio
+//    choisi dans la médiathèque, son lecteur dans le téléphone, sa durée dans la carte Audio et
+//    en bas de la colonne, la transcription conseillée ([D46]) ; publier ; l'app le liste avec sa
+//    durée ; la transcription ajoutée depuis sa fiche fait taire l'avertissement.
 // 3. Pages : recherche (accents et casse ignorés, adresse comprise) et filtre par état dans la
 //    liste complète.
 // 4. Accueil : un brouillon récent, une publication programmée et une programmation échouée
@@ -87,32 +88,31 @@ async function createBlank(page: Page, kind: "article" | "episode") {
 }
 
 /**
- * Le panneau de droite d'un épisode : « Présentation de l'épisode » quand aucun bloc n'est
- * choisi, « Réglages du bloc » sinon (un article a ses onglets, articleTab).
+ * L'Article (ou l'Épisode), dans la colonne de droite de l'éditeur du Fil : image, audio, niveau
+ * d'accès, catégories.
  */
-function panel(page: Page) {
-  return page.getByRole("region", {
-    name: new RegExp(
-      `^(${[editor.settings.label, editor.presentation.panelTitle.episode].join(
-        "|"
-      )})$`
-    ),
+function articleTab(page: Page, kind: "article" | "episode" = "article") {
+  return page.getByRole("region", { name: editor.columns.content[kind] })
+}
+
+/** La carte Audio d'un épisode, dans la colonne de droite. */
+function audioCard(page: Page) {
+  return articleTab(page, "episode").getByRole("region", {
+    name: words.audio.label,
   })
 }
 
-/** L'Article, dans la colonne de droite de l'éditeur du Fil : image, niveau d'accès, catégories. */
-function articleTab(page: Page) {
-  return page.getByRole("region", { name: editor.columns.article })
-}
-
-/** Éditeur du Fil : niveau d'accès « Gratuit », dans l'onglet « Article ». */
-async function articleFree(page: Page) {
-  await articleTab(page).getByRole("combobox").click()
+/** Éditeur du Fil : niveau d'accès « Gratuit », dans la colonne de droite. */
+async function articleFree(
+  page: Page,
+  kind: "article" | "episode" = "article"
+) {
+  await articleTab(page, kind).getByRole("combobox").click()
   await page
     .getByRole("option", { name: publication.settings.access.free })
     .click()
   await expect(
-    articleTab(page).getByText(publication.settings.access.freeHint)
+    articleTab(page, kind).getByText(publication.settings.access.freeHint)
   ).toBeVisible()
   await saved(page)
 }
@@ -665,9 +665,11 @@ test("Podcasts : épisode refusé sans audio, audio de la médiathèque, durée,
   const episodeId = contentIdFromUrl(page.url())
   const title = `Entretien ${id}`
   await page.getByLabel(editor.title.label).fill(title)
-  await panel(page).getByRole("button", { name: words.cover.choose }).click()
+  await articleTab(page, "episode")
+    .getByRole("button", { name: editor.article.feed.chooseLabel })
+    .click()
   await uploadInPickerAndWait(page, `micro-${id}.png`)
-  await expect(panel(page)).toContainText(words.audio.none)
+  await expect(audioCard(page)).toContainText(words.audio.none)
   await saved(page)
 
   // « Publier » sans audio : refusé, avec l'explication ; seule l'audio manque.
@@ -694,20 +696,20 @@ test("Podcasts : épisode refusé sans audio, audio de la médiathèque, durée,
   await expect(picker).toHaveCount(0)
   await saved(page)
 
-  // L'aperçu : la durée et le lecteur ; l'avertissement de transcription, ici et à droite.
+  // Le téléphone : le lecteur sous le titre. La carte Audio : le fichier, sa durée et
+  // l'avertissement de transcription. En bas de la colonne : la durée de l'audio.
   const preview = page.locator('[data-presentation="audio"]')
-  await expect(preview).toContainText(words.audio.duration(duration))
   await expect(
     preview.getByRole("button", { name: texts.audioPlayer.play(audioName) })
   ).toBeVisible()
-  await expect(preview.locator('[data-warning="transcript"]')).toContainText(
-    words.audio.transcriptMissing
-  )
-  await expect(panel(page)).toContainText(audioName)
-  await expect(panel(page)).toContainText(duration)
+  await expect(audioCard(page)).toContainText(audioName)
+  await expect(audioCard(page)).toContainText(words.audio.duration(duration))
   await expect(
-    panel(page).locator('[data-warning="transcript"]')
+    audioCard(page).locator('[data-warning="transcript"]')
   ).toContainText(words.audio.transcriptMissing)
+  await expect(
+    page.getByRole("complementary", { name: editor.columns.right.episode })
+  ).toContainText(`${duration} · `)
 
   // « Publier » : plus rien ne manque ; la transcription est conseillée, sans bloquer.
   const publish = await openPublish(page)
@@ -738,9 +740,8 @@ test("Podcasts : épisode refusé sans audio, audio de la médiathèque, durée,
   // [D46] : le lien ouvre la fiche de l'audio (nouvel onglet) ; on y écrit la transcription.
   const [file] = await Promise.all([
     context.waitForEvent("page"),
-    panel(page)
-      .locator('[data-warning="transcript"]')
-      .getByRole("link", { name: new RegExp(words.audio.openFile) })
+    audioCard(page)
+      .getByRole("link", { name: new RegExp(words.openInLibrary) })
       .click(),
   ])
   await expect(file).toHaveURL(/\/mediatheque\?fichier=/)
@@ -759,7 +760,7 @@ test("Podcasts : épisode refusé sans audio, audio de la médiathèque, durée,
   await page.evaluate(
     'document.dispatchEvent(new Event("visibilitychange", { bubbles: true }))'
   )
-  await expect(panel(page)).toContainText(words.audio.transcriptOk, {
+  await expect(audioCard(page)).toContainText(words.audio.transcriptOk, {
     timeout: 15_000,
   })
   await expect(page.locator('[data-warning="transcript"]')).toHaveCount(0)
@@ -872,9 +873,13 @@ test("Accueil : brouillon récent, publication programmée et programmation éch
   await createBlank(page, "episode")
   const episodeId = contentIdFromUrl(page.url())
   await page.getByLabel(editor.title.label).fill(episodeTitle)
-  await panel(page).getByRole("button", { name: words.cover.choose }).click()
+  await articleTab(page, "episode")
+    .getByRole("button", { name: editor.article.feed.chooseLabel })
+    .click()
   await uploadInPickerAndWait(page, coverName)
-  await panel(page).getByRole("button", { name: words.audio.choose }).click()
+  await audioCard(page)
+    .getByRole("button", { name: words.audio.choose })
+    .click()
   const audioPicker = page.getByRole("dialog", {
     name: editor.audioPicker.title,
   })
@@ -884,8 +889,8 @@ test("Accueil : brouillon récent, publication programmée et programmation éch
       { name: audioName, mimeType: "audio/mpeg", buffer: silentMp3(4) },
     ])
   await expect(audioPicker).toHaveCount(0, { timeout: 60_000 })
-  await expect(panel(page)).toContainText(audioName)
-  await settingsFree(page)
+  await expect(audioCard(page)).toContainText(audioName)
+  await articleFree(page, "episode")
   await scheduleInTwoDays(page)
   await page
     .getByRole("link", { name: editor.back(texts.sections.podcasts.title) })

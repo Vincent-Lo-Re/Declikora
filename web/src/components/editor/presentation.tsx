@@ -1,13 +1,5 @@
-import {
-  AudioLines,
-  ExternalLink,
-  ImageIcon,
-  Tags,
-  TriangleAlert,
-  X,
-} from "lucide-react"
-import { useRef, type ReactNode } from "react"
-import { Link } from "react-router"
+import { AudioLines, ImageIcon, X } from "lucide-react"
+import { useRef } from "react"
 
 import type { BlockMedia } from "@/blocks/components/context"
 import { MediaImage, MediaUnavailable } from "@/blocks/components/media-state"
@@ -15,10 +7,7 @@ import type { Draft } from "@/blocks/types"
 import { AudioPlayer } from "@/components/media/audio-player"
 import { MediaThumbnail } from "@/components/media/media-visuals"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { contentProfile, type PresentationKind } from "@/lib/editor/profile"
-import { formatDuration } from "@/lib/media/format"
-import { mediaFilePath } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.editor.presentation
@@ -71,7 +60,10 @@ export function CoverPreview({
   )
 }
 
-/** L'audio d'un épisode, sous le titre : un lecteur, sa durée, et l'avertissement [D46]. */
+/**
+ * L'audio d'un épisode, sous le titre, comme dans l'app : son lecteur (ADMIN § 4). Le fichier, sa
+ * durée et la transcription se règlent dans la carte Audio de la colonne de droite.
+ */
 export function AudioPreview({
   media,
   editable,
@@ -89,32 +81,18 @@ export function AudioPreview({
       data-presentation="audio"
       onClick={onSelect}
     >
-      {media.state === "ready" ? (
-        <div className="space-y-2">
-          <p className="flex items-center gap-2 text-sm">
-            <AudioLines aria-hidden className="size-4 shrink-0" />
-            <span>
-              {media.media.duration_s !== null
-                ? labels.audio.duration(formatDuration(media.media.duration_s))
-                : labels.audio.noDuration}
-            </span>
-          </p>
-          {media.url && (
-            <AudioPlayer
-              key={media.url}
-              src={media.url}
-              name={media.media.name}
-              durationHint={media.media.duration_s}
-              preload="none"
-            />
-          )}
-          {!media.media.transcript?.trim() && editable && (
-            <TranscriptWarning mediaId={media.media.id} />
-          )}
-        </div>
+      {media.state === "ready" && media.url ? (
+        <AudioPlayer
+          key={media.url}
+          src={media.url}
+          name={media.media.name}
+          durationHint={media.media.duration_s}
+          preload="none"
+        />
       ) : (
         <MediaUnavailable
-          media={media}
+          // Prêt, mais son adresse d'écoute n'est pas encore là.
+          media={media.state === "ready" ? { state: "loading" } : media}
           words={labels.audio}
           icon={AudioLines}
           editable={editable}
@@ -130,74 +108,32 @@ export function AudioPreview({
   )
 }
 
-/**
- * [D46] : l'audio n'a pas de transcription. Conseillée, pas obligatoire, comme le texte
- * alternatif d'une image ([D15]). Le lien ouvre sa fiche dans la Médiathèque, dans un nouvel
- * onglet (l'éditeur reste ouvert).
- */
-function TranscriptWarning({ mediaId }: { mediaId: string }) {
-  return (
-    <div className="space-y-1 text-xs text-warning" data-warning="transcript">
-      <p className="flex items-start gap-1.5">
-        <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
-        {labels.audio.transcriptMissing}
-      </p>
-      <MediaFileLink mediaId={mediaId} />
-    </div>
-  )
-}
-
-/** « Ouvrir sa fiche dans la Médiathèque » (nouvel onglet). */
-function MediaFileLink({ mediaId }: { mediaId: string }) {
-  return (
-    <Link
-      to={mediaFilePath(mediaId)}
-      target="_blank"
-      rel="noopener"
-      className="inline-flex items-center gap-1 font-medium underline underline-offset-4"
-      onClick={(event) => event.stopPropagation()}
-    >
-      {labels.audio.openFile}
-      <ExternalLink aria-hidden className="size-3" />
-      <span className="sr-only"> {labels.openFileHint}</span>
-    </Link>
-  )
-}
-
 // ---------------------------------------------------------------------------------------------
 // Panneau de droite : la présentation quand aucun bloc n'est choisi.
 // ---------------------------------------------------------------------------------------------
 
+/**
+ * La présentation d'une méthode, d'un chapitre ou d'une leçon, quand aucun bloc n'est choisi :
+ * l'image de présentation (changer, retirer, texte alternatif). L'éditeur du Fil la règle dans sa
+ * colonne de droite.
+ */
 export function PresentationPanel({
   kind,
   draft,
   editable,
   mediaFor,
-  urlFor,
-  categoryNames,
   onChooseCover,
   onRemoveCover,
-  onChooseAudio,
-  onRemoveAudio,
-  onEditCategories,
 }: {
   kind: PresentationKind
   draft: Draft
   editable: boolean
   mediaFor: (mediaId: string | null) => BlockMedia
-  // Adresse de la vignette d'un fichier prêt (celle de l'aperçu).
-  urlFor: (media: BlockMedia) => string | undefined
-  // Les noms des catégories choisies (undefined : pas encore lues).
-  categoryNames: string[] | undefined
   onChooseCover: () => void
   onRemoveCover: () => void
-  onChooseAudio: () => void
-  onRemoveAudio: () => void
-  onEditCategories: () => void
 }) {
   const profile = contentProfile(kind)
   const cover = mediaFor(draft.cover?.mediaId ?? null)
-  const audio = mediaFor(draft.audio?.mediaId ?? null)
   return (
     <div className="space-y-5">
       <div className="space-y-1">
@@ -219,75 +155,21 @@ export function PresentationPanel({
         </p>
       )}
 
-      <PanelSection
-        title={labels.cover.label}
-        hint={
-          profile.cover === "required"
+      <section className="space-y-2">
+        <h3 className="text-sm font-medium">{labels.cover.label}</h3>
+        <p className="text-xs text-muted-foreground">
+          {profile.cover === "required"
             ? labels.cover.hint
-            : labels.cover.optionalHint
-        }
-      >
-        <FileChoice
+            : labels.cover.optionalHint}
+        </p>
+        <CoverChoice
           media={cover}
-          url={urlFor(cover)}
-          texts={labels.cover}
-          focusKey="cover"
           editable={editable}
           onChoose={onChooseCover}
           onRemove={onRemoveCover}
         />
         <CoverAlt cover={cover} />
-      </PanelSection>
-
-      {profile.audio && (
-        <>
-          <Separator />
-          <PanelSection title={labels.audio.label} hint={labels.audio.hint}>
-            <FileChoice
-              media={audio}
-              url={undefined}
-              texts={labels.audio}
-              focusKey="audio"
-              editable={editable}
-              onChoose={onChooseAudio}
-              onRemove={onRemoveAudio}
-            />
-            {audio.state === "ready" &&
-              (audio.media.transcript?.trim() ? (
-                <p className="text-xs text-muted-foreground">
-                  {labels.audio.transcriptOk}
-                </p>
-              ) : (
-                <TranscriptWarning mediaId={audio.media.id} />
-              ))}
-          </PanelSection>
-        </>
-      )}
-
-      {profile.categories && (
-        <>
-          <Separator />
-          <PanelSection title={labels.categories.label}>
-            {categoryNames === undefined ? null : categoryNames.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {labels.categories.none}
-              </p>
-            ) : (
-              <p className="text-sm">{categoryNames.join(", ")}</p>
-            )}
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              aria-haspopup="dialog"
-              onClick={onEditCategories}
-            >
-              <Tags />
-              {labels.categories.edit}
-            </Button>
-          </PanelSection>
-        </>
-      )}
+      </section>
     </div>
   )
 }
@@ -304,45 +186,14 @@ export function CoverAlt({ cover }: { cover: BlockMedia }) {
   ) : null
 }
 
-function PanelSection({
-  title,
-  hint,
-  children,
-}: {
-  title: string
-  hint?: string
-  children: ReactNode
-}) {
-  return (
-    <section className="space-y-2">
-      <h3 className="text-sm font-medium">{title}</h3>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-      {children}
-    </section>
-  )
-}
-
-/** Le fichier choisi (image de présentation ou audio) : vignette, nom, durée, changer, retirer. */
-function FileChoice({
+/** L'image de présentation choisie : vignette, nom, changer, retirer. */
+function CoverChoice({
   media,
-  url,
-  texts: fileTexts,
-  focusKey,
   editable,
   onChoose,
   onRemove,
 }: {
   media: BlockMedia
-  url: string | undefined
-  texts: {
-    choose: string
-    replace: string
-    remove: string
-    none: string
-    missing: string
-    notReady: string
-  }
-  focusKey: "cover" | "audio"
   editable: boolean
   onChoose: () => void
   onRemove: () => void
@@ -357,19 +208,16 @@ function FileChoice({
         <div className="flex items-center gap-3 rounded-lg border p-2">
           <MediaThumbnail
             media={file}
-            url={url}
+            url={media.state === "ready" ? media.url : undefined}
             className="size-12 shrink-0 rounded-md"
             iconClassName="size-5"
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{file.name}</p>
-            {file.duration_s !== null && (
-              <p className="text-xs text-muted-foreground">
-                {formatDuration(file.duration_s)}
-              </p>
-            )}
             {media.state === "not_ready" && (
-              <p className="text-xs text-destructive">{fileTexts.notReady}</p>
+              <p className="text-xs text-destructive">
+                {labels.cover.notReady}
+              </p>
             )}
           </div>
         </div>
@@ -382,9 +230,9 @@ function FileChoice({
           }
         >
           {media.state === "missing"
-            ? fileTexts.missing
+            ? labels.cover.missing
             : media.state === "none"
-              ? fileTexts.none
+              ? labels.cover.none
               : texts.common.loading}
         </p>
       )}
@@ -397,10 +245,10 @@ function FileChoice({
             type="button"
             size="sm"
             variant="outline"
-            data-presentation-choose={focusKey}
+            data-presentation-choose="cover"
             onClick={onChoose}
           >
-            {chosen ? fileTexts.replace : fileTexts.choose}
+            {chosen ? labels.cover.replace : labels.cover.choose}
           </Button>
           {chosen && (
             <Button
@@ -414,7 +262,7 @@ function FileChoice({
               }}
             >
               <X />
-              {fileTexts.remove}
+              {labels.cover.remove}
             </Button>
           )}
         </div>
