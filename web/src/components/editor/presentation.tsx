@@ -6,13 +6,11 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react"
-import { useRef, type ChangeEvent, type ReactNode } from "react"
+import { useRef, type ReactNode } from "react"
 import { Link } from "react-router"
 
 import type { BlockMedia } from "@/blocks/components/context"
 import { MediaImage, MediaUnavailable } from "@/blocks/components/media-state"
-import { singleLine, useAutoHeight } from "@/blocks/components/fields"
-import { SUMMARY_MAX } from "@/blocks/draft"
 import type { Draft } from "@/blocks/types"
 import { AudioPlayer } from "@/components/media/audio-player"
 import { MediaThumbnail } from "@/components/media/media-visuals"
@@ -32,9 +30,6 @@ const labels = texts.editor.presentation
 
 // Le titre du contenu, en tête de l'aperçu : « Prêt à publier ? » et « Écrire le titre » y mènent.
 export const CONTENT_TITLE_ID = "contenu-titre"
-
-// Nombres en français (« 1 000 »).
-const integer = new Intl.NumberFormat("fr-FR")
 
 // ---------------------------------------------------------------------------------------------
 // Dans l'aperçu du téléphone : ce que l'app montre en tête d'un article ou d'un épisode.
@@ -81,44 +76,7 @@ export function CoverPreview({
   )
 }
 
-/** Le résumé, écrit sous le titre (texte simple, facultatif). */
-export function SummaryPreview({
-  summary,
-  editable,
-  onChange,
-  onFocus,
-}: {
-  summary: string
-  editable: boolean
-  onChange: (value: string | null) => void
-  onFocus: () => void
-}) {
-  const ref = useAutoHeight(summary)
-  if (!editable && !summary) return null
-  const onInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    const value = singleLine(event.target.value).slice(0, SUMMARY_MAX)
-    onChange(value === "" ? null : value)
-  }
-  return (
-    <textarea
-      ref={ref}
-      rows={1}
-      className="blocks-summary"
-      value={summary}
-      maxLength={SUMMARY_MAX}
-      readOnly={!editable}
-      placeholder={editable ? labels.summary.placeholder : ""}
-      aria-label={labels.summary.label}
-      onChange={onInput}
-      onFocus={onFocus}
-      onKeyDown={(event) => {
-        if (event.key === "Enter") event.preventDefault()
-      }}
-    />
-  )
-}
-
-/** L'audio d'un épisode, sous le résumé : un lecteur, sa durée, et l'avertissement [D46]. */
+/** L'audio d'un épisode, sous le titre : un lecteur, sa durée, et l'avertissement [D46]. */
 export function AudioPreview({
   media,
   editable,
@@ -244,7 +202,6 @@ export function PresentationPanel({
 }) {
   const cover = mediaFor(draft.cover?.mediaId ?? null)
   const audio = mediaFor(draft.audio?.mediaId ?? null)
-  const summary = draft.summary ?? ""
   return (
     <div className="space-y-5" data-presentation-panel>
       <div className="space-y-1">
@@ -282,13 +239,6 @@ export function PresentationPanel({
           onRemove={onRemoveCover}
         />
         <CoverAlt cover={cover} />
-      </PanelSection>
-
-      <Separator />
-      <PanelSection title={labels.summary.label} hint={labels.summary.hint}>
-        <p className="text-xs text-muted-foreground tabular-nums">
-          {labels.summary.count(integer.format(summary.length))}
-        </p>
       </PanelSection>
 
       {hasAudio(kind) && (

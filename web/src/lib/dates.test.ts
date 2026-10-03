@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   formatDateTime,
   formatDayInput,
+  formatShortDateTime,
   formatTimeInput,
   parisToInstant,
   parseDayInput,
@@ -161,5 +162,28 @@ describe("saisie à la française (fenêtre « Programmer »)", () => {
     expect(parseTimeInput("8h60")).toBeNull()
     expect(parseTimeInput("huit heures")).toBeNull()
     expect(formatTimeInput("08:05")).toBe("08h05")
+  })
+})
+
+describe("formatShortDateTime", () => {
+  const now = new Date("2026-10-03T14:31:00Z")
+
+  it("le jour même (à Paris) : l'heure seule", () => {
+    expect(formatShortDateTime("2026-10-03T14:31:00Z", now)).toEqual({
+      today: true,
+      text: "16h31",
+    })
+  })
+
+  it("un autre jour : le jour, sans l'année ni l'heure", () => {
+    expect(formatShortDateTime("2026-10-01T08:00:00Z", now)).toEqual({
+      today: false,
+      text: "1 oct.",
+    })
+  })
+
+  it("juste avant minuit à Paris, c'est encore la veille", () => {
+    // 21 h 59 UTC le 2 octobre = 23 h 59 à Paris, le 2.
+    expect(formatShortDateTime("2026-10-02T21:59:00Z", now).today).toBe(false)
   })
 })

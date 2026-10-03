@@ -23,11 +23,6 @@ export const DRAFT_MAX_BYTES = 240_000
 export const DRAFT_WARN_BYTES = 200_000
 
 export const TITLE_MAX = 200
-// Résumé d'un article ou d'un épisode (texte simple, facultatif) : même limite que le schéma.
-export const SUMMARY_MAX = 1000
-// Le résumé d'un article ne sert qu'à sa carte dans la liste du Fil (ADMIN § 4) : l'admin
-// s'arrête à 200 caractères ; le schéma garde 1 000 (la règle des blocs ne fait que s'élargir).
-export const FEED_SUMMARY_MAX = 200
 // Vitesse de lecture retenue pour « Environ n min de lecture » (mots par minute).
 const WORDS_PER_MINUTE = 200
 export const ALT_MAX = 1000
@@ -274,9 +269,13 @@ type PreparedDraft =
 
 /**
  * Prépare le brouillon à l'enregistrement : textes nettoyés (cleanTextDoc), puis vérifiés par
- * le validateur généré depuis le schéma (le même que celui de la base).
+ * le validateur généré depuis le schéma (le même que celui de la base). L'admin n'écrit plus de
+ * résumé (03/10/2026, ADMIN § 4) : celui d'un ancien brouillon est retiré. Le schéma garde le
+ * champ, la forme des blocs ne faisant que s'élargir.
  */
-export function prepareDraft(draft: Draft): PreparedDraft {
+export function prepareDraft(source: Draft): PreparedDraft {
+  const draft = { ...source }
+  delete draft.summary
   const cleanBlock = <T extends Block>(block: T): T =>
     block.type === "text"
       ? ({ ...block, doc: cleanTextDoc(block.doc) } as T)
@@ -327,14 +326,13 @@ function blockTexts(
 export function draftToPlainText(draft: Draft): string {
   const parts: string[] = []
   if (draft.title.trim()) parts.push(draft.title.trim())
-  if (draft.summary?.trim()) parts.push(draft.summary.trim())
   parts.push(...blockTexts(draft.blocks))
   return parts.join("\n\n")
 }
 
 /**
  * Le nombre de mots de ce qu'on lit dans l'article (titre et blocs, blocs partagés compris par
- * `resolve` ; pas le résumé, qui n'est que dans la liste), et le temps de lecture arrondi à la
+ * `resolve`), et le temps de lecture arrondi à la
  * minute supérieure (0 pour un article vide).
  */
 export function readingStats(

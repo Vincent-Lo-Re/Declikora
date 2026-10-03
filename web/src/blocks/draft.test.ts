@@ -106,6 +106,17 @@ describe("prepareDraft", () => {
     expect((draft.blocks[0] as TextBlock).doc).toBe(messyDoc)
   })
 
+  it("retire le résumé d'un ancien brouillon (l'admin n'en écrit plus)", () => {
+    const prepared = prepareDraft({
+      ...draftWith([]),
+      summary: "Ancien résumé",
+    })
+    expect(prepared.ok).toBe(true)
+    if (!prepared.ok) return
+    expect(prepared.draft).not.toHaveProperty("summary")
+    expect(prepared.draft).toMatchObject({ title: "Page", blocks: [] })
+  })
+
   it("refuse un brouillon trop lourd", () => {
     const long = "a".repeat(DRAFT_MAX_BYTES)
     const prepared = prepareDraft(
@@ -158,11 +169,10 @@ describe("readingStats", () => {
     doc: paragraph(words),
   })
 
-  it("compte les mots du titre et des blocs, encadrés compris, sans le résumé", () => {
+  it("compte les mots du titre et des blocs, encadrés compris", () => {
     const draft: Draft = {
       v: 1,
       title: "Bien dormir",
-      summary: "Un résumé qui ne compte pas",
       blocks: [
         text(TEXT_ID, "Se coucher à heure fixe, c'est bien."),
         {

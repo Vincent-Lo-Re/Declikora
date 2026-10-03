@@ -436,7 +436,7 @@ function OutlineRow({
             rowButton,
             selectedId === block.id && "bg-accent font-medium",
             // Le menu « ⋮ » s'affiche au bout de la ligne : la ligne lui fait place, rien n'est
-            // caché dessous (la pastille « Partagé », la fin d'un libellé).
+            // caché dessous (la fin d'un libellé).
             feed?.actions && "group-focus-within/row:pr-8 group-hover/row:pr-8"
           )}
         >

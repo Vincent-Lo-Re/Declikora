@@ -996,6 +996,7 @@ Les noms des jobs ne changent pas : les Deployment Checks de Vercel attendent «
 **Écarts de la partie admin (7a)**
 - Les catégories d'un contenu se choisissent dans les **Réglages** (avec le niveau d'accès), et la présentation les rappelle avec « Choisir les catégories » : ce sont des réglages de `save_draft`, pas une partie du brouillon.
 - Le résumé est un texte simple sur une ligne (comme la légende d'une image) : les retours à la ligne sont remplacés par des espaces.
+- **Depuis le 03/10/2026, plus de résumé** (ADMIN § 4) : l'admin ne l'écrit plus et le retire d'un brouillon à l'enregistrement. Le champ `summary` reste dans le schéma des blocs (on ne fait qu'ajouter) et dans les lectures de l'app (`app_feed`, `app_content`, `app_method`), toujours à `null`.
 - La liste lit toujours les 500 contenus les plus récents d'une sorte (comme à l'étape 4) ; recherche et filtres se font dans le navigateur.
 - `/mediatheque?fichier=<id>` (nouveau) ouvre la fiche d'un fichier ; l'adresse revient à `/mediatheque` à la fermeture, et un identifiant inconnu est signalé.
 - Corrigé en passant : le texte de remplacement d'une image sans fichier (bloc Image) n'était pas centré (`display: block` de `preview.css` l'emportait sur les classes `flex`).

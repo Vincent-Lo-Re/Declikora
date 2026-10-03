@@ -95,16 +95,14 @@ export function BlockSummary({
   }
   return (
     <>
-      {/* Un bloc partagé : l'icône de Modèles de bloc, dans le menu. */}
+      {/* Un bloc partagé : l'icône de Modèles de bloc, dans le menu (pas de pastille : « Bloc
+          choisi » dit d'où il vient). */}
       <SharedIcon aria-hidden className={icon} />
       {lines(
         <span className="truncate">
           {templateName?.trim() || texts.editor.blockLabel.linked(null)}
         </span>
       )}
-      <span className="ml-auto shrink-0 rounded-full border px-1.5 text-xs text-muted-foreground">
-        {labels.shared}
-      </span>
     </>
   )
 }

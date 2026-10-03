@@ -14,12 +14,12 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 
 import type { BlockMedia } from "@/blocks/components/context"
-import { FEED_SUMMARY_MAX } from "@/blocks/draft"
 import type { Draft } from "@/blocks/types"
 import { MediaThumbnail } from "@/components/media/media-visuals"
+import { InfoTip } from "@/components/info-tip"
 import { PanelCard } from "@/components/panel-card"
 import {
   AddCategory,
@@ -35,12 +35,16 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Textarea } from "@/components/ui/textarea"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { isMostComplete, type AccessLevel } from "@/lib/access-levels"
 import type { ContentSettings } from "@/lib/contents/api"
 import type { LiveVersion } from "@/lib/contents/publication"
 import type { ReadyItem } from "@/lib/contents/requirements"
-import { formatDateTime } from "@/lib/dates"
+import { formatDateTime, formatShortDateTime } from "@/lib/dates"
 import { focusSoon, highlightSoon } from "@/lib/focus"
 import { texts } from "@/texts"
 
@@ -71,7 +75,7 @@ const targets: Record<ReadyItem["key"], { control: string; zone: string }> = {
 
 /**
  * L'onglet « Article » de l'éditeur du Fil (ADMIN § 4) : ce qui manque pour publier, la carte de
- * la liste du Fil (image de présentation et résumé), le niveau d'accès, les catégories, puis le
+ * la liste du Fil (image de présentation), le niveau d'accès, les catégories, puis le
  * temps de lecture. Tout part avec le brouillon, comme dans la glissière Réglages des autres
  * éditeurs.
  */
@@ -80,7 +84,6 @@ export function ArticlePanel({
   editable,
   settings,
   onSettingsChange,
-  onSummaryChange,
   levels,
   levelsFailed,
   live,
@@ -89,8 +92,6 @@ export function ArticlePanel({
   coverUrl,
   ready,
   warnings,
-  stats,
-  savedAt,
   onChooseCover,
   onRemoveCover,
 }: {
@@ -98,7 +99,6 @@ export function ArticlePanel({
   editable: boolean
   settings: ContentSettings
   onSettingsChange: (next: ContentSettings) => void
-  onSummaryChange: (summary: string) => void
   levels: AccessLevel[] | undefined
   levelsFailed: boolean
   live: LiveVersion | null
@@ -108,8 +108,6 @@ export function ArticlePanel({
   ready: ReadyItem[]
   // Les points à vérifier du plan (une section vide…), et y aller.
   warnings: { count: number; onShow: () => void }
-  stats: { words: number; minutes: number }
-  savedAt: string | null
   onChooseCover: () => void
   onRemoveCover: () => void
 }) {
@@ -128,7 +126,6 @@ export function ArticlePanel({
         coverUrl={coverUrl}
         onChooseCover={onChooseCover}
         onRemoveCover={onRemoveCover}
-        onSummaryChange={onSummaryChange}
       />
       <AccessCard
         settings={settings}
@@ -148,19 +145,57 @@ export function ArticlePanel({
           onSettingsChange({ ...settings, categoryIds })
         }
       />
-      <div className="space-y-1 pb-2 text-xs text-muted-foreground">
-        <p className="flex items-center gap-1.5">
+    </div>
+  )
+}
+
+/**
+ * La section fixe en bas de la colonne de droite (éditeur du Fil), dans les deux onglets : le
+ * temps de lecture, les mots et la dernière modification (la date complète dans l'infobulle),
+ * puis les actions (le cadenas, l'état de publication et « Publier »).
+ */
+export function ArticleFooter({
+  stats,
+  savedAt,
+  children,
+}: {
+  stats: { words: number; minutes: number }
+  savedAt: string | null
+  children: ReactNode
+}) {
+  const saved = savedAt ? formatShortDateTime(savedAt) : null
+  return (
+    <div className="grid shrink-0 gap-2 border-t bg-background px-4 pt-2.5 pb-3">
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
           <Clock aria-hidden className="size-3.5" />
-          {labels.stats.reading(stats.minutes)} ·{" "}
-          {labels.stats.words(integer.format(stats.words))}
-        </p>
-        {savedAt && (
-          <p className="flex items-center gap-1.5">
-            <Pencil aria-hidden className="size-3.5" />
-            {labels.stats.saved(formatDateTime(savedAt))}
-          </p>
+          {labels.stats.short(
+            stats.minutes,
+            labels.stats.words(integer.format(stats.words))
+          )}
+        </span>
+        {savedAt && saved && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span
+                  tabIndex={0}
+                  className="ml-auto flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              }
+            >
+              <Pencil aria-hidden className="size-3.5" />
+              {saved.today
+                ? labels.stats.savedAt(saved.text)
+                : labels.stats.savedOn(saved.text)}
+            </TooltipTrigger>
+            <TooltipContent>
+              {labels.stats.saved(formatDateTime(savedAt))}
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
+      <div className="flex items-center gap-2">{children}</div>
     </div>
   )
 }
@@ -264,8 +299,8 @@ function ReadyCard({
 }
 
 /**
- * La carte de l'article dans la liste du Fil : on y choisit l'image de présentation (la vignette,
- * qui est aussi en tête de l'article), et le résumé, qui ne sert qu'à cette carte, s'écrit dessous.
+ * La carte de l'article dans la liste du Fil : son image de présentation (la vignette, qui est
+ * aussi en tête de l'article) et son titre. Pas de résumé (03/10/2026, ADMIN § 4).
  */
 function FeedCard({
   draft,
@@ -274,7 +309,6 @@ function FeedCard({
   coverUrl,
   onChooseCover,
   onRemoveCover,
-  onSummaryChange,
 }: {
   draft: Draft
   editable: boolean
@@ -282,14 +316,17 @@ function FeedCard({
   coverUrl: string | undefined
   onChooseCover: () => void
   onRemoveCover: () => void
-  onSummaryChange: (summary: string) => void
 }) {
-  const summary = draft.summary ?? ""
   const file =
     cover.state === "ready" || cover.state === "not_ready" ? cover.media : null
   const chosen = cover.state !== "none"
   return (
-    <PanelCard id="article-carte" icon={LayoutList} title={labels.feed.title}>
+    <PanelCard
+      id="article-carte"
+      icon={LayoutList}
+      title={labels.feed.title}
+      aside={<InfoTip text={labels.feed.hint} />}
+    >
       <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-2">
         {/* data-presentation-choose : là où revient le focus quand le bouton utilisé a disparu
             (choix fait depuis l'aperçu ou depuis la fenêtre Publier). */}
@@ -321,14 +358,9 @@ function FeedCard({
             </>
           )}
         </button>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">
-            {draft.title.trim() || texts.common.untitled}
-          </p>
-          <p className="line-clamp-3 text-xs text-muted-foreground">
-            {summary.trim() || labels.feed.summaryEmpty}
-          </p>
-        </div>
+        <p className="line-clamp-3 min-w-0 text-sm font-semibold">
+          {draft.title.trim() || texts.common.untitled}
+        </p>
       </div>
       {cover.state === "missing" && (
         <p className="mt-2 text-xs text-destructive">
@@ -357,37 +389,6 @@ function FeedCard({
             {texts.editor.presentation.cover.remove}
           </Button>
         )}
-        <p className="text-xs text-muted-foreground">{labels.feed.hint}</p>
-      </div>
-      <div className="mt-3 space-y-1.5">
-        <label htmlFor="article-resume" className="block text-sm font-medium">
-          {labels.summary.label}{" "}
-          <span className="font-normal text-muted-foreground">
-            · {labels.summary.optional}
-          </span>
-        </label>
-        <Textarea
-          id="article-resume"
-          value={summary}
-          maxLength={FEED_SUMMARY_MAX}
-          readOnly={!editable}
-          placeholder={labels.summary.placeholder}
-          aria-describedby="article-resume-compte"
-          onChange={(event) =>
-            onSummaryChange(
-              event.target.value
-                .replace(/\s*\n\s*/g, " ")
-                .slice(0, FEED_SUMMARY_MAX)
-            )
-          }
-        />
-        <p
-          id="article-resume-compte"
-          className="flex justify-between text-xs text-muted-foreground tabular-nums"
-        >
-          <span>{labels.summary.ideal}</span>
-          <span>{labels.summary.count(summary.length, FEED_SUMMARY_MAX)}</span>
-        </p>
       </div>
     </PanelCard>
   )
@@ -447,10 +448,21 @@ function AccessCard({
         >
           <SelectTrigger
             id="article-niveau"
-            className="w-full"
+            // Pas encore choisi : le « ! » et le bord orangé de « Prêt à publier ? ».
+            className={cn(
+              "w-full",
+              !settings.accessChosen && "border-warning/60"
+            )}
             aria-labelledby="article-niveau-titre"
           >
-            <SelectValue />
+            {!settings.accessChosen && (
+              <CircleAlert aria-hidden className="text-warning" />
+            )}
+            <SelectValue
+              className={cn(
+                !settings.accessChosen && "flex-1 text-muted-foreground"
+              )}
+            />
           </SelectTrigger>
           <SelectContent>
             {items.map((item) => (
@@ -465,20 +477,16 @@ function AccessCard({
           </SelectContent>
         </Select>
       )}
-      <p
-        className={cn(
-          "mt-1.5 text-xs",
-          settings.accessChosen ? "text-muted-foreground" : "text-warning"
-        )}
-      >
-        {!settings.accessChosen
-          ? access.notChosen
-          : settings.accessLevelId === null
+      {/* Pas encore choisi : la liste le dit elle-même ; ensuite, ce que le niveau ouvre. */}
+      {settings.accessChosen && (
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          {settings.accessLevelId === null
             ? access.freeHint
             : levels && isMostComplete(levels, settings.accessLevelId)
               ? access.levelHintTop
               : access.levelHint}
-      </p>
+        </p>
+      )}
       {levels?.length === 0 && (
         <p className="mt-1 text-xs text-muted-foreground">{access.noLevels}</p>
       )}

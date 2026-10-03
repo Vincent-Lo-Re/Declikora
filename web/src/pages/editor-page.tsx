@@ -96,14 +96,13 @@ import {
   OutlinePanel,
   type FeedOutline,
 } from "@/components/editor/outline-panel"
-import { ArticlePanel } from "@/components/editor/article-panel"
+import { ArticleFooter, ArticlePanel } from "@/components/editor/article-panel"
 import { BlocksLibrary } from "@/components/editor/blocks-library"
 import {
   CONTENT_TITLE_ID,
   AudioPreview,
   CoverPreview,
   PresentationPanel,
-  SummaryPreview,
 } from "@/components/editor/presentation"
 import {
   PublicationDialogs,
@@ -1853,16 +1852,6 @@ function ContentEditor({
           if (event.key === "Enter") event.preventDefault()
         }}
       />
-      {presentationKind && !feed && (
-        <SummaryPreview
-          summary={draft.summary ?? ""}
-          editable={editable}
-          onChange={(summary) =>
-            setDraft((current) => ({ ...current, summary }))
-          }
-          onFocus={() => setSelectedId(null)}
-        />
-      )}
       {presentationKind === "episode" && (
         <AudioPreview
           media={mediaFor(draft.audio?.mediaId ?? null)}
@@ -1874,8 +1863,8 @@ function ContentEditor({
     </>
   )
 
-  // La présentation dans un panneau : image (changer, retirer, texte alternatif), résumé,
-  // catégories, audio.
+  // La présentation dans un panneau : image (changer, retirer, texte alternatif), catégories,
+  // audio.
   const presentationPanel = presentationKind ? (
     <PresentationPanel
       kind={presentationKind}
@@ -1899,9 +1888,6 @@ function ContentEditor({
         editable={editable}
         settings={settings}
         onSettingsChange={setSettings}
-        onSummaryChange={(summary) =>
-          setDraft((current) => ({ ...current, summary }))
-        }
         levels={levels.data}
         levelsFailed={levels.isError}
         live={pub.publication?.live ?? null}
@@ -1936,8 +1922,6 @@ function ContentEditor({
             )
           },
         }}
-        stats={stats}
-        savedAt={autosave.state.savedAt}
         onChooseCover={() => openPresentationPicker("cover")}
         onRemoveCover={() => removePresentationFile("cover")}
       />
@@ -2561,18 +2545,6 @@ function ContentEditor({
                 focusMode && "hidden"
               )}
             >
-              {/* Une ligne : le cadenas (en lecture seule), l'état de publication, « Publier ». */}
-              <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-                {lockButton}
-                <PublicationBadge pub={pub} />
-                <span className="flex-1" />
-                <PublishButton
-                  pub={pub}
-                  disabled={publishDisabled}
-                  alwaysPublishable={alwaysPublishable}
-                  onHistory={() => setHistoryOpen(true)}
-                />
-              </div>
               <Tabs
                 value={rightTab}
                 onValueChange={(value: RightTab) =>
@@ -2580,7 +2552,8 @@ function ContentEditor({
                 }
                 className="min-h-0 flex-1 gap-0"
               >
-                <div className="px-4 pt-3">
+                {/* Les onglets en tête de la colonne, à la hauteur de l'en-tête de gauche. */}
+                <div className="flex h-12 shrink-0 items-center border-b px-4">
                   <TabsList className="w-full">
                     <TabsTrigger value="article">
                       {texts.editor.columns.article}
@@ -2600,6 +2573,19 @@ function ContentEditor({
                   {blockSettings}
                 </TabsContent>
               </Tabs>
+              {/* En bas, dans les deux onglets : la lecture, la dernière modification, puis le
+                  cadenas (en lecture seule), l'état de publication et « Publier ». */}
+              <ArticleFooter stats={stats} savedAt={autosave.state.savedAt}>
+                {lockButton}
+                <PublicationBadge pub={pub} />
+                <span className="flex-1" />
+                <PublishButton
+                  pub={pub}
+                  disabled={publishDisabled}
+                  alwaysPublishable={alwaysPublishable}
+                  onHistory={() => setHistoryOpen(true)}
+                />
+              </ArticleFooter>
             </aside>
           ) : (
             <aside className="w-72 shrink-0 border-l bg-background">
