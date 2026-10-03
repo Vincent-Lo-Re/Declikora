@@ -1,6 +1,22 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ExternalLink, RefreshCw, Trash2, TriangleAlert } from "lucide-react"
+import {
+  CalendarPlus,
+  Clock,
+  ExternalLink,
+  FileText,
+  Globe,
+  HardDrive,
+  Info,
+  Link as LinkIcon,
+  Lock,
+  type LucideIcon,
+  PencilLine,
+  RefreshCw,
+  Ruler,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react"
 import {
   type ComponentProps,
   lazy,
@@ -14,8 +30,9 @@ import { toast } from "sonner"
 
 import { AudioPlayer } from "@/components/media/audio-player"
 import { kindIcons, rejectedText } from "@/components/media/media-kinds"
-import { MediaStatusBadge } from "@/components/media/media-visuals"
+import { MediaStatusIcon, MediaUseIcon } from "@/components/media/media-visuals"
 import { ReplaceFile } from "@/components/media/replace-file"
+import { PanelCard } from "@/components/panel-card"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -28,11 +45,9 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
@@ -62,7 +77,7 @@ import {
   formatDuration,
 } from "@/lib/media/format"
 import { mediaDetailsSchema } from "@/lib/schemas"
-import { contentEditorPath } from "@/navigation"
+import { contentEditorPath, contentSection, sections } from "@/navigation"
 import { texts } from "@/texts"
 
 const LottiePreview = lazy(() =>
@@ -100,7 +115,7 @@ export function MediaSheet({
       }}
     >
       <SheetContent
-        className="w-full gap-0 overflow-y-auto sm:max-w-md"
+        className="w-full gap-0 sm:max-w-md"
         finalFocus={finalFocus}
       >
         {media && (
@@ -131,16 +146,17 @@ function MediaSheetBody({
   onTrashed: () => void
   onReplaced?: (newId: string) => void
 }) {
+  const Icon = kindIcons[media.kind]
   return (
     <>
-      <SheetHeader className="pr-12">
-        <SheetTitle className="break-words">{media.name}</SheetTitle>
-        <SheetDescription className="flex flex-wrap items-center gap-2">
-          {texts.media.kinds[media.kind]}
-          <MediaStatusBadge media={media} now={now} />
-        </SheetDescription>
+      {/* Le type est dans « Informations », l'état en bas, à côté de « Mettre à la corbeille ». */}
+      <SheetHeader className="flex-row items-center gap-2.5 border-b px-4 py-2.5 pr-12">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <Icon aria-hidden className="size-4" />
+        </span>
+        <SheetTitle className="min-w-0 break-words">{media.name}</SheetTitle>
       </SheetHeader>
-      <div className="space-y-6 px-4 pb-6">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
         {media.status === "rejected" && (
           <Alert variant="destructive">
             <TriangleAlert />
@@ -151,20 +167,20 @@ function MediaSheetBody({
           </Alert>
         )}
         <MediaPreview media={media} url={url} />
-        <MediaDetailsForm media={media} />
-        <Separator />
+        <PanelCard
+          id="media-description"
+          icon={PencilLine}
+          title={texts.media.detail.description}
+        >
+          <MediaDetailsForm media={media} />
+        </PanelCard>
         <MediaInfo media={media} />
-        <Separator />
         <MediaUses media={media} />
-        <Separator />
         {onReplaced && media.status === "ready" && (
-          <>
-            <ReplaceFile media={media} onReplaced={onReplaced} />
-            <Separator />
-          </>
+          <ReplaceFile media={media} onReplaced={onReplaced} />
         )}
-        <TrashButton media={media} onTrashed={onTrashed} />
       </div>
+      <TrashBar media={media} now={now} onTrashed={onTrashed} />
     </>
   )
 }
@@ -177,58 +193,68 @@ function MediaPreview({
   url: string | undefined
 }) {
   const Icon = kindIcons[media.kind]
+  // L'aperçu est posé dans une carte, comme la carte de l'article dans l'éditeur du Fil.
+  const card = "rounded-xl border bg-muted/40 p-2"
   const box =
     "flex aspect-video w-full items-center justify-center overflow-hidden rounded-lg bg-muted text-muted-foreground"
 
   if (url && (media.kind === "image" || media.kind === "svg")) {
     return (
-      <div className={box}>
-        <img
-          src={url}
-          alt={media.alt ?? ""}
-          className="size-full object-contain"
-        />
+      <div className={card}>
+        <div className={box}>
+          <img
+            src={url}
+            alt={media.alt ?? ""}
+            className="size-full object-contain"
+          />
+        </div>
       </div>
     )
   }
   if (url && media.kind === "audio") {
     return (
-      <AudioPlayer
-        key={url}
-        src={url}
-        name={media.name}
-        durationHint={media.duration_s}
-      />
+      <div className={card}>
+        <AudioPlayer
+          key={url}
+          src={url}
+          name={media.name}
+          durationHint={media.duration_s}
+        />
+      </div>
     )
   }
   // Une animation n'est affichée qu'une fois vérifiée par le serveur.
   if (url && media.kind === "lottie" && media.status === "ready") {
     return (
-      <div className={box}>
-        <Suspense fallback={<Spinner />}>
-          <LottiePreview url={url} label={media.name} />
-        </Suspense>
+      <div className={card}>
+        <div className={box}>
+          <Suspense fallback={<Spinner />}>
+            <LottiePreview url={url} label={media.name} />
+          </Suspense>
+        </div>
       </div>
     )
   }
   return (
-    <div className="space-y-2">
+    <div className={card}>
       <div className={box}>
-        <Icon aria-hidden className="size-12" />
+        <Icon aria-hidden className="size-12 stroke-1" />
       </div>
       {url && media.kind === "pdf" ? (
-        <Button
-          variant="outline"
-          size="sm"
-          render={<a href={url} target="_blank" rel="noopener noreferrer" />}
-          nativeButton={false}
-        >
-          <ExternalLink />
-          {texts.media.detail.openFile}
-        </Button>
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            render={<a href={url} target="_blank" rel="noopener noreferrer" />}
+            nativeButton={false}
+          >
+            <ExternalLink />
+            {texts.media.detail.openFile}
+          </Button>
+        </div>
       ) : (
         !url && (
-          <p className="text-sm text-muted-foreground">
+          <p className="px-1 pt-2 text-sm text-muted-foreground">
             {texts.media.detail.noPreview}
           </p>
         )
@@ -366,40 +392,68 @@ function MediaDetailsForm({ media }: { media: Media }) {
 }
 
 function MediaInfo({ media }: { media: Media }) {
-  const rows: [string, string][] = [
-    [texts.media.detail.kind, texts.media.kinds[media.kind]],
+  const words = texts.media.detail
+  const rows: { icon: LucideIcon; label: string; value: ReactNode }[] = [
+    {
+      icon: kindIcons[media.kind],
+      label: words.kind,
+      value: texts.media.kinds[media.kind],
+    },
   ]
   if (media.width !== null && media.height !== null) {
-    rows.push([
-      texts.media.detail.dimensions,
-      formatDimensions(media.width, media.height),
-    ])
+    rows.push({
+      icon: Ruler,
+      label: words.dimensions,
+      value: formatDimensions(media.width, media.height),
+    })
   }
   if (media.duration_s !== null) {
-    rows.push([texts.media.detail.duration, formatDuration(media.duration_s)])
+    rows.push({
+      icon: Clock,
+      label: words.duration,
+      value: formatDuration(media.duration_s),
+    })
   }
   rows.push(
-    [texts.media.detail.size, formatBytes(media.size_bytes)],
-    [texts.media.detail.createdAt, formatDateTime(media.created_at)],
-    [
-      texts.media.detail.visibility,
-      media.is_public
-        ? texts.media.detail.public
-        : texts.media.detail.protected,
-    ]
+    {
+      icon: HardDrive,
+      label: words.size,
+      value: formatBytes(media.size_bytes),
+    },
+    {
+      icon: CalendarPlus,
+      label: words.createdAt,
+      value: formatDateTime(media.created_at),
+    },
+    media.is_public
+      ? {
+          icon: Globe,
+          label: words.visibility,
+          value: (
+            <>
+              {words.public}
+              <span className="block text-xs text-muted-foreground">
+                {words.publicHint}
+              </span>
+            </>
+          ),
+        }
+      : { icon: Lock, label: words.visibility, value: words.protected }
   )
   return (
-    <section className="space-y-2">
-      <h3 className="text-sm font-medium">{texts.media.detail.info}</h3>
-      <dl className="grid grid-cols-label-value gap-x-4 gap-y-1 text-sm">
-        {rows.map(([label, value]) => (
+    <PanelCard id="media-info" icon={Info} title={words.info}>
+      <dl className="grid grid-cols-label-value gap-x-3 gap-y-2 text-sm">
+        {rows.map(({ icon: Icon, label, value }) => (
           <div key={label} className="contents">
-            <dt className="text-muted-foreground">{label}</dt>
+            <dt className="flex items-center gap-2 text-muted-foreground">
+              <Icon aria-hidden className="size-4 shrink-0" />
+              {label}
+            </dt>
             <dd>{value}</dd>
           </div>
         ))}
       </dl>
-    </section>
+    </PanelCard>
   )
 }
 
@@ -415,46 +469,53 @@ function MediaUses({ media }: { media: Media }) {
   })
   const live = uses.data?.filter((use) => use.in_app) ?? []
   const drafts = uses.data?.filter((use) => use.in_draft) ?? []
+  const count = uses.data?.length ?? 0
   return (
-    <section className="space-y-3">
-      <h3 className="text-sm font-medium">{texts.media.detail.uses}</h3>
-      {uses.isPending ? (
-        <p className="text-sm text-muted-foreground">
-          {texts.media.detail.usesLoading}
-        </p>
-      ) : uses.isError ? (
-        <p role="alert" className="text-sm text-destructive">
-          {texts.media.detail.usesFailed}
-        </p>
-      ) : uses.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {texts.media.detail.notUsed}
-        </p>
-      ) : (
-        <>
-          {live.length > 0 && (
-            <UseList
-              title={texts.media.detail.usesLive}
-              hint={texts.media.detail.usesLiveHint}
-              uses={live}
-              badge={
-                <Badge variant="secondary">{texts.media.detail.inApp}</Badge>
-              }
-            />
-          )}
-          {drafts.length > 0 && (
-            <UseList
-              title={texts.media.detail.usesDrafts}
-              uses={drafts}
-              badge={
-                <Badge variant="outline">{texts.media.detail.inDraft}</Badge>
-              }
-            />
-          )}
-        </>
-      )}
-      {live.length > 0 && <OutdatedTexts media={media} />}
-    </section>
+    <PanelCard
+      id="media-uses"
+      icon={LinkIcon}
+      title={texts.media.detail.uses}
+      aside={count > 0 ? texts.media.detail.usesCount(count) : null}
+    >
+      <div className="space-y-3">
+        {uses.isPending ? (
+          <p className="text-sm text-muted-foreground">
+            {texts.media.detail.usesLoading}
+          </p>
+        ) : uses.isError ? (
+          <p role="alert" className="text-sm text-destructive">
+            {texts.media.detail.usesFailed}
+          </p>
+        ) : uses.data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {texts.media.detail.notUsed}
+          </p>
+        ) : (
+          <>
+            {live.length > 0 && (
+              <UseList
+                title={texts.media.detail.usesLive}
+                hint={texts.media.detail.usesLiveHint}
+                uses={live}
+                badge={
+                  <Badge variant="secondary">{texts.media.detail.inApp}</Badge>
+                }
+              />
+            )}
+            {drafts.length > 0 && (
+              <UseList
+                title={texts.media.detail.usesDrafts}
+                uses={drafts}
+                badge={
+                  <Badge variant="outline">{texts.media.detail.inDraft}</Badge>
+                }
+              />
+            )}
+          </>
+        )}
+        {live.length > 0 && <OutdatedTexts media={media} />}
+      </div>
+    </PanelCard>
   )
 }
 
@@ -475,13 +536,14 @@ function UseList({
         {title}
       </h4>
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-      <ul className="space-y-1 text-sm">
+      <ul className="text-sm">
         {uses.map((use) => (
           <li
             key={use.content_id}
-            className="flex flex-wrap items-center gap-2"
+            className="-mx-1.5 flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-muted"
           >
-            <span>
+            <SectionIcon kind={use.kind} />
+            <span className="min-w-0 flex-1 truncate">
               <UseTitle use={use} />
               {use.parent_title && (
                 <span className="text-muted-foreground">
@@ -579,11 +641,17 @@ function OutdatedTexts({ media }: { media: Media }) {
   )
 }
 
-function TrashButton({
+/**
+ * La barre du bas, toujours visible : l'état du fichier et son utilisation en pastilles à icône
+ * (comme sous les vignettes), puis « Mettre à la corbeille ».
+ */
+function TrashBar({
   media,
+  now,
   onTrashed,
 }: {
   media: Media
+  now: number
   onTrashed: () => void
 }) {
   const queryClient = useQueryClient()
@@ -630,9 +698,15 @@ function TrashButton({
     },
     onSettled: refresh,
   })
+  // « Utilisé » d'après la carte « Utilisé dans » (même lecture), sinon d'après la liste.
+  const uses = useQuery({
+    queryKey: mediaKeys.uses(media.id),
+    queryFn: () => getMediaUses(media.id),
+  })
+  const inUse = uses.data ? uses.data.length > 0 : media.media_in_use
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 border-t px-4 py-3">
       {refusal && (
         <Alert variant="destructive">
           <TriangleAlert />
@@ -642,17 +716,28 @@ function TrashButton({
           </AlertDescription>
         </Alert>
       )}
-      <Button
-        variant="outline"
-        className="text-destructive"
-        disabled={trash.isPending}
-        onClick={() => trash.mutate()}
-      >
-        {trash.isPending ? <Spinner /> : <Trash2 />}
-        {texts.media.detail.trash}
-      </Button>
+      <div className="flex items-center gap-1.5">
+        <MediaStatusIcon media={media} now={now} />
+        <MediaUseIcon media={{ ...media, media_in_use: inUse }} />
+        <Button
+          variant="outline"
+          className="ml-auto text-destructive"
+          disabled={trash.isPending}
+          onClick={() => trash.mutate()}
+        >
+          {trash.isPending ? <Spinner /> : <Trash2 />}
+          {texts.media.detail.trash}
+        </Button>
+      </div>
     </div>
   )
+}
+
+/** L'icône de la section d'un contenu (Le Fil, Méthodes…), comme dans le menu. */
+function SectionIcon({ kind }: { kind: string }) {
+  const section = contentSection(kind)
+  const Icon = section ? sections[section].icon : FileText
+  return <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
 }
 
 /** Titre d'un contenu qui utilise le fichier, avec un lien vers son éditeur s'il existe. */

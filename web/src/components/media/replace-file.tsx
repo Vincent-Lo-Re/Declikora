@@ -8,6 +8,7 @@ import {
   useUploadQueue,
   useUploadVerdicts,
 } from "@/components/media/use-upload-queue"
+import { PanelCard } from "@/components/panel-card"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -152,96 +153,95 @@ export function ReplaceFile({
         : labels.replacing
 
   return (
-    <section className="space-y-3" data-replace-file>
-      <div className="space-y-1">
-        <h3 className="text-sm font-medium">{labels.title}</h3>
-        <p className="text-sm text-muted-foreground">{labels.description}</p>
-      </div>
-      <input
-        ref={input}
-        type="file"
-        accept={acceptByKind[media.kind]}
-        className="sr-only"
-        tabIndex={-1}
-        aria-label={labels.input}
-        onChange={(event) => {
-          choose(event.target.files?.[0])
-          event.target.value = ""
-        }}
-      />
-      {replacedCount === null && (
-        <Button
-          variant="outline"
-          disabled={busy || media.status !== "ready"}
-          onClick={() => {
-            setUploadId(null)
-            replace.reset()
-            input.current?.click()
+    <PanelCard id="media-replace" icon={Replace} title={labels.title}>
+      <div className="space-y-3" data-replace-file>
+        <p className="text-xs text-muted-foreground">{labels.description}</p>
+        <input
+          ref={input}
+          type="file"
+          accept={acceptByKind[media.kind]}
+          className="sr-only"
+          tabIndex={-1}
+          aria-label={labels.input}
+          onChange={(event) => {
+            choose(event.target.files?.[0])
+            event.target.value = ""
           }}
-        >
-          {busy ? <Spinner /> : <Replace />}
-          {labels.action}
-        </Button>
-      )}
-      {busy && stage && (
-        <p role="status" className="text-sm text-muted-foreground">
-          {stage}
-        </p>
-      )}
-      {failed && (
-        <Alert variant="destructive">
-          <TriangleAlert />
-          <AlertDescription>{failed}</AlertDescription>
-        </Alert>
-      )}
-      {replacedCount !== null && readyId && (
-        <div className="space-y-3">
-          <p role="status" className="text-sm">
-            {labels.replaced(replacedCount)}
-          </p>
-          {kept.length > 0 && (
-            <Alert>
-              <TriangleAlert />
-              <AlertDescription>
-                <p>{labels.kept(kept.length)}</p>
-                <ul className="list-disc pl-4">
-                  {kept.map((draft) => (
-                    <li key={draft.id}>
-                      {labels.keptItem(draft.title, draft.holder)}
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={replace.isPending}
-                  onClick={() => replace.mutate(readyId)}
-                >
-                  {replace.isPending && <Spinner />}
-                  {labels.retryKept}
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-          {liveCount > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                {labels.live(liveCount)}
-              </p>
-              <Button
-                disabled={push.isPending}
-                onClick={() => push.mutate(readyId)}
-              >
-                {push.isPending && <Spinner />}
-                {labels.push(liveCount)}
-              </Button>
-            </div>
-          )}
-          <Button variant="outline" onClick={() => onReplaced(readyId)}>
-            {labels.openNew}
+        />
+        {replacedCount === null && (
+          <Button
+            variant="outline"
+            disabled={busy || media.status !== "ready"}
+            onClick={() => {
+              setUploadId(null)
+              replace.reset()
+              input.current?.click()
+            }}
+          >
+            {busy ? <Spinner /> : <Replace />}
+            {labels.action}
           </Button>
-        </div>
-      )}
-    </section>
+        )}
+        {busy && stage && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {stage}
+          </p>
+        )}
+        {failed && (
+          <Alert variant="destructive">
+            <TriangleAlert />
+            <AlertDescription>{failed}</AlertDescription>
+          </Alert>
+        )}
+        {replacedCount !== null && readyId && (
+          <div className="space-y-3">
+            <p role="status" className="text-sm">
+              {labels.replaced(replacedCount)}
+            </p>
+            {kept.length > 0 && (
+              <Alert>
+                <TriangleAlert />
+                <AlertDescription>
+                  <p>{labels.kept(kept.length)}</p>
+                  <ul className="list-disc pl-4">
+                    {kept.map((draft) => (
+                      <li key={draft.id}>
+                        {labels.keptItem(draft.title, draft.holder)}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={replace.isPending}
+                    onClick={() => replace.mutate(readyId)}
+                  >
+                    {replace.isPending && <Spinner />}
+                    {labels.retryKept}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            {liveCount > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {labels.live(liveCount)}
+                </p>
+                <Button
+                  disabled={push.isPending}
+                  onClick={() => push.mutate(readyId)}
+                >
+                  {push.isPending && <Spinner />}
+                  {labels.push(liveCount)}
+                </Button>
+              </div>
+            )}
+            <Button variant="outline" onClick={() => onReplaced(readyId)}>
+              {labels.openNew}
+            </Button>
+          </div>
+        )}
+      </div>
+    </PanelCard>
   )
 }
