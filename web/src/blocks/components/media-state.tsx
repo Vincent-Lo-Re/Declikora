@@ -14,23 +14,32 @@ type UnavailableWords = {
   choose: string
 }
 
-/** Une image prête, à ses proportions : la place est gardée avant qu'elle arrive. */
+/**
+ * Une image prête, à ses proportions : la place est gardée avant qu'elle arrive. Dans un bloc
+ * Image, un SVG (logo, pictogramme) garde sa taille réelle, sans dépasser la largeur, centré
+ * (preview.css) : il n'est pas agrandi à toute la largeur comme une photo.
+ */
 export function MediaImage({
   media,
   alt,
+  naturalSvg = false,
 }: {
   media: Extract<BlockMedia, { state: "ready" }>
   alt: string
+  naturalSvg?: boolean
 }) {
-  const { width, height } = media.media
+  const { width, height, kind } = media.media
+  const natural = naturalSvg && kind === "svg" && width !== null
   return (
     <img
       src={media.url ?? undefined}
       alt={alt}
-      // eslint-disable-next-line no-restricted-syntax -- proportions du fichier
-      style={
-        width && height ? { aspectRatio: `${width} / ${height}` } : undefined
-      }
+      data-natural={natural || undefined}
+      // eslint-disable-next-line no-restricted-syntax -- proportions et taille réelle du fichier
+      style={{
+        ...(width && height && { aspectRatio: `${width} / ${height}` }),
+        ...(natural && { maxWidth: `${width}px` }),
+      }}
     />
   )
 }

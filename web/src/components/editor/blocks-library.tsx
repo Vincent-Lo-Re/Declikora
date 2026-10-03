@@ -8,14 +8,17 @@ import {
   ExternalLink,
   ImageIcon,
 } from "lucide-react"
-import { useRef, useState, type DragEvent } from "react"
+import { useMemo, useRef, useState, type DragEvent } from "react"
 import { Link } from "react-router"
 
+import type { BlockMedia } from "@/blocks/components/context"
+import { MediaImage } from "@/blocks/components/media-state"
 import { StaticBlock } from "@/blocks/components/static-block"
 import { insertableBlocks, type InsertableType } from "@/blocks/registry"
 import { templateInsertable } from "@/blocks/templates"
 import type { Block } from "@/blocks/types"
 import { LoadState } from "@/components/load-state"
+import { usePreviewUrls } from "@/components/media/use-preview-urls"
 import { SearchInput } from "@/components/search-input"
 import { buttonVariants } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -24,10 +27,12 @@ import {
   LIBRARY_DRAG_TYPE,
   type LibraryDrag,
 } from "@/lib/editor/library-drag"
+import { contentKeys, getMediaByIds } from "@/lib/contents/api"
 import { focusSoon } from "@/lib/focus"
 import {
   countUses,
   savedBlocks,
+  savedImageIds,
   type SavedFilter,
 } from "@/lib/contents/saved-blocks"
 import {
@@ -36,6 +41,7 @@ import {
   templateKeys,
   type TemplateItem,
 } from "@/lib/contents/templates"
+import type { Media } from "@/lib/media/constants"
 import { sections } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -43,6 +49,34 @@ const labels = texts.editor.library
 const mine = labels.mine
 
 const filters: SavedFilter[] = ["all", "style", "shared"]
+
+// L'image prête d'un bloc de l'aperçu réduit, ou null (son icône à la place).
+type ImageFor = (
+  mediaId: string | null
+) => Extract<BlockMedia, { state: "ready" }> | null
+
+/** Les images des blocs enregistrés montrés : leurs fichiers, puis leurs adresses d'aperçu. */
+function useSavedImages(templates: TemplateItem[]): ImageFor {
+  const ids = savedImageIds(templates)
+  const files = useQuery({
+    queryKey: contentKeys.media(ids),
+    queryFn: () => getMediaByIds(ids),
+    enabled: ids.length > 0,
+  })
+  const ready = useMemo(
+    () =>
+      (files.data ?? []).filter(
+        (media) => media.status === "ready" && !media.deleted_at
+      ),
+    [files.data]
+  )
+  const urlFor = usePreviewUrls(ready)
+  return (mediaId) => {
+    const media: Media | undefined = ready.find((item) => item.id === mediaId)
+    const url = media ? urlFor(media) : undefined
+    return media && url ? { state: "ready", media, url } : null
+  }
+}
 
 /** Glisser un bloc vers l'aperçu (qui le dépose à la place montrée). */
 function startDrag(event: DragEvent, drag: LibraryDrag) {
@@ -178,6 +212,7 @@ function SavedBlocksPanel({
   const none = templates.data
     ? savedBlocks(templates.data, "all", "").length === 0
     : false
+  const imageFor = useSavedImages(shown)
 
   return (
     <section
@@ -248,6 +283,7 @@ function SavedBlocksPanel({
                 <SavedBlock
                   template={template}
                   uses={counts?.get(template.id) ?? 0}
+                  imageFor={imageFor}
                   disabled={disabled}
                   onInsert={() => onInsert(template)}
                 />
@@ -274,11 +310,13 @@ function SavedBlocksPanel({
 function SavedBlock({
   template,
   uses,
+  imageFor,
   disabled,
   onInsert,
 }: {
   template: TemplateItem
   uses: number
+  imageFor: ImageFor
   disabled: boolean
   onInsert: () => void
 }) {
@@ -301,7 +339,7 @@ function SavedBlock({
     >
       <div aria-hidden className="blocks-mini">
         {template.draft.blocks.map((block) => (
-          <MiniBlock key={block.id} block={block} />
+          <MiniBlock key={block.id} block={block} imageFor={imageFor} />
         ))}
       </div>
       <span className="mt-2 flex items-center gap-1.5 text-sm font-medium">
@@ -320,25 +358,31 @@ function SavedBlock({
 }
 
 /**
- * Un bloc dans l'aperçu réduit : le texte tel qu'il est (sans éditeur), une image par son icône
- * (ses fichiers ne sont pas lus ici), un encadré avec ses blocs.
+ * Un bloc dans l'aperçu réduit : le texte tel qu'il est (sans éditeur), une image comme dans
+ * l'aperçu (son icône tant qu'elle n'est pas lue), une section avec ses blocs.
  */
-function MiniBlock({ block }: { block: Block }) {
+function MiniBlock({ block, imageFor }: { block: Block; imageFor: ImageFor }) {
   switch (block.type) {
     case "text":
       return <StaticBlock block={block} />
-    case "image":
-      return (
+    case "image": {
+      const media = imageFor(block.mediaId)
+      return media ? (
+        <figure className="blocks-image">
+          <MediaImage media={media} alt="" naturalSvg />
+        </figure>
+      ) : (
         <div className="blocks-image-placeholder flex items-center justify-center">
           <ImageIcon className="size-6" />
         </div>
       )
+    }
     case "box":
       return (
         <div className="blocks-box" data-look={block.look}>
           <div className="blocks-box-list">
             {block.blocks.map((child) => (
-              <MiniBlock key={child.id} block={child} />
+              <MiniBlock key={child.id} block={child} imageFor={imageFor} />
             ))}
           </div>
         </div>

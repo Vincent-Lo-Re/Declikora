@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest"
 
 import { validateDraft } from "@/blocks/generated/validators"
-import { DRAFT_MAX_BYTES, prepareDraft, readingStats } from "@/blocks/draft"
+import {
+  canShift,
+  DRAFT_MAX_BYTES,
+  findBlock,
+  prepareDraft,
+  readingStats,
+  shiftBlock,
+  shiftLeavesBox,
+} from "@/blocks/draft"
 import type { Block, Doc, Draft, TextBlock } from "@/blocks/types"
 
 const TEXT_ID = "00000000-0000-4000-8000-000000000001"
@@ -178,5 +186,51 @@ describe("readingStats", () => {
       words: 201,
       minutes: 2,
     })
+  })
+})
+
+describe("Monter et Descendre", () => {
+  const OTHER_ID = "00000000-0000-4000-8000-000000000004"
+  const text = (id: string): TextBlock => ({
+    id,
+    type: "text",
+    doc: { type: "doc", content: [{ type: "paragraph" }] },
+  })
+  const draft = () =>
+    draftWith([
+      text(TEXT_ID),
+      {
+        id: BOX_ID,
+        type: "box",
+        look: "fill",
+        blocks: [text(INNER_ID), text(OTHER_ID)],
+      },
+    ])
+  const ids = (blocks: Block[]) => blocks.map((block) => block.id)
+
+  it("le premier bloc d'une section qu'on monte en sort, juste au-dessus d'elle", () => {
+    const next = shiftBlock(draft(), INNER_ID, -1)!
+    expect(ids(next.blocks)).toEqual([TEXT_ID, INNER_ID, BOX_ID])
+    expect(findBlock(next, OTHER_ID)?.container).toBe(BOX_ID)
+  })
+
+  it("le dernier qu'on descend en sort, juste au-dessous d'elle", () => {
+    const next = shiftBlock(draft(), OTHER_ID, 1)!
+    expect(ids(next.blocks)).toEqual([TEXT_ID, BOX_ID, OTHER_ID])
+  })
+
+  it("dans la section, il change seulement de place", () => {
+    const next = shiftBlock(draft(), INNER_ID, 1)!
+    const box = next.blocks[1] as Block & { type: "box" }
+    expect(ids(box.blocks)).toEqual([OTHER_ID, INNER_ID])
+    expect(shiftLeavesBox(findBlock(draft(), INNER_ID)!, 1)).toBe(false)
+    expect(shiftLeavesBox(findBlock(draft(), INNER_ID)!, -1)).toBe(true)
+  })
+
+  it("rien au bout de la page, ni hors d'une section quand la page est pleine (bloc partagé)", () => {
+    expect(canShift(draft(), TEXT_ID, -1)).toBe(false)
+    expect(canShift(draft(), BOX_ID, 1)).toBe(false)
+    expect(canShift(draft(), INNER_ID, -1)).toBe(true)
+    expect(canShift(draft(), INNER_ID, -1, 2)).toBe(false)
   })
 })

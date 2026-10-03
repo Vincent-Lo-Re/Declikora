@@ -79,12 +79,17 @@ export function BlockSummary({
     )
   }
   if (block.type === "box") {
-    return (
+    const count = block.blocks.length
+    // Vide : pas de nombre, ce qui manque est écrit dessous (« Vide : … »).
+    return lines(
       <span className="truncate">
-        {labels.box[block.look]}{" "}
-        <span className="text-muted-foreground">
-          · {labels.boxCount(block.blocks.length)}
-        </span>
+        {labels.box[block.look]}
+        {count > 0 && (
+          <span className="text-muted-foreground">
+            {" "}
+            · {labels.boxCount(count)}
+          </span>
+        )}
       </span>
     )
   }

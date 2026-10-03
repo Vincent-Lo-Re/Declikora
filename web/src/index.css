@@ -187,3 +187,36 @@
     color-scheme: dark;
   }
 }
+
+/* Une zone à régler, montrée du doigt (« Prêt à publier ? », points à vérifier du plan) : sa
+   bordure s'allume deux fois à la couleur de l'avertissement, puis s'efface. highlightSoon
+   (lib/focus.ts) pose data-highlight et le retire à la fin de l'animation. */
+@keyframes highlight-pulse {
+  0%,
+  50%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  25%,
+  75% {
+    box-shadow: 0 0 0 2px var(--warning);
+  }
+}
+
+/* Moins d'animations demandées : la bordure reste allumée le même temps, sans clignoter. */
+@keyframes highlight-hold {
+  from,
+  to {
+    box-shadow: 0 0 0 2px var(--warning);
+  }
+}
+
+[data-highlight] {
+  animation: highlight-pulse 1.5s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-highlight] {
+    animation-name: highlight-hold;
+  }
+}

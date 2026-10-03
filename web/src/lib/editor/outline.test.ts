@@ -34,7 +34,7 @@ describe("textOutline", () => {
     })
   })
 
-  it("sinon, le début du texte (paragraphe ou liste), ou rien pour un texte vide", () => {
+  it("sinon, sa première ligne (paragraphe ou point d'une liste), ou rien pour un texte vide", () => {
     const paragraph = {
       type: "doc",
       content: [
@@ -43,9 +43,10 @@ describe("textOutline", () => {
         { type: "heading", attrs: { level: 3 }, content: text("Ensuite") },
       ],
     } as Doc
+    // Deux paragraphes ne sont jamais collés : seulement le premier.
     expect(textOutline(paragraph)).toEqual({
       lead: "text",
-      text: "Bonjour à tous Ensuite",
+      text: "Bonjour à tous",
     })
     const list = {
       type: "doc",
@@ -104,6 +105,20 @@ describe("blockWarning", () => {
     ).toBeNull()
     expect(
       blockWarning(createBlock("text"), () => ready(null), noTemplate)
+    ).toBeNull()
+  })
+
+  it("signale une section vide (l'app ne l'affiche pas), pas une section remplie", () => {
+    const box = (blocks: Block[]): Block =>
+      ({
+        ...createBlock("box"),
+        blocks,
+      }) as Block
+    expect(blockWarning(box([]), () => ready(null), noTemplate)).toBe(
+      "emptyBox"
+    )
+    expect(
+      blockWarning(box([createBlock("text")]), () => ready(null), noTemplate)
     ).toBeNull()
   })
 

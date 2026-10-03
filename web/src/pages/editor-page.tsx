@@ -49,6 +49,7 @@ import {
   flattenBlocks,
   insertBlock,
   insertionPoint,
+  moveBlock,
   readingStats,
   removeBlock,
   shiftBlock,
@@ -244,6 +245,7 @@ import {
   type SlashChoice,
 } from "@/lib/editor/slash"
 import { errorMessage } from "@/lib/errors"
+import { highlightSoon } from "@/lib/focus"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
 import type { TemplateValues } from "@/lib/schemas"
@@ -572,7 +574,11 @@ function ContentEditor({
     tab: RightTab
     selectedId: string | null
   } | null>(null)
-  const [activeText, setActiveText] = useState<Editor | null>(null)
+  // Le texte qui a eu le curseur en dernier, avec son bloc.
+  const [activeText, setActiveText] = useState<{
+    blockId: string
+    editor: Editor
+  } | null>(null)
   // Éditeur du Fil : le téléphone montré, Édition ou Lecture, thème, taille du texte, lecteur.
   const [phoneView, setPhoneView] = useState<PreviewSettings>(defaultPreview)
   // Éditeur du Fil : le panneau « Mes blocs » de l'onglet Blocs.
@@ -1055,11 +1061,23 @@ function ContentEditor({
     []
   )
 
-  const onActiveText = useCallback((editor: Editor, active: boolean) => {
-    setActiveText((current) =>
-      active ? editor : current === editor ? null : current
-    )
-  }, [])
+  const onActiveText = useCallback(
+    (blockId: string, editor: Editor, active: boolean) => {
+      setActiveText((current) =>
+        active
+          ? { blockId, editor }
+          : current?.editor === editor
+            ? null
+            : current
+      )
+    },
+    []
+  )
+
+  // La barre de mise en forme n'agit que sur le texte du bloc choisi : grisée pour une image,
+  // une section ou un bloc partagé, même si un texte a eu le curseur juste avant.
+  const toolbarEditor =
+    activeText && activeText.blockId === selectedId ? activeText.editor : null
 
   const addBlock = (type: InsertableType, container?: string) => {
     const block = blockRegistry[type].create()
@@ -1100,8 +1118,10 @@ function ContentEditor({
     requestAnimationFrame(() => focusBlockSoon(id, 0, feed))
   }
 
+  // Un bloc partagé n'a qu'un bloc au premier niveau ([D11]).
+  const rootLimit = isShared ? SHARED_ROOT_LIMIT : undefined
   const onShift = (id: string, offset: -1 | 1) => {
-    const next = shiftBlock(draft, id, offset)
+    const next = shiftBlock(draft, id, offset, rootLimit)
     if (!next) return
     setDraft(next)
     // Le bouton garde le focus ; la nouvelle place est annoncée.
@@ -1117,6 +1137,30 @@ function ContentEditor({
         )
       )
     }
+  }
+
+  // Éditeur du Fil : les blocs qui ont un point à vérifier (plan, « Prêt à publier ? »).
+  const warnedIds = feed
+    ? flattenBlocks(draft)
+        .filter(
+          ({ block }) => blockWarning(block, mediaFor, templateFor) !== null
+        )
+        .map(({ block }) => block.id)
+    : []
+
+  // « Sortir de la section » (plan de l'éditeur du Fil) : le bloc se place juste après elle.
+  const onLeaveBox = (id: string) => {
+    const place = findBlock(draft, id)
+    const box = place && findBlock(draft, place.container)
+    const next = box && moveBlock(draft, id, ROOT, box.index + 1)
+    if (!place || !next) return
+    setDraft(next)
+    setSelectedId(id)
+    setAnnouncement(
+      texts.editor.outline.left(
+        blockLabel(place.block, templateName(place.block))
+      )
+    )
   }
 
   // « Dupliquer » (plan de l'éditeur du Fil) : la copie juste après, choisie.
@@ -1410,6 +1454,7 @@ function ContentEditor({
       detachBlock,
       slash: feed ? slash : undefined,
       withoutHandles: feed,
+      linkedWithoutBar: feed,
     }),
     [
       feed,
@@ -1875,6 +1920,22 @@ function ContentEditor({
           checks ?? { missing: [], advice: [] },
           settings.accessChosen
         )}
+        warnings={{
+          count: warnedIds.length,
+          // Le premier point à vérifier, choisi et montré dans le plan.
+          onShow: () => {
+            const first = warnedIds[0]
+            if (!first) return
+            setLeftTab("plan")
+            selectAndShow(first)
+            // Sa ligne s'allume dans le plan, une fois l'onglet ouvert.
+            highlightSoon(() =>
+              document.querySelector<HTMLElement>(
+                `[data-outline-id="${first}"]`
+              )
+            )
+          },
+        }}
         stats={stats}
         savedAt={autosave.state.savedAt}
         onChooseCover={() => openPresentationPicker("cover")}
@@ -1901,6 +1962,7 @@ function ContentEditor({
       removeBlocked={removeBlocked}
       onSaveAsTemplate={(id) => openSaveAs([id])}
       onDuplicate={onDuplicate}
+      rootLimit={rootLimit}
       actionBar
     />
   )
@@ -1919,6 +1981,7 @@ function ContentEditor({
           ? {
               onDuplicate,
               onSaveToMine: (id) => openSaveAs([id]),
+              onLeaveBox,
               onRemove,
               removeBlocked: () => null,
             }
@@ -2067,7 +2130,7 @@ function ContentEditor({
           key={viewKey}
           draft={draft}
           onChange={setDraft}
-          rootLimit={isShared ? SHARED_ROOT_LIMIT : undefined}
+          rootLimit={rootLimit}
         />
       </BlocksEditorContext>
       {draft.blocks.length === 0 && (
@@ -2428,7 +2491,7 @@ function ContentEditor({
                 onPreviewChange={onPreviewChange}
                 toolbar={
                   <FormatToolbar
-                    editor={activeText}
+                    editor={toolbarEditor}
                     editable={editable}
                     orientation="vertical"
                   />
@@ -2482,7 +2545,7 @@ function ContentEditor({
             ) : (
               <>
                 <div className="sticky top-0 z-10 flex justify-center bg-muted/40 px-6 py-3 backdrop-blur">
-                  <FormatToolbar editor={activeText} editable={editable} />
+                  <FormatToolbar editor={toolbarEditor} editable={editable} />
                 </div>
                 {notices}
                 <div className="flex justify-center px-6 pb-16">{phone}</div>
@@ -2566,6 +2629,7 @@ function ContentEditor({
                 mediaFor={mediaFor}
                 onUpdate={onUpdateBlock}
                 onShift={onShift}
+                rootLimit={rootLimit}
                 onRemove={onRemove}
                 onChooseImage={openPicker}
                 templateFor={templateFor}

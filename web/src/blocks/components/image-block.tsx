@@ -24,7 +24,7 @@ export const ImageBlockView = memo(function ImageBlockView({
   return (
     <figure className="blocks-image">
       {media.state === "ready" && media.url ? (
-        <MediaImage media={media} alt={altText} />
+        <MediaImage media={media} alt={altText} naturalSvg />
       ) : (
         <MediaUnavailable
           media={media}

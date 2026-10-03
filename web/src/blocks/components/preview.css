@@ -124,6 +124,12 @@
   display: block;
 }
 
+/* Un SVG à sa taille réelle (MediaImage) : centré, sans les coins arrondis d'une photo. */
+.blocks-image img[data-natural] {
+  margin-inline: auto;
+  border-radius: 0;
+}
+
 /* Le texte de remplacement est centré (classes flex de l'élément) : pas de display ici. */
 .blocks-image img,
 .blocks-image-placeholder {

@@ -36,3 +36,8 @@ if (!Range.prototype.getClientRects) {
 if (!Element.prototype.getClientRects) {
   Element.prototype.getClientRects = () => [] as unknown as DOMRectList
 }
+
+// jsdom ne fait pas défiler : le plan amène sous les yeux la ligne du bloc choisi.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {}
+}

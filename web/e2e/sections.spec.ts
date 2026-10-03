@@ -293,7 +293,8 @@ test("Éditeur du Fil : « / », bloc glissé depuis l'onglet Blocs, plan (inter
   const plan = page.getByRole("navigation", { name: outline.title })
   const rows = plan.getByRole("button", { name: /^Aller à (Texte|Section)/ })
   // Ce que montre une ligne du plan : le contenu (l'icône dit le type).
-  const emptyBox = `${outline.box.fill} · ${outline.boxCount(0)}`
+  // Une section vide : son nom, et dessous ce qui manque (elle n'apparaîtra pas dans l'app).
+  const emptyBox = `${outline.box.fill}${outline.warnings.emptyBox}`
   const phone = page.getByRole("region", { name: editor.preview.screen.ios })
 
   // « / » dans un texte vide : la liste des blocs, au clavier.

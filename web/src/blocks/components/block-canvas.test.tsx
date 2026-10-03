@@ -3,11 +3,13 @@ import { useState } from "react"
 import { describe, expect, it, vi } from "vitest"
 
 import { BlockCanvas } from "@/blocks/components/block-canvas"
+import { StaticBlock } from "@/blocks/components/static-block"
 import {
   BlocksEditorContext,
   type BlocksEditorValue,
 } from "@/blocks/components/context"
 import type { Draft } from "@/blocks/types"
+import type { Media } from "@/lib/media/constants"
 import { texts } from "@/texts"
 
 const id = (n: number) =>
@@ -136,5 +138,57 @@ describe("glisser-déposer par la poignée", () => {
   it("donne des consignes en français aux lecteurs d'écran", () => {
     renderCanvas()
     expect(screen.getByText(texts.editor.dnd.instructions)).toBeInTheDocument()
+  })
+})
+
+describe("aperçu tel quel (Lecture, bloc d'un modèle)", () => {
+  const value: BlocksEditorValue = {
+    editable: false,
+    selectedId: null,
+    selectBlock: () => {},
+    updateBlock: () => {},
+    setActiveText: () => {},
+    mediaFor: (mediaId) =>
+      mediaId
+        ? {
+            state: "ready",
+            media: { kind: "svg", width: 120, height: 120 } as Media,
+            url: "blob:logo",
+          }
+        : { state: "none" },
+    openPicker: () => {},
+    addToBox: () => {},
+    templateFor: () => ({ state: "missing" }),
+    detachBlock: () => {},
+  }
+
+  it("une section vide ne s'affiche pas, comme dans l'app", () => {
+    const { container } = render(
+      <BlocksEditorContext value={value}>
+        <StaticBlock
+          block={{ id: id(3), type: "box", look: "border", blocks: [] }}
+        />
+      </BlocksEditorContext>
+    )
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it("un SVG garde sa taille réelle, sans dépasser la largeur", () => {
+    render(
+      <BlocksEditorContext value={value}>
+        <StaticBlock
+          block={{
+            id: id(4),
+            type: "image",
+            mediaId: id(5),
+            caption: null,
+            alt: "Logo",
+          }}
+        />
+      </BlocksEditorContext>
+    )
+    const logo = screen.getByRole("img", { name: "Logo" })
+    expect(logo).toHaveAttribute("data-natural")
+    expect(logo.style.maxWidth).toBe("120px")
   })
 })

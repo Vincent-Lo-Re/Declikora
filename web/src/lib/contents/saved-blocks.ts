@@ -3,8 +3,25 @@
 // citent chaque bloc partagé.
 
 import { templateInsertable } from "@/blocks/templates"
+import type { Block } from "@/blocks/types"
 import { normalizeSearch } from "@/lib/contents/list-filters"
 import type { TemplateItem, TemplateUse } from "@/lib/contents/templates"
+
+/**
+ * Les fichiers des blocs Image (sections comprises) des blocs enregistrés : l'aperçu réduit de
+ * « Mes blocs » les montre comme l'aperçu du téléphone. Sans doublon, rangés.
+ */
+export function savedImageIds(templates: TemplateItem[]): string[] {
+  const ids = new Set<string>()
+  const visit = (blocks: Block[]) => {
+    for (const block of blocks) {
+      if (block.type === "image" && block.mediaId) ids.add(block.mediaId)
+      if (block.type === "box") visit(block.blocks)
+    }
+  }
+  for (const template of templates) visit(template.draft.blocks)
+  return [...ids].sort()
+}
 
 /** Le filtre du panneau : tous, les mises en forme ou les blocs partagés. */
 export type SavedFilter = "all" | "style" | "shared"

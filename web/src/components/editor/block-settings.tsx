@@ -4,6 +4,9 @@ import {
   ArrowUp,
   BookmarkPlus,
   Copy,
+  ExternalLink,
+  ImageIcon,
+  SquarePen,
   Trash2,
   Unlink,
 } from "lucide-react"
@@ -15,7 +18,13 @@ import {
   type BlockMedia,
   type LinkedTemplateState,
 } from "@/blocks/components/context"
-import { ALT_MAX, findBlock, type BlockPlace } from "@/blocks/draft"
+import {
+  ALT_MAX,
+  canShift,
+  findBlock,
+  shiftLeavesBox,
+  type BlockPlace,
+} from "@/blocks/draft"
 import { blockLabel } from "@/blocks/labels"
 import {
   ROOT,
@@ -36,7 +45,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { editorPath } from "@/navigation"
+import { editorPath, mediaFilePath } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.editor.settings
@@ -69,6 +78,29 @@ type Props = {
   actionBar?: boolean
   // « Dupliquer » (éditeur du Fil, comme dans le menu « … » du plan).
   onDuplicate?: (id: string) => void
+  // Nombre maximal de blocs au premier niveau (un bloc partagé : 1) : « Monter » ne fait alors
+  // pas sortir un bloc de sa section.
+  rootLimit?: number
+}
+
+/** « Monter » ou « Descendre » : possible ou non, et son nom (il peut sortir de la section). */
+function shiftAction(
+  { draft, rootLimit }: Pick<Props, "draft" | "rootLimit">,
+  place: BlockPlace,
+  offset: -1 | 1
+) {
+  const leaves = shiftLeavesBox(place, offset)
+  return {
+    disabled: !canShift(draft, place.block.id, offset, rootLimit),
+    label:
+      offset === -1
+        ? leaves
+          ? labels.moveUpOut
+          : labels.moveUp
+        : leaves
+          ? labels.moveDownOut
+          : labels.moveDown,
+  }
 }
 
 /** Panneau de droite : les réglages du bloc choisi dans l'aperçu. */
@@ -124,8 +156,11 @@ function SelectedBlock({
   removeBlocked = null,
   onSaveAsTemplate,
   actionBar = false,
+  ...props
 }: Props & { place: BlockPlace }) {
   const { block } = place
+  const up = shiftAction(props, place, -1)
+  const down = shiftAction(props, place, 1)
   const linkedState =
     block.type === "linked" ? templateFor(block.templateId) : null
   const label = blockLabel(block, linkedState && templateNameOf(linkedState))
@@ -155,6 +190,7 @@ function SelectedBlock({
           block={block}
           state={linkedState}
           editable={editable}
+          actionBar={actionBar}
           onDetach={() => onDetach(block.id)}
         />
       )}
@@ -186,23 +222,23 @@ function SelectedBlock({
               variant="outline"
               size="sm"
               className="aria-disabled:opacity-50"
-              disabled={place.index === 0}
+              disabled={up.disabled}
               focusableWhenDisabled
               onClick={() => onShift(block.id, -1)}
             >
               <ArrowUp />
-              {labels.moveUp}
+              {up.label}
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="aria-disabled:opacity-50"
-              disabled={place.index >= place.siblings - 1}
+              disabled={down.disabled}
               focusableWhenDisabled
               onClick={() => onShift(block.id, 1)}
             >
               <ArrowDown />
-              {labels.moveDown}
+              {down.label}
             </Button>
             <Button
               variant="outline"
@@ -225,16 +261,22 @@ function SelectedBlock({
   )
 }
 
-/** Un bloc lié : d'où il vient, « Modifier le modèle » et « Détacher ». */
+/**
+ * Un bloc lié : d'où il vient et ce que fait « Détacher », en deux points courts ; puis
+ * « Modifier le modèle » et « Détacher », sauf dans l'éditeur du Fil, où ils sont dans la barre
+ * d'icônes du bas (actionBar).
+ */
 function LinkedSettings({
   block,
   state,
   editable,
+  actionBar,
   onDetach,
 }: {
   block: LinkedBlock
   state: LinkedTemplateState
   editable: boolean
+  actionBar: boolean
   onDetach: () => void
 }) {
   const linked = texts.templates.linked
@@ -245,25 +287,28 @@ function LinkedSettings({
   if (state.state === "loading" || state.state === "error") {
     return <p className="text-sm text-muted-foreground">{linked.loading}</p>
   }
+  const canDetach = editable && state.state === "ready"
   return (
     <div className="grid gap-3">
-      <p className="text-sm text-muted-foreground">{linked.settings(name)}</p>
-      <div className="flex flex-wrap gap-2">
-        <Link
-          to={editorPath("templates", block.templateId)}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-        >
-          {linked.edit}
-        </Link>
-        {editable && state.state === "ready" && (
-          <Button variant="outline" size="sm" onClick={onDetach}>
-            <Unlink />
-            {linked.detach}
-          </Button>
-        )}
-      </div>
-      {editable && state.state === "ready" && (
-        <p className="text-xs text-muted-foreground">{linked.detachHint}</p>
+      <ul className="grid list-disc gap-1.5 pl-4 text-sm text-muted-foreground">
+        <li>{linked.settings(name)}</li>
+        {canDetach && <li>{linked.detachHint}</li>}
+      </ul>
+      {!actionBar && (
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to={editorPath("templates", block.templateId)}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            {linked.edit}
+          </Link>
+          {canDetach && (
+            <Button variant="outline" size="sm" onClick={onDetach}>
+              <Unlink />
+              {linked.detach}
+            </Button>
+          )}
+        </div>
       )}
     </div>
   )
@@ -295,8 +340,19 @@ function ActionBar({
   onDuplicate,
   removeBlocked = null,
   onSaveAsTemplate,
+  templateFor,
+  onDetach,
+  ...props
 }: Props & { place: BlockPlace }) {
   const { block } = place
+  // Un bloc partagé : « Modifier le modèle » (s'il existe encore) et « Détacher » (s'il est lu).
+  const linkedState =
+    block.type === "linked" ? templateFor(block.templateId) : null
+  const linkedName =
+    linkedState &&
+    (templateNameOf(linkedState)?.trim() || texts.templates.list.untitled)
+  const up = shiftAction(props, place, -1)
+  const down = shiftAction(props, place, 1)
   return (
     <div
       role="toolbar"
@@ -304,15 +360,15 @@ function ActionBar({
       className="flex shrink-0 items-center gap-1 border-t bg-background px-2.5 py-2"
     >
       <IconAction
-        label={labels.moveUp}
-        disabled={place.index === 0}
+        label={up.label}
+        disabled={up.disabled}
         onClick={() => onShift(block.id, -1)}
       >
         <ArrowUp />
       </IconAction>
       <IconAction
-        label={labels.moveDown}
-        disabled={place.index >= place.siblings - 1}
+        label={down.label}
+        disabled={down.disabled}
         onClick={() => onShift(block.id, 1)}
       >
         <ArrowDown />
@@ -334,6 +390,26 @@ function ActionBar({
           <BookmarkPlus />
         </IconAction>
       )}
+      {block.type === "linked" &&
+        linkedName &&
+        linkedState.state !== "missing" && (
+          <IconAction
+            label={texts.templates.linked.editLabel(linkedName)}
+            to={editorPath("templates", block.templateId)}
+          >
+            <SquarePen />
+          </IconAction>
+        )}
+      {block.type === "linked" &&
+        linkedName &&
+        linkedState.state === "ready" && (
+          <IconAction
+            label={texts.templates.linked.detachLabel(linkedName)}
+            onClick={() => onDetach(block.id)}
+          >
+            <Unlink />
+          </IconAction>
+        )}
       <span className="flex-1" />
       <IconAction
         label={labels.remove}
@@ -347,35 +423,46 @@ function ActionBar({
   )
 }
 
+/** Une action en icône, son nom dans l'infobulle : un bouton, ou un lien (`to`). */
 function IconAction({
   label,
   disabled = false,
   destructive = false,
   onClick,
+  to,
   children,
 }: {
   label: string
   disabled?: boolean
   destructive?: boolean
-  onClick: () => void
+  onClick?: () => void
+  to?: string
   children: ReactNode
 }) {
   return (
     <Tooltip>
       <TooltipTrigger
         render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={label}
-            className={cn(
-              "aria-disabled:opacity-50",
-              destructive && "text-destructive hover:text-destructive"
-            )}
-            disabled={disabled}
-            focusableWhenDisabled
-            onClick={onClick}
-          />
+          to ? (
+            <Link
+              to={to}
+              aria-label={label}
+              className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+            />
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={label}
+              className={cn(
+                "aria-disabled:opacity-50",
+                destructive && "text-destructive hover:text-destructive"
+              )}
+              disabled={disabled}
+              focusableWhenDisabled
+              onClick={onClick}
+            />
+          )
         }
       >
         {children}
@@ -411,17 +498,48 @@ function ImageSettings({
     <div className="grid gap-5">
       <Field>
         <FieldLabel>{image.file}</FieldLabel>
-        <p className="truncate text-sm">
-          {media.state === "ready" || media.state === "not_ready"
-            ? media.media.name
-            : media.state === "missing"
+        {media.state === "ready" || media.state === "not_ready" ? (
+          // Le fichier choisi : sa vignette, son nom, et sa fiche dans la Médiathèque (nouvel
+          // onglet : l'éditeur reste ouvert).
+          <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-2">
+            {media.state === "ready" && media.url ? (
+              <img
+                src={media.url}
+                alt=""
+                className={cn(
+                  "size-14 shrink-0 rounded-md bg-muted",
+                  media.media.kind === "svg" ? "object-contain" : "object-cover"
+                )}
+              />
+            ) : (
+              <span className="flex size-14 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                <ImageIcon aria-hidden className="size-5" />
+              </span>
+            )}
+            <div className="grid min-w-0 gap-0.5">
+              <p className="truncate text-sm font-medium">{media.media.name}</p>
+              <a
+                href={mediaFilePath(media.media.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                <ExternalLink aria-hidden className="size-3" />
+                {image.openInLibrary}
+              </a>
+            </div>
+          </div>
+        ) : (
+          <p className="truncate text-sm">
+            {media.state === "missing"
               ? texts.editor.image.missing
               : media.state === "error"
                 ? texts.editor.image.loadFailed
                 : media.state === "loading"
                   ? texts.common.loading
                   : texts.editor.image.none}
-        </p>
+          </p>
+        )}
         {editable && (
           <Button
             variant="outline"
@@ -496,7 +614,11 @@ function BoxSettings({
         <ToggleGroupItem value="fill">{box.fill}</ToggleGroupItem>
         <ToggleGroupItem value="border">{box.border}</ToggleGroupItem>
       </ToggleGroup>
-      <FieldDescription>{box.hint}</FieldDescription>
+      {/* Le choix Fond/Bordure porte data-horizontal : sans ce réglage, la phrase serait
+          « équilibrée » (text-balance) sur la moitié de la colonne. */}
+      <FieldDescription className="group-has-data-horizontal/field:text-wrap">
+        {box.hint}
+      </FieldDescription>
     </Field>
   )
 }

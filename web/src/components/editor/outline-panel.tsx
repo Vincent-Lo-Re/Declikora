@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  CornerLeftUp,
   EllipsisVertical,
   GripVertical,
   LayoutTemplate,
@@ -21,7 +22,9 @@ import {
 } from "lucide-react"
 import {
   useContext,
+  useEffect,
   useId,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -92,6 +95,8 @@ export type FeedOutline = {
     // Un bloc de premier niveau, qui n'est pas déjà un bloc partagé.
     onSaveToMine: (id: string) => void
     onRemove: (id: string) => void
+    // Un bloc d'une section : il en sort, juste après elle.
+    onLeaveBox: (id: string) => void
     // Pourquoi un bloc ne peut pas être supprimé, sinon null.
     removeBlocked: (id: string) => string | null
   }
@@ -148,47 +153,64 @@ export function OutlinePanel({
   const count = selection
     ? draft.blocks.filter((block) => selection.chosen.has(block.id)).length
     : 0
+  const navRef = useRef<HTMLElement>(null)
+  // Le bloc choisi ailleurs (aperçu, « Prêt à publier ? ») : sa ligne vient sous les yeux.
+  useEffect(() => {
+    navRef.current
+      ?.querySelector('[aria-current="true"]')
+      ?.scrollIntoView({ block: "nearest" })
+  }, [selectedId])
   return (
     <nav
+      ref={navRef}
       aria-label={labels.title}
       // Les lignes alignées sur la marge de 16 px des colonnes (comme les onglets et les cartes) ;
       // leur poignée apparaît dans cette marge.
       className="flex h-full flex-col overflow-y-auto px-4 py-3"
     >
-      <div className="flex items-center justify-between gap-2 px-2 pb-2">
-        <h2 className="text-sm font-semibold">{labels.title}</h2>
-        {selection && all.length > 0 && (
-          <Button
-            variant="ghost"
-            size="xs"
-            aria-pressed={choosing}
-            onClick={selection.onToggleActive}
-          >
-            {choosing ? <X /> : <ListChecks />}
-            {choosing ? saveAs.stopSelecting : saveAs.select}
-          </Button>
+      {/* Éditeur du Fil : le haut du plan (titre, « Choisir des blocs », nombre) reste en haut de
+          la colonne quand les lignes défilent, sur un fond plein qui couvre aussi la marge. */}
+      <div
+        className={cn(
+          feed && "sticky -top-3 z-10 -mx-4 -mt-3 bg-background px-4 pt-3"
+        )}
+      >
+        <div className="flex items-center justify-between gap-2 px-2 pb-2">
+          <h2 className="text-sm font-semibold">{labels.title}</h2>
+          {selection && all.length > 0 && (
+            <Button
+              variant="ghost"
+              size="xs"
+              aria-pressed={choosing}
+              onClick={selection.onToggleActive}
+            >
+              {choosing ? <X /> : <ListChecks />}
+              {choosing ? saveAs.stopSelecting : saveAs.select}
+            </Button>
+          )}
+        </div>
+        {/* Sans bloc, « Aucun bloc pour l'instant » le dit déjà. */}
+        {feed && all.length > 0 && (
+          <p className="flex items-center gap-1.5 px-2 pb-2 text-xs text-muted-foreground">
+            {/* Les blocs du premier niveau : une section donne le nombre des siens. */}
+            {labels.count(draft.blocks.length)}
+            {warnings > 0 && (
+              <>
+                <span aria-hidden>·</span>
+                <span className="flex items-center gap-1 text-warning">
+                  <TriangleAlert aria-hidden className="size-3.5 shrink-0" />
+                  {labels.warnings.count(warnings)}
+                </span>
+              </>
+            )}
+          </p>
+        )}
+        {choosing && (
+          <p className="px-2 pb-2 text-xs text-muted-foreground">
+            {saveAs.selectHint}
+          </p>
         )}
       </div>
-      {/* Sans bloc, « Aucun bloc pour l'instant » le dit déjà. */}
-      {feed && all.length > 0 && (
-        <p className="flex items-center gap-1.5 px-2 pb-2 text-xs text-muted-foreground">
-          {labels.count(all.length)}
-          {warnings > 0 && (
-            <>
-              <span aria-hidden>·</span>
-              <span className="flex items-center gap-1 text-warning">
-                <TriangleAlert aria-hidden className="size-3.5 shrink-0" />
-                {labels.warnings.count(warnings)}
-              </span>
-            </>
-          )}
-        </p>
-      )}
-      {choosing && (
-        <p className="px-2 pb-2 text-xs text-muted-foreground">
-          {saveAs.selectHint}
-        </p>
-      )}
       {all.length === 0 ? (
         <p className="px-2 text-sm text-muted-foreground">{labels.empty}</p>
       ) : (
@@ -406,11 +428,16 @@ function OutlineRow({
           type="button"
           aria-label={labels.select(label)}
           aria-current={selectedId === block.id || undefined}
+          // Retrouvée par « N points à vérifier dans le plan », qui l'allume.
+          data-outline-id={block.id}
           aria-describedby={warning ? warningId : undefined}
           onClick={() => onSelect(block.id)}
           className={cn(
             rowButton,
-            selectedId === block.id && "bg-accent font-medium"
+            selectedId === block.id && "bg-accent font-medium",
+            // Le menu « ⋮ » s'affiche au bout de la ligne : la ligne lui fait place, rien n'est
+            // caché dessous (la pastille « Partagé », la fin d'un libellé).
+            feed?.actions && "group-focus-within/row:pr-8 group-hover/row:pr-8"
           )}
         >
           {feed ? (
@@ -448,6 +475,11 @@ function OutlineRow({
             onSaveToMine={
               container === ROOT && block.type !== "linked"
                 ? () => feed.actions!.onSaveToMine(block.id)
+                : undefined
+            }
+            onLeaveBox={
+              container !== ROOT
+                ? () => feed.actions!.onLeaveBox(block.id)
                 : undefined
             }
             onRemove={() => feed.actions!.onRemove(block.id)}
@@ -528,20 +560,26 @@ function DroppableBoxRows({
   )
 }
 
+// scroll-mt-20 : une ligne amenée sous les yeux ne passe pas sous le haut collé du plan.
 const rowButton =
-  "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+  "flex min-w-0 flex-1 scroll-mt-20 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
 
-/** Le menu « … » d'une ligne du plan : Dupliquer, Enregistrer dans Mes blocs, Supprimer. */
+/**
+ * Le menu « … » d'une ligne du plan : Dupliquer, Enregistrer dans Mes blocs, Sortir de la
+ * section, Supprimer.
+ */
 function RowActions({
   label,
   onDuplicate,
   onSaveToMine,
+  onLeaveBox,
   onRemove,
   removeBlocked,
 }: {
   label: string
   onDuplicate: () => void
   onSaveToMine?: () => void
+  onLeaveBox?: () => void
   onRemove: () => void
   removeBlocked: string | null
 }) {
@@ -569,6 +607,12 @@ function RowActions({
           <DropdownMenuItem onClick={onSaveToMine}>
             <BookmarkPlus />
             {labels.saveToMine}
+          </DropdownMenuItem>
+        )}
+        {onLeaveBox && (
+          <DropdownMenuItem onClick={onLeaveBox}>
+            <CornerLeftUp />
+            {labels.leaveBox}
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />

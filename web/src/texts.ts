@@ -1510,10 +1510,11 @@ export const texts = {
       detachLabel: (name: string) => `Détacher du modèle « ${name} »`,
       detached: (name: string) =>
         `Bloc détaché de « ${name} » : c'est maintenant une copie ordinaire, que tu peux modifier ici.`,
+      // « Bloc choisi » d'un bloc partagé : deux points courts.
       settings: (name: string) =>
-        `Ce bloc est partagé : il vient du modèle « ${name} ». Pour le corriger, modifie le modèle : la correction apparaîtra dans tous les brouillons qui l'utilisent.`,
+        `Il vient du modèle « ${name} » : pour le corriger, modifie le modèle, et tous les brouillons qui l'utilisent suivront.`,
       detachHint:
-        "« Détacher » en fait une copie ordinaire, modifiable ici, qui ne suit plus le modèle. Les autres contenus restent liés.",
+        "« Détacher » en fait une copie modifiable ici, qui ne suit plus le modèle ; les autres contenus restent liés.",
     },
     // « Ajouter un bloc » › « Un modèle… ».
     insert: {
@@ -1631,7 +1632,7 @@ export const texts = {
       count: (count: number) => (count === 1 ? "1 bloc" : `${count} blocs`),
       // Une ligne de section : son aspect, puis le nombre de ses blocs.
       box: { fill: "Section à fond", border: "Section à bordure" },
-      boxCount: (count: number) => (count === 0 ? "vide" : `${count}`),
+      boxCount: (count: number) => `${count}`,
       shared: "Partagé",
       dropInBox: "Glisse un texte ou une image ici",
       move: (label: string) => `Ranger dans le plan : ${label}`,
@@ -1642,11 +1643,15 @@ export const texts = {
       duplicated: (label: string) => `${label} : copie ajoutée juste après.`,
       // Comme dans « Bloc choisi » : le bloc devient un modèle, rangé ensuite dans « Mes blocs ».
       saveToMine: "Enregistrer comme modèle…",
+      leaveBox: "Sortir de la section",
+      left: (label: string) =>
+        `${label} : sorti de la section, juste après elle.`,
       remove: "Supprimer",
       warnings: {
         noFile: "Pas encore de fichier",
         unavailable: "Le fichier ne s'affiche plus",
         missingTemplate: "Le modèle n'existe plus",
+        emptyBox: "Vide : n'apparaîtra pas dans l'app",
         count: (count: number) =>
           count === 1 ? "1 point à vérifier" : `${count} points à vérifier`,
       },
@@ -1901,6 +1906,11 @@ export const texts = {
         },
         done: (label: string) => `${label} : fait`,
         todo: (label: string) => `${label} : à régler`,
+        // Les points à vérifier du plan : ils n'empêchent pas de publier.
+        warnings: (count: number) =>
+          count === 1
+            ? "1 point à vérifier dans le plan"
+            : `${count} points à vérifier dans le plan`,
       },
       feed: {
         title: "Dans la liste du Fil",
@@ -1938,6 +1948,7 @@ export const texts = {
       text: "Écris directement dans l'aperçu. Sélectionne des mots pour les mettre en forme avec la barre de mise en forme.",
       image: {
         file: "Fichier",
+        openInLibrary: "Ouvrir sa fiche dans la Médiathèque",
         alt: "Texte alternatif",
         altFromLibrary: "Reprendre celui de la médiathèque",
         libraryAlt: (alt: string) => `Médiathèque : « ${alt} »`,
@@ -1954,6 +1965,9 @@ export const texts = {
       },
       moveUp: "Monter",
       moveDown: "Descendre",
+      // Le premier (ou le dernier) bloc d'une section en sort.
+      moveUpOut: "Monter hors de la section",
+      moveDownOut: "Descendre hors de la section",
       remove: "Supprimer le bloc",
       removed: (label: string) => `Bloc supprimé : ${label}.`,
       undo: "Annuler",

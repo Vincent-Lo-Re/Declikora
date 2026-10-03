@@ -617,7 +617,8 @@ describe("éditeur d'un article (Le Fil)", () => {
     renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
-    expect(within(plan).getByText(outline.count(2))).toBeVisible()
+    // Les blocs du premier niveau : la section (son image est comptée par elle).
+    expect(within(plan).getByText(outline.count(1))).toBeVisible()
     // L'image de présentation n'est pas dans le plan : elle se règle dans la colonne de droite.
     expect(
       within(plan).queryByText(texts.editor.article.ready.items.cover)
@@ -799,7 +800,7 @@ describe("éditeur d'un article (Le Fil)", () => {
       within(bar).getByRole("button", { name: outline.duplicate })
     )
     await waitFor(() =>
-      expect(within(plan).getByText(outline.count(4))).toBeVisible()
+      expect(within(plan).getByText(outline.count(2))).toBeVisible()
     )
   })
 
@@ -1167,6 +1168,8 @@ describe("éditeur d'un article (Le Fil)", () => {
     expect(within(articleTab()).getByText("1 / 3")).toBeVisible()
     fireEvent.click(todo)
     await waitFor(() => expect(title).toHaveFocus())
+    // Le champ du titre s'allume : c'est là qu'il faut agir.
+    expect(title).toHaveAttribute("data-highlight")
 
     fireEvent.click(
       screen.getByRole("button", { name: texts.publication.actions.publish })
@@ -1633,5 +1636,272 @@ describe("éditeur d'un épisode", () => {
         name: texts.editor.audioPicker.title,
       })
     ).toBeVisible()
+  })
+})
+
+describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)", () => {
+  const TEXT = "00000000-0000-4000-8000-0000000000d1"
+  const IMAGE = "00000000-0000-4000-8000-0000000000d2"
+  const BOX = "00000000-0000-4000-8000-0000000000d3"
+  const INNER = "00000000-0000-4000-8000-0000000000d4"
+  const LAST = "00000000-0000-4000-8000-0000000000d5"
+  const EMPTY = "00000000-0000-4000-8000-0000000000d6"
+  const LINKED = "00000000-0000-4000-8000-0000000000d7"
+  const TEMPLATE = "00000000-0000-4000-8000-0000000000d8"
+  const paragraph = (text: string) => ({
+    type: "paragraph" as const,
+    content: [{ type: "text" as const, text }],
+  })
+  const textBlock = (id: string, ...content: Doc["content"]) => ({
+    id,
+    type: "text" as const,
+    doc: { type: "doc" as const, content } as Doc,
+  })
+
+  beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn()
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        blocks: [
+          textBlock(TEXT, {
+            type: "heading",
+            attrs: { level: 3 },
+            content: [{ type: "text", text: "Trois gestes" }],
+          }),
+          {
+            id: IMAGE,
+            type: "image",
+            mediaId: PLAGE,
+            caption: null,
+            alt: null,
+          },
+          {
+            id: BOX,
+            type: "box",
+            look: "border",
+            blocks: [
+              textBlock(INNER, paragraph("Astuce"), paragraph("Prépare tout")),
+              textBlock(LAST, paragraph("Une question ?")),
+            ],
+          },
+          { id: EMPTY, type: "box", look: "fill", blocks: [] },
+          { id: LINKED, type: "linked", templateId: TEMPLATE },
+        ],
+      })
+    )
+    vi.mocked(templatesApi.getTemplatesByIds).mockResolvedValue([
+      {
+        id: TEMPLATE,
+        title: "Besoin d'aide ?",
+        sort: "shared",
+        inTrash: false,
+        draft: {
+          v: 1,
+          title: "Besoin d'aide ?",
+          blocks: [textBlock(LAST, paragraph("Écris-nous."))],
+        },
+      },
+    ])
+  })
+
+  /** Choisit une ligne du plan d'après le nom du bloc. */
+  function choose(label: string) {
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    fireEvent.click(
+      within(plan).getByRole("button", { name: outline.select(label) })
+    )
+  }
+
+  it("la barre de mise en forme suit le bloc choisi : grisée pour une image ou un bloc partagé", async () => {
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const toolbar = screen.getByRole("toolbar", {
+      name: texts.editor.toolbar.label,
+    })
+    const h3 = within(toolbar).getByRole("button", {
+      name: texts.editor.toolbar.h3,
+    })
+    choose(texts.editor.blockLabel.text("Trois gestes"))
+    await waitFor(() => expect(h3).toHaveAttribute("aria-pressed", "true"))
+    choose(texts.editor.blockLabel.image)
+    await waitFor(() => expect(h3).toBeDisabled())
+    choose(texts.editor.blockLabel.linked("Besoin d'aide ?"))
+    await waitFor(() => expect(h3).toBeDisabled())
+  })
+
+  it("une section vide est signalée dans le plan et dans « Prêt à publier ? », qui y mène", async () => {
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    expect(within(plan).getByText(outline.warnings.emptyBox)).toBeVisible()
+    // Les blocs du premier niveau seulement.
+    expect(within(plan).getByText(outline.count(5))).toBeVisible()
+    fireEvent.click(
+      within(articleTab()).getByRole("button", {
+        name: article.ready.warnings(1),
+      })
+    )
+    expect(
+      await screen.findByText(
+        texts.editor.settings.title(texts.editor.blockLabel.box(0))
+      )
+    ).toBeVisible()
+    // Sa ligne s'allume dans le plan.
+    await waitFor(() =>
+      expect(
+        within(plan).getByRole("button", {
+          name: outline.select(texts.editor.blockLabel.box(0)),
+        })
+      ).toHaveAttribute("data-highlight")
+    )
+  })
+
+  it("« Prêt à publier ? » : la carte à régler s'allume, et le curseur va sur son réglage", async () => {
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    fireEvent.click(
+      within(articleTab()).getByRole("button", {
+        name: article.ready.todo(article.ready.items.cover),
+      })
+    )
+    const card = within(articleTab()).getByRole("region", {
+      name: article.feed.title,
+    })
+    expect(card).toHaveAttribute("data-highlight")
+    await waitFor(() =>
+      expect(document.getElementById("article-image")).toHaveFocus()
+    )
+  })
+
+  it("un texte se résume par sa première ligne, dans le plan comme dans « Bloc choisi »", async () => {
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    expect(within(plan).getByText("Astuce")).toBeVisible()
+    expect(within(plan).queryByText(/Astuce Prépare/)).toBeNull()
+    choose(texts.editor.blockLabel.text("Astuce"))
+    expect(
+      await screen.findByText(
+        texts.editor.settings.title(texts.editor.blockLabel.text("Astuce"))
+      )
+    ).toBeVisible()
+  })
+
+  it("un bloc sort de sa section : « Monter hors de la section », et « Sortir de la section » du plan", async () => {
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    choose(texts.editor.blockLabel.text("Astuce"))
+    const bar = await screen.findByRole("toolbar", {
+      name: texts.editor.settings.actions,
+    })
+    fireEvent.click(
+      within(bar).getByRole("button", {
+        name: texts.editor.settings.moveUpOut,
+      })
+    )
+    // Sorti, juste au-dessus de la section : 3e bloc de la page sur 6.
+    expect(
+      await screen.findByText(
+        texts.editor.settings.moved(3, 6, texts.editor.dnd.page)
+      )
+    ).toBeInTheDocument()
+
+    const plan = screen.getByRole("navigation", { name: outline.title })
+    const label = texts.editor.blockLabel.text("Une question ?")
+    fireEvent.click(
+      within(plan).getByRole("button", { name: outline.actions(label) })
+    )
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: outline.leaveBox })
+    )
+    expect(await screen.findByText(outline.left(label))).toBeInTheDocument()
+    expect(within(plan).getByText(outline.count(7))).toBeVisible()
+  })
+
+  it("« Mes blocs » montre les images d'un bloc enregistré, pas leur icône", async () => {
+    vi.mocked(mediaApi.getPreviewUrls).mockResolvedValue({
+      [mediaApi.previewKey(plage)]: "blob:plage",
+    })
+    vi.mocked(templatesApi.listTemplates).mockResolvedValue([
+      {
+        id: TEMPLATE,
+        title: "Besoin d'aide ?",
+        sort: "shared",
+        templateFor: null,
+        draft: {
+          v: 1,
+          title: "Besoin d'aide ?",
+          blocks: [
+            {
+              id: BOX,
+              type: "box",
+              look: "fill",
+              blocks: [
+                {
+                  id: IMAGE,
+                  type: "image",
+                  mediaId: PLAGE,
+                  caption: null,
+                  alt: null,
+                },
+              ],
+            },
+          ],
+        },
+        draft_saved_at: "2026-09-30T10:00:00Z",
+      },
+    ])
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    fireEvent.click(screen.getByRole("tab", { name: columns.blocks }))
+    const library = screen.getByRole("tabpanel", { name: columns.blocks })
+    fireEvent.click(
+      await within(library).findByRole("button", {
+        name: new RegExp(texts.editor.library.mine.title),
+      })
+    )
+    const mine = await within(library).findByRole("region", {
+      name: texts.editor.library.mine.title,
+    })
+    await waitFor(() =>
+      expect(mine.querySelector('img[src="blob:plage"]')).not.toBeNull()
+    )
+  })
+
+  it("une image : sa vignette et sa fiche dans la Médiathèque", async () => {
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    choose(texts.editor.blockLabel.image)
+    const link = await screen.findByRole("link", {
+      name: texts.editor.settings.image.openInLibrary,
+    })
+    expect(link).toHaveAttribute("href", `/mediatheque?fichier=${PLAGE}`)
+    expect(link).toHaveAttribute("target", "_blank")
+  })
+
+  it("un bloc partagé : pas de barre dans l'aperçu ; deux points courts et ses actions en icônes dans « Bloc choisi »", async () => {
+    const name = "Besoin d'aide ?"
+    const linked = texts.templates.linked
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    // Le bloc du modèle s'affiche, sans « Bloc partagé « … » » au-dessus.
+    expect(await screen.findByText("Écris-nous.")).toBeInTheDocument()
+    expect(screen.queryByText(linked.label(name))).toBeNull()
+
+    choose(texts.editor.blockLabel.linked(name))
+    expect(await screen.findByText(linked.settings(name))).toBeVisible()
+    expect(screen.getByText(linked.detachHint)).toBeVisible()
+    const bar = screen.getByRole("toolbar", {
+      name: texts.editor.settings.actions,
+    })
+    expect(
+      within(bar).getByRole("link", { name: linked.editLabel(name) })
+    ).toHaveAttribute("href", `/modeles/${TEMPLATE}`)
+    // Des icônes seules, leur nom dans l'infobulle.
+    expect(bar).not.toHaveTextContent(linked.detach)
+    fireEvent.click(
+      within(bar).getByRole("button", { name: linked.detachLabel(name) })
+    )
+    expect(await screen.findByText(linked.detached(name))).toBeInTheDocument()
   })
 })
