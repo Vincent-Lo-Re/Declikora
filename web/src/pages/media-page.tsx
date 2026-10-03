@@ -22,7 +22,7 @@ import { toast } from "sonner"
 import {
   BulkTrashButton,
   KeptNotice,
-  SelectAllCheckbox,
+  SelectAllToggle,
   type SelectAll,
 } from "@/components/bulk-selection"
 import { LoadState } from "@/components/load-state"
@@ -145,7 +145,7 @@ export function MediaPage() {
     () => new Set()
   )
   const [kept, setKept] = useState<Kept<Media>[]>([])
-  const selectAll = useRef<HTMLSpanElement>(null)
+  const selectAll = useRef<HTMLButtonElement>(null)
 
   const filters: MediaFilters = { kind, search: debouncedSearch, unused }
   const media = useQuery({
@@ -308,7 +308,6 @@ export function MediaPage() {
     disabled: bulkTrash.isPending,
     onToggleAll: (checked) =>
       setCheckedIds((current) => toggleAll(current, shownItems, checked)),
-    checkboxRef: selectAll,
   }
   const collectionSelection = {
     selectAll: selectAllProps,
@@ -411,9 +410,16 @@ export function MediaPage() {
           </TooltipTrigger>
           <TooltipContent>{texts.media.filters.unused}</TooltipContent>
         </Tooltip>
+        {/* Avant Grille et Liste, au même format : sur les fichiers affichés, dans les deux vues. */}
+        <div className="ml-auto">
+          <SelectAllToggle
+            {...selectAllProps}
+            disabled={selectAllProps.disabled || shownItems.length === 0}
+            buttonRef={selectAll}
+          />
+        </div>
         <ToggleGroup
           variant="outline"
-          className="ml-auto"
           aria-label={texts.media.view.label}
           value={[view]}
           onValueChange={(value: string[]) => {
@@ -495,7 +501,6 @@ export function MediaPage() {
                   }}
                 />
               )}
-              {view === "grid" && <SelectAllCheckbox {...selectAllProps} />}
               {view === "grid" ? (
                 <MediaGrid
                   items={media.data}

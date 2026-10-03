@@ -13,12 +13,13 @@ import {
   Tags,
   X,
 } from "lucide-react"
-import { useState, type ReactNode } from "react"
+import { useState } from "react"
 
 import type { BlockMedia } from "@/blocks/components/context"
 import { FEED_SUMMARY_MAX } from "@/blocks/draft"
 import type { Draft } from "@/blocks/types"
 import { MediaThumbnail } from "@/components/media/media-visuals"
+import { PanelCard } from "@/components/panel-card"
 import {
   AddCategory,
   type SectionCategories,
@@ -212,32 +213,6 @@ function ReadyCard({ items }: { items: ReadyItem[] }) {
         </ul>
       </section>
     </div>
-  )
-}
-
-/** Une carte de l'onglet, avec son titre et son icône. */
-function PanelCard({
-  id,
-  icon: Icon,
-  title,
-  children,
-}: {
-  id: string
-  icon: typeof Tags
-  title: string
-  children: ReactNode
-}) {
-  return (
-    <section aria-labelledby={id} className="rounded-xl border p-3">
-      <h3
-        id={id}
-        className="mb-2.5 flex items-center gap-1.5 text-sm font-semibold"
-      >
-        <Icon aria-hidden className="size-4 text-muted-foreground" />
-        {title}
-      </h3>
-      {children}
-    </section>
   )
 }
 

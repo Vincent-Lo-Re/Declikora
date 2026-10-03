@@ -3,8 +3,6 @@ import { Check, Link, Unlink, X } from "lucide-react"
 
 import { IconBadge } from "@/components/icon-badge"
 import { kindIcons, rejectedText } from "@/components/media/media-kinds"
-import { Badge } from "@/components/ui/badge"
-import { Spinner } from "@/components/ui/spinner"
 import { INTERRUPTED_AFTER_MS, type Media } from "@/lib/media/constants"
 import { texts } from "@/texts"
 
@@ -53,38 +51,6 @@ function isInterrupted(media: Media, now: number): boolean {
     media.status === "pending" &&
     now - new Date(media.status_changed_at).getTime() > INTERRUPTED_AFTER_MS
   )
-}
-
-/** État d'un fichier : Envoi en cours…, Vérification…, Prêt ou Refusé. */
-export function MediaStatusBadge({
-  media,
-  now,
-}: {
-  media: Media
-  // Heure de la liste chargée : l'affichage ne dépend pas de l'heure du rendu.
-  now: number
-}) {
-  switch (media.status) {
-    case "pending":
-      return (
-        <Badge variant="outline">
-          {isInterrupted(media, now)
-            ? texts.media.status.interrupted
-            : texts.media.status.pending}
-        </Badge>
-      )
-    case "checking":
-      return (
-        <Badge variant="secondary">
-          <Spinner />
-          {texts.media.status.checking}
-        </Badge>
-      )
-    case "ready":
-      return <Badge variant="secondary">{texts.media.status.ready}</Badge>
-    case "rejected":
-      return <Badge variant="destructive">{texts.media.status.rejected}</Badge>
-  }
 }
 
 /**

@@ -1,4 +1,4 @@
-import { Trash2, TriangleAlert, X } from "lucide-react"
+import { CopyCheck, CopyMinus, Trash2, TriangleAlert, X } from "lucide-react"
 import type { Ref } from "react"
 
 import {
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Spinner } from "@/components/ui/spinner"
 import { TableHead } from "@/components/ui/table"
+import { Toggle } from "@/components/ui/toggle"
 import {
   Tooltip,
   TooltipContent,
@@ -30,7 +31,7 @@ export type SelectAll = {
 }
 
 /** La case « Tout sélectionner », sans texte : son nom est dans l'infobulle. */
-export function SelectAllCheckbox({
+function SelectAllCheckbox({
   all,
   some,
   disabled,
@@ -51,6 +52,43 @@ export function SelectAllCheckbox({
           />
         }
       />
+      <TooltipContent>{texts.selection.selectAll}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+/**
+ * « Tout sélectionner » en bouton à icône, du même format que les boutons de la barre d'outils
+ * (Médiathèque) : enfoncé quand tout est coché, un tiret quand une partie l'est (un clic coche
+ * alors tout, comme la case).
+ */
+export function SelectAllToggle({
+  all,
+  some,
+  disabled,
+  onToggleAll,
+  buttonRef,
+}: Omit<SelectAll, "checkboxRef"> & {
+  // Le focus y revient quand le bouton « Mettre à la corbeille » disparaît.
+  buttonRef?: Ref<HTMLButtonElement>
+}) {
+  const Icon = some ? CopyMinus : CopyCheck
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Toggle
+            ref={buttonRef}
+            variant="outline"
+            aria-label={texts.selection.selectAll}
+            pressed={all}
+            disabled={disabled}
+            onPressedChange={onToggleAll}
+          />
+        }
+      >
+        <Icon />
+      </TooltipTrigger>
       <TooltipContent>{texts.selection.selectAll}</TooltipContent>
     </Tooltip>
   )

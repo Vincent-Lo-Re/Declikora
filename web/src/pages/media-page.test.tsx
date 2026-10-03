@@ -328,6 +328,73 @@ describe("Médiathèque", () => {
     })
   })
 
+  it("la fiche : des cartes avec leur icône, et l'état et l'utilisation en pastilles en bas", async () => {
+    renderApp("/mediatheque")
+    fireEvent.click(
+      await screen.findByRole("button", { name: texts.media.open(photo.name) })
+    )
+    const sheet = await screen.findByRole("dialog")
+    const words = texts.media.detail
+
+    // L'en-tête : le nom seul (le type est dans « Informations », l'état en bas).
+    expect(sheet.querySelector("[data-slot=sheet-header]")).toHaveTextContent(
+      new RegExp(`^${photo.name}$`)
+    )
+    for (const title of [words.description, words.info, words.uses]) {
+      expect(
+        within(sheet).getByRole("heading", { level: 3, name: title })
+      ).toBeVisible()
+    }
+    const info = within(sheet).getByRole("region", { name: words.info })
+    expect(within(info).getByText(texts.media.kinds.image)).toBeVisible()
+    expect(within(info).getByText(words.protected)).toBeVisible()
+
+    // En bas, à gauche de « Mettre à la corbeille » : des pastilles à icône, comme les vignettes.
+    expect(
+      await within(sheet).findByRole("img", { name: texts.media.unused })
+    ).toBeVisible()
+    const ready = within(sheet).getByRole("img", {
+      name: texts.media.status.ready,
+    })
+    const trash = within(sheet).getByRole("button", { name: words.trash })
+    expect(ready.parentElement).toBe(trash.parentElement)
+    expect(
+      ready.compareDocumentPosition(trash) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
+  it("la fiche d'un fichier utilisé et public : le nombre de contenus, et l'accès expliqué", async () => {
+    vi.mocked(api.listMedia).mockResolvedValue([{ ...photo, is_public: true }])
+    vi.mocked(api.getMediaUses).mockResolvedValue([
+      {
+        content_id: "00000000-0000-4000-8000-0000000000aa",
+        kind: "article",
+        title: "Bien commencer",
+        parent_title: null,
+        in_draft: true,
+        in_app: false,
+      },
+    ])
+    renderApp("/mediatheque")
+    fireEvent.click(
+      await screen.findByRole("button", { name: texts.media.open(photo.name) })
+    )
+    const sheet = await screen.findByRole("dialog")
+    const words = texts.media.detail
+
+    const uses = within(sheet).getByRole("region", { name: words.uses })
+    expect(await within(uses).findByText(words.usesCount(1))).toBeVisible()
+    expect(
+      within(uses).getByRole("link", { name: "Bien commencer" })
+    ).toBeVisible()
+    expect(
+      within(sheet).getByRole("img", { name: texts.media.used })
+    ).toBeVisible()
+    const info = within(sheet).getByRole("region", { name: words.info })
+    expect(within(info).getByText(words.public)).toBeVisible()
+    expect(within(info).getByText(words.publicHint)).toBeVisible()
+  })
+
   it("« Utilisé dans » distingue l'app et les brouillons, et met à jour les textes figés ([D30])", async () => {
     const PAGE = "00000000-0000-4000-8000-0000000000aa"
     const HELP = "00000000-0000-4000-8000-0000000000ab"
@@ -586,11 +653,42 @@ describe("Sélection en masse", () => {
     fireEvent.click(screen.getByRole("button", { name: /Audios/ }))
     await waitFor(() => expect(screen.queryByText(photo.name)).toBeNull())
 
-    fireEvent.click(screen.getByRole("checkbox", { name: selection.selectAll }))
+    fireEvent.click(screen.getByRole("button", { name: selection.selectAll }))
     expect(box(voice.name)).toBeChecked()
     expect(
       screen.getByRole("button", { name: selection.trash(1) })
     ).toBeVisible()
+  })
+
+  it("« Tout sélectionner » est un bouton avant Grille et Liste, sans case au-dessus des vignettes", async () => {
+    renderApp("/mediatheque")
+    await screen.findByText(photo.name)
+
+    const selectAll = screen.getByRole("button", { name: selection.selectAll })
+    const grid = screen.getByRole("button", { name: texts.media.view.grid })
+    // Juste avant le choix de la vue.
+    expect(
+      selectAll.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(
+      screen.queryByRole("checkbox", { name: selection.selectAll })
+    ).toBeNull()
+
+    expect(selectAll).toHaveAttribute("aria-pressed", "false")
+    fireEvent.click(selectAll)
+    expect(selectAll).toHaveAttribute("aria-pressed", "true")
+    expect(box(photo.name)).toBeChecked()
+    expect(box(logo.name)).toBeChecked()
+
+    // Une partie seulement : pas enfoncé, et un clic coche de nouveau tout.
+    fireEvent.click(box(logo.name))
+    expect(selectAll).toHaveAttribute("aria-pressed", "false")
+    fireEvent.click(selectAll)
+    expect(box(logo.name)).toBeChecked()
+
+    fireEvent.click(selectAll)
+    expect(box(photo.name)).not.toBeChecked()
+    expect(selectAll).toHaveAttribute("aria-pressed", "false")
   })
 
   it("met la sélection à la corbeille, garde les fichiers utilisés, et propose d'annuler", async () => {
@@ -651,7 +749,7 @@ describe("Sélection en masse", () => {
     fireEvent.click(screen.getByRole("button", { name: selection.closeKept }))
     expect(screen.queryByText(selection.keptTitle(1))).toBeNull()
     expect(document.activeElement).toBe(
-      screen.getByRole("checkbox", { name: selection.selectAll })
+      screen.getByRole("button", { name: selection.selectAll })
     )
   })
 
@@ -670,7 +768,7 @@ describe("Sélection en masse", () => {
     expect(await screen.findByText(selection.trashed(1))).toBeVisible()
     await waitFor(() =>
       expect(document.activeElement).toBe(
-        screen.getByRole("checkbox", { name: selection.selectAll })
+        screen.getByRole("button", { name: selection.selectAll })
       )
     )
     await waitFor(() => expect(screen.queryByText(photo.name)).toBeNull())

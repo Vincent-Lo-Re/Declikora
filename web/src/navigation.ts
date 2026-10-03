@@ -92,6 +92,12 @@ function methodElementPath(
   return `${sections.methods.path}/${methodElementSegments[kind]}/${contentId}`
 }
 
+/** Section d'un contenu d'après sa sorte (un chapitre ou une leçon : Méthodes), ou null. */
+export function contentSection(kind: string): SectionKey | null {
+  if (kind === "chapter" || kind === "lesson") return "methods"
+  return editorSections[kind] ?? null
+}
+
 /** Adresse de l'éditeur d'un contenu d'après sa sorte, ou null si elle n'a pas d'éditeur. */
 export function contentEditorPath(
   kind: string,
@@ -100,7 +106,7 @@ export function contentEditorPath(
   if (kind === "chapter" || kind === "lesson") {
     return methodElementPath(kind, contentId)
   }
-  const section = editorSections[kind]
+  const section = contentSection(kind)
   return section ? editorPath(section, contentId) : null
 }
 

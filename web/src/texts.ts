@@ -602,6 +602,8 @@ export const texts = {
       transcriptTooLong:
         "La transcription ne doit pas dépasser 200 000 caractères.",
       saved: "Fiche enregistrée.",
+      // La carte du nom et du texte alternatif (ou de la transcription).
+      description: "Description",
       info: "Informations",
       kind: "Type",
       dimensions: "Dimensions",
@@ -609,10 +611,13 @@ export const texts = {
       size: "Poids",
       createdAt: "Ajouté le",
       visibility: "Accès",
-      public:
-        "Public (utilisé par un contenu gratuit en ligne, ou image de présentation)",
+      public: "Public",
+      publicHint:
+        "Utilisé par un contenu gratuit en ligne, ou image de présentation.",
       protected: "Protégé",
       uses: "Utilisé dans",
+      usesCount: (count: number) =>
+        count === 1 ? "1 contenu" : `${count} contenus`,
       usesLoading: "Recherche des contenus…",
       notUsed:
         "Ce fichier n'est utilisé dans aucun contenu pour l'instant. Tu peux l'insérer dans un contenu depuis l'éditeur (bloc Image).",
