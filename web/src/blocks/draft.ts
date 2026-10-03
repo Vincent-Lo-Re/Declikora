@@ -57,7 +57,7 @@ export function createBlock(type: "text" | "image" | "box"): Block {
   }
 }
 
-/** Seuls un Texte et une Image vont dans un encadré (pas d'encadré, pas de bloc lié). */
+/** Seuls un Texte et une Image vont dans une section (pas de section, pas de bloc lié). */
 export function canDropInto(type: BlockType, container: ContainerId): boolean {
   return container === ROOT || type === "text" || type === "image"
 }
@@ -70,7 +70,7 @@ export type BlockPlace = {
   siblings: number
 }
 
-/** Où est un bloc (premier niveau ou dans un encadré). */
+/** Où est un bloc (premier niveau ou dans une section). */
 export function findBlock(draft: Draft, id: string): BlockPlace | null {
   for (const [index, block] of draft.blocks.entries()) {
     if (block.id === id) {
@@ -91,7 +91,7 @@ export function findBlock(draft: Draft, id: string): BlockPlace | null {
   return null
 }
 
-/** Les blocs d'un conteneur (la page, ou un encadré). */
+/** Les blocs d'un conteneur (la page, ou une section). */
 export function blocksOf(draft: Draft, container: ContainerId): Block[] {
   if (container === ROOT) return draft.blocks
   const box = draft.blocks.find(
@@ -139,7 +139,7 @@ export function removeBlock(draft: Draft, id: string): Draft {
   return withBlocks(draft, place.container, blocks)
 }
 
-/** Insère un bloc à une place donnée ; refuse (renvoie null) un encadré dans un encadré. */
+/** Insère un bloc à une place donnée ; refuse (renvoie null) une section dans une section. */
 export function insertBlock(
   draft: Draft,
   block: Block,
@@ -169,7 +169,7 @@ export function insertionPoint(
   if (canDropInto(type, place.container)) {
     return { container: place.container, index: place.index + 1 }
   }
-  // Un encadré choisi dans un encadré : le nouveau bloc va après cet encadré.
+  // Une section choisie dans une section : le nouveau bloc va après elle.
   const box = findBlock(draft, place.container)
   return { container: ROOT, index: (box?.index ?? draft.blocks.length) + 1 }
 }
@@ -236,7 +236,7 @@ export function shiftLeavesBox(place: BlockPlace, offset: -1 | 1): boolean {
   return place.container !== ROOT && (target < 0 || target >= place.siblings)
 }
 
-/** Tous les blocs, dans l'ordre de lecture (encadrés, puis leur contenu). */
+/** Tous les blocs, dans l'ordre de lecture (sections, puis leur contenu). */
 export function flattenBlocks(
   draft: Draft
 ): { block: Block; container: ContainerId }[] {
@@ -299,7 +299,7 @@ export function prepareDraft(source: Draft): PreparedDraft {
 }
 
 /**
- * Les textes des blocs, dans l'ordre (textes, légendes, encadrés). Un bloc lié est lu par
+ * Les textes des blocs, dans l'ordre (textes, légendes, sections). Un bloc lié est lu par
  * `resolve` (le bloc de son modèle), s'il est donné.
  */
 function blockTexts(

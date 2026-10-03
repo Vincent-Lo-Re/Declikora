@@ -5,7 +5,7 @@ import { texts } from "@/texts"
 
 /**
  * Ce qui résume un texte : sa première ligne non vide (l'intertitre qui l'ouvre, son premier
- * paragraphe, ou le premier point d'une liste), espaces resserrés. Le plan et « Bloc choisi »
+ * paragraphe, ou le premier point d'une liste), espaces resserrés. Le plan et les réglages du bloc
  * disent ainsi la même chose ; deux paragraphes ne sont jamais collés.
  */
 export function textFirstLine(doc: Doc): string {
@@ -29,7 +29,10 @@ export function blockLabel(block: Block, templateName?: string | null): string {
     case "image":
       return labels.image
     case "box":
-      return labels.box(block.blocks.length)
+      return labels.box(
+        texts.editor.outline.box[block.look],
+        block.blocks.length
+      )
     case "linked":
       return labels.linked(
         templateName?.trim() ? excerpt(templateName, 30) : null

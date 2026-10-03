@@ -54,9 +54,9 @@ export type BlocksEditorValue = {
   // blocs (ADMIN § 4).
   withoutHandles?: boolean
   // Éditeur du Fil : un bloc partagé sans barre au-dessus de lui dans l'aperçu (son nom est dans
-  // le plan ; « Modifier le modèle » et « Détacher », dans « Bloc choisi »).
+  // le plan ; « Modifier le modèle » et « Détacher », dans ses réglages).
   linkedWithoutBar?: boolean
-  // Éditeur du Fil : « Ajouter dans la section » ouvre l'onglet Blocs pour cette section (ailleurs,
+  // Éditeur du Fil : « Ajouter dans la section » ouvre les Blocs pour cette section (ailleurs,
   // un menu Texte, Image).
   onAddInBox?: (boxId: string) => void
 }

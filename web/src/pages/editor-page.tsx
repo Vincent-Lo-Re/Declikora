@@ -8,16 +8,15 @@ import type { Editor } from "@tiptap/react"
 import { cn } from "cn"
 import {
   ArrowLeft,
+  Blocks,
   FileQuestion,
   Focus,
   History,
-  LayoutGrid,
   LayoutTemplate,
   ListTree,
   PanelTop,
   Plus,
   Settings2,
-  X,
 } from "lucide-react"
 import {
   useCallback,
@@ -76,6 +75,7 @@ import {
 import { ROOT, type Block, type Draft, type ImageBlock } from "@/blocks/types"
 import { AddBlockButton } from "@/components/editor/add-block-button"
 import { BlockSettings } from "@/components/editor/block-settings"
+import { ColumnHeader } from "@/components/editor/column-header"
 import {
   ContentSettingsSheet,
   type RefusedSlug,
@@ -123,7 +123,7 @@ import {
 } from "@/components/editor/use-publication"
 import { ElementBanner } from "@/components/methods/element-banner"
 import { MethodOutline } from "@/components/methods/method-outline"
-import { usePreviewUrls } from "@/components/media/use-preview-urls"
+import { usePreviewUrlsState } from "@/components/media/use-preview-urls"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TemplateDialog } from "@/components/templates/template-dialog"
 import {
@@ -158,7 +158,6 @@ import {
 } from "@/components/ui/empty"
 import { Separator } from "@/components/ui/separator"
 import { Kbd } from "@/components/ui/kbd"
-import { TruncatedText } from "@/components/truncated-text"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -462,8 +461,15 @@ function focusOnceShown(find: () => HTMLElement | null, attempts = 20) {
   }
 }
 
-/** La poignée d'un bloc (et non celle d'un bloc de son encadré). */
-function blockHandle(id: string): HTMLElement | null {
+/**
+ * Où va le focus après un geste sur un bloc (voisin d'un bloc supprimé, bloc détaché, modèle
+ * inséré) : sa poignée dans l'aperçu (et non celle d'un bloc de sa section) ; dans l'éditeur du
+ * Fil, dont l'aperçu n'a pas de poignée, sa ligne du plan.
+ */
+function blockAnchor(id: string, feed: boolean): HTMLElement | null {
+  if (feed) {
+    return document.querySelector<HTMLElement>(`[data-outline-id="${id}"]`)
+  }
   return (
     document
       .querySelector(`[data-block-id="${id}"]`)
@@ -488,6 +494,16 @@ const LEFT_ADD_ID = "colonne-gauche-ajouter"
 // Éditeur du Fil : le titre de la colonne de droite (le focus y revient quand la glissière du bloc
 // se ferme).
 const ARTICLE_TITLE_ID = "colonne-article-titre"
+
+/** « Copier mon texte » : le brouillon en texte simple, dans le presse-papiers. */
+async function copyText(draft: Draft) {
+  try {
+    await navigator.clipboard.writeText(draftToPlainText(draft))
+    toast.success(texts.editor.lock.copied)
+  } catch {
+    toast.error(texts.editor.lock.copyFailed)
+  }
+}
 
 /**
  * Met le curseur dans un bloc qui vient d'apparaître (l'éditeur Tiptap se crée juste après).
@@ -542,13 +558,13 @@ function ContentEditor({
   // Une méthode : sa fiche et son plan, sans blocs ([D4]). Un chapitre ou une leçon : l'éditeur
   // de blocs, sans barre de publication (tout part avec la méthode, [D29]).
   const isMethod = kind === "method"
-  // L'éditeur du Fil (ADMIN § 4) : plan et blocs à gauche, ouverts d'office ; « Article » et
-  // « Bloc choisi » à droite. Les autres éditeurs gardent leur mise en page.
+  // L'éditeur du Fil (ADMIN § 4) : le Plan à gauche, l'Article à droite, sans onglets ni barre du
+  // haut. Les autres éditeurs gardent leur mise en page.
   const feed = kind === "article"
   const elementKind = kind === "chapter" || kind === "lesson" ? kind : null
   const isElement = elementKind !== null
-  // Image de présentation et résumé (article, épisode, méthode, chapitre, leçon) ; catégories
-  // pour un article ou un épisode, audio pour un épisode.
+  // Image de présentation (article, épisode, méthode, chapitre, leçon) ; catégories pour un
+  // article ou un épisode, audio pour un épisode.
   const presentationKind = hasPresentation(kind) ? kind : null
   const categorySection = categorySectionOf(kind)
   // Cette ouverture de l'éditeur : le verrou est tenu par elle, pas seulement par le membre.
@@ -583,7 +599,7 @@ function ContentEditor({
   } | null>(null)
   // Éditeur du Fil : le téléphone montré, Édition ou Lecture, thème, taille du texte, lecteur.
   const [phoneView, setPhoneView] = useState<PreviewSettings>(defaultPreview)
-  // Éditeur du Fil : le panneau « Mes blocs » de l'onglet Blocs.
+  // Éditeur du Fil : le panneau « Mes blocs », par-dessus les Blocs.
   const [savedOpen, setSavedOpen] = useState(false)
   // Éditeur du Fil : le bloc survolé, dans le plan ou dans l'aperçu (montré dans les deux).
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -708,6 +724,16 @@ function ContentEditor({
         }
       },
       onStopped: (error) => checkAccess(error),
+      // L'éditeur fermé sans que la dernière modification ait pu partir : le message reste
+      // après la fermeture, avec « Copier mon texte ».
+      onUnsavedAtClose: (value) =>
+        toast.error(texts.editor.save.unsavedAtClose, {
+          duration: Infinity,
+          action: {
+            label: texts.editor.lock.copy,
+            onClick: () => void copyText(value.draft),
+          },
+        }),
     },
     // Les réglages envoyés sont ceux qui diffèrent de la base au moment de l'envoi : une
     // valeur rejouée après une réponse perdue repart avec les mêmes.
@@ -863,17 +889,23 @@ function ContentEditor({
       autosave.state.unsaved
     )
   // Relu tant que la révision affichée (loadedRev) est en retard ; nouvel essai après un échec.
+  // En attendant, le brouillon reste en lecture seule : un échec le dit au-dessus du téléphone.
   const [reloadAttempt, setReloadAttempt] = useState(0)
+  const [reloadFailed, setReloadFailed] = useState(false)
   useEffect(() => {
     if (!mustReload) return
     let cancelled = false
     let retry: ReturnType<typeof setTimeout> | undefined
     fetchFresh()
       .then((fresh) => {
-        if (!cancelled) applyFresh(fresh)
+        if (cancelled) return
+        setReloadFailed(false)
+        applyFresh(fresh)
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!cancelled) {
+          checkAccess(error)
+          setReloadFailed(true)
           retry = setTimeout(
             () => setReloadAttempt((attempt) => attempt + 1),
             RELOAD_RETRY_MS
@@ -884,7 +916,15 @@ function ContentEditor({
       cancelled = true
       clearTimeout(retry)
     }
-  }, [mustReload, serverRev, loadedRev, reloadAttempt, fetchFresh, applyFresh])
+  }, [
+    mustReload,
+    serverRev,
+    loadedRev,
+    reloadAttempt,
+    fetchFresh,
+    applyFresh,
+    checkAccess,
+  ])
 
   // Main reprise sans que personne n'ait écrit entre-temps : l'enregistrement reprend là où
   // il s'était arrêté, avec ce qui est à l'écran.
@@ -971,7 +1011,7 @@ function ContentEditor({
     [templateFor]
   )
 
-  // Les blocs des modèles cités (et ceux de leurs encadrés), pour leurs images.
+  // Les blocs des modèles cités (et ceux de leurs sections), pour leurs images.
   const linkedBlocks = useMemo(
     () =>
       linkedIds.flatMap((id): Block[] => {
@@ -1023,7 +1063,8 @@ function ContentEditor({
       ),
     [mediaById]
   )
-  const urlFor = usePreviewUrls(readyMedia)
+  const previews = usePreviewUrlsState(readyMedia)
+  const { urlFor } = previews
   // keepPreviousData : pendant la lecture d'une nouvelle liste, les anciennes données restent
   // affichées (isPlaceholderData) ; un fichier absent n'est pas encore « supprimé ».
   const mediaLoading =
@@ -1044,12 +1085,44 @@ function ContentEditor({
       }
       if (media.deleted_at) return { state: "missing" }
       if (media.status !== "ready") return { state: "not_ready", media }
-      return { state: "ready", media, url: urlFor(media) }
+      const url = urlFor(media)
+      // Pas d'adresse d'aperçu une fois sa demande finie : elle a échoué (« Réessayer »), plutôt
+      // qu'un « Chargement… » sans fin.
+      if (!url && !previews.fetching) {
+        return { state: "error", retry: previews.retry }
+      }
+      return { state: "ready", media, url }
     },
-    [mediaById, mediaLoading, mediaFailed, retryMedia, urlFor]
+    [
+      mediaById,
+      mediaLoading,
+      mediaFailed,
+      retryMedia,
+      urlFor,
+      previews.fetching,
+      previews.retry,
+    ]
   )
 
   // --- Actions sur les blocs ---------------------------------------------------------------
+
+  // Les messages avec « Annuler » agissent sur ce brouillon : ils partent avec l'éditeur (un clic
+  // après sa fermeture ne ferait rien, la suppression est déjà enregistrée).
+  const undoToasts = useRef(new Set<string | number>())
+  useEffect(() => {
+    const shown = undoToasts.current
+    return () => {
+      for (const id of shown) toast.dismiss(id)
+    }
+  }, [])
+  const undoToast = (message: string, undo: () => void) => {
+    const id = toast(message, {
+      action: { label: texts.editor.settings.undo, onClick: undo },
+      onDismiss: () => undoToasts.current.delete(id),
+      onAutoClose: () => undoToasts.current.delete(id),
+    })
+    undoToasts.current.add(id)
+  }
 
   const onUpdateBlock = useCallback(
     <T extends Block>(id: string, update: (block: T) => T) =>
@@ -1176,8 +1249,9 @@ function ContentEditor({
   const onRemove = (id: string) => {
     const place = findBlock(draft, id)
     if (!place) return
-    // Le focus va au bloc voisin (le suivant, sinon le précédent, sinon l'encadré qui le
-    // contenait), ou à « Ajouter un bloc » s'il n'en reste aucun.
+    // Le focus va au bloc voisin (le suivant, sinon le précédent, sinon la section qui le
+    // contenait), ou à « Ajouter un bloc » s'il n'en reste aucun (dans l'éditeur du Fil, celui du
+    // bas de la colonne de gauche, toujours là, même en Lecture).
     const siblings = blocksOf(draft, place.container)
     const neighbor =
       siblings[place.index + 1]?.id ??
@@ -1185,21 +1259,21 @@ function ContentEditor({
       (place.container === ROOT ? null : place.container)
     setDraft((current) => removeBlock(current, id))
     setSelectedId(neighbor)
-    focusOnceShown(() =>
-      neighbor ? blockHandle(neighbor) : document.getElementById(ADD_BLOCK_ID)
+    // Une fois fermé le menu ⋮ du plan, s'il a servi (il rendrait sinon le focus à son bouton,
+    // parti avec la ligne).
+    focusSoon(() =>
+      neighbor
+        ? blockAnchor(neighbor, feed)
+        : document.getElementById(feed ? LEFT_ADD_ID : ADD_BLOCK_ID)
     )
-    toast(texts.editor.settings.removed(blockLabel(place.block)), {
-      action: {
-        label: texts.editor.settings.undo,
-        onClick: () =>
-          setDraft(
-            (current) =>
-              insertBlock(current, place.block, place.container, place.index) ??
-              insertBlock(current, place.block, ROOT, current.blocks.length) ??
-              current
-          ),
-      },
-    })
+    undoToast(texts.editor.settings.removed(blockLabel(place.block)), () =>
+      setDraft(
+        (current) =>
+          insertBlock(current, place.block, place.container, place.index) ??
+          insertBlock(current, place.block, ROOT, current.blocks.length) ??
+          current
+      )
+    )
   }
 
   const onChooseImage = (media: Media) => {
@@ -1226,17 +1300,11 @@ function ContentEditor({
     const previous = draft[key] ?? null
     if (!previous) return
     setDraft((current) => ({ ...current, [key]: null }))
-    toast(
+    undoToast(
       key === "cover"
         ? texts.editor.presentation.cover.removed
         : texts.editor.presentation.audio.removed,
-      {
-        action: {
-          label: texts.editor.settings.undo,
-          onClick: () =>
-            setDraft((current) => ({ ...current, [key]: previous })),
-        },
-      }
+      () => setDraft((current) => ({ ...current, [key]: previous }))
     )
   }
 
@@ -1280,7 +1348,7 @@ function ContentEditor({
   }
 
   // « Détacher » : le bloc lié devient une copie ordinaire du bloc de son modèle, à la même
-  // place (même id ; nouveaux id dans un encadré), enregistrée comme toute modification.
+  // place (même id ; nouveaux id dans une section), enregistrée comme toute modification.
   const detachRef = useRef<(blockId: string) => void>(() => {})
   useEffect(() => {
     detachRef.current = (blockId: string) => {
@@ -1291,19 +1359,15 @@ function ContentEditor({
       const name = state.name.trim() || texts.templates.list.untitled
       setDraft((current) => detachLinked(current, blockId, state.block))
       setSelectedId(blockId)
-      focusOnceShown(() => blockHandle(blockId))
-      toast(texts.templates.linked.detached(name), {
-        action: {
-          label: texts.editor.settings.undo,
-          onClick: () =>
-            setDraft((current) => ({
-              ...current,
-              blocks: current.blocks.map((block) =>
-                block.id === blockId ? linked : block
-              ),
-            })),
-        },
-      })
+      focusSoon(() => blockAnchor(blockId, feed))
+      undoToast(texts.templates.linked.detached(name), () =>
+        setDraft((current) => ({
+          ...current,
+          blocks: current.blocks.map((block) =>
+            block.id === blockId ? linked : block
+          ),
+        }))
+      )
     }
   })
   const detachBlock = useCallback(
@@ -1333,18 +1397,24 @@ function ContentEditor({
     }
     setDraft(result.draft)
     setSelectedId(result.firstId)
+    // Éditeur du Fil : le plan est caché sous les Blocs ; le bloc vient sous les yeux dans le
+    // téléphone, le curseur dans son texte s'il en a un (comme un bloc ajouté des Blocs).
     requestAnimationFrame(() =>
-      focusOnceShown(() => blockHandle(result.firstId))
+      feed
+        ? focusBlockSoon(result.firstId)
+        : focusOnceShown(() => blockAnchor(result.firstId, false))
     )
+    // Éditeur du Fil : « Mes blocs » parle de blocs qu'on ajoute ; ailleurs, d'un modèle inséré.
+    const name = template.title.trim() || texts.templates.list.untitled
     toast.success(
-      texts.templates.insert.inserted(
-        template.title.trim() || texts.templates.list.untitled
-      )
+      feed
+        ? texts.editor.library.mine.added(name)
+        : texts.templates.insert.inserted(name)
     )
   }
 
-  // Éditeur du Fil : un bloc de l'onglet Blocs glissé dans l'aperçu, et le trait qui montre où
-  // il tombera (seulement au premier niveau, entre deux blocs).
+  // Éditeur du Fil : un bloc des Blocs glissé dans l'aperçu, et le trait qui montre où il
+  // tombera (seulement au premier niveau, entre deux blocs).
   const phoneRef = useRef<HTMLDivElement>(null)
   const [dropLine, setDropLine] = useState<{
     index: number
@@ -1525,12 +1595,14 @@ function ContentEditor({
     try {
       if ((await prepare()) === null) return
       const result = await revertToVersion(version.id, editorSession)
-      applyFresh(await fetchFresh())
       setHistoryOpen(false)
       toast.success(texts.publication.history.reverted(version.number))
       for (const warning of result.warnings) {
         toast.warning(texts.publication.history.warnings[warning])
       }
+      // La version est dans le brouillon : on le relit. Un échec de cette relecture n'annule pas
+      // le retour à la version (il est dit, et la révision en retard sera relue d'elle-même).
+      reload()
     } catch (error) {
       checkAccess(error)
       toast.error(errorMessage(error))
@@ -1766,15 +1838,7 @@ function ContentEditor({
   const canCopy =
     stash !== null || (lostOrStopped && saving.unsavedValue !== null)
 
-  const onCopy = async () => {
-    const value = saving.unsavedValue?.draft ?? stash ?? draft
-    try {
-      await navigator.clipboard.writeText(draftToPlainText(value))
-      toast.success(texts.editor.lock.copied)
-    } catch {
-      toast.error(texts.editor.lock.copyFailed)
-    }
-  }
+  const onCopy = () => copyText(saving.unsavedValue?.draft ?? stash ?? draft)
 
   const risky =
     autosave.state.unsaved &&
@@ -1794,7 +1858,6 @@ function ContentEditor({
   }
 
   const nearLimit = useMemo(() => draftBytes(draft) > DRAFT_WARN_BYTES, [draft])
-  // Éditeur du Fil : temps de lecture et nombre de mots (blocs partagés compris).
   // Le bloc d'un modèle partagé, tel qu'il est aujourd'hui (Lecture, temps de lecture).
   const resolveLinked = useCallback(
     (block: Block) => {
@@ -1804,13 +1867,14 @@ function ContentEditor({
     },
     [templateFor]
   )
+  // Éditeur du Fil : temps de lecture et nombre de mots (blocs partagés compris).
   const stats = useMemo(
     () => readingStats(draft, resolveLinked),
     [draft, resolveLinked]
   )
 
-  // En tête de l'aperçu : l'image de présentation, le titre, le résumé et l'audio, comme dans
-  // l'app (et, pour une méthode, toute sa fiche).
+  // En tête de l'aperçu : l'image de présentation, le titre et l'audio, comme dans l'app (et,
+  // pour une méthode, toute sa fiche).
   const phoneTop = (
     <>
       {/* Un chapitre ou une leçon : l'image est facultative, montrée seulement une fois choisie
@@ -1875,7 +1939,7 @@ function ContentEditor({
       onEditCategories={() => openSettings("categories")}
     />
   ) : undefined
-  // Éditeur du Fil : l'onglet « Article » (tout ce qui concerne l'article) et « Bloc choisi ».
+  // Éditeur du Fil : la colonne de droite, tout ce qui concerne l'article.
   const articlePanel =
     feed && categorySection ? (
       <ArticlePanel
@@ -1885,6 +1949,7 @@ function ContentEditor({
         onSettingsChange={setSettings}
         levels={levels.data}
         levelsFailed={levels.isError}
+        retryLevels={() => void levels.refetch()}
         live={pub.publication?.live ?? null}
         categories={{
           section: categorySection,
@@ -1893,10 +1958,6 @@ function ContentEditor({
           retry: () => void categories.refetch(),
         }}
         cover={mediaFor(draft.cover?.mediaId ?? null)}
-        coverUrl={(() => {
-          const cover = mediaFor(draft.cover?.mediaId ?? null)
-          return cover.state === "ready" ? cover.url : undefined
-        })()}
         ready={readyItems(
           checks ?? { missing: [], advice: [] },
           settings.accessChosen
@@ -1909,7 +1970,7 @@ function ContentEditor({
             if (!first) return
             closeLibrary()
             selectAndShow(first)
-            // Sa ligne s'allume dans le plan, une fois l'onglet ouvert.
+            // Sa ligne s'allume dans le plan, une fois les Blocs refermés.
             highlightSoon(() =>
               document.querySelector<HTMLElement>(
                 `[data-outline-id="${first}"]`
@@ -1946,9 +2007,8 @@ function ContentEditor({
     />
   )
 
-  // Le plan : la colonne de gauche (onglet « Plan » de l'éditeur du Fil).
-  // Éditeur du Fil : le plan montre le contenu de chaque bloc (vignettes, intertitre qui ouvre
-  // un texte) et ce qui manque, avec un menu « … » par ligne.
+  // Le plan, dans la colonne de gauche. Éditeur du Fil : il montre le contenu de chaque bloc
+  // (première ligne d'un texte, vignette d'une image) et ce qui manque, avec un menu ⋮ par ligne.
   const feedOutline: FeedOutline | undefined = feed
     ? {
         mediaFor,
@@ -2003,21 +2063,26 @@ function ContentEditor({
   )
 
   // Au-dessus du téléphone : brouillon trop lourd, échec d'enregistrement.
+  // Dans l'éditeur du Fil, les messages prennent la largeur du téléphone, et la grille de
+  // l'aperçu les espace elle-même.
+  const notice = cn(
+    "text-sm",
+    !feed && "mx-auto mb-3 max-w-(--blocks-phone-width)"
+  )
   const notices = (
     <>
       {nearLimit && (
-        <p
-          role="status"
-          className="mx-auto mb-3 max-w-(--blocks-phone-width) text-sm text-warning"
-        >
+        <p role="status" className={cn(notice, "text-warning")}>
           {texts.editor.save.nearLimit}
         </p>
       )}
+      {reloadFailed && mustReload && (
+        <p role="status" className={cn(notice, "text-warning")}>
+          {texts.editor.save.rereadFailed}
+        </p>
+      )}
       {autosave.state.status === "failed" && autosave.state.error && (
-        <p
-          role="alert"
-          className="mx-auto mb-3 max-w-(--blocks-phone-width) text-sm text-destructive"
-        >
+        <p role="alert" className={cn(notice, "text-destructive")}>
           {autosave.state.error.message} {autosave.state.error.detail}
         </p>
       )}
@@ -2034,8 +2099,7 @@ function ContentEditor({
         feed ? "relative" : "rounded-4xl border shadow-sm",
         !editable && "cursor-default"
       )}
-      data-editable={editable || undefined}
-      // Éditeur du Fil : un clic hors d'un bloc revient sur l'onglet « Article ».
+      // Éditeur du Fil : un clic hors d'un bloc ferme ses réglages (l'Article revient).
       onClick={
         feed
           ? (event) => {
@@ -2061,7 +2125,7 @@ function ContentEditor({
           : undefined
       }
       onPointerLeave={feed ? () => setHoveredId(null) : undefined}
-      // En capture : le texte (Tiptap) ne reçoit pas un bloc glissé depuis l'onglet Blocs.
+      // En capture : le texte (Tiptap) ne reçoit pas un bloc glissé depuis les Blocs.
       onDragOverCapture={
         libraryDrop
           ? (event) => {
@@ -2114,11 +2178,9 @@ function ContentEditor({
           rootLimit={rootLimit}
         />
       </BlocksEditorContext>
-      {/* Éditeur du Fil : un seul bouton, qui ouvre l'onglet Blocs ; c'est aussi là que va le
-          focus quand le dernier bloc est supprimé. */}
+      {/* Éditeur du Fil : un seul bouton, qui ouvre les Blocs. */}
       {feed && editable && draft.blocks.length === 0 && (
         <AddBlockButton
-          id={ADD_BLOCK_ID}
           large
           label={texts.editor.add.label}
           onClick={() => openLibrary()}
@@ -2227,18 +2289,12 @@ function ContentEditor({
       }
     />
   )
-  const saveStatus = (
-    <SaveStatus
-      state={autosave.state}
-      visible={phase === "mine" || autosave.state.unsaved}
-    />
-  )
+  // L'état de l'enregistrement : en tête des autres éditeurs et dans la pastille de la
+  // Concentration ; en icône seule en bas de la colonne de droite du Fil.
+  const saveVisible = phase === "mine" || autosave.state.unsaved
+  const saveStatus = <SaveStatus state={autosave.state} visible={saveVisible} />
   const feedSaveStatus = (
-    <SaveStatus
-      state={autosave.state}
-      visible={phase === "mine" || autosave.state.unsaved}
-      compact
-    />
+    <SaveStatus state={autosave.state} visible={saveVisible} compact />
   )
   const lockButton = lockView && (
     <LockButton
@@ -2296,10 +2352,7 @@ function ContentEditor({
               }
             />
           )}
-          <SaveStatus
-            state={autosave.state}
-            visible={phase === "mine" || autosave.state.unsaved}
-          />
+          {saveStatus}
           {isTemplate ? (
             isShared && <SharedTemplateBar templateId={contentId} />
           ) : (
@@ -2379,7 +2432,6 @@ function ContentEditor({
                 )}
                 // La fiche d'une méthode n'a pas de blocs : pas la hauteur d'un écran (preview.css).
                 data-compact
-                data-editable={editable || undefined}
               >
                 {phoneTop}
               </div>
@@ -2405,7 +2457,7 @@ function ContentEditor({
             <aside
               id="editeur-plan"
               aria-label={texts.editor.columns.left}
-              // Caché (et non retiré) en Concentration : onglet et « Mes blocs » restent ouverts.
+              // Caché (et non retiré) en Concentration : les Blocs et « Mes blocs » restent ouverts.
               className={cn(
                 "flex w-feed-column shrink-0 flex-col border-r bg-background",
                 focusMode && "hidden"
@@ -2429,41 +2481,18 @@ function ContentEditor({
                       }
                     }}
                   >
-                    <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-                      <LayoutGrid
-                        aria-hidden
-                        className="size-4 shrink-0 text-muted-foreground"
-                      />
-                      <h2
-                        id="colonne-blocs-titre"
-                        className="min-w-0 flex-1 truncate text-sm font-semibold"
-                      >
-                        {texts.editor.columns.blocks}
-                      </h2>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              className="-mr-1.5"
-                              aria-label={texts.editor.library.close}
-                              onClick={() => {
-                                closeLibrary()
-                                focusSoon(() =>
-                                  document.getElementById(LEFT_ADD_ID)
-                                )
-                              }}
-                            />
-                          }
-                        >
-                          <X />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {texts.editor.library.close}
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
+                    <ColumnHeader
+                      icon={Blocks}
+                      title={texts.editor.columns.blocks}
+                      titleId="colonne-blocs-titre"
+                      close={{
+                        label: texts.editor.library.close,
+                        onClick: () => {
+                          closeLibrary()
+                          focusSoon(() => document.getElementById(LEFT_ADD_ID))
+                        },
+                      }}
+                    />
                     <div className="min-h-0 flex-1">
                       <BlocksLibrary
                         open={savedOpen}
@@ -2515,7 +2544,7 @@ function ContentEditor({
             }
             data-backdrop={feed || undefined}
             // Éditeur du Fil : un clic sur le fond autour du téléphone (data-backdrop) remet
-            // l'éditeur à son état de base. La souris seulement : au clavier, Échap et les onglets.
+            // l'éditeur à son état de base. La souris seulement : au clavier, Échap et « Fermer ».
             onClick={
               feed
                 ? (event) => {
@@ -2606,17 +2635,12 @@ function ContentEditor({
             >
               {/* En tête, l'icône de la section et le titre de l'article (en entier dans
                   l'infobulle s'il est coupé). */}
-              <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-                <SectionIcon
-                  aria-hidden
-                  className="size-5 shrink-0 text-muted-foreground"
-                />
-                <TruncatedText
-                  id={ARTICLE_TITLE_ID}
-                  text={title.trim() || untitled}
-                  className="text-base font-semibold outline-none"
-                />
-              </div>
+              <ColumnHeader
+                icon={SectionIcon}
+                title={title.trim() || untitled}
+                titleId={ARTICLE_TITLE_ID}
+                large
+              />
               <div className="relative min-h-0 flex-1">
                 <section
                   aria-label={texts.editor.columns.article}
@@ -2875,8 +2899,8 @@ function HeaderIconButton({
 }
 
 /**
- * « Ajouter un bloc » : Texte, Image, Encadré (après le bloc choisi, ou à la fin), et, dans un
- * contenu, « Un modèle… » (mise en forme ou bloc identique partout).
+ * « Ajouter un bloc » des autres éditeurs : Texte, Image, Section (après le bloc choisi, ou à la
+ * fin), et, dans un contenu, « Un modèle… » (mise en forme ou bloc partagé).
  */
 function AddBlockMenu({
   onAdd,

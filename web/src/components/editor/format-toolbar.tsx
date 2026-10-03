@@ -37,6 +37,8 @@ type Formats = {
   bold: boolean
   italic: boolean
   link: boolean
+  // Des mots sont sélectionnés : un lien peut s'y poser.
+  selection: boolean
   canUndo: boolean
   canRedo: boolean
 }
@@ -50,6 +52,7 @@ const none: Formats = {
   bold: false,
   italic: false,
   link: false,
+  selection: false,
   canUndo: false,
   canRedo: false,
 }
@@ -64,6 +67,7 @@ function readFormats(editor: Editor): Formats {
     bold: editor.isActive("bold"),
     italic: editor.isActive("italic"),
     link: editor.isActive("link"),
+    selection: !editor.state.selection.empty,
     canUndo: editor.can().undo(),
     canRedo: editor.can().redo(),
   }
@@ -119,7 +123,8 @@ export function FormatToolbar({
     key: keyof Formats,
     label: string,
     Icon: LucideIcon,
-    run: () => void
+    run: () => void,
+    disabled = false
   ) => (
     <Tooltip>
       <TooltipTrigger
@@ -128,7 +133,7 @@ export function FormatToolbar({
             size="sm"
             aria-label={label}
             pressed={formats[key]}
-            disabled={!usable}
+            disabled={!usable || disabled}
             onPressedChange={run}
             // La barre ne prend pas le focus : le curseur reste dans le texte.
             onMouseDown={(event) => event.preventDefault()}
@@ -172,7 +177,14 @@ export function FormatToolbar({
       {toggle("italic", labels.italic, Italic, () =>
         chain().toggleItalic().run()
       )}
-      {toggle("link", labels.link, Link2, () => setLinkOpen(true))}
+      {/* Un lien se pose sur des mots sélectionnés (ou se modifie là où il est déjà). */}
+      {toggle(
+        "link",
+        labels.link,
+        Link2,
+        () => setLinkOpen(true),
+        !formats.link && !formats.selection
+      )}
       {separator}
       <Tooltip>
         <TooltipTrigger

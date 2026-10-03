@@ -58,6 +58,16 @@ describe("indicateur d'enregistrement", () => {
     expect(indicator).not.toHaveAttribute("title")
   })
 
+  it("en icône seule (éditeur du Fil) : l'état sans l'heure, déjà dans « Modifié à … »", () => {
+    render(<SaveStatus state={state("saved")} visible compact />)
+    const indicator = document.querySelector<HTMLElement>(
+      '[data-save-status="saved"]'
+    )
+    expect(indicator).toHaveAttribute("tabindex", "0")
+    expect(indicator).toHaveTextContent(labels.saved)
+    expect(indicator).not.toHaveTextContent(/14h32/)
+  })
+
   it("en lecture seule, seule la région annoncée reste", () => {
     render(<SaveStatus state={state("saved")} visible={false} />)
     expect(document.querySelector("[data-save-status]")).toBeNull()

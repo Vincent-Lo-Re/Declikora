@@ -34,3 +34,12 @@ export function initSentry(): RootOptions {
     onRecoverableError: Sentry.reactErrorHandler(),
   }
 }
+
+/**
+ * Signale une erreur attrapée qui ne devrait pas arriver (un défaut de l'admin, pas un refus
+ * attendu de la base) : la personne voit un message, l'équipe est prévenue. Sans Sentry, rien
+ * n'est envoyé.
+ */
+export function reportError(error: unknown) {
+  Sentry.captureException(error)
+}

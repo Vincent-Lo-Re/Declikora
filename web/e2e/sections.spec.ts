@@ -341,7 +341,7 @@ test("Éditeur du Fil : « Ajouter un bloc » ouvre les Blocs, bloc glissé, pla
   // « … » › Dupliquer : la copie juste après.
   await plan
     .getByRole("button", {
-      name: outline.actions(texts.editor.blockLabel.box(0)),
+      name: outline.actions(texts.editor.blockLabel.box(outline.box.fill, 0)),
     })
     .click()
   await page.getByRole("menuitem", { name: outline.duplicate }).click()
@@ -351,7 +351,7 @@ test("Éditeur du Fil : « Ajouter un bloc » ouvre les Blocs, bloc glissé, pla
   // Le plan se range au clavier, comme l'aperçu : la copie de l'encadré monte en tête.
   const copyHandle = plan
     .getByRole("button", {
-      name: outline.move(texts.editor.blockLabel.box(0)),
+      name: editor.handle(texts.editor.blockLabel.box(outline.box.fill, 0)),
     })
     .last()
   await rows.last().hover()
@@ -362,15 +362,19 @@ test("Éditeur du Fil : « Ajouter un bloc » ouvre les Blocs, bloc glissé, pla
   // Le plan a sa propre annonce (la première de la page) ; chaque flèche attend la sienne.
   const announced = page.locator('[id^="DndLiveRegion"]').first()
   await expect(announced).toContainText(
-    editor.dnd.start(texts.editor.blockLabel.box(0))
+    editor.dnd.start(texts.editor.blockLabel.box(outline.box.fill, 0))
   )
   for (const target of [
-    texts.editor.blockLabel.box(0),
+    texts.editor.blockLabel.box(outline.box.fill, 0),
     texts.editor.blockLabel.text("Les bons réflexes"),
   ]) {
     await page.keyboard.press("ArrowUp")
     await expect(announced).toContainText(
-      editor.dnd.over(texts.editor.blockLabel.box(0), target, editor.dnd.page)
+      editor.dnd.over(
+        texts.editor.blockLabel.box(outline.box.fill, 0),
+        target,
+        editor.dnd.page
+      )
     )
   }
   await page.keyboard.press("Space")

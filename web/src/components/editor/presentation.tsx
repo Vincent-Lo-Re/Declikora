@@ -68,7 +68,7 @@ export function CoverPreview({
             event.stopPropagation()
             onChoose()
           }}
-          className="blocks-image-placeholder flex flex-col items-center justify-center gap-3 p-4 text-center font-sans"
+          className="blocks-image-placeholder font-sans"
           iconClassName="size-6"
         />
       )}
@@ -164,7 +164,7 @@ function MediaFileLink({ mediaId }: { mediaId: string }) {
     >
       {labels.audio.openFile}
       <ExternalLink aria-hidden className="size-3" />
-      <span className="sr-only">{labels.openFileHint}</span>
+      <span className="sr-only"> {labels.openFileHint}</span>
     </Link>
   )
 }
@@ -203,7 +203,7 @@ export function PresentationPanel({
   const cover = mediaFor(draft.cover?.mediaId ?? null)
   const audio = mediaFor(draft.audio?.mediaId ?? null)
   return (
-    <div className="space-y-5" data-presentation-panel>
+    <div className="space-y-5">
       <div className="space-y-1">
         {/* Reçoit le focus après « Voir la présentation » (le bouton disparaît). */}
         <h2

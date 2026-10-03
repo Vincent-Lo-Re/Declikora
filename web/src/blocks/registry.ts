@@ -15,7 +15,7 @@ type BlockDefinition = {
   label: string
   icon: LucideIcon
   create: () => Block
-  // Peut-il aller dans un encadré ? (Le schéma le vérifie aussi, et la base.)
+  // Peut-il aller dans une section ? (Le schéma le vérifie aussi, et la base.)
   allowedInBox: boolean
 }
 

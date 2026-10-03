@@ -6,6 +6,7 @@ import {
   CircleOff,
   History,
   Hourglass,
+  RefreshCw,
   Send,
   TriangleAlert,
 } from "lucide-react"
@@ -163,6 +164,7 @@ function scheduleText(schedule: ScheduleState): string | null {
  * d'une programmation est dans son bandeau.
  */
 export function PublicationBadge({ pub }: { pub: PublicationControls }) {
+  if (pub.failed) return <UnknownStatus pub={pub} />
   if (pub.loading) return <Skeleton className="h-5 w-20" />
   const { live, schedule } = pub.status
   const dot = liveDots[live]
@@ -201,9 +203,36 @@ export function PublicationBadge({ pub }: { pub: PublicationControls }) {
           )}
         />
         <span className="truncate">{short}</span>
-        <span className="sr-only">{` : ${line}`}</span>
+        {/* La phrase entière, si elle dit plus que la pastille (pas « Brouillon : Brouillon »). */}
+        {line !== short && <span className="sr-only">{` : ${line}`}</span>}
       </TooltipTrigger>
       <TooltipContent>{line}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+/**
+ * L'état de publication n'a pas pu être lu : « État inconnu » (« Publier » reste grisé), et un
+ * clic le relit.
+ */
+function UnknownStatus({ pub }: { pub: PublicationControls }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="outline"
+            size="xs"
+            className="rounded-full border-destructive/40 text-destructive"
+            aria-label={labels.status.unknownHint}
+            onClick={pub.retry}
+          />
+        }
+      >
+        <RefreshCw />
+        {labels.short.unknown}
+      </TooltipTrigger>
+      <TooltipContent>{labels.status.unknownHint}</TooltipContent>
     </Tooltip>
   )
 }
@@ -226,7 +255,11 @@ export function PublishBar({
 }) {
   return (
     <div className="flex items-center gap-2">
-      {!pub.loading && <LiveBadge live={pub.status.live} />}
+      {pub.failed ? (
+        <UnknownStatus pub={pub} />
+      ) : (
+        !pub.loading && <LiveBadge live={pub.status.live} />
+      )}
       <PublishButton
         pub={pub}
         disabled={disabled}
@@ -265,7 +298,9 @@ export function PublishButton({
           <Button
             size="sm"
             className="rounded-r-none"
-            disabled={disabled || pub.busy || pub.loading || upToDate}
+            disabled={
+              disabled || pub.busy || pub.loading || pub.failed || upToDate
+            }
             onClick={pub.startPublish}
           >
             {pub.publish.isPending ? <Spinner /> : <Send />}
@@ -276,7 +311,7 @@ export function PublishButton({
       </Tooltip>
       <DropdownMenu>
         <DropdownMenuTrigger
-          disabled={disabled || pub.busy || pub.loading}
+          disabled={disabled || pub.busy || pub.loading || pub.failed}
           aria-label={labels.actions.more}
           render={
             <Button
@@ -419,13 +454,7 @@ export function ScheduleBanner({
   }
 
   return (
-    <div
-      className={
-        inline
-          ? "w-full max-w-(--blocks-phone-width)"
-          : "border-b bg-muted/40 px-4 py-2"
-      }
-    >
+    <div className={inline ? "w-full" : "border-b bg-muted/40 px-4 py-2"}>
       <Alert
         variant={schedule.kind === "failed" ? "destructive" : "default"}
         data-schedule-banner={schedule.kind}

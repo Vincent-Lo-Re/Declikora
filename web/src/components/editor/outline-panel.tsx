@@ -49,6 +49,7 @@ import {
   type Draft,
 } from "@/blocks/types"
 import { AddBlockButton } from "@/components/editor/add-block-button"
+import { ColumnHeader } from "@/components/editor/column-header"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -82,10 +83,10 @@ type OutlineSelection = {
 }
 
 /**
- * Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions ») : les blocs seulement (l'image de
- * présentation se règle dans la colonne de droite), chacun par son contenu (l'icône dit le
- * type), une vignette par image, les intertitres sous chaque texte, les encadrés repliables, ce
- * qui manque écrit en clair, un menu « … » par ligne, et le survol partagé avec l'aperçu.
+ * Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions », « Le plan retouché ») : les blocs
+ * seulement (l'image de présentation se règle dans la colonne de droite), chacun par son contenu
+ * (l'icône dit le type), une vignette par image, les sections repliables, ce qui manque en icône
+ * (le détail dans son infobulle), un menu ⋮ par ligne, et le survol partagé avec l'aperçu.
  */
 export type FeedOutline = {
   // Le fichier d'une image : sa vignette et son nom.
@@ -132,7 +133,7 @@ export function OutlinePanel({
   selection?: OutlineSelection
   feed?: FeedOutline
 }) {
-  // Les encadrés repliés (éditeur du Fil).
+  // Les sections repliées (éditeur du Fil).
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
   const all = flattenBlocks(draft)
   const choosing = selection?.active ?? false
@@ -162,6 +163,18 @@ export function OutlinePanel({
   const count = selection
     ? draft.blocks.filter((block) => selection.chosen.has(block.id)).length
     : 0
+  // « Choisir des blocs » (pour « Enregistrer comme modèle »), à droite du titre.
+  const selectButton = selection && all.length > 0 && (
+    <Button
+      variant="ghost"
+      size="xs"
+      aria-pressed={choosing}
+      onClick={selection.onToggleActive}
+    >
+      {choosing ? <X /> : <ListChecks />}
+      {choosing ? saveAs.stopSelecting : saveAs.select}
+    </Button>
+  )
   const navRef = useRef<HTMLElement>(null)
   // Le bloc choisi ailleurs (aperçu, « Prêt à publier ? ») : sa ligne vient sous les yeux.
   useEffect(() => {
@@ -173,7 +186,7 @@ export function OutlinePanel({
     <nav
       ref={navRef}
       aria-label={labels.title}
-      // Les lignes alignées sur la marge de 16 px des colonnes (comme les onglets et les cartes) ;
+      // Les lignes alignées sur la marge de 16 px des colonnes (comme les en-têtes et les cartes) ;
       // leur poignée apparaît dans cette marge.
       className={cn(
         "flex h-full flex-col overflow-y-auto px-4",
@@ -184,33 +197,20 @@ export function OutlinePanel({
           la colonne quand les lignes défilent, sur un fond plein qui couvre aussi la marge ; son
           titre est un en-tête de la hauteur de celui de droite. */}
       <div className={cn(feed && "sticky top-0 z-10 -mx-4 bg-background px-4")}>
-        <div
-          className={cn(
-            "flex items-center justify-between gap-2",
-            feed ? "-mx-4 mb-2 h-12 border-b px-4" : "px-2 pb-2"
-          )}
-        >
-          <h2 className="flex items-center gap-2 text-sm font-semibold">
-            {feed && (
-              <ListTree
-                aria-hidden
-                className="size-4 shrink-0 text-muted-foreground"
-              />
-            )}
-            {labels.title}
-          </h2>
-          {selection && all.length > 0 && (
-            <Button
-              variant="ghost"
-              size="xs"
-              aria-pressed={choosing}
-              onClick={selection.onToggleActive}
-            >
-              {choosing ? <X /> : <ListChecks />}
-              {choosing ? saveAs.stopSelecting : saveAs.select}
-            </Button>
-          )}
-        </div>
+        {feed ? (
+          <ColumnHeader
+            icon={ListTree}
+            title={labels.title}
+            className="-mx-4 mb-2"
+          >
+            {selectButton}
+          </ColumnHeader>
+        ) : (
+          <div className="flex items-center justify-between gap-2 px-2 pb-2">
+            <h2 className="text-sm font-semibold">{labels.title}</h2>
+            {selectButton}
+          </div>
+        )}
         {/* Sans bloc, « Aucun bloc pour l'instant » le dit déjà. */}
         {feed && all.length > 0 && (
           <p className="px-2 pb-2 text-xs text-muted-foreground">
@@ -292,7 +292,7 @@ export function OutlinePanel({
             disabled={count === 0}
             onClick={selection.onSave}
           >
-            <LayoutTemplate />
+            <BookmarkPlus />
             {saveAs.withCount(count)}
           </Button>
         </div>
@@ -318,8 +318,7 @@ type RowShared = {
 }
 
 /**
- * Une ligne du plan : le bloc (et, pour un texte, ses intertitres ; pour un encadré déplié, ses
- * blocs). Dans l'éditeur du Fil, elle se range par sa poignée, comme dans l'aperçu.
+ * Une ligne du plan : le bloc (et, pour une section dépliée, ses blocs). Dans l'éditeur du Fil, elle se range par sa poignée, comme dans l'aperçu.
  */
 type RowProps = { block: Block; container: ContainerId; shared: RowShared }
 
@@ -349,7 +348,7 @@ function SortableRow(props: RowProps) {
     attributes: { roleDescription: texts.editor.dnd.roleDescription },
     disabled: {
       draggable: !shared.sortable,
-      // Pendant le déplacement d'un encadré, les blocs des encadrés ne sont plus des cibles.
+      // Pendant le déplacement d'une section, les blocs des sections ne sont plus des cibles.
       droppable:
         container !== ROOT &&
         draggingType !== null &&
@@ -372,7 +371,7 @@ function SortableRow(props: RowProps) {
             ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}
-            aria-label={labels.move(label)}
+            aria-label={texts.editor.handle(label)}
             // Au début de la ligne, centrée sur elle ; toujours devinée (pâle), franche au survol.
             className="absolute top-1/2 left-0 flex h-7 w-4 -translate-y-1/2 cursor-grab touch-none items-center justify-center rounded-sm text-muted-foreground opacity-40 group-hover/row:text-foreground group-hover/row:opacity-100 hover:bg-accent focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
           >
@@ -543,7 +542,7 @@ function OutlineRow({
   )
 }
 
-/** Les blocs d'un encadré déplié. */
+/** Les blocs d'une section dépliée. */
 function BoxRows({ box, shared }: { box: BoxBlock; shared: RowShared }) {
   if (shared.dnd) return <DroppableBoxRows box={box} shared={shared} />
   return (
@@ -555,7 +554,7 @@ function BoxRows({ box, shared }: { box: BoxBlock; shared: RowShared }) {
   )
 }
 
-/** Les blocs d'un encadré déplié, avec sa zone de dépôt (pour un encadré vide). */
+/** Les blocs d'une section dépliée, avec sa zone de dépôt (pour une section vide). */
 function DroppableBoxRows({
   box,
   shared,
@@ -620,8 +619,8 @@ const rowButton =
   "flex min-w-0 flex-1 scroll-mt-20 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
 /**
- * Le menu « … » d'une ligne du plan : Dupliquer, Enregistrer dans Mes blocs, Sortir de la
- * section, Supprimer.
+ * Le menu ⋮ d'une ligne du plan : Dupliquer, Enregistrer comme modèle…, Sortir de la section,
+ * Supprimer.
  */
 function RowActions({
   label,
@@ -669,7 +668,7 @@ function RowActions({
         {onSaveToMine && (
           <DropdownMenuItem onClick={onSaveToMine}>
             <BookmarkPlus />
-            {labels.saveToMine}
+            {saveAs.action}
           </DropdownMenuItem>
         )}
         {onLeaveBox && (

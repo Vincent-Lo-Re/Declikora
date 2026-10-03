@@ -48,6 +48,7 @@ export function saveCheckedDraft(
 type Callbacks = {
   onSaved?: (result: SavedDraft, value: EditorValue) => void
   onStopped?: (error: ContentError) => void
+  onUnsavedAtClose?: (value: EditorValue) => void
 }
 
 /**
@@ -77,6 +78,13 @@ export function useAutosave(
     controller.subscribe,
     controller.getSnapshot
   )
+
+  // L'éditeur se ferme : le dernier envoi part avec le verrou (useEditLock), sans nouvel essai
+  // ensuite.
+  useEffect(() => {
+    controller.reopen()
+    return () => controller.close()
+  }, [controller])
 
   // Retour en ligne : nouvel essai sans attendre.
   useEffect(() => {

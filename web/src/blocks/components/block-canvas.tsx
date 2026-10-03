@@ -52,7 +52,7 @@ import { texts } from "@/texts"
 
 /**
  * Les blocs de l'aperçu, avec le glisser-déposer : un SortableContext pour la page et un par
- * encadré. Le déplacement part toujours de la poignée (jamais du bloc entier) : Espace et
+ * section. Le déplacement part toujours de la poignée (jamais du bloc entier) : Espace et
  * Entrée tapés dans un texte restent au texte.
  */
 export function BlockCanvas({
@@ -63,7 +63,7 @@ export function BlockCanvas({
   draft: Draft
   onChange: (update: (draft: Draft) => Draft) => void
   // Nombre maximal de blocs au premier niveau (1 dans un bloc identique partout, [D11]) : un
-  // bloc ne sort pas d'un encadré s'il faut dépasser ce nombre.
+  // bloc ne sort pas d'une section s'il faut dépasser ce nombre.
   rootLimit?: number
 }) {
   const { dndProps, active } = useBlockDrag({ draft, onChange, rootLimit })
@@ -105,7 +105,7 @@ export function BlockCanvas({
 }
 
 /**
- * Un bloc déplaçable : la poignée dans la marge à gauche (de l'écran, ou de l'encadré), le bloc
+ * Un bloc déplaçable : la poignée dans la marge à gauche (de l'écran, ou de la section), le bloc
  * lui-même dans l'aperçu. La poignée et le contour de survol ne s'allument que pour le bloc le
  * plus intérieur sous la souris (preview.css).
  */
@@ -136,7 +136,7 @@ const SortableBlock = memo(function SortableBlock({
     attributes: { roleDescription: texts.editor.dnd.roleDescription },
     disabled: {
       draggable: !handle,
-      // Pendant le déplacement d'un encadré, les blocs des encadrés ne sont plus des cibles.
+      // Pendant le déplacement d'une section, les blocs des sections ne sont plus des cibles.
       droppable:
         container !== ROOT &&
         draggingType !== null &&
@@ -238,12 +238,11 @@ const LinkedBlockView = memo(function LinkedBlockView({
 
   return (
     <div
-      className="blocks-linked rounded-md outline-1 outline-offset-4 outline-primary/40 outline-dashed"
+      className="rounded-md outline-1 outline-offset-4 outline-primary/40 outline-dashed"
       data-linked-template={block.templateId}
-      data-linked-state={template.state}
     >
       {/* Éditeur du Fil : pas de barre au-dessus du bloc, son nom est dans le plan et ses
-          actions dans « Bloc choisi » ; le liseré suffit à le reconnaître. */}
+          actions dans ses réglages ; le liseré suffit à le reconnaître. */}
       {!linkedWithoutBar && (
         <div className="mb-2 flex flex-wrap items-center gap-x-1 gap-y-1 font-sans text-xs text-muted-foreground">
           {/* L'icône de Modèles de bloc, dans le menu. */}
@@ -281,15 +280,25 @@ const LinkedBlockView = memo(function LinkedBlockView({
         <BlocksEditorContext value={readOnly}>
           <StaticBlock block={template.block} />
         </BlocksEditorContext>
+      ) : template.state === "error" ? (
+        <div className="flex flex-wrap items-center gap-2 font-sans text-sm text-destructive">
+          {labels.loadFailed}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={template.retry}
+          >
+            {texts.common.retry}
+          </Button>
+        </div>
       ) : (
         <p className="font-sans text-sm text-muted-foreground">
           {template.state === "missing"
             ? labels.missing
             : template.state === "empty"
               ? labels.empty
-              : template.state === "error"
-                ? texts.templates.insert.loadFailed
-                : labels.loading}
+              : labels.loading}
         </p>
       )}
     </div>
@@ -297,8 +306,8 @@ const LinkedBlockView = memo(function LinkedBlockView({
 })
 
 /**
- * Un encadré : sa zone de dépôt, ses blocs (Texte et Image), et « Ajouter dans la section » (un
- * menu, ou dans l'éditeur du Fil l'onglet Blocs).
+ * Une section : sa zone de dépôt, ses blocs (Texte et Image), et « Ajouter dans la section » (un
+ * menu, ou dans l'éditeur du Fil les Blocs).
  */
 const BoxBlockView = memo(function BoxBlockView({
   block,
@@ -334,7 +343,7 @@ const BoxBlockView = memo(function BoxBlockView({
           ))}
           {block.blocks.length === 0 && (
             <p className="font-sans text-sm text-muted-foreground">
-              {texts.editor.emptyBox}
+              {onAddInBox ? texts.editor.emptyBoxFeed : texts.editor.emptyBox}
             </p>
           )}
         </div>

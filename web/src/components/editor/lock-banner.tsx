@@ -28,6 +28,11 @@ import { texts } from "@/texts"
 
 const labels = texts.editor.lock
 
+/** Un contenu supprimé ou mis à la corbeille : « Réessayer » n'y changerait rien. */
+function isGone(code: string | null | undefined): boolean {
+  return code === "dans_la_corbeille" || code === "contenu_introuvable"
+}
+
 /**
  * Bandeau sous l'en-tête : lecture seule (avec le nom de la personne qui écrit et « Reprendre
  * la main »), verrou libre, main perdue (avec « Copier mon texte »), enregistrement arrêté.
@@ -82,10 +87,13 @@ export function LockBanner({
         extra={canCopy ? labels.unsaved : null}
       >
         {copyButton}
-        <Button size="sm" variant="outline" onClick={onReload}>
-          <RefreshCw />
-          {texts.common.retry}
-        </Button>
+        {/* Relire ne sert à rien pour un contenu supprimé ou mis à la corbeille. */}
+        {!isGone(autosave.error?.code) && (
+          <Button size="sm" variant="outline" onClick={onReload}>
+            <RefreshCw />
+            {texts.common.retry}
+          </Button>
+        )}
       </Row>
     )
   } else if (lockInDialog && isReadOnlyPhase(lock)) {
@@ -155,13 +163,12 @@ export function LockBanner({
             : (lock.error?.message ?? labels.failed)
         }
       >
-        {lock.error?.code !== "dans_la_corbeille" &&
-          lock.error?.code !== "contenu_introuvable" && (
-            <Button size="sm" variant="outline" onClick={() => onTake(false)}>
-              <RefreshCw />
-              {texts.common.retry}
-            </Button>
-          )}
+        {!isGone(lock.error?.code) && (
+          <Button size="sm" variant="outline" onClick={() => onTake(false)}>
+            <RefreshCw />
+            {texts.common.retry}
+          </Button>
+        )}
       </Row>
     )
   }
@@ -169,16 +176,9 @@ export function LockBanner({
   return (
     <>
       {content && (
-        <div
-          className={
-            inline
-              ? "w-full max-w-(--blocks-phone-width)"
-              : "border-b bg-muted/40 px-4 py-2"
-          }
-        >
+        <div className={inline ? "w-full" : "border-b bg-muted/40 px-4 py-2"}>
           <Alert
             variant={destructive ? "destructive" : "default"}
-            data-lock-phase={lock.phase}
             // L'icône au milieu de la ligne (message et boutons), et non sur la première ligne
             // du texte comme dans les autres alertes.
             className="items-center *:[svg]:row-span-1 *:[svg]:translate-y-0"

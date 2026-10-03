@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import type { SettingsFocus } from "@/components/editor/content-settings-sheet"
@@ -121,6 +121,11 @@ export function usePublication(bridge: PublicationBridge) {
     enabled: bridge.enabled ?? true,
   })
   const publication = query.data ?? null
+  // Pas encore lu (échec) : l'état est inconnu, jamais « Brouillon » par défaut.
+  const failed = query.isError && query.data === undefined
+  useEffect(() => {
+    if (query.error) checkAccess(query.error)
+  }, [query.error, checkAccess])
   // Une méthode : « Modifié depuis la publication » vient de la liste des changements, pas de
   // la révision de la fiche (une leçon modifiée ne change pas la fiche, [D29]).
   const pendingChanges = bridge.method?.pending
@@ -283,6 +288,8 @@ export function usePublication(bridge: PublicationBridge) {
     status,
     publication,
     loading: query.isPending,
+    failed,
+    retry: () => void query.refetch(),
     now: query.dataUpdatedAt,
     dialog,
     setDialog,

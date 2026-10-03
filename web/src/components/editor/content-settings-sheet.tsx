@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
-import type { AccessLevel } from "@/lib/access-levels"
+import { liveLevelName, type AccessLevel } from "@/lib/access-levels"
 import {
   categoryKeys,
   createCategory,
@@ -505,12 +505,7 @@ function AccessSection({
   live: LiveVersion | null
   onChange: (levelId: string | null) => void
 }) {
-  const liveLevel = live
-    ? live.access_level_id === null
-      ? labels.access.free
-      : (levels?.find((level) => level.id === live.access_level_id)?.name ??
-        labels.access.deleted)
-    : null
+  const liveLevel = live ? liveLevelName(live.access_level_id, levels) : null
   return (
     <section className="space-y-3">
       <div className="space-y-1">

@@ -119,7 +119,7 @@ export function FeedPreview({
     >
       <div
         data-backdrop
-        className="blocks-preview-notices grid gap-3 empty:hidden"
+        className="blocks-preview-notices mb-3 grid gap-3 empty:hidden"
       >
         {notices}
       </div>
@@ -302,11 +302,13 @@ function PreviewTools({
             onChange={(fit) => onChange({ ...preview, fit })}
           />
           {scale !== null && (
-            <span
-              aria-label={labels.fit.scaleLabel(Math.round(scale * 100))}
-              className="pb-1 text-xs text-muted-foreground tabular-nums"
-            >
-              {labels.fit.scale(Math.round(scale * 100))}
+            <span className="pb-1 text-xs text-muted-foreground tabular-nums">
+              <span aria-hidden>
+                {labels.fit.scale(Math.round(scale * 100))}
+              </span>
+              <span className="sr-only">
+                {labels.fit.scaleLabel(Math.round(scale * 100))}
+              </span>
             </span>
           )}
         </>

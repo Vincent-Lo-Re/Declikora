@@ -16,7 +16,7 @@ import {
 /** Un bloc identique partout contient au plus un bloc au premier niveau ([D11]). */
 export const SHARED_ROOT_LIMIT = 1
 
-/** Une copie du bloc avec de nouveaux identifiants (encadré compris). */
+/** Une copie du bloc avec de nouveaux identifiants (section comprise). */
 export function copyWithNewIds(block: Block): Block {
   if (block.type === "box") {
     return {
@@ -31,7 +31,7 @@ export function copyWithNewIds(block: Block): Block {
 /**
  * La copie ordinaire du bloc d'un modèle qui remplace un bloc lié (« Détacher ») : l'id du bloc
  * lié au premier niveau (le bloc garde sa place, sa sélection et son nom dans le plan), de
- * nouveaux id à l'intérieur d'un encadré. Elle ne suit plus le modèle.
+ * nouveaux id à l'intérieur d'une section. Elle ne suit plus le modèle.
  */
 export function detachedCopy(templateBlock: Block, linkedId: string): Block {
   if (templateBlock.type === "box") {
@@ -85,8 +85,8 @@ export function linkedTemplateIds(draft: Draft): string[] {
 }
 
 /**
- * Où insérer un modèle : toujours au premier niveau (un bloc lié ou un encadré ne va pas dans un
- * encadré), juste après le bloc choisi, ou après l'encadré qui le contient ; sinon à la fin.
+ * Où insérer un modèle : toujours au premier niveau (un bloc lié ou une section ne va pas dans une
+ * section), juste après le bloc choisi, ou après la section qui le contient ; sinon à la fin.
  */
 export function rootInsertIndex(
   draft: Draft,

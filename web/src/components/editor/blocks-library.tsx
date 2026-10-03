@@ -10,7 +10,7 @@ import {
   SquareDashed,
   X,
 } from "lucide-react"
-import { useMemo, useRef, useState, type DragEvent } from "react"
+import { useId, useMemo, useRef, useState, type DragEvent } from "react"
 import { Link } from "react-router"
 
 import type { BlockMedia } from "@/blocks/components/context"
@@ -91,14 +91,15 @@ function startDrag(event: DragEvent, drag: LibraryDrag) {
   event.dataTransfer.effectAllowed = "copy"
 }
 
-/**
- * L'onglet « Blocs » de l'éditeur du Fil (ADMIN § 4) : Texte, Image et Encadré, puis « Mes
- * blocs » (mises en forme et blocs partagés), qui glisse un panneau par-dessus la colonne. Un clic
- * ajoute le bloc sous le bloc choisi, ou à la fin.
- */
-// Le premier bloc de l'onglet : il reçoit le curseur quand un « Ajouter » ouvre l'onglet.
+// Le premier bloc des Blocs : il reçoit le curseur quand un « Ajouter » les ouvre.
 export const LIBRARY_FIRST_ID = "blocs-premier"
 
+/**
+ * Les Blocs de l'éditeur du Fil (ADMIN § 4), en glissière par-dessus le Plan : Texte, Image et
+ * Section, puis « Mes blocs » (mises en forme et blocs partagés), qui glisse à son tour
+ * par-dessus. Un clic ajoute le bloc sous le bloc choisi (ou à la fin de la section visée), ou à
+ * la fin.
+ */
 export function BlocksLibrary({
   editable,
   canAdd,
@@ -161,7 +162,10 @@ export function BlocksLibrary({
             </Tooltip>
           </div>
         )}
-        <p className="text-xs text-muted-foreground">{labels.hint}</p>
+        {/* Dans une section, le bandeau dit déjà où va le bloc (et il ne se glisse pas). */}
+        {!inBox && (
+          <p className="text-xs text-muted-foreground">{labels.hint}</p>
+        )}
         <section aria-labelledby="blocs-de-base" className="space-y-2">
           <h3 id="blocs-de-base" className="text-sm font-semibold">
             {labels.basics}
@@ -336,15 +340,23 @@ function SavedBlocksPanel({
             ))}
           </ul>
         )}
+        {/* Dans un nouvel onglet, comme la fiche d'un fichier : l'éditeur reste ouvert. */}
         <Link
           to={sections.templates.path}
+          target="_blank"
+          rel="noopener"
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
             "mt-2 text-muted-foreground"
           )}
         >
-          <ExternalLink />
+          <sections.templates.icon />
           {mine.manage}
+          <ExternalLink aria-hidden className="size-3" />
+          <span className="sr-only">
+            {" "}
+            {texts.editor.presentation.openFileHint}
+          </span>
         </Link>
       </div>
     </section>
@@ -366,6 +378,7 @@ function SavedBlock({
   onInsert: () => void
 }) {
   const name = template.title.trim() || texts.templates.list.untitled
+  const describedBy = useId()
   const empty = templateInsertable(template) === "empty"
   const shared = template.sort === "shared"
   // Un bloc partagé : l'icône de Modèles de bloc, dans le menu.
@@ -379,6 +392,8 @@ function SavedBlock({
         startDrag(event, { kind: "template", id: template.id })
       }
       aria-label={mine.insertLabel(name)}
+      // Ce qu'il devient une fois ajouté (copie, bloc partagé, vide) : lu après son nom.
+      aria-describedby={describedBy}
       className="w-full rounded-lg border bg-background p-3 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:border-foreground/30 disabled:opacity-60"
       onClick={onInsert}
     >
@@ -391,7 +406,7 @@ function SavedBlock({
         <Icon aria-hidden className="size-3.5 shrink-0" />
         <span className="truncate">{name}</span>
       </span>
-      <span className="block text-xs text-muted-foreground">
+      <span id={describedBy} className="block text-xs text-muted-foreground">
         {empty
           ? texts.templates.insert.emptyTemplate
           : shared
@@ -417,7 +432,7 @@ function MiniBlock({ block, imageFor }: { block: Block; imageFor: ImageFor }) {
           <MediaImage media={media} alt="" naturalSvg />
         </figure>
       ) : (
-        <div className="blocks-image-placeholder flex items-center justify-center">
+        <div className="blocks-image-placeholder">
           <ImageIcon className="size-6" />
         </div>
       )

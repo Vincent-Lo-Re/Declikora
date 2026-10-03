@@ -1,7 +1,7 @@
 // Ce qu'il faut pour publier un contenu, vu de l'admin (sans React) : le titre ([D49], tout ce
 // qui se publie), [D45] (image de présentation d'un article, d'un épisode et d'une méthode),
-// l'audio d'un épisode, et le conseil [D46] (transcription). La base vérifie les mêmes règles (publish, schedule) :
-// l'admin ne fait qu'expliquer avant d'envoyer.
+// l'audio d'un épisode, et le conseil [D46] (transcription). La base vérifie les mêmes règles
+// (publish, schedule) : l'admin ne fait qu'expliquer avant d'envoyer.
 
 import type { BlockMedia } from "@/blocks/components/context"
 import type { Draft } from "@/blocks/types"
@@ -21,12 +21,12 @@ export function hasAudio(kind: string): boolean {
   return kind === "episode"
 }
 
-/** Sortes qui montrent une présentation (image, résumé) en tête de l'éditeur. */
+/** Sortes qui montrent une présentation (image de présentation) en tête de l'éditeur. */
 export type PresentationKind =
   "article" | "episode" | "method" | "chapter" | "lesson"
 
 /**
- * Sortes qui montrent une présentation (image, résumé) en tête de l'éditeur : l'image n'est
+ * Sortes qui montrent une présentation en tête de l'éditeur : l'image de présentation n'est
  * exigée que pour un article, un épisode ou une méthode ([D45]) ; un chapitre et une leçon
  * peuvent en avoir une (app_method la donne), sans obligation.
  */
