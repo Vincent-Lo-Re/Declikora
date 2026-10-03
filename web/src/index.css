@@ -133,6 +133,12 @@
   width: clamp(--spacing(52), calc((100vw - 36rem) / 2), --spacing(88));
 }
 
+/* Éditeur du Fil : le bas des deux colonnes, à la même hauteur (à gauche le retour et « Ajouter un
+   bloc », à droite la lecture, l'état et « Publier »). */
+@utility h-feed-footer {
+  height: --spacing(20);
+}
+
 /* Fenêtre de formulaire longue (création d'un contenu) : elle défile au-delà de 9/10 de l'écran. */
 @utility max-h-dialog {
   max-height: 90svh;

@@ -9,6 +9,7 @@ import {
   SquarePen,
   Trash2,
   Unlink,
+  X,
 } from "lucide-react"
 import type { ReactNode } from "react"
 import { Link } from "react-router"
@@ -26,6 +27,7 @@ import {
   type BlockPlace,
 } from "@/blocks/draft"
 import { blockLabel } from "@/blocks/labels"
+import { blockRegistry } from "@/blocks/registry"
 import {
   ROOT,
   type Block,
@@ -45,7 +47,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { editorPath, mediaFilePath } from "@/navigation"
+import { editorPath, mediaFilePath, sections } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.editor.settings
@@ -81,6 +83,8 @@ type Props = {
   // Nombre maximal de blocs au premier niveau (un bloc partagé : 1) : « Monter » ne fait alors
   // pas sortir un bloc de sa section.
   rootLimit?: number
+  // Éditeur du Fil : la glissière du bloc, avec en tête son icône, son nom et « Fermer » (×).
+  onClose?: () => void
 }
 
 /** « Monter » ou « Descendre » : possible ou non, et son nom (il peut sortir de la section). */
@@ -109,12 +113,30 @@ export function BlockSettings(props: Props) {
     ? findBlock(props.draft, props.selectedId)
     : null
   if (place && props.actionBar) {
+    const { onClose } = props
     return (
       <section
         aria-label={labels.label}
         data-side-panel
         className="flex h-full flex-col"
+        onKeyDown={
+          onClose
+            ? (event) => {
+                if (event.key === "Escape" && !event.defaultPrevented) {
+                  event.preventDefault()
+                  onClose()
+                }
+              }
+            : undefined
+        }
       >
+        {onClose && (
+          <PanelHeader
+            block={place.block}
+            templateFor={props.templateFor}
+            onClose={onClose}
+          />
+        )}
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-3">
           {props.header}
           <SelectedBlock place={place} {...props} />
@@ -143,6 +165,49 @@ export function BlockSettings(props: Props) {
   )
 }
 
+/** En tête de la glissière du bloc : son icône, son nom (celui du modèle d'un bloc partagé), ×. */
+function PanelHeader({
+  block,
+  templateFor,
+  onClose,
+}: {
+  block: Block
+  templateFor: Props["templateFor"]
+  onClose: () => void
+}) {
+  const Icon =
+    block.type === "linked"
+      ? sections.templates.icon
+      : blockRegistry[block.type].icon
+  const name =
+    block.type === "linked"
+      ? (templateNameOf(templateFor(block.templateId)) ??
+        texts.editor.blockLabel.linked(null))
+      : blockRegistry[block.type].label
+  return (
+    <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+      <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+      <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">{name}</h2>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="-mr-1.5"
+              aria-label={labels.close}
+              onClick={onClose}
+            />
+          }
+        >
+          <X />
+        </TooltipTrigger>
+        <TooltipContent>{labels.close}</TooltipContent>
+      </Tooltip>
+    </div>
+  )
+}
+
 function SelectedBlock({
   place,
   editable,
@@ -166,7 +231,10 @@ function SelectedBlock({
   const label = blockLabel(block, linkedState && templateNameOf(linkedState))
   return (
     <>
-      <h2 className="text-sm font-semibold">{labels.title(label)}</h2>
+      {/* Dans la glissière, le nom est dans son en-tête. */}
+      <h2 className={cn("text-sm font-semibold", props.onClose && "sr-only")}>
+        {labels.title(label)}
+      </h2>
       {!editable && (
         <p className="text-sm text-muted-foreground">{labels.readOnly}</p>
       )}

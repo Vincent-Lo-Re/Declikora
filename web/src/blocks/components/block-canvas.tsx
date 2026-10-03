@@ -34,6 +34,7 @@ import {
   type Draft,
   type LinkedBlock,
 } from "@/blocks/types"
+import { AddBlockButton } from "@/components/editor/add-block-button"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -295,13 +296,16 @@ const LinkedBlockView = memo(function LinkedBlockView({
   )
 })
 
-/** Un encadré : sa zone de dépôt, ses blocs (Texte et Image), et « Ajouter dans l'encadré ». */
+/**
+ * Un encadré : sa zone de dépôt, ses blocs (Texte et Image), et « Ajouter dans la section » (un
+ * menu, ou dans l'éditeur du Fil l'onglet Blocs).
+ */
 const BoxBlockView = memo(function BoxBlockView({
   block,
 }: {
   block: BoxBlock
 }) {
-  const { editable, addToBox } = useBlocksEditor()
+  const { editable, addToBox, onAddInBox } = useBlocksEditor()
   const draggingType = useContext(DraggingTypeContext)
   const { setNodeRef, isOver } = useDroppable({
     id: zoneId(block.id),
@@ -335,7 +339,14 @@ const BoxBlockView = memo(function BoxBlockView({
           )}
         </div>
       </SortableContext>
-      {editable && (
+      {editable && onAddInBox && (
+        <AddBlockButton
+          label={texts.editor.add.inBox}
+          className="mt-2"
+          onClick={() => onAddInBox(block.id)}
+        />
+      )}
+      {editable && !onAddInBox && (
         <DropdownMenu>
           <DropdownMenuTrigger
             render={

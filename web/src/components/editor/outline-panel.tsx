@@ -16,6 +16,7 @@ import {
   GripVertical,
   LayoutTemplate,
   ListChecks,
+  ListTree,
   Trash2,
   TriangleAlert,
   X,
@@ -47,6 +48,7 @@ import {
   type ContainerId,
   type Draft,
 } from "@/blocks/types"
+import { AddBlockButton } from "@/components/editor/add-block-button"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -56,6 +58,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { BlockWarning } from "@/lib/editor/outline"
 import { texts } from "@/texts"
 
@@ -89,6 +96,11 @@ export type FeedOutline = {
   warningOf: (block: Block) => BlockWarning | null
   // Ranger les lignes par glisser-déposer (absent en lecture seule).
   onMove?: (update: (draft: Draft) => Draft) => void
+  // Le plan vide : « Ajouter un bloc » ouvre les Blocs (absent en lecture seule).
+  onAdd?: () => void
+  // Une section vide : « Ajouter dans la section » ouvre les Blocs pour elle (absent en lecture
+  // seule).
+  onAddInBox?: (boxId: string) => void
   // Absent en lecture seule.
   actions?: {
     onDuplicate: (id: string) => void
@@ -123,9 +135,6 @@ export function OutlinePanel({
   // Les encadrés repliés (éditeur du Fil).
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
   const all = flattenBlocks(draft)
-  const warnings = feed
-    ? all.filter(({ block }) => feed.warningOf(block) !== null).length
-    : 0
   const choosing = selection?.active ?? false
   // Éditeur du Fil : les lignes se rangent par glisser-déposer (pas pendant « Choisir des
   // blocs »), avec les règles de l'aperçu.
@@ -166,17 +175,30 @@ export function OutlinePanel({
       aria-label={labels.title}
       // Les lignes alignées sur la marge de 16 px des colonnes (comme les onglets et les cartes) ;
       // leur poignée apparaît dans cette marge.
-      className="flex h-full flex-col overflow-y-auto px-4 py-3"
+      className={cn(
+        "flex h-full flex-col overflow-y-auto px-4",
+        feed ? "pb-3" : "py-3"
+      )}
     >
       {/* Éditeur du Fil : le haut du plan (titre, « Choisir des blocs », nombre) reste en haut de
-          la colonne quand les lignes défilent, sur un fond plein qui couvre aussi la marge. */}
-      <div
-        className={cn(
-          feed && "sticky -top-3 z-10 -mx-4 -mt-3 bg-background px-4 pt-3"
-        )}
-      >
-        <div className="flex items-center justify-between gap-2 px-2 pb-2">
-          <h2 className="text-sm font-semibold">{labels.title}</h2>
+          la colonne quand les lignes défilent, sur un fond plein qui couvre aussi la marge ; son
+          titre est un en-tête de la hauteur de celui de droite. */}
+      <div className={cn(feed && "sticky top-0 z-10 -mx-4 bg-background px-4")}>
+        <div
+          className={cn(
+            "flex items-center justify-between gap-2",
+            feed ? "-mx-4 mb-2 h-12 border-b px-4" : "px-2 pb-2"
+          )}
+        >
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            {feed && (
+              <ListTree
+                aria-hidden
+                className="size-4 shrink-0 text-muted-foreground"
+              />
+            )}
+            {labels.title}
+          </h2>
           {selection && all.length > 0 && (
             <Button
               variant="ghost"
@@ -191,18 +213,10 @@ export function OutlinePanel({
         </div>
         {/* Sans bloc, « Aucun bloc pour l'instant » le dit déjà. */}
         {feed && all.length > 0 && (
-          <p className="flex items-center gap-1.5 px-2 pb-2 text-xs text-muted-foreground">
-            {/* Les blocs du premier niveau : une section donne le nombre des siens. */}
+          <p className="px-2 pb-2 text-xs text-muted-foreground">
+            {/* Les blocs du premier niveau : une section donne le nombre des siens. Les points à
+                vérifier sont sur leurs lignes (et dans « Prêt à publier ? »). */}
             {labels.count(draft.blocks.length)}
-            {warnings > 0 && (
-              <>
-                <span aria-hidden>·</span>
-                <span className="flex items-center gap-1 text-warning">
-                  <TriangleAlert aria-hidden className="size-3.5 shrink-0" />
-                  {labels.warnings.count(warnings)}
-                </span>
-              </>
-            )}
           </p>
         )}
         {choosing && (
@@ -212,7 +226,15 @@ export function OutlinePanel({
         )}
       </div>
       {all.length === 0 ? (
-        <p className="px-2 text-sm text-muted-foreground">{labels.empty}</p>
+        <div className="grid gap-3 px-2">
+          <p className="text-sm text-muted-foreground">{labels.empty}</p>
+          {feed?.onAdd && (
+            <AddBlockButton
+              label={texts.editor.add.label}
+              onClick={feed.onAdd}
+            />
+          )}
+        </div>
       ) : (
         (() => {
           const list = (
@@ -351,10 +373,10 @@ function SortableRow(props: RowProps) {
             {...attributes}
             {...listeners}
             aria-label={labels.move(label)}
-            // Dans la marge, à gauche de la ligne : elle ne prend pas de place au libellé.
-            className="absolute top-1.5 -left-3 flex h-6 w-3 cursor-grab touch-none items-center justify-center rounded-sm text-muted-foreground opacity-0 group-hover/row:opacity-100 hover:bg-accent focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
+            // Au début de la ligne, centrée sur elle ; toujours devinée (pâle), franche au survol.
+            className="absolute top-1/2 left-0 flex h-7 w-4 -translate-y-1/2 cursor-grab touch-none items-center justify-center rounded-sm text-muted-foreground opacity-40 group-hover/row:text-foreground group-hover/row:opacity-100 hover:bg-accent focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
           >
-            <GripVertical aria-hidden className="size-3.5" />
+            <GripVertical aria-hidden className="size-4" />
           </button>
         )
       }
@@ -395,7 +417,8 @@ function OutlineRow({
       <div
         className={cn(
           "group/row relative flex min-w-0 items-center gap-1 rounded-md",
-          feed?.hoveredId === block.id && "bg-accent/60"
+          // La place de la poignée, au début de la ligne.
+          shared.sortable && "pl-5"
         )}
         onPointerEnter={feed && (() => feed.onHover(block.id))}
         onPointerLeave={feed && (() => feed.onHover(null))}
@@ -409,83 +432,109 @@ function OutlineRow({
             onCheckedChange={(checked) => selection.onChoose(block.id, checked)}
           />
         )}
-        {feed && block.type === "box" && (
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            // Le nom de la section aligné sur le texte des autres lignes.
-            className="-mr-1"
-            aria-expanded={!isCollapsed}
-            aria-label={
-              isCollapsed ? labels.expand(label) : labels.collapse(label)
-            }
-            onClick={() => shared.toggleCollapsed(block.id)}
-          >
-            {isCollapsed ? <ChevronRight /> : <ChevronDown />}
-          </Button>
-        )}
-        <button
-          type="button"
-          aria-label={labels.select(label)}
-          aria-current={selectedId === block.id || undefined}
-          // Retrouvée par « N points à vérifier dans le plan », qui l'allume.
-          data-outline-id={block.id}
-          aria-describedby={warning ? warningId : undefined}
-          onClick={() => onSelect(block.id)}
+        {/* Éditeur du Fil : un seul fond pour la ligne, son chevron et son menu (survol, ligne
+            choisie), sans la poignée. */}
+        <div
           className={cn(
-            rowButton,
-            selectedId === block.id && "bg-accent font-medium",
-            // Le menu « ⋮ » s'affiche au bout de la ligne : la ligne lui fait place, rien n'est
-            // caché dessous (la fin d'un libellé).
-            feed?.actions && "group-focus-within/row:pr-8 group-hover/row:pr-8"
+            "relative flex min-w-0 flex-1 items-center gap-1 rounded-md",
+            feed &&
+              (selectedId === block.id
+                ? "bg-accent"
+                : feed.hoveredId === block.id && "bg-accent/60")
           )}
         >
-          {feed ? (
-            <BlockSummary
-              block={block}
-              media={
-                block.type === "image" ? feed.mediaFor(block.mediaId) : null
-              }
-              templateName={shared.templateName(block)}
-              warning={
-                warning && (
-                  <span
-                    id={warningId}
-                    className="truncate text-xs text-warning"
-                  >
-                    {labels.warnings[warning]}
-                  </span>
-                )
-              }
-            />
-          ) : (
-            <>
-              <Icon
-                aria-hidden
-                className="size-4 shrink-0 text-muted-foreground"
+          <button
+            type="button"
+            aria-label={labels.select(label)}
+            aria-current={selectedId === block.id || undefined}
+            // Retrouvée par « N points à vérifier dans le plan », qui l'allume.
+            data-outline-id={block.id}
+            aria-describedby={warning ? warningId : undefined}
+            onClick={() => onSelect(block.id)}
+            className={cn(
+              rowButton,
+              // Ailleurs, le fond est celui du bouton ; dans le Fil, celui de la ligne entière.
+              !feed && "hover:bg-accent",
+              selectedId === block.id &&
+                cn("font-medium", !feed && "bg-accent"),
+              // Le menu « ⋮ » s'affiche au bout de la ligne (avant le chevron d'une section, qui ne
+              // bouge pas) : la ligne lui fait place, rien n'est caché dessous.
+              feed?.actions &&
+                "group-focus-within/row:pr-8 group-hover/row:pr-8"
+            )}
+          >
+            {feed ? (
+              <BlockSummary
+                block={block}
+                media={
+                  block.type === "image" ? feed.mediaFor(block.mediaId) : null
+                }
+                templateName={shared.templateName(block)}
+                warning={
+                  warning && (
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={<span className="flex shrink-0 text-warning" />}
+                      >
+                        <TriangleAlert aria-hidden className="size-4" />
+                        <span id={warningId} className="sr-only">
+                          {labels.warnings[warning]}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {labels.warnings[warning]}
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                }
               />
-              <span className="truncate">{label}</span>
-            </>
+            ) : (
+              <>
+                <Icon
+                  aria-hidden
+                  className="size-4 shrink-0 text-muted-foreground"
+                />
+                <span className="truncate">{label}</span>
+              </>
+            )}
+          </button>
+          {/* Déplier, replier une section : au bout de sa ligne, toujours à la même place. */}
+          {feed && block.type === "box" && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              // Pas de fond une fois déplié (aria-expanded) : celui de la ligne ; au survol, le
+              // même gris que la ligne choisie.
+              className="mr-1 shrink-0 text-muted-foreground hover:bg-accent aria-expanded:bg-transparent aria-expanded:text-muted-foreground aria-expanded:hover:bg-accent"
+              aria-expanded={!isCollapsed}
+              aria-label={
+                isCollapsed ? labels.expand(label) : labels.collapse(label)
+              }
+              onClick={() => shared.toggleCollapsed(block.id)}
+            >
+              {isCollapsed ? <ChevronRight /> : <ChevronDown />}
+            </Button>
           )}
-        </button>
-        {feed?.actions && (
-          <RowActions
-            label={label}
-            onDuplicate={() => feed.actions!.onDuplicate(block.id)}
-            onSaveToMine={
-              container === ROOT && block.type !== "linked"
-                ? () => feed.actions!.onSaveToMine(block.id)
-                : undefined
-            }
-            onLeaveBox={
-              container !== ROOT
-                ? () => feed.actions!.onLeaveBox(block.id)
-                : undefined
-            }
-            onRemove={() => feed.actions!.onRemove(block.id)}
-            removeBlocked={feed.actions.removeBlocked(block.id)}
-          />
-        )}
+          {feed?.actions && (
+            <RowActions
+              label={label}
+              onDuplicate={() => feed.actions!.onDuplicate(block.id)}
+              onSaveToMine={
+                container === ROOT && block.type !== "linked"
+                  ? () => feed.actions!.onSaveToMine(block.id)
+                  : undefined
+              }
+              onLeaveBox={
+                container !== ROOT
+                  ? () => feed.actions!.onLeaveBox(block.id)
+                  : undefined
+              }
+              onRemove={() => feed.actions!.onRemove(block.id)}
+              beforeToggle={block.type === "box"}
+              removeBlocked={feed.actions.removeBlocked(block.id)}
+            />
+          )}
+        </div>
       </div>
       {block.type === "box" && !isCollapsed && (
         <BoxRows box={block} shared={shared} />
@@ -535,7 +584,8 @@ function DroppableBoxRows({
         className={cn(
           "grid min-h-2 gap-0.5 rounded-md",
           shared.feed
-            ? cn("border-l pl-1.5", shared.choosing ? "ml-9" : "ml-3.5")
+            ? // Le trait part du début des lignes (après la place des poignées).
+              cn("border-l pl-1.5", shared.choosing ? "ml-9" : "ml-5")
             : shared.choosing
               ? "pl-11"
               : "pl-5",
@@ -550,9 +600,14 @@ function DroppableBoxRows({
             shared={shared}
           />
         ))}
-        {shared.feed && shared.sortable && box.blocks.length === 0 && (
-          <li className="rounded-md border border-dashed px-2 py-1.5 text-xs text-muted-foreground">
-            {labels.dropInBox}
+        {/* Une section vide : le même bouton que dans le téléphone (une ligne du plan peut
+            aussi y être glissée). */}
+        {shared.feed?.onAddInBox && box.blocks.length === 0 && (
+          <li>
+            <AddBlockButton
+              label={texts.editor.add.inBox}
+              onClick={() => shared.feed!.onAddInBox!(box.id)}
+            />
           </li>
         )}
       </ol>
@@ -562,7 +617,7 @@ function DroppableBoxRows({
 
 // scroll-mt-20 : une ligne amenée sous les yeux ne passe pas sous le haut collé du plan.
 const rowButton =
-  "flex min-w-0 flex-1 scroll-mt-20 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+  "flex min-w-0 flex-1 scroll-mt-20 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
 /**
  * Le menu « … » d'une ligne du plan : Dupliquer, Enregistrer dans Mes blocs, Sortir de la
@@ -575,8 +630,11 @@ function RowActions({
   onLeaveBox,
   onRemove,
   removeBlocked,
+  beforeToggle = false,
 }: {
   label: string
+  // Une section : le menu s'affiche juste avant son chevron, qui ne bouge pas.
+  beforeToggle?: boolean
   onDuplicate: () => void
   onSaveToMine?: () => void
   onLeaveBox?: () => void
@@ -592,13 +650,18 @@ function RowActions({
             size="icon-xs"
             aria-label={labels.actions(label)}
             // Par-dessus la fin de la ligne : il ne prend pas de place au libellé.
-            className="absolute top-1 right-1 bg-accent opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 aria-expanded:opacity-100"
+            className={cn(
+              // Sur le fond de la ligne, sans fond à lui : la ligne lui fait place.
+              "absolute top-1 opacity-0 group-hover/row:opacity-100 hover:bg-accent focus-visible:opacity-100 aria-expanded:bg-accent aria-expanded:opacity-100",
+              beforeToggle ? "right-8" : "right-1"
+            )}
           />
         }
       >
         <EllipsisVertical />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      {/* La largeur de ses libellés, pas celle du bouton « ⋮ ». */}
+      <DropdownMenuContent align="end" className="w-auto">
         <DropdownMenuItem onClick={onDuplicate}>
           <Copy />
           {labels.duplicate}

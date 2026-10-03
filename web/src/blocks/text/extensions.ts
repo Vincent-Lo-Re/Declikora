@@ -39,15 +39,8 @@ const ParagraphFirstListItem = ListItem.extend({
   content: "paragraph (paragraph | bulletList | orderedList)*",
 })
 
-/** Extensions d'un bloc Texte (éditeur de l'admin et tests). */
-/**
- * placeholder : le texte d'une ligne vide ; emptyPlaceholder, s'il est donné, celui d'un texte
- * entièrement vide (éditeur du Fil : « / » n'ouvre la liste des blocs que là).
- */
-export function textExtensions(
-  placeholder?: string,
-  emptyPlaceholder?: string
-): Extensions {
+/** Extensions d'un bloc Texte (éditeur de l'admin et tests) ; placeholder : le texte d'une ligne vide. */
+export function textExtensions(placeholder?: string): Extensions {
   const extensions: Extensions = [
     StarterKit.configure({
       blockquote: false,
@@ -74,13 +67,7 @@ export function textExtensions(
     ParagraphFirstListItem,
   ]
   if (placeholder) {
-    extensions.push(
-      Placeholder.configure({
-        placeholder: emptyPlaceholder
-          ? ({ editor }) => (editor.isEmpty ? emptyPlaceholder : placeholder)
-          : placeholder,
-      })
-    )
+    extensions.push(Placeholder.configure({ placeholder }))
   }
   return extensions
 }

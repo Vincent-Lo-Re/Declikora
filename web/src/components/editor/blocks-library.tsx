@@ -7,6 +7,8 @@ import {
   Copy,
   ExternalLink,
   ImageIcon,
+  SquareDashed,
+  X,
 } from "lucide-react"
 import { useMemo, useRef, useState, type DragEvent } from "react"
 import { Link } from "react-router"
@@ -20,8 +22,13 @@ import type { Block } from "@/blocks/types"
 import { LoadState } from "@/components/load-state"
 import { usePreviewUrls } from "@/components/media/use-preview-urls"
 import { SearchInput } from "@/components/search-input"
-import { buttonVariants } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import {
   encodeLibraryDrag,
   LIBRARY_DRAG_TYPE,
@@ -89,9 +96,14 @@ function startDrag(event: DragEvent, drag: LibraryDrag) {
  * blocs » (mises en forme et blocs partagés), qui glisse un panneau par-dessus la colonne. Un clic
  * ajoute le bloc sous le bloc choisi, ou à la fin.
  */
+// Le premier bloc de l'onglet : il reçoit le curseur quand un « Ajouter » ouvre l'onglet.
+export const LIBRARY_FIRST_ID = "blocs-premier"
+
 export function BlocksLibrary({
   editable,
   canAdd,
+  inBox,
+  onCancelTarget,
   onAdd,
   onInsert,
   open,
@@ -100,9 +112,12 @@ export function BlocksLibrary({
   editable: boolean
   // Faux : on ne peut plus rien ajouter au premier niveau.
   canAdd: boolean
+  // Après « Ajouter dans la section » : un bandeau le dit, et seuls Texte et Image y vont.
+  inBox: boolean
+  onCancelTarget: () => void
   onAdd: (type: InsertableType) => void
   onInsert: (template: TemplateItem) => void
-  // Le panneau « Mes blocs » (ouvert aussi par « / » dans un texte vide).
+  // Le panneau « Mes blocs », par-dessus les Blocs.
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
@@ -114,7 +129,7 @@ export function BlocksLibrary({
   const count = templates.data
     ? savedBlocks(templates.data, "all", "").length
     : null
-  const disabled = !editable || !canAdd
+  const disabled = !editable || (!canAdd && !inBox)
 
   return (
     <div className="relative h-full overflow-hidden">
@@ -123,18 +138,42 @@ export function BlocksLibrary({
         // Caché (et hors du clavier) pendant que « Mes blocs » le recouvre.
         inert={open}
       >
+        {inBox && (
+          <div className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 py-1.5 pr-1.5 pl-2.5 text-sm">
+            <SquareDashed aria-hidden className="size-4 text-warning" />
+            <p role="status" className="min-w-0 flex-1">
+              {labels.target.box}
+            </p>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={labels.target.cancel}
+                    onClick={onCancelTarget}
+                  />
+                }
+              >
+                <X />
+              </TooltipTrigger>
+              <TooltipContent>{labels.target.cancel}</TooltipContent>
+            </Tooltip>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">{labels.hint}</p>
         <section aria-labelledby="blocs-de-base" className="space-y-2">
           <h3 id="blocs-de-base" className="text-sm font-semibold">
             {labels.basics}
           </h3>
           <ul className="grid grid-cols-3 gap-2">
-            {insertableBlocks.map((definition) => (
+            {insertableBlocks.map((definition, index) => (
               <li key={definition.type}>
                 <button
                   type="button"
-                  disabled={disabled}
-                  draggable={!disabled}
+                  id={index === 0 ? LIBRARY_FIRST_ID : undefined}
+                  disabled={disabled || (inBox && !definition.allowedInBox)}
+                  draggable={!disabled && !inBox}
                   onDragStart={(event) =>
                     startDrag(event, { kind: "block", type: definition.type })
                   }
@@ -154,7 +193,9 @@ export function BlocksLibrary({
           type="button"
           aria-expanded={open}
           aria-controls="mes-blocs"
-          className="flex w-full items-center gap-3 rounded-lg border bg-background p-2.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 hover:bg-muted"
+          // Dans une section, pas de bloc enregistré.
+          disabled={inBox}
+          className="flex w-full items-center gap-3 rounded-lg border bg-background p-2.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:bg-muted disabled:opacity-50"
           onClick={() => onOpenChange(true)}
         >
           <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
@@ -220,7 +261,11 @@ function SavedBlocksPanel({
       aria-labelledby="mes-blocs-titre"
       className="absolute inset-0 flex flex-col bg-background motion-safe:animate-in motion-safe:slide-in-from-left-4"
       onKeyDown={(event) => {
-        if (event.key === "Escape" && !event.defaultPrevented) onBack()
+        // Échap referme « Mes blocs » seulement, pas la glissière des Blocs.
+        if (event.key === "Escape" && !event.defaultPrevented) {
+          event.preventDefault()
+          onBack()
+        }
       }}
     >
       <div className="flex items-center gap-1 px-2.5 pt-2">

@@ -29,16 +29,16 @@ export function BlockSummary({
   // Le fichier d'une image (sa vignette et son nom), sinon null.
   media: BlockMedia | null
   templateName: string | null
-  // Ce qui manque, écrit en clair sous le libellé.
+  // Ce qui manque : une icône devant le libellé (le détail dans son infobulle).
   warning?: ReactNode
 }) {
   const outline = block.type === "text" ? textOutline(block.doc) : null
   const icon = "size-4 shrink-0 text-muted-foreground"
-  // Le libellé, et dessous ce qui manque.
+  // Le libellé, précédé de ce qui manque.
   const lines = (main: ReactNode) => (
-    <span className="grid min-w-0 flex-1">
-      {main}
+    <span className="flex min-w-0 flex-1 items-center gap-1.5">
       {warning}
+      {main}
     </span>
   )
   if (block.type === "text" && outline) {

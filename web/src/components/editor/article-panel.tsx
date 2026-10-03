@@ -150,30 +150,45 @@ export function ArticlePanel({
 }
 
 /**
- * La section fixe en bas de la colonne de droite (éditeur du Fil), dans les deux onglets : le
- * temps de lecture, les mots et la dernière modification (la date complète dans l'infobulle),
- * puis les actions (le cadenas, l'état de publication et « Publier »).
+ * La section fixe en bas de la colonne de droite (éditeur du Fil) : l'état de l'enregistrement
+ * (une icône), le temps de lecture et les mots, la dernière modification (le détail dans les
+ * infobulles), puis les actions (le cadenas, l'état de publication et « Publier »).
  */
 export function ArticleFooter({
   stats,
   savedAt,
+  saveStatus,
   children,
 }: {
   stats: { words: number; minutes: number }
   savedAt: string | null
+  // L'état de l'enregistrement, en icône (son infobulle dit l'état et l'heure).
+  saveStatus: ReactNode
   children: ReactNode
 }) {
   const saved = savedAt ? formatShortDateTime(savedAt) : null
+  const words = labels.stats.words(integer.format(stats.words))
   return (
-    <div className="grid shrink-0 gap-2 border-t bg-background px-4 pt-2.5 pb-3">
+    <div className="grid h-feed-footer shrink-0 content-center gap-2 border-t bg-background px-4">
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Clock aria-hidden className="size-3.5" />
-          {labels.stats.short(
-            stats.minutes,
-            labels.stats.words(integer.format(stats.words))
-          )}
-        </span>
+        {/* L'icône à la taille de celles de la ligne. */}
+        <span className="flex [&_svg]:size-3.5">{saveStatus}</span>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <span
+                tabIndex={0}
+                className="flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            }
+          >
+            <Clock aria-hidden className="size-3.5" />
+            {labels.stats.short(stats.minutes, words)}
+          </TooltipTrigger>
+          <TooltipContent>
+            {labels.stats.readingTip(stats.minutes, words)}
+          </TooltipContent>
+        </Tooltip>
         {savedAt && saved && (
           <Tooltip>
             <TooltipTrigger

@@ -210,9 +210,19 @@ const article = texts.editor.article
 const preview = texts.editor.preview
 const outline = texts.editor.outline
 
-/** L'onglet « Article » de la colonne de droite (éditeur du Fil). */
+/** L'Article, dans la colonne de droite (éditeur du Fil). */
 function articleTab() {
-  return screen.getByRole("tabpanel", { name: columns.article })
+  return screen.getByRole("region", { name: columns.article })
+}
+
+/** Les Blocs, en glissière par-dessus le Plan (éditeur du Fil). */
+function blocksPanel() {
+  return screen.getByRole("region", { name: columns.blocks })
+}
+
+/** Ouvre les Blocs par « Ajouter un bloc », en bas de la colonne de gauche. */
+function openBlocks() {
+  fireEvent.click(document.getElementById("colonne-gauche-ajouter")!)
 }
 
 /** Choisit une option d'une liste (Base UI ne retient un clic que s'il commence sur l'option). */
@@ -225,7 +235,7 @@ async function pick(list: HTMLElement, option: string) {
 }
 
 describe("éditeur d'un article (Le Fil)", () => {
-  it("s'ouvre à /blog/<id> avec le plan à gauche et l'onglet « Article » à droite", async () => {
+  it("s'ouvre à /blog/<id> avec le plan à gauche et l'Article à droite", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     renderApp(`/blog/${ARTICLE}`)
     await editable()
@@ -234,18 +244,29 @@ describe("éditeur d'un article (Le Fil)", () => {
         name: texts.editor.back(texts.sections.blog.title),
       })
     ).toHaveAttribute("href", "/blog")
-    // Colonne de gauche ouverte d'office, sur le plan.
-    expect(screen.getByRole("tab", { name: columns.plan })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    )
-    expect(screen.getByRole("tab", { name: columns.blocks })).toBeVisible()
-    // Tout ce qui concerne l'article est à droite : ni « Réglages » ni « Ajouter un bloc » en haut.
+    // Colonne de gauche ouverte d'office, sur le plan, sans onglets ; les Blocs sont fermés.
+    expect(
+      screen.getByRole("navigation", { name: outline.title })
+    ).toBeVisible()
+    expect(screen.queryByRole("tablist")).toBeNull()
+    expect(screen.queryByRole("region", { name: columns.blocks })).toBeNull()
+    // Tout ce qui concerne l'article est à droite : pas de « Réglages » en haut. Sans bloc, le
+    // téléphone et le plan n'ont qu'un bouton « Ajouter un bloc », comme le bas de la colonne de
+    // gauche (avec le retour, au-dessus).
     expect(
       screen.queryByRole("button", { name: texts.publication.actions.settings })
     ).toBeNull()
     expect(
-      screen.queryByRole("button", { name: texts.editor.add.label })
+      screen.getAllByRole("button", { name: texts.editor.add.label })
+    ).toHaveLength(3)
+    const left = screen.getByRole("complementary", { name: columns.left })
+    expect(
+      within(left).getByRole("link", {
+        name: texts.editor.back(texts.sections.blog.title),
+      })
+    ).toBeVisible()
+    expect(
+      screen.queryByRole("button", { name: texts.templates.insert.menu })
     ).toBeNull()
     expect(
       within(articleTab()).getByRole("heading", { name: article.ready.title })
@@ -371,7 +392,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     )
   })
 
-  it("l'onglet de droite suit le clic : un bloc ouvre « Bloc choisi », le titre revient à « Article »", async () => {
+  it("un bloc choisi ouvre ses réglages en glissière par-dessus l'Article ; ×, Échap ou le titre la ferment", async () => {
     const BLOCK = "00000000-0000-4000-8000-0000000000d1"
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(ARTICLE, "article", {
@@ -388,25 +409,100 @@ describe("éditeur d'un article (Le Fil)", () => {
     )
     renderApp(`/blog/${ARTICLE}`)
     const title = await editable()
-    fireEvent.pointerDown(
-      document.querySelector<HTMLElement>(`[data-block-id="${BLOCK}"]`)!
-    )
-    await waitFor(() =>
-      expect(screen.getByRole("tab", { name: columns.block })).toHaveAttribute(
-        "aria-selected",
-        "true"
+    const right = screen.getByRole("complementary", { name: columns.right })
+    // Pas d'onglets : en tête, le titre de l'article.
+    expect(within(right).queryByRole("tablist")).toBeNull()
+    expect(
+      within(right).getByRole("heading", { name: "Bien dormir" })
+    ).toBeVisible()
+    const choose = () =>
+      fireEvent.pointerDown(
+        document.querySelector<HTMLElement>(`[data-block-id="${BLOCK}"]`)!
       )
+
+    choose()
+    await waitFor(() =>
+      expect(panel()).toHaveAccessibleName(texts.editor.settings.label)
     )
-    expect(panel()).toHaveAccessibleName(texts.editor.settings.label)
-    // On peut revenir à « Article » à la main, sans perdre le bloc choisi.
-    fireEvent.click(screen.getByRole("tab", { name: columns.article }))
-    expect(articleTab()).toBeVisible()
+    // L'Article reste dessous, hors du clavier ; « Publier » reste visible en bas.
+    expect(articleTab()).toHaveAttribute("inert")
+    expect(
+      within(panel()).getByRole("heading", { name: "Image" })
+    ).toBeVisible()
+    expect(
+      within(right).getByRole("button", {
+        name: texts.publication.actions.publish,
+      })
+    ).toBeVisible()
+
+    // × : plus de bloc choisi, le focus au titre de la colonne.
+    fireEvent.click(
+      within(panel()).getByRole("button", { name: texts.editor.settings.close })
+    )
+    expect(
+      screen.queryByRole("button", { name: texts.editor.settings.close })
+    ).toBeNull()
+    expect(articleTab()).not.toHaveAttribute("inert")
+    await waitFor(() =>
+      expect(
+        within(right).getByRole("heading", { name: "Bien dormir" })
+      ).toHaveFocus()
+    )
+
+    // Échap, depuis la glissière.
+    choose()
+    const close = await within(panel()).findByRole("button", {
+      name: texts.editor.settings.close,
+    })
+    fireEvent.keyDown(close, { key: "Escape" })
+    expect(
+      screen.queryByRole("button", { name: texts.editor.settings.close })
+    ).toBeNull()
+
+    // Le titre (dans l'aperçu) revient aussi à l'Article.
+    choose()
+    await within(panel()).findByRole("button", {
+      name: texts.editor.settings.close,
+    })
     fireEvent.focus(title)
     await waitFor(() =>
       expect(
-        screen.getByRole("tab", { name: columns.article })
-      ).toHaveAttribute("aria-selected", "true")
+        screen.queryByRole("button", { name: texts.editor.settings.close })
+      ).toBeNull()
     )
+  })
+
+  it("un clic sur le fond autour du téléphone remet l'éditeur à son état de base", async () => {
+    const BLOCK = "00000000-0000-4000-8000-0000000000d1"
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        blocks: [
+          {
+            id: BLOCK,
+            type: "image",
+            mediaId: PLAGE,
+            caption: null,
+            alt: null,
+          },
+        ],
+      })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    fireEvent.pointerDown(
+      document.querySelector<HTMLElement>(`[data-block-id="${BLOCK}"]`)!
+    )
+    openBlocks()
+    await within(panel()).findByRole("button", {
+      name: texts.editor.settings.close,
+    })
+    expect(blocksPanel()).toBeVisible()
+    // Le fond autour du téléphone : le Plan, plus de bloc choisi.
+    fireEvent.click(document.querySelector("main")!)
+    expect(screen.queryByRole("region", { name: columns.blocks })).toBeNull()
+    expect(
+      screen.queryByRole("button", { name: texts.editor.settings.close })
+    ).toBeNull()
   })
 
   it("l'aperçu : la Lecture montre l'article comme dans l'app, sans ses blocs pour une personne sans la formule", async () => {
@@ -493,7 +589,7 @@ describe("éditeur d'un article (Le Fil)", () => {
 
     // Un bloc choisi dans le plan ramène en Édition.
     fireEvent.click(
-      within(screen.getByRole("tabpanel", { name: columns.plan })).getByRole(
+      within(screen.getByRole("navigation", { name: outline.title })).getByRole(
         "button",
         { name: /^Aller à Texte/ }
       )
@@ -583,7 +679,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     expect(await within(plan).findByText("plage.png")).toBeVisible()
-    expect(within(plan).queryByText(outline.warnings.count(1))).toBeNull()
+    expect(within(plan).queryByText(outline.warnings.noFile)).toBeNull()
     const image = document.querySelector('[data-block-type="image"]')!
     expect(within(image as HTMLElement).queryByRole("textbox")).toBeNull()
     expect(screen.queryByText(/texte alternatif/i)).toBeNull()
@@ -621,13 +717,14 @@ describe("éditeur d'un article (Le Fil)", () => {
     expect(
       within(plan).queryByText(texts.editor.article.ready.items.cover)
     ).toBeNull()
-    // Ce qui manque est écrit sous la ligne, et la décrit.
+    // Ce qui manque : une icône devant le libellé (le détail dans l'infobulle), qui décrit la
+    // ligne ; le haut du plan ne compte que les blocs.
     expect(
       within(plan).getByRole("button", {
         name: outline.select(texts.editor.blockLabel.image),
       })
     ).toHaveAccessibleDescription(outline.warnings.noFile)
-    expect(within(plan).getByText(outline.warnings.count(1))).toBeVisible()
+    expect(within(plan).queryByText(/point à vérifier/)).toBeNull()
     expect(within(plan).getByText(outline.box.fill)).toBeVisible()
 
     // L'encadré se replie : son image ne se voit plus dans le plan.
@@ -747,7 +844,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     // Des icônes seules : leur nom est dans l'infobulle.
     expect(bar).not.toHaveTextContent(texts.editor.settings.remove)
     // Le plan dit « Section » (anciennement « Encadré »).
-    expect(within(plan).getByText(/Section à fond/)).toBeVisible()
+    expect(within(plan).getByText(/Section avec fond/)).toBeVisible()
   })
 
   it("une section choisie dans le plan reste choisie (pas son premier texte), et « Dupliquer » la copie", async () => {
@@ -889,20 +986,91 @@ describe("éditeur d'un article (Le Fil)", () => {
     vi.unstubAllGlobals()
   })
 
-  it("« Un modèle… » d'un article vide ouvre « Mes blocs » à gauche, pas une fenêtre", async () => {
+  it("« Ajouter un bloc » ouvre les Blocs par-dessus le Plan, le curseur sur le premier ; × les referme", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     renderApp(`/blog/${ARTICLE}`)
     await editable()
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.templates.insert.menu })
+    // Celui du téléphone (le plan vide a le même).
+    fireEvent.click(document.getElementById("editeur-ajouter")!)
+    expect(blocksPanel()).toBeVisible()
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", {
+          name: texts.editor.library.addLabel(texts.editor.blocks.text),
+        })
+      ).toHaveFocus()
     )
-    expect(
-      await screen.findByRole("region", {
-        name: texts.editor.library.mine.title,
-      })
-    ).toBeVisible()
+    // Pas de bandeau : le bloc s'ajoutera à la fin.
+    expect(screen.queryByText(texts.editor.library.target.box)).toBeNull()
     expect(screen.queryByRole("dialog")).toBeNull()
+    // Le Plan, dessous, est hors du clavier ; × referme les Blocs, le focus va à « Ajouter un
+    // bloc » en bas de la colonne.
+    fireEvent.click(
+      within(blocksPanel()).getByRole("button", {
+        name: texts.editor.library.close,
+      })
+    )
+    expect(screen.queryByRole("region", { name: columns.blocks })).toBeNull()
+    await waitFor(() =>
+      expect(document.getElementById("colonne-gauche-ajouter")).toHaveFocus()
+    )
   })
+
+  it("« Ajouter dans la section » : les Blocs ajoutent à la fin de la section, sans section ni bloc enregistré", async () => {
+    Element.prototype.scrollIntoView = vi.fn()
+    const BOX = "00000000-0000-4000-8000-0000000000e1"
+    vi.mocked(api.getContent).mockResolvedValue(
+      contentOf(ARTICLE, "article", {
+        blocks: [{ id: BOX, type: "box", look: "fill", blocks: [] }],
+      })
+    )
+    renderApp(`/blog/${ARTICLE}`)
+    await editable()
+    // Le téléphone et le plan ont chacun le bouton ; celui du téléphone.
+    expect(
+      screen.getAllByRole("button", { name: texts.editor.add.inBox })
+    ).toHaveLength(2)
+    fireEvent.click(
+      within(
+        screen.getByRole("region", { name: preview.screen.ios })
+      ).getByRole("button", { name: texts.editor.add.inBox })
+    )
+    const library = blocksPanel()
+    expect(
+      within(library).getByText(texts.editor.library.target.box)
+    ).toBeVisible()
+    // La section est le bloc choisi : ses réglages sont à droite.
+    expect(panel()).toHaveAccessibleName(texts.editor.settings.label)
+    expect(
+      within(library).getByRole("button", {
+        name: texts.editor.library.addLabel(texts.editor.blocks.box),
+      })
+    ).toBeDisabled()
+    expect(
+      within(library).getByRole("button", {
+        name: new RegExp(texts.editor.library.mine.title),
+      })
+    ).toBeDisabled()
+
+    fireEvent.click(
+      within(library).getByRole("button", {
+        name: texts.editor.library.addLabel(texts.editor.blocks.text),
+      })
+    )
+    await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
+      timeout: 4000,
+    })
+    const saved = vi.mocked(api.saveDraft).mock.calls.at(-1)![2]
+    expect(saved.blocks).toHaveLength(1)
+    expect(saved.blocks[0]).toMatchObject({
+      id: BOX,
+      blocks: [{ type: "text" }],
+    })
+    // Le bandeau s'en va une fois le bloc ajouté.
+    expect(
+      within(library).queryByText(texts.editor.library.target.box)
+    ).toBeNull()
+  }, 10_000)
 
   it("niveau d'accès et catégories en pastilles : ils partent avec le brouillon ([D41], [D44])", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
@@ -1005,20 +1173,17 @@ describe("éditeur d'un article (Le Fil)", () => {
     ])
     renderApp(`/blog/${ARTICLE}`)
     await editable()
-    fireEvent.click(screen.getByRole("tab", { name: columns.blocks }))
-    const library = screen.getByRole("tabpanel", { name: columns.blocks })
+    openBlocks()
+    const library = blocksPanel()
     fireEvent.click(
       within(library).getByRole("button", {
         name: texts.editor.library.addLabel(texts.editor.blocks.text),
       })
     )
-    // Le nouveau bloc est choisi : « Bloc choisi » s'ouvre à droite.
-    await waitFor(() =>
-      expect(screen.getByRole("tab", { name: columns.block })).toHaveAttribute(
-        "aria-selected",
-        "true"
-      )
-    )
+    // Le nouveau bloc est choisi : ses réglages glissent à droite.
+    expect(
+      await screen.findByRole("button", { name: texts.editor.settings.close })
+    ).toBeVisible()
     fireEvent.click(
       await within(library).findByRole("button", {
         name: new RegExp(texts.editor.library.mine.title),
@@ -1038,9 +1203,9 @@ describe("éditeur d'un article (Le Fil)", () => {
     expect(
       await screen.findByText(texts.templates.insert.inserted("À retenir"))
     ).toBeInTheDocument()
-    // Dans l'aperçu réduit de « Mes blocs », et dans l'article.
+    // Dans l'aperçu réduit de « Mes blocs », dans l'article, et dans le Plan (sous les Blocs).
     await waitFor(() =>
-      expect(screen.getAllByText("Retiens bien ceci.")).toHaveLength(2)
+      expect(screen.getAllByText("Retiens bien ceci.")).toHaveLength(3)
     )
   })
 
@@ -1262,7 +1427,7 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
   }
   const dialog = texts.editor.lock.dialog
 
-  it("pas de barre du haut : le retour, l'enregistrement et le titre à gauche ; Publier et son état à droite", async () => {
+  it("pas de barre du haut : le retour et « Ajouter un bloc » en bas à gauche ; l'enregistrement, Publier et son état à droite", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     renderApp(`/blog/${ARTICLE}`)
     await editable()
@@ -1273,8 +1438,8 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
         name: texts.editor.back(texts.sections.blog.title),
       })
     ).toBeInTheDocument()
-    expect(within(left).getByText(texts.editor.save.saved)).toBeInTheDocument()
     const right = screen.getByRole("complementary", { name: columns.right })
+    expect(within(right).getByText(texts.editor.save.saved)).toBeInTheDocument()
     for (const name of [
       texts.publication.actions.publish,
       texts.publication.actions.more,
@@ -1775,27 +1940,26 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
     )
   })
 
-  it("colonne de droite : les onglets en tête, et en bas la lecture, l'état et « Publier » ; l'image a son icône Info", async () => {
+  it("colonne de droite : le titre en tête, et en bas la lecture, l'état et « Publier » ; l'image a son icône Info", async () => {
     renderApp(`/blog/${ARTICLE}`)
     await editable()
     const right = screen.getByRole("complementary", { name: columns.right })
-    // « Publier » et l'état sont après les onglets : dans la section du bas.
-    const tabs = within(right).getByRole("tablist")
+    // « Publier » et l'état sont après l'Article : dans la section du bas.
     const publish = within(right).getByRole("button", {
       name: texts.publication.actions.publish,
     })
     expect(
-      tabs.compareDocumentPosition(publish) & Node.DOCUMENT_POSITION_FOLLOWING
+      articleTab().compareDocumentPosition(publish) &
+        Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
     expect(within(right).getByText(/min · \d+ mots?$/)).toBeVisible()
-    // Elle reste là dans « Bloc choisi ».
-    fireEvent.click(within(right).getByRole("tab", { name: columns.block }))
+    // L'état de l'enregistrement est en bas à droite, plus à gauche.
+    expect(right.querySelector("[data-save-status]")).not.toBeNull()
     expect(
-      within(right).getByRole("button", {
-        name: texts.publication.actions.publish,
-      })
-    ).toBeVisible()
-    fireEvent.click(within(right).getByRole("tab", { name: columns.article }))
+      screen
+        .getByRole("complementary", { name: columns.left })
+        .querySelector("[data-save-status]")
+    ).toBeNull()
 
     // La phrase de l'image est dans l'infobulle de l'icône Info.
     expect(
@@ -1885,8 +2049,8 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
     ])
     renderApp(`/blog/${ARTICLE}`)
     await editable()
-    fireEvent.click(screen.getByRole("tab", { name: columns.blocks }))
-    const library = screen.getByRole("tabpanel", { name: columns.blocks })
+    openBlocks()
+    const library = blocksPanel()
     fireEvent.click(
       await within(library).findByRole("button", {
         name: new RegExp(texts.editor.library.mine.title),
