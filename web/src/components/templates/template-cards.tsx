@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ChevronDown, RefreshCw } from "lucide-react"
+import { FileText, Files, RefreshCw } from "lucide-react"
 import { useState } from "react"
+import { Link } from "react-router"
 import { toast } from "sonner"
 
+import { LoadState } from "@/components/load-state"
+import { PanelCard } from "@/components/panel-card"
 import { useAccessCheck } from "@/components/team/use-access-check"
+import { templateSortIcons } from "@/components/templates/sort-icons"
 import { useTemplateUses } from "@/components/templates/use-template-uses"
-import { UsesList } from "@/components/templates/uses-list"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -15,13 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Spinner } from "@/components/ui/spinner"
 import { ContentError, contentKeys } from "@/lib/contents/api"
 import {
@@ -33,12 +30,34 @@ import {
 } from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
 import { kickFiles, mediaKeys } from "@/lib/media/api"
+import { contentEditorPath, contentSection, sections } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.templates.editor
+const sorts = texts.templates.sorts
 
-/** La sorte d'un modèle (et la section d'un point de départ), dans l'en-tête de son éditeur. */
-export function TemplateSortBadge({
+/**
+ * La sorte d'un modèle, en bas de la colonne de droite de son éditeur (éditeur du Fil) : son
+ * icône et son nom, à la place de l'état de publication (un modèle ne se publie pas).
+ */
+export function TemplateSortBadge({ sort }: { sort: TemplateSort }) {
+  const Icon = templateSortIcons[sort]
+  return (
+    <span
+      data-template-sort={sort}
+      className="inline-flex min-w-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
+    >
+      <Icon aria-hidden className="size-3.5 shrink-0" />
+      <span className="truncate">{sorts[sort].title}</span>
+    </span>
+  )
+}
+
+/**
+ * La carte « Sorte » d'un modèle (ADMIN § 4) : ce qu'il est, choisi à sa création, et pour un
+ * point de départ, la section qu'il sert à créer.
+ */
+export function TemplateSortCard({
   sort,
   templateFor,
 }: {
@@ -46,21 +65,28 @@ export function TemplateSortBadge({
   templateFor: TemplateFor | null
 }) {
   return (
-    <Badge variant="secondary" data-template-sort={sort}>
-      {sort === "starter" && templateFor
-        ? labels.starterFor(texts.templates.sections[templateFor])
-        : texts.templates.sorts[sort].title}
-    </Badge>
+    <PanelCard
+      id="modele-sorte"
+      icon={templateSortIcons[sort]}
+      title={sorts[sort].title}
+    >
+      <p className="text-xs text-muted-foreground">{sorts[sort].description}</p>
+      {sort === "starter" && templateFor && (
+        <p className="mt-1.5 text-xs">
+          {labels.starterFor(texts.templates.sections[templateFor])}
+        </p>
+      )}
+    </PanelCard>
   )
 }
 
 /**
- * En haut de l'éditeur d'un bloc identique partout : « Utilisé dans N brouillons » (la liste,
- * avec un lien vers chacun) et, quand des contenus en ligne en ont une copie différente,
- * « Mettre à jour ces N contenus dans l'app » (avec confirmation qui les liste). Rien ne change
- * dans l'app avant ce clic (ADMIN § 5).
+ * La carte « Utilisé dans N brouillons » d'un bloc partagé (ADMIN § 5) : les brouillons, avec un
+ * lien vers chacun, et, quand des contenus en ligne en ont une copie différente, « Mettre à jour
+ * ces N contenus dans l'app » (avec confirmation qui les liste). Rien ne change dans l'app avant
+ * ce clic.
  */
-export function SharedTemplateBar({ templateId }: { templateId: string }) {
+export function TemplateUsesCard({ templateId }: { templateId: string }) {
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
   const [confirming, setConfirming] = useState(false)
@@ -98,34 +124,75 @@ export function SharedTemplateBar({ templateId }: { templateId: string }) {
       ]),
   })
 
-  const count = uses.data?.length ?? 0
   const stale = outdated.data ?? []
 
   return (
-    <div className="flex items-center gap-2">
-      {uses.data && (
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            disabled={count === 0}
-            render={<Button variant="ghost" size="sm" />}
-            data-template-uses={count}
-          >
-            {labels.usedIn(count)}
-            {count > 0 && <ChevronDown />}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72 p-3">
-            <UsesList uses={uses.data} title={labels.usedInList} />
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <PanelCard
+      id="modele-utilisations"
+      icon={Files}
+      title={uses.data ? labels.usedIn(uses.data.length) : labels.usesTitle}
+    >
+      {uses.data === undefined ? (
+        <LoadState
+          query={uses}
+          failed={labels.usesFailed}
+          rows={2}
+          rowClassName="h-6 w-full"
+        />
+      ) : uses.data.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{labels.usesNone}</p>
+      ) : (
+        <ul className="text-sm" data-template-uses={uses.data.length}>
+          {uses.data.map((use) => {
+            const section = contentSection(use.kind)
+            const Icon = section ? sections[section].icon : FileText
+            const name = use.title.trim() || texts.common.untitled
+            const path = use.inTrash
+              ? null
+              : contentEditorPath(use.kind, use.id)
+            return (
+              <li
+                key={use.id}
+                data-template-use={use.id}
+                className="flex items-center gap-2 py-1"
+              >
+                <Icon
+                  aria-hidden
+                  className="size-4 shrink-0 text-muted-foreground"
+                />
+                <span className="min-w-0 flex-1 truncate">
+                  {path ? (
+                    <Link
+                      to={path}
+                      className="underline-offset-4 hover:underline"
+                    >
+                      {name}
+                    </Link>
+                  ) : (
+                    name
+                  )}
+                  {use.inTrash && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      ({labels.inTrash})
+                    </span>
+                  )}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
       )}
       {outdated.isError && (
-        <span role="alert" className="text-xs text-destructive">
+        <p role="alert" className="mt-2 text-xs text-destructive">
           {labels.outdated.failed}
-        </span>
+        </p>
       )}
       {stale.length > 0 && (
         <Button
           size="sm"
+          variant="outline"
+          className="mt-2"
           disabled={push.isPending}
           data-template-outdated={stale.length}
           onClick={() => setConfirming(true)}
@@ -177,6 +244,6 @@ export function SharedTemplateBar({ templateId }: { templateId: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PanelCard>
   )
 }

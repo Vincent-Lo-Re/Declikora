@@ -1453,23 +1453,23 @@ export const texts = {
     editor: {
       nameLabel: "Nom du modèle",
       namePlaceholder: "Nom du modèle",
-      starterFor: (section: string) => `Point de départ : ${section}`,
+      // La carte « Sorte » de la colonne de droite (éditeur du Fil) : un point de départ dit pour
+      // quelle section il sert.
+      starterFor: (section: string) => `Pour créer : ${section}`,
       sharedLimit:
         "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans une section.",
-      empty: {
-        title: "Modèle vide",
-        description:
-          "Ajoute ses blocs : un texte, une image ou une section. Tu pourras ensuite l'insérer dans les contenus.",
-        sharedDescription:
-          "Ajoute son bloc : un texte, une image ou une section (qui peut en regrouper plusieurs). Tant qu'il est vide, il ne peut pas être inséré.",
-      },
       usedIn: (count: number) =>
         count === 0
           ? "Utilisé dans aucun brouillon"
           : count === 1
             ? "Utilisé dans 1 brouillon"
             : `Utilisé dans ${count} brouillons`,
-      usedInList: "Brouillons qui utilisent ce modèle",
+      usesTitle: "Utilisé dans",
+      usesNone:
+        "Ajoute-le à un article, un épisode ou une page par « Mes blocs », dans les Blocs.",
+      usesFailed:
+        "La liste des brouillons qui l'utilisent n'a pas pu être chargée.",
+      inTrash: "dans la corbeille",
       keepBlock:
         "Ce modèle est utilisé : il garde son bloc. Pour le retirer, détache-le d'abord partout (page Modèles de bloc).",
       outdated: {
@@ -1779,9 +1779,15 @@ export const texts = {
         article: "Article et réglages du bloc",
         episode: "Épisode et réglages du bloc",
         page: "Page et réglages du bloc",
+        template: "Modèle et réglages du bloc",
       },
       blocks: "Blocs",
-      content: { article: "Article", episode: "Épisode", page: "Page" },
+      content: {
+        article: "Article",
+        episode: "Épisode",
+        page: "Page",
+        template: "Modèle",
+      },
     },
     // Le mode Concentration de l'éditeur du Fil : les deux colonnes se cachent.
     focusMode: {

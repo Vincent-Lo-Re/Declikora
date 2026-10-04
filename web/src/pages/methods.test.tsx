@@ -1002,6 +1002,42 @@ describe("publier une méthode d'un seul geste ([D29])", () => {
 })
 
 describe("éditeur d'une leçon", () => {
+  it("ancien éditeur : le bandeau dit qui écrit ; « Reprendre la main » demande confirmation, puis force la prise du verrou", async () => {
+    const claire: api.LockRow = {
+      ...mine,
+      mine: false,
+      holder_id: "00000000-0000-4000-8000-00000000c1a1",
+      holder_name: "Claire Martin",
+    }
+    vi.mocked(api.lockTake).mockResolvedValueOnce(claire)
+    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    expect(
+      await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText(texts.editor.title.label)).toHaveAttribute(
+      "readonly"
+    )
+    expect(
+      screen.getByRole("button", { name: texts.editor.add.label })
+    ).toBeDisabled()
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.editor.lock.forceTake })
+    )
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: texts.editor.lock.confirmForce.confirm,
+      })
+    )
+    await waitFor(() =>
+      expect(api.lockTake).toHaveBeenLastCalledWith(
+        SOUFFLE,
+        true,
+        expect.any(String)
+      )
+    )
+    await editable()
+  })
+
   it("ancien éditeur : « Un modèle… » insère une mise en forme en copie, sans point de départ ni bloc partagé vide", async () => {
     const STYLE = "00000000-0000-4000-8000-00000000a501"
     const INNER = "00000000-0000-4000-8000-00000000a502"

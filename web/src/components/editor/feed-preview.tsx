@@ -54,7 +54,7 @@ import {
   previewThemes,
   type PreviewSettings,
 } from "@/lib/editor/preview"
-import type { FeedKind } from "@/lib/editor/profile"
+import type { PublishedFeedKind } from "@/lib/editor/profile"
 import { texts } from "@/texts"
 
 const labels = texts.editor.preview
@@ -71,10 +71,14 @@ export function FeedPreview({
   notices,
   appBar,
   focus,
+  readers = true,
   children,
 }: {
   preview: PreviewSettings
   onPreviewChange: (preview: PreviewSettings) => void
+  // En Lecture, le choix « abonné / sans la formule » : pas pour un modèle de bloc, qui n'a pas
+  // de niveau d'accès.
+  readers?: boolean
   // Concentration (⌘ . ou Ctrl + .) : sous Édition et Lecture, dans la barre de l'aperçu.
   focus: FocusTool
   // La barre de mise en forme : cachée en Lecture, sa place gardée (le téléphone ne bouge pas).
@@ -168,6 +172,7 @@ export function FeedPreview({
           onChange={onPreviewChange}
           scale={scale}
           focus={focus}
+          readers={readers}
         />
       </div>
     </div>
@@ -213,12 +218,14 @@ function PreviewTools({
   onChange,
   scale,
   focus,
+  readers,
 }: {
   preview: PreviewSettings
   onChange: (preview: PreviewSettings) => void
   // La réduction de l'écran entier, s'il est montré.
   scale: number | null
   focus: FocusTool
+  readers: boolean
 }) {
   return (
     <div
@@ -286,14 +293,18 @@ function PreviewTools({
       </Tooltip>
       {preview.mode === "read" && (
         <>
-          <Separator className="my-1 w-5" />
-          <ToolGroup
-            label={labels.reader.label}
-            values={previewReaders}
-            choices={readerChoices}
-            value={preview.reader}
-            onChange={(reader) => onChange({ ...preview, reader })}
-          />
+          {readers && (
+            <>
+              <Separator className="my-1 w-5" />
+              <ToolGroup
+                label={labels.reader.label}
+                values={previewReaders}
+                choices={readerChoices}
+                value={preview.reader}
+                onChange={(reader) => onChange({ ...preview, reader })}
+              />
+            </>
+          )}
           <Separator className="my-1 w-5" />
           <ToolGroup
             label={labels.fit.label}
@@ -379,7 +390,6 @@ export function ReadAppBar({ section }: { section: string }) {
  * seulement l'image, le titre et l'invitation à prendre la formule.
  */
 export function ReadView({
-  kind,
   draft,
   title,
   cover,
@@ -388,7 +398,6 @@ export function ReadView({
   locked,
   resolve,
 }: {
-  kind: FeedKind
   draft: Draft
   title: string
   // L'image de présentation ; null pour une sorte sans image (une page).
@@ -398,8 +407,9 @@ export function ReadView({
   // Catégorie et temps de lecture (un épisode : la durée de son audio), sous le titre ; null
   // pour une page, qui n'est dans aucune liste.
   meta: string | null
-  // `false` : tout se lit ; sinon le nom de la formule (ou `null` s'il n'est pas encore lu).
-  locked: string | null | false
+  // `false` : tout se lit ; sinon la sorte du contenu (ses mots) et le nom de la formule (`null`
+  // s'il n'est pas encore lu). Un modèle de bloc ne se publie pas : il se lit toujours.
+  locked: { kind: PublishedFeedKind; level: string | null } | false
   // Le bloc d'un modèle partagé, tel qu'il est aujourd'hui.
   resolve: (block: Block) => Block | null
 }) {
@@ -428,9 +438,9 @@ export function ReadView({
           <Lock aria-hidden className="size-6" />
           <p className="blocks-locked-title">{labels.locked.title}</p>
           <p className="blocks-locked-text">
-            {locked
-              ? labels.locked.text[kind](locked)
-              : labels.locked.textUnknown[kind]}
+            {locked.level
+              ? labels.locked.text[locked.kind](locked.level)
+              : labels.locked.textUnknown[locked.kind]}
           </p>
           <span className="blocks-locked-action">{labels.locked.action}</span>
         </div>

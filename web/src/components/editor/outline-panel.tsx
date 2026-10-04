@@ -105,14 +105,19 @@ export type FeedOutline = {
   // Absent en lecture seule.
   actions?: {
     onDuplicate: (id: string) => void
-    // Un bloc de premier niveau, qui n'est pas déjà un bloc partagé.
-    onSaveToMine: (id: string) => void
+    // Un bloc de premier niveau, qui n'est pas déjà un bloc partagé ; pas dans un modèle de bloc.
+    onSaveToMine?: (id: string) => void
     onRemove: (id: string) => void
     // Un bloc d'une section : il en sort, juste après elle.
     onLeaveBox: (id: string) => void
     // Pourquoi un bloc ne peut pas être supprimé, sinon null.
     removeBlocked: (id: string) => string | null
+    // Le premier niveau est plein (un bloc partagé n'a qu'un bloc, [D11]) : « Dupliquer » un
+    // bloc de premier niveau et « Sortir de la section » sont grisés.
+    rootFull: boolean
   }
+  // Nombre maximal de blocs au premier niveau (un bloc partagé) : le plan n'y range pas plus.
+  rootLimit?: number
 }
 
 /** Panneau de gauche : le plan du contenu (la liste des blocs), pour aller vite à un bloc. */
@@ -140,7 +145,11 @@ export function OutlinePanel({
   // Éditeur du Fil : les lignes se rangent par glisser-déposer (pas pendant « Choisir des
   // blocs »), avec les règles de l'aperçu.
   const sortable = feed?.onMove !== undefined && !choosing
-  const drag = useBlockDrag({ draft, onChange: feed?.onMove ?? keep })
+  const drag = useBlockDrag({
+    draft,
+    onChange: feed?.onMove ?? keep,
+    rootLimit: feed?.rootLimit,
+  })
   const shared: RowShared = {
     // Le plan se range (éditeur du Fil, brouillon tenu) : un DndContext à lui, avec son annonce.
     dnd: feed?.onMove !== undefined,
@@ -518,9 +527,12 @@ function OutlineRow({
             <RowActions
               label={label}
               onDuplicate={() => feed.actions!.onDuplicate(block.id)}
+              duplicateBlocked={feed.actions.rootFull && container === ROOT}
               onSaveToMine={
-                container === ROOT && block.type !== "linked"
-                  ? () => feed.actions!.onSaveToMine(block.id)
+                container === ROOT &&
+                block.type !== "linked" &&
+                feed.actions.onSaveToMine
+                  ? () => feed.actions!.onSaveToMine?.(block.id)
                   : undefined
               }
               onLeaveBox={
@@ -528,6 +540,7 @@ function OutlineRow({
                   ? () => feed.actions!.onLeaveBox(block.id)
                   : undefined
               }
+              leaveBlocked={feed.actions.rootFull}
               onRemove={() => feed.actions!.onRemove(block.id)}
               beforeToggle={block.type === "box"}
               removeBlocked={feed.actions.removeBlocked(block.id)}
@@ -625,8 +638,10 @@ const rowButton =
 function RowActions({
   label,
   onDuplicate,
+  duplicateBlocked,
   onSaveToMine,
   onLeaveBox,
+  leaveBlocked,
   onRemove,
   removeBlocked,
   beforeToggle = false,
@@ -635,8 +650,11 @@ function RowActions({
   // Une section : le menu s'affiche juste avant son chevron, qui ne bouge pas.
   beforeToggle?: boolean
   onDuplicate: () => void
+  // Le premier niveau est plein : la copie n'y aurait pas sa place, ni le bloc qui sort.
+  duplicateBlocked: boolean
   onSaveToMine?: () => void
   onLeaveBox?: () => void
+  leaveBlocked: boolean
   onRemove: () => void
   removeBlocked: string | null
 }) {
@@ -661,7 +679,7 @@ function RowActions({
       </DropdownMenuTrigger>
       {/* La largeur de ses libellés, pas celle du bouton « ⋮ ». */}
       <DropdownMenuContent align="end" className="w-auto">
-        <DropdownMenuItem onClick={onDuplicate}>
+        <DropdownMenuItem disabled={duplicateBlocked} onClick={onDuplicate}>
           <Copy />
           {labels.duplicate}
         </DropdownMenuItem>
@@ -672,7 +690,7 @@ function RowActions({
           </DropdownMenuItem>
         )}
         {onLeaveBox && (
-          <DropdownMenuItem onClick={onLeaveBox}>
+          <DropdownMenuItem disabled={leaveBlocked} onClick={onLeaveBox}>
             <CornerLeftUp />
             {labels.leaveBox}
           </DropdownMenuItem>
