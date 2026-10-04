@@ -7,18 +7,25 @@ import {
   TriangleAlert,
 } from "lucide-react"
 import { cn } from "cn"
-import { useId, type ReactNode } from "react"
+import { useId, useState, type ReactNode } from "react"
 import { Link } from "react-router"
 
 import type { MethodPublication } from "@/components/editor/use-publication"
 import { PanelCard } from "@/components/panel-card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { contentProblemText } from "@/lib/contents/api"
-import type { PreviewChange, PreviewRow } from "@/lib/contents/outline"
+import {
+  CHANGES_SHOWN,
+  changesView,
+  shownProblem,
+  type ChangeGroup,
+  type ChangesView,
+  type PreviewChange,
+  type PreviewRow,
+} from "@/lib/contents/outline"
 import { formatDateTime } from "@/lib/dates"
 import { contentEditorPath } from "@/navigation"
 import { texts } from "@/texts"
@@ -98,7 +105,9 @@ export function MethodChangesCard({ method }: { method: MethodPublication }) {
 /** Le nombre de changements, avec un tourniquet pendant la relecture. */
 function ChangesCount({ method }: { method: MethodPublication }) {
   const { preview } = method
+  // La méthode entre dans l'app : le résumé dit déjà ce qui arrive.
   if (!preview || preview.length === 0) return null
+  if (changesView(preview).kind === "entry") return null
   return (
     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
       {method.fetching && <Spinner className="size-3" />}
@@ -145,21 +154,13 @@ function ChangesBody({
           {method.fetching ? labels.loading : labels.nothing}
         </p>
       ) : (
-        <ul
-          className={cn(
-            "divide-y rounded-lg border",
-            !compact && "max-h-72 overflow-y-auto"
-          )}
-        >
-          {preview.map((row) => (
-            <ChangeRow
-              key={`${row.elementId}-${row.change}`}
-              row={row}
-              onOpen={onOpen}
-              compact={compact}
-            />
-          ))}
-        </ul>
+        <div className={cn(!compact && "max-h-72 overflow-y-auto")}>
+          <ChangesList
+            view={changesView(preview)}
+            onOpen={onOpen}
+            compact={compact}
+          />
+        </div>
       )}
       {problems.length > 0 && (
         <Alert variant="destructive" className="mt-2">
@@ -174,18 +175,116 @@ function ChangesBody({
 }
 
 /**
- * Le problème d'une ligne, s'il se montre dans la liste : le titre et l'image de présentation de
- * la fiche sont déjà signalés au-dessus (avec « Écrire le titre » et « Choisir l'image »).
+ * La liste elle-même (QCM du 04/10/2026) : un résumé tant que la méthode entre dans l'app (avec
+ * les lignes qui ont un problème), sinon la fiche puis les groupes par sorte de changement.
  */
-function shownProblem(row: PreviewRow): string | null {
-  if (
-    row.kind === "method" &&
-    (row.problem === "image_de_presentation_manquante" ||
-      row.problem === "titre_manquant")
-  ) {
-    return null
+function ChangesList({
+  view,
+  onOpen,
+  compact,
+}: {
+  view: ChangesView
+  onOpen?: () => void
+  compact: boolean
+}) {
+  if (view.kind === "entry") {
+    return (
+      <div className="space-y-2">
+        <p className="flex items-start gap-2 text-sm" data-method-entry>
+          <CirclePlus
+            aria-hidden
+            className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+          />
+          <span>{labels.entry(view.chapters, view.lessons)}</span>
+        </p>
+        {view.problems.length > 0 && (
+          <ChangeRows rows={view.problems} onOpen={onOpen} compact={compact} />
+        )}
+      </div>
+    )
   }
-  return row.problem
+  return (
+    <div className="space-y-3">
+      {view.method.length > 0 && (
+        <ChangeRows rows={view.method} onOpen={onOpen} compact={compact} />
+      )}
+      {view.groups.map((group) => (
+        <ChangeGroupList
+          key={group.change}
+          group={group}
+          onOpen={onOpen}
+          compact={compact}
+        />
+      ))}
+    </div>
+  )
+}
+
+function ChangeRows({
+  rows,
+  onOpen,
+  compact,
+}: {
+  rows: PreviewRow[]
+  onOpen?: () => void
+  compact: boolean
+}) {
+  return (
+    <ul className="divide-y rounded-lg border">
+      {rows.map((row) => (
+        <ChangeRow
+          key={`${row.elementId}-${row.change}`}
+          row={row}
+          onOpen={onOpen}
+          compact={compact}
+        />
+      ))}
+    </ul>
+  )
+}
+
+/** Un groupe (« Modifications (12) ») : ses premières lignes, puis « Voir tout ». */
+function ChangeGroupList({
+  group,
+  onOpen,
+  compact,
+}: {
+  group: ChangeGroup
+  onOpen?: () => void
+  compact: boolean
+}) {
+  const titleId = useId()
+  const [all, setAll] = useState(false)
+  const count = group.rows.length
+  const rows = all ? group.rows : group.rows.slice(0, CHANGES_SHOWN)
+  return (
+    <section
+      aria-labelledby={titleId}
+      className="space-y-1.5"
+      data-change-group={group.change}
+    >
+      <h4
+        id={titleId}
+        className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground [&_svg]:size-3.5"
+      >
+        {changeIcons[group.change]}
+        {labels.groupTitle(labels.groups[group.change], count)}
+      </h4>
+      <ChangeRows rows={rows} onOpen={onOpen} compact={compact} />
+      {count > CHANGES_SHOWN && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          className="text-muted-foreground"
+          aria-expanded={all}
+          onClick={() => setAll((shown) => !shown)}
+        >
+          {all ? labels.showLess : labels.showAll(count)}
+        </Button>
+      )}
+    </section>
+  )
 }
 
 function ChangeRow({
@@ -207,38 +306,31 @@ function ChangeRow({
       data-change={row.change}
       data-element-id={row.elementId}
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className="flex min-w-0 items-start gap-2">
+      {/* La fiche a son icône ; un chapitre ou une leçon a celle de son groupe. */}
+      <div className="flex min-w-0 items-start gap-2">
+        {row.kind === "method" && (
           <span className="mt-0.5 text-muted-foreground [&_svg]:size-4">
             {changeIcons[row.change]}
           </span>
-          <span className="min-w-0">
-            <span className="font-medium break-words">{label}</span>
-            {row.kind === "lesson" && row.chapterTitle && (
-              <span className="text-muted-foreground">
-                {" "}
-                {labels.inChapter(row.chapterTitle)}
-              </span>
-            )}
-          </span>
-        </span>
-        {row.kind !== "method" && (
-          <Badge
-            variant={row.change === "removed" ? "outline" : "secondary"}
-            className="shrink-0"
-          >
-            {labels.changes[row.change]}
-          </Badge>
         )}
+        <span className="min-w-0">
+          <span className="font-medium break-words">{label}</span>
+          {row.kind === "lesson" && row.chapterTitle && (
+            <span className="text-muted-foreground">
+              {" "}
+              {labels.inChapter(row.chapterTitle)}
+            </span>
+          )}
+        </span>
       </div>
       {row.savedAt && !compact && (
-        <p className="pl-6 text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {labels.savedAt(formatDateTime(row.savedAt))}
           {row.savedByName && ` ${texts.common.savedBy(row.savedByName)}`}
         </p>
       )}
       {problem && (
-        <div className="flex flex-wrap items-center gap-2 pl-6 text-xs text-destructive">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-destructive">
           <span className="flex items-start gap-1.5">
             <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
             <span>{contentProblemText(problem, row.problemDetail)}</span>

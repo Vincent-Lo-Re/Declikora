@@ -1270,12 +1270,28 @@ export const texts = {
       },
       // « Leçon « Respirer » » : la sorte, puis le titre.
       row: (kind: string, title: string) => `${kind} « ${title} »`,
-      changes: {
-        new: "Ajout",
-        modified: "Modification",
-        removed: "Retrait",
-        reordered: "Nouvelle place",
+      // Tant que la méthode n'est pas dans l'app : un résumé au lieu d'une ligne par élément.
+      entry: (chapters: number, lessons: number) => {
+        const counted = {
+          chapters: chapters === 1 ? "1 chapitre" : `${chapters} chapitres`,
+          lessons: lessons === 1 ? "1 leçon" : `${lessons} leçons`,
+        }
+        if (chapters === 0)
+          return "La méthode entre dans l'app, sans chapitre pour l'instant."
+        if (lessons === 0)
+          return `La méthode entre dans l'app avec ${counted.chapters}, sans leçon pour l'instant.`
+        return `La méthode entre dans l'app avec ${counted.chapters} et ${counted.lessons}.`
       },
+      // Ensuite, les chapitres et les leçons par sorte de changement : « Modifications (12) ».
+      groups: {
+        new: "Ajouts",
+        modified: "Modifications",
+        removed: "Retraits",
+        reordered: "Nouvelles places",
+      },
+      groupTitle: (label: string, count: number) => `${label} (${count})`,
+      showAll: (count: number) => `Voir tout (${count})`,
+      showLess: "Voir moins",
       inChapter: (title: string) => `dans « ${title} »`,
       savedAt: (date: string) => `modifié le ${date}`,
       open: (label: string) => `Ouvrir ${label}`,

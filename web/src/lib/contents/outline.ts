@@ -368,6 +368,81 @@ export function previewProblems(rows: readonly PreviewRow[]): PreviewRow[] {
 }
 
 // ---------------------------------------------------------------------------------------------
+// La liste « Ce qui va changer dans l'app », telle qu'on la montre (QCM du 04/10/2026)
+// ---------------------------------------------------------------------------------------------
+
+/** Les lignes montrées par sorte de changement, avant « Voir tout ». */
+export const CHANGES_SHOWN = 5
+
+/** L'ordre des groupes : ce qui arrive, ce qui change, ce qui part, ce qui se déplace. */
+const GROUP_ORDER: readonly PreviewChange[] = [
+  "new",
+  "modified",
+  "removed",
+  "reordered",
+]
+
+/**
+ * Le problème d'une ligne, s'il se montre dans la liste : le titre et l'image de présentation de
+ * la fiche sont déjà signalés au-dessus (« Prêt à publier ? »).
+ */
+export function shownProblem(row: PreviewRow): string | null {
+  if (
+    row.kind === "method" &&
+    (row.problem === "image_de_presentation_manquante" ||
+      row.problem === "titre_manquant")
+  ) {
+    return null
+  }
+  return row.problem
+}
+
+export type ChangeGroup = { change: PreviewChange; rows: PreviewRow[] }
+
+export type ChangesView =
+  // La méthode entre dans l'app : un résumé, et seulement les lignes qui ont un problème.
+  | { kind: "entry"; chapters: number; lessons: number; problems: PreviewRow[] }
+  // Déjà dans l'app : les lignes de la fiche, puis les chapitres et les leçons par sorte de
+  // changement.
+  | { kind: "groups"; method: PreviewRow[]; groups: ChangeGroup[] }
+
+/**
+ * Ce que montre la liste des changements ([D29]). Tant que la méthode n'est pas dans l'app, tout y
+ * entre : une ligne par élément répéterait le plan, un résumé suffit (ses chapitres et ses
+ * leçons). Ensuite, les chapitres et les leçons se rangent par sorte de changement, chacun dans
+ * l'ordre du plan, ceux qui ont un problème d'abord (ils ne se cachent pas derrière « Voir tout »).
+ */
+export function changesView(rows: readonly PreviewRow[]): ChangesView {
+  const elements = rows.filter((row) => row.kind !== "method")
+  const entering = rows.some(
+    (row) => row.kind === "method" && row.change === "new"
+  )
+  if (entering) {
+    return {
+      kind: "entry",
+      chapters: elements.filter((row) => row.kind === "chapter").length,
+      lessons: elements.filter((row) => row.kind === "lesson").length,
+      problems: rows.filter((row) => shownProblem(row) !== null),
+    }
+  }
+  const groups = GROUP_ORDER.map((change) => {
+    const inGroup = elements.filter((row) => row.change === change)
+    return {
+      change,
+      rows: [
+        ...inGroup.filter((row) => shownProblem(row) !== null),
+        ...inGroup.filter((row) => shownProblem(row) === null),
+      ],
+    }
+  }).filter((group) => group.rows.length > 0)
+  return {
+    kind: "groups",
+    method: rows.filter((row) => row.kind === "method"),
+    groups,
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
 // L'état de chaque élément
 // ---------------------------------------------------------------------------------------------
 

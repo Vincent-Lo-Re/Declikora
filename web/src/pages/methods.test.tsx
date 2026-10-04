@@ -929,6 +929,17 @@ describe("publier une méthode d'un seul geste ([D29])", () => {
       "data-change",
       "new"
     )
+    // Les chapitres et les leçons, par sorte de changement.
+    expect(
+      within(list).getByRole("region", {
+        name: changes.groupTitle(changes.groups.modified, 1),
+      })
+    ).toHaveTextContent("Leçon « Le souffle »")
+    expect(
+      within(list).getByRole("region", {
+        name: changes.groupTitle(changes.groups.new, 1),
+      })
+    ).toHaveTextContent("Leçon « Respiration carrée »")
     expect(within(dialog).getByText("Essentiel")).toBeVisible()
     const confirm = within(dialog).getByRole("button", {
       name: texts.publication.publishDialog.confirm,
@@ -939,6 +950,64 @@ describe("publier une méthode d'un seul geste ([D29])", () => {
       expect(publicationApi.publishContent).toHaveBeenCalledWith(METHOD, 4)
     )
     await waitFor(() => expect(mediaApi.kickFiles).toHaveBeenCalled())
+  })
+
+  it("la méthode entre dans l'app : un résumé au lieu d'une ligne par élément, dans la carte et la fenêtre", async () => {
+    vi.mocked(methodsApi.getMethodPreview).mockResolvedValue([
+      previewRow(METHOD, "method", "Mieux respirer", "new"),
+      previewRow(BASES, "chapter", "Les bases", "new"),
+      previewRow(SOUFFLE, "lesson", "Le souffle", "new", {
+        chapterId: BASES,
+        chapterTitle: "Les bases",
+      }),
+      previewRow(CARREE, "lesson", "Respiration carrée", "new", {
+        chapterId: BASES,
+        chapterTitle: "Les bases",
+      }),
+    ])
+    await openMethod()
+    const card = screen.getByRole("region", { name: changes.cardTitle })
+    await waitFor(() => expect(card).toHaveTextContent(changes.entry(1, 2)))
+    expect(card.querySelector("[data-change]")).toBeNull()
+
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.publication.actions.publish })
+    )
+    const dialog = await screen.findByRole("dialog")
+    const list = within(dialog).getByRole("region", { name: changes.title })
+    await waitFor(() => expect(list).toHaveTextContent(changes.entry(1, 2)))
+    expect(list.querySelector("[data-change]")).toBeNull()
+    // Pas de nombre de changements : le résumé dit ce qui arrive.
+    expect(list).not.toHaveTextContent(changes.count(4))
+  })
+
+  it("un groupe long montre ses cinq premières lignes, puis « Voir tout » et « Voir moins »", async () => {
+    const lessons = Array.from({ length: 7 }, (_, index) =>
+      previewRow(`lecon-${index}`, "lesson", `Leçon ${index + 1}`, "modified", {
+        chapterId: BASES,
+        chapterTitle: "Les bases",
+      })
+    )
+    vi.mocked(methodsApi.getMethodPreview).mockResolvedValue([
+      previewRow(METHOD, "method", "Mieux respirer", "reordered"),
+      ...lessons,
+    ])
+    renderApp(`/methodes/${METHOD}`)
+    await editable()
+    const card = screen.getByRole("region", { name: changes.cardTitle })
+    const group = await within(card).findByRole("region", {
+      name: changes.groupTitle(changes.groups.modified, 7),
+    })
+    const shown = () => group.querySelectorAll("[data-change]").length
+    expect(shown()).toBe(5)
+    fireEvent.click(
+      within(group).getByRole("button", { name: changes.showAll(7) })
+    )
+    expect(shown()).toBe(7)
+    fireEvent.click(
+      within(group).getByRole("button", { name: changes.showLess })
+    )
+    expect(shown()).toBe(5)
   })
 
   it("ne publie pas tant qu'un élément ferait refuser la publication, et mène à lui", async () => {
