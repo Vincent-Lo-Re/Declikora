@@ -151,14 +151,6 @@ function lockChange(
   }
 }
 
-/** Le même brouillon, dans un modèle de bloc (mise en forme) : l'ancien éditeur, son bandeau. */
-const template: api.Content = {
-  ...content,
-  kind: "template",
-  template_sort: "style",
-  template_for: null,
-}
-
 /** L'ouverture de l'éditeur (session) passée à lock_take. */
 function editorSession(): string {
   return vi.mocked(api.lockTake).mock.calls[0][2]
@@ -471,41 +463,6 @@ describe("éditeur", () => {
     })) {
       expect(add).toBeDisabled()
     }
-  })
-
-  it("ancien éditeur (un modèle de bloc) : le bandeau dit qui écrit ; « Reprendre la main » demande confirmation, puis force la prise du verrou", async () => {
-    vi.mocked(api.getContent).mockResolvedValue(template)
-    vi.mocked(api.lockTake)
-      .mockResolvedValueOnce(claireRow)
-      .mockResolvedValue(mineRow)
-    renderApp(`/modeles/${PAGE_ID}`)
-
-    expect(
-      await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: texts.editor.add.label })
-    ).toBeDisabled()
-    fireEvent.click(
-      await screen.findByRole("button", { name: texts.editor.lock.forceTake })
-    )
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: texts.editor.lock.confirmForce.confirm,
-      })
-    )
-    await waitFor(() =>
-      expect(api.lockTake).toHaveBeenLastCalledWith(
-        PAGE_ID,
-        true,
-        editorSession()
-      )
-    )
-    await waitFor(() =>
-      expect(
-        screen.getByLabelText(texts.templates.editor.nameLabel)
-      ).not.toHaveAttribute("readonly")
-    )
   })
 
   it("notre enregistrement vu par Realtime avant sa réponse ne bloque pas l'écriture", async () => {

@@ -45,7 +45,7 @@ export type ContentProfile = {
 export type PresentationKind = "method" | "chapter" | "lesson"
 
 /** Les sortes qui ont déjà l'éditeur du Fil (layout « feed ») : leurs mots dans la colonne de droite. */
-export type FeedKind = "article" | "episode" | "page"
+export type FeedKind = "article" | "episode" | "page" | "template"
 
 /** Vrai pour une sorte qui a l'éditeur du Fil. */
 export function isFeedKind(kind: ContentKind): kind is FeedKind {
@@ -56,7 +56,13 @@ export function isFeedKind(kind: ContentKind): kind is FeedKind {
  * Celles qui ont une carte dans une liste de l'app (le Fil, Radio Éclaircies) : leur image de
  * présentation est exigée ([D45]), et la colonne de droite montre cette carte.
  */
-export type ListedFeedKind = Exclude<FeedKind, "page">
+export type ListedFeedKind = Exclude<FeedKind, "page" | "template">
+
+/**
+ * Celles qui se publient elles-mêmes (pas un modèle de bloc) : la colonne de droite montre leur
+ * publication, et la Lecture peut les montrer à une personne sans la formule.
+ */
+export type PublishedFeedKind = Exclude<FeedKind, "template">
 
 /** Vrai pour une sorte de l'éditeur du Fil qui a une carte dans une liste de l'app. */
 export function isListedFeedKind(kind: ContentKind): kind is ListedFeedKind {
@@ -112,6 +118,7 @@ export function contentProfile(
     case "template":
       return {
         ...base,
+        layout: "feed",
         publication: null,
         titleRequired: false,
         access: null,

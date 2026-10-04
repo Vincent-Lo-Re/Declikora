@@ -117,7 +117,8 @@ export function BlocksLibrary({
   inBox: boolean
   onCancelTarget: () => void
   onAdd: (type: InsertableType) => void
-  onInsert: (template: TemplateItem) => void
+  // « Mes blocs » ; absent dans un modèle de bloc (la base y refuse un bloc partagé).
+  onInsert?: (template: TemplateItem) => void
   // Le panneau « Mes blocs », par-dessus les Blocs.
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -126,6 +127,7 @@ export function BlocksLibrary({
   const templates = useQuery({
     queryKey: templateKeys.list,
     queryFn: listTemplates,
+    enabled: onInsert !== undefined,
   })
   const count = templates.data
     ? savedBlocks(templates.data, "all", "").length
@@ -192,31 +194,36 @@ export function BlocksLibrary({
             ))}
           </ul>
         </section>
-        <button
-          ref={opener}
-          type="button"
-          aria-expanded={open}
-          aria-controls="mes-blocs"
-          // Dans une section, pas de bloc enregistré.
-          disabled={inBox}
-          className="flex w-full items-center gap-3 rounded-lg border bg-background p-2.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:bg-muted disabled:opacity-50"
-          onClick={() => onOpenChange(true)}
-        >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
-            <Bookmark aria-hidden className="size-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold">{mine.title}</span>
-            {count !== null && (
-              <span className="block text-xs text-muted-foreground">
-                {mine.count(count)}
-              </span>
-            )}
-          </span>
-          <ChevronRight aria-hidden className="size-4 text-muted-foreground" />
-        </button>
+        {onInsert && (
+          <button
+            ref={opener}
+            type="button"
+            aria-expanded={open}
+            aria-controls="mes-blocs"
+            // Dans une section, pas de bloc enregistré.
+            disabled={inBox}
+            className="flex w-full items-center gap-3 rounded-lg border bg-background p-2.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:bg-muted disabled:opacity-50"
+            onClick={() => onOpenChange(true)}
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
+              <Bookmark aria-hidden className="size-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">{mine.title}</span>
+              {count !== null && (
+                <span className="block text-xs text-muted-foreground">
+                  {mine.count(count)}
+                </span>
+              )}
+            </span>
+            <ChevronRight
+              aria-hidden
+              className="size-4 text-muted-foreground"
+            />
+          </button>
+        )}
       </div>
-      {open && (
+      {open && onInsert && (
         <SavedBlocksPanel
           templates={templates}
           disabled={disabled}

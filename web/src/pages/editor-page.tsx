@@ -112,9 +112,10 @@ import { MethodOutline } from "@/components/methods/method-outline"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TemplateDialog } from "@/components/templates/template-dialog"
 import {
-  SharedTemplateBar,
   TemplateSortBadge,
-} from "@/components/templates/template-editor-bar"
+  TemplateSortCard,
+  TemplateUsesCard,
+} from "@/components/templates/template-cards"
 import { useTemplateUses } from "@/components/templates/use-template-uses"
 import { TemplatePicker } from "@/components/templates/template-picker"
 import {
@@ -701,8 +702,10 @@ function ContentEditor({
         .map(({ block }) => block.id)
     : []
 
-  // « Sortir de la section » (plan de l'éditeur du Fil) : le bloc se place juste après elle.
+  // « Sortir de la section » (plan de l'éditeur du Fil) : le bloc se place juste après elle (pas
+  // dans un bloc partagé, qui n'a qu'un bloc au premier niveau).
   const onLeaveBox = (id: string) => {
+    if (!canAddRootBlock(draft, templateSort)) return
     const place = findBlock(draft, id)
     const box = place && findBlock(draft, place.container)
     const next = box && moveBlock(draft, id, ROOT, box.index + 1)
@@ -716,11 +719,14 @@ function ContentEditor({
     )
   }
 
-  // « Dupliquer » (plan de l'éditeur du Fil) : la copie juste après, choisie.
+  // « Dupliquer » (plan de l'éditeur du Fil) : la copie juste après, choisie (au premier niveau,
+  // s'il a de la place).
   const onDuplicate = (id: string) => {
     const place = findBlock(draft, id)
     const result = duplicateBlock(draft, id)
     if (!place || !result) return
+    if (place.container === ROOT && !canAddRootBlock(draft, templateSort))
+      return
     setDraft(result.draft)
     setSelectedId(result.id)
     setAnnouncement(
@@ -1115,13 +1121,14 @@ function ContentEditor({
   })
   const openSaveAs = saveAs.openFor
 
-  // Un bloc identique partout garde son bloc tant qu'un brouillon l'utilise ([D11]).
+  // Un bloc partagé garde son bloc tant qu'un brouillon l'utilise ([D11]).
   const templateUses = useTemplateUses(contentId, isShared)
-  const removeBlocked =
+  const keepsBlock =
     isShared &&
     (templateUses.data?.length ?? 0) > 0 &&
-    draft.blocks.length === 1 &&
-    selectedId === draft.blocks[0].id
+    draft.blocks.length === 1
+  const removeBlocked =
+    keepsBlock && selectedId === draft.blocks[0].id
       ? texts.templates.editor.keepBlock
       : null
   const canAddRoot = canAddRootBlock(draft, templateSort)
@@ -1229,56 +1236,81 @@ function ContentEditor({
         ...(length ? [length] : []),
       ].join(" · ")
     : null
-  // Éditeur du Fil : la colonne de droite, tout ce qui concerne l'article (l'épisode, la page).
-  const articlePanel = feedKind ? (
-    <ArticlePanel
-      kind={feedKind}
-      contentId={contentId}
-      draft={draft}
-      editable={editable}
-      settings={settings}
-      onSettingsChange={(next) => {
-        if (next.slug !== settings.slug) setRefusedSlug(null)
-        setSettings(next)
-      }}
-      refusedSlug={refusedSlug}
-      levels={levels.data}
-      levelsFailed={levels.isError}
-      retryLevels={() => void levels.refetch()}
-      live={pub.publication?.live ?? null}
-      categories={
-        categorySection
-          ? {
-              section: categorySection,
-              list: categories.data,
-              failed: categories.isError,
-              retry: () => void categories.refetch(),
+  // Éditeur du Fil : la colonne de droite, tout ce qui concerne l'article (l'épisode, la page) ;
+  // un modèle de bloc ne se publie pas : sa sorte et, pour un bloc partagé, où il est utilisé.
+  const articlePanel =
+    feedKind === "template" ? (
+      <div className="space-y-3">
+        {!editable && (
+          <p className="text-sm text-muted-foreground">
+            {texts.editor.settings.readOnly}
+          </p>
+        )}
+        {templateSort && (
+          <TemplateSortCard
+            sort={templateSort}
+            templateFor={
+              isTemplateFor(initial.template_for) ? initial.template_for : null
             }
-          : null
-      }
-      cover={mediaFor(draft.cover?.mediaId ?? null)}
-      audio={audio}
-      ready={readyItems(kind, checks ?? { missing: [], advice: [] }, settings)}
-      warnings={{
-        count: warnedIds.length,
-        // Le premier point à vérifier, choisi et montré dans le plan.
-        onShow: () => {
-          const first = warnedIds[0]
-          if (!first) return
-          closeLibrary()
-          selectAndShow(first)
-          // Sa ligne s'allume dans le plan, une fois les Blocs refermés.
-          highlightSoon(() =>
-            document.querySelector<HTMLElement>(`[data-outline-id="${first}"]`)
-          )
-        },
-      }}
-      onChooseCover={() => openPresentationPicker("cover")}
-      onRemoveCover={() => removePresentationFile("cover")}
-      onChooseAudio={() => openPresentationPicker("audio")}
-      onRemoveAudio={() => removePresentationFile("audio")}
-    />
-  ) : null
+          />
+        )}
+        {isShared && <TemplateUsesCard templateId={contentId} />}
+      </div>
+    ) : feedKind ? (
+      <ArticlePanel
+        kind={feedKind}
+        contentId={contentId}
+        draft={draft}
+        editable={editable}
+        settings={settings}
+        onSettingsChange={(next) => {
+          if (next.slug !== settings.slug) setRefusedSlug(null)
+          setSettings(next)
+        }}
+        refusedSlug={refusedSlug}
+        levels={levels.data}
+        levelsFailed={levels.isError}
+        retryLevels={() => void levels.refetch()}
+        live={pub.publication?.live ?? null}
+        categories={
+          categorySection
+            ? {
+                section: categorySection,
+                list: categories.data,
+                failed: categories.isError,
+                retry: () => void categories.refetch(),
+              }
+            : null
+        }
+        cover={mediaFor(draft.cover?.mediaId ?? null)}
+        audio={audio}
+        ready={readyItems(
+          kind,
+          checks ?? { missing: [], advice: [] },
+          settings
+        )}
+        warnings={{
+          count: warnedIds.length,
+          // Le premier point à vérifier, choisi et montré dans le plan.
+          onShow: () => {
+            const first = warnedIds[0]
+            if (!first) return
+            closeLibrary()
+            selectAndShow(first)
+            // Sa ligne s'allume dans le plan, une fois les Blocs refermés.
+            highlightSoon(() =>
+              document.querySelector<HTMLElement>(
+                `[data-outline-id="${first}"]`
+              )
+            )
+          },
+        }}
+        onChooseCover={() => openPresentationPicker("cover")}
+        onRemoveCover={() => removePresentationFile("cover")}
+        onChooseAudio={() => openPresentationPicker("audio")}
+        onRemoveAudio={() => removePresentationFile("audio")}
+      />
+    ) : null
   // Éditeur du Fil : le bloc choisi, dont les réglages glissent par-dessus l'Article.
   const selectedBlock = selectedId
     ? (findBlock(draft, selectedId)?.block ?? null)
@@ -1297,7 +1329,9 @@ function ContentEditor({
       templateFor={templateFor}
       onDetach={detachBlock}
       removeBlocked={removeBlocked}
-      onSaveAsTemplate={(id) => openSaveAs([id])}
+      onSaveAsTemplate={
+        profile.savedBlocks ? (id) => openSaveAs([id]) : undefined
+      }
       onDuplicate={onDuplicate}
       rootLimit={rootLimit}
       actionBar
@@ -1318,12 +1352,19 @@ function ContentEditor({
         actions: editable
           ? {
               onDuplicate,
-              onSaveToMine: (id) => openSaveAs([id]),
+              onSaveToMine: profile.savedBlocks
+                ? (id) => openSaveAs([id])
+                : undefined,
               onLeaveBox,
               onRemove,
-              removeBlocked: () => null,
+              removeBlocked: (id) =>
+                keepsBlock && id === draft.blocks[0]?.id
+                  ? texts.templates.editor.keepBlock
+                  : null,
+              rootFull: !canAddRoot,
             }
           : undefined,
+        rootLimit,
       }
     : undefined
   const outlinePanel = (
@@ -1430,17 +1471,9 @@ function ContentEditor({
       {!feed && draft.blocks.length === 0 && (
         <Empty className="border border-dashed font-sans">
           <EmptyHeader>
-            <EmptyTitle>
-              {isTemplate
-                ? texts.templates.editor.empty.title
-                : texts.editor.emptyPage.title}
-            </EmptyTitle>
+            <EmptyTitle>{texts.editor.emptyPage.title}</EmptyTitle>
             <EmptyDescription>
-              {isShared
-                ? texts.templates.editor.empty.sharedDescription
-                : isTemplate
-                  ? texts.templates.editor.empty.description
-                  : texts.editor.emptyPage.description}
+              {texts.editor.emptyPage.description}
             </EmptyDescription>
           </EmptyHeader>
           {editable && (
@@ -1481,11 +1514,6 @@ function ContentEditor({
             onTemplate={profile.savedBlocks ? openTemplates : undefined}
           />
         </div>
-      )}
-      {editable && isShared && !canAddRoot && (
-        <p className="mt-6 text-center font-sans text-xs text-muted-foreground">
-          {texts.templates.editor.sharedLimit}
-        </p>
       )}
     </div>
   )
@@ -1583,37 +1611,21 @@ function ContentEditor({
               · {elementKind ? texts.methods.kinds[elementKind] : sectionTitle}
             </span>
           </p>
-          {templateSort && (
-            <TemplateSortBadge
-              sort={templateSort}
-              templateFor={
-                isTemplateFor(initial.template_for)
-                  ? initial.template_for
-                  : null
-              }
-            />
-          )}
           {saveStatus}
-          {isTemplate ? (
-            isShared && <SharedTemplateBar templateId={contentId} />
-          ) : (
-            <>
-              <HeaderIconButton
-                label={texts.publication.actions.settings}
-                expanded={settingsOpen}
-                onClick={() => setSettingsOpen(true)}
-              >
-                <Settings2 />
-              </HeaderIconButton>
-              <HeaderIconButton
-                label={texts.publication.actions.history}
-                expanded={historyOpen}
-                onClick={() => setHistoryOpen(true)}
-              >
-                <History />
-              </HeaderIconButton>
-            </>
-          )}
+          <HeaderIconButton
+            label={texts.publication.actions.settings}
+            expanded={settingsOpen}
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings2 />
+          </HeaderIconButton>
+          <HeaderIconButton
+            label={texts.publication.actions.history}
+            expanded={historyOpen}
+            onClick={() => setHistoryOpen(true)}
+          >
+            <History />
+          </HeaderIconButton>
           {!isMethod && (
             <AddBlockMenu
               id={ADD_BLOCK_ID}
@@ -1745,15 +1757,25 @@ function ContentEditor({
                         inBox={targetBox !== null}
                         onCancelTarget={() => setBoxTarget(null)}
                         onAdd={addFromLibrary}
-                        onInsert={(template) => {
-                          toEdit()
-                          onInsertTemplate(template)
-                        }}
+                        onInsert={
+                          profile.savedBlocks
+                            ? (template) => {
+                                toEdit()
+                                onInsertTemplate(template)
+                              }
+                            : undefined
+                        }
                       />
                     </div>
                   </section>
                 )}
               </div>
+              {/* Un bloc partagé : la règle d'un seul bloc ([D11]), qui grise « Ajouter un bloc ». */}
+              {isShared && (
+                <p className="shrink-0 px-4 pb-3 text-xs text-muted-foreground">
+                  {texts.templates.editor.sharedLimit}
+                </p>
+              )}
               {/* En bas, de la même hauteur que le bas de la colonne de droite : le retour sur
                   toute la hauteur, puis « Ajouter un bloc » sur toute la largeur qui reste. */}
               <div className="flex h-feed-footer shrink-0 items-stretch border-t">
@@ -1804,6 +1826,7 @@ function ContentEditor({
               <FeedPreview
                 preview={phoneView}
                 onPreviewChange={onPreviewChange}
+                readers={profile.access === "own"}
                 toolbar={
                   <FormatToolbar
                     editor={toolbarEditor}
@@ -1822,7 +1845,7 @@ function ContentEditor({
                 notices={
                   <>
                     {lockBanner}
-                    {scheduleBanner}
+                    {profile.publication === "own" && scheduleBanner}
                     {notices}
                   </>
                 }
@@ -1836,7 +1859,6 @@ function ContentEditor({
                   // Les images lisent l'éditeur (fichier, aperçu), en lecture seule.
                   <BlocksEditorContext value={readOnlyBlocks}>
                     <ReadView
-                      kind={feedKind}
                       draft={draft}
                       title={title.trim() || untitled}
                       cover={
@@ -1847,10 +1869,15 @@ function ContentEditor({
                       audio={audio}
                       meta={readMeta}
                       locked={
+                        feedKind !== "template" &&
                         previewLocked(phoneView, settings)
-                          ? (levels.data?.find(
-                              (level) => level.id === settings.accessLevelId
-                            )?.name ?? null)
+                          ? {
+                              kind: feedKind,
+                              level:
+                                levels.data?.find(
+                                  (level) => level.id === settings.accessLevelId
+                                )?.name ?? null,
+                            }
                           : false
                       }
                       resolve={resolveLinked}
@@ -1913,14 +1940,21 @@ function ContentEditor({
                 saveStatus={feedSaveStatus}
               >
                 {lockButton}
-                <PublicationBadge pub={pub} />
-                <span className="flex-1" />
-                <PublishButton
-                  pub={pub}
-                  disabled={publishDisabled}
-                  alwaysPublishable={alwaysPublishable}
-                  onHistory={() => setHistoryOpen(true)}
-                />
+                {templateSort ? (
+                  // Un modèle ne se publie pas : sa sorte, à la place.
+                  <TemplateSortBadge sort={templateSort} />
+                ) : (
+                  <>
+                    <PublicationBadge pub={pub} />
+                    <span className="flex-1" />
+                    <PublishButton
+                      pub={pub}
+                      disabled={publishDisabled}
+                      alwaysPublishable={alwaysPublishable}
+                      onHistory={() => setHistoryOpen(true)}
+                    />
+                  </>
+                )}
               </ArticleFooter>
             </aside>
           ) : (

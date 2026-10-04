@@ -592,7 +592,15 @@ describe("éditeur d'un modèle", () => {
     template_for: sort === "starter" ? "page" : null,
   })
 
-  it("bloc identique partout : un seul bloc, « Utilisé dans », « Mettre à jour ces contenus dans l'app »", async () => {
+  const columns = texts.editor.columns
+  const sorts = texts.templates.sorts
+
+  async function editable() {
+    const title = await screen.findByLabelText(texts.templates.editor.nameLabel)
+    await waitFor(() => expect(title).not.toHaveAttribute("readonly"))
+  }
+
+  it("bloc partagé, dans l'éditeur du Fil : sa sorte, un seul bloc, « Utilisé dans », « Mettre à jour ces contenus dans l'app »", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       template("shared", [contactBox])
     )
@@ -624,55 +632,89 @@ describe("éditeur d'un modèle", () => {
     ])
     vi.mocked(templatesApi.pushTemplate).mockResolvedValue(1)
     renderApp(`/modeles/${TEMPLATE_ID}`)
-    await screen.findByLabelText(texts.templates.editor.nameLabel)
+    await editable()
 
-    // « ← Modèles », la sorte, pas de publication ni de réglages d'accès.
+    // « ← Modèles de bloc » en bas à gauche ; pas de barre du haut.
+    const left = screen.getByRole("complementary", { name: columns.left })
     expect(
-      screen.getByRole("link", {
+      within(left).getByRole("link", {
         name: texts.editor.back(texts.sections.templates.title),
       })
     ).toHaveAttribute("href", "/modeles")
+    expect(screen.queryByRole("banner")).toBeNull()
+
+    // À droite : la sorte, pas de publication (ni « Prêt à publier ? », ni niveau d'accès).
+    const right = screen.getByRole("complementary", {
+      name: columns.right.template,
+    })
     expect(
-      screen.getByText(texts.templates.sorts.shared.title)
-    ).toBeInTheDocument()
+      within(right).getByRole("region", { name: sorts.shared.title })
+    ).toHaveTextContent(sorts.shared.description)
+    expect(right.querySelector('[data-template-sort="shared"]')).not.toBeNull()
+    for (const name of [
+      texts.publication.actions.publish,
+      texts.publication.actions.settings,
+    ]) {
+      expect(screen.queryByRole("button", { name })).toBeNull()
+    }
     expect(
-      screen.queryByRole("button", {
-        name: texts.publication.actions.publish,
-      })
+      within(right).queryByText(texts.editor.article.ready.title)
     ).toBeNull()
     expect(
-      screen.queryByRole("button", { name: texts.publication.actions.settings })
+      within(right).queryByText(texts.publication.settings.access.label)
     ).toBeNull()
-    // Un seul bloc : « Ajouter un bloc » est désactivé.
+
+    // « Utilisé dans 2 brouillons » : un lien vers chacun, la corbeille dite.
+    const uses = await within(right).findByRole("region", {
+      name: texts.templates.editor.usedIn(2),
+    })
+    expect(within(uses).getByRole("link", { name: "Accueil" })).toHaveAttribute(
+      "href",
+      `/pages/${PAGE_ID}`
+    )
+    expect(uses).toHaveTextContent(
+      `Ancienne (${texts.templates.editor.inTrash})`
+    )
+
+    // Un seul bloc : « Ajouter un bloc » est grisé, et la règle est dite.
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: texts.editor.add.label })
+        within(left).getByRole("button", { name: texts.editor.add.label })
       ).toBeDisabled()
     )
     expect(
-      screen.getByText(texts.templates.editor.sharedLimit)
-    ).toBeInTheDocument()
-    expect(
-      await screen.findByRole("button", {
-        name: texts.templates.editor.usedIn(2),
-      })
-    ).toBeInTheDocument()
+      within(left).getByText(texts.templates.editor.sharedLimit)
+    ).toBeVisible()
 
-    // Le bloc d'un modèle utilisé ne se supprime pas.
+    // Le bloc d'un modèle utilisé ne se supprime pas, et ne se duplique pas (le premier niveau
+    // est plein).
     fireEvent.pointerDown(
       document.querySelector(`[data-block-id="${contactBox.id}"]`)!
     )
+    const bar = await screen.findByRole("toolbar", {
+      name: texts.editor.settings.actions,
+    })
+    for (const name of [
+      texts.editor.settings.remove,
+      texts.editor.outline.duplicate,
+    ]) {
+      expect(within(bar).getByRole("button", { name })).toHaveAttribute(
+        "aria-disabled",
+        "true"
+      )
+    }
+    // Ni « Enregistrer comme modèle » ni « Mes blocs » dans un modèle.
     expect(
-      await screen.findByRole("button", {
-        name: texts.editor.settings.remove,
+      within(bar).queryByRole("button", {
+        name: texts.templates.saveAs.action,
       })
-    ).toHaveAttribute("aria-disabled", "true")
+    ).toBeNull()
     expect(
       screen.getByText(texts.templates.editor.keepBlock)
     ).toBeInTheDocument()
 
     fireEvent.click(
-      await screen.findByRole("button", {
+      await within(uses).findByRole("button", {
         name: texts.templates.editor.outdated.push(1),
       })
     )
@@ -697,34 +739,113 @@ describe("éditeur d'un modèle", () => {
     expect(publicationApi.getPublication).not.toHaveBeenCalled()
   })
 
-  it("bloc identique partout vide : il invite à ajouter son bloc", async () => {
-    vi.mocked(api.getContent).mockResolvedValue(template("shared", []))
-    renderApp(`/modeles/${TEMPLATE_ID}`)
-    await screen.findByLabelText(texts.templates.editor.nameLabel)
-    expect(
-      await screen.findByText(texts.templates.editor.empty.sharedDescription)
-    ).toBeInTheDocument()
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: texts.editor.add.label })
-      ).toBeEnabled()
+  it("le plan d'un bloc partagé : « Dupliquer » et « Sortir de la section » grisés, pas de « Mes blocs »", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(
+      template("shared", [contactBox])
     )
-    // Dans un modèle, pas de modèle à insérer (pas de bloc lié dans un modèle).
+    renderApp(`/modeles/${TEMPLATE_ID}`)
+    await editable()
+    const plan = screen.getByRole("navigation", {
+      name: texts.editor.outline.title,
+    })
+    // Pas de « Choisir des blocs » : on n'enregistre pas un modèle depuis un modèle.
     expect(
-      screen.queryByRole("button", { name: texts.templates.insert.menu })
+      within(plan).queryByRole("button", {
+        name: texts.templates.saveAs.select,
+      })
     ).toBeNull()
+    // Les sections sont dépliées d'office.
+    const inner = (contactBox.blocks[0] as TextBlock).id
+    const innerRow = document
+      .querySelector(`[data-outline-id="${inner}"]`)!
+      .closest("li")!
+    fireEvent.click(within(innerRow).getByRole("button", { name: /^Actions/ }))
+    const menu = await screen.findByRole("menu")
+    expect(
+      within(menu).getByRole("menuitem", {
+        name: texts.editor.outline.leaveBox,
+      })
+    ).toHaveAttribute("aria-disabled", "true")
+    expect(
+      within(menu).queryByRole("menuitem", {
+        name: texts.templates.saveAs.action,
+      })
+    ).toBeNull()
+    fireEvent.keyDown(menu, { key: "Escape" })
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
+
+    // La section elle-même, au premier niveau : sa copie n'y aurait pas sa place.
+    const boxRow = document
+      .querySelector(`[data-outline-id="${contactBox.id}"]`)!
+      .closest("li")!
+    fireEvent.click(
+      within(boxRow).getAllByRole("button", { name: /^Actions/ })[0]
+    )
+    expect(
+      within(await screen.findByRole("menu")).getByRole("menuitem", {
+        name: texts.editor.outline.duplicate,
+      })
+    ).toHaveAttribute("aria-disabled", "true")
   })
 
-  it("point de départ : sa section dans l'en-tête", async () => {
+  it("bloc partagé vide : « Ajouter un bloc » ouvre les Blocs, sans « Mes blocs » ; la règle est dite", async () => {
+    vi.mocked(api.getContent).mockResolvedValue(template("shared", []))
+    vi.mocked(templatesApi.listTemplateUses).mockResolvedValue([])
+    renderApp(`/modeles/${TEMPLATE_ID}`)
+    await editable()
+    const left = screen.getByRole("complementary", { name: columns.left })
+    expect(
+      within(left).getByText(texts.templates.editor.sharedLimit)
+    ).toBeVisible()
+    // Utilisé nulle part : la carte dit comment s'en servir.
+    expect(
+      await screen.findByRole("region", {
+        name: texts.templates.editor.usedIn(0),
+      })
+    ).toHaveTextContent(texts.templates.editor.usesNone)
+    const add = document.getElementById("colonne-gauche-ajouter")!
+    expect(add).toBeEnabled()
+    fireEvent.click(add)
+    const library = screen.getByRole("region", { name: columns.blocks })
+    expect(
+      within(library).getByRole("button", {
+        name: texts.editor.library.addLabel(texts.editor.blocks.text),
+      })
+    ).toBeEnabled()
+    // Dans un modèle, pas de bloc enregistré à insérer (pas de bloc lié dans un modèle).
+    expect(
+      within(library).queryByRole("button", {
+        name: new RegExp(texts.editor.library.mine.title),
+      })
+    ).toBeNull()
+    expect(templatesApi.listTemplates).not.toHaveBeenCalled()
+  })
+
+  it("point de départ : sa sorte et sa section ; en Lecture, pas de choix « abonné / sans la formule »", async () => {
     vi.mocked(api.getContent).mockResolvedValue(
       template("starter", [textBlock(TEXT_ID, "Question")])
     )
     renderApp(`/modeles/${TEMPLATE_ID}`)
-    expect(
-      await screen.findByText(
-        texts.templates.editor.starterFor(texts.templates.sections.page)
-      )
-    ).toBeInTheDocument()
+    await editable()
+    const card = screen.getByRole("region", { name: sorts.starter.title })
+    expect(card).toHaveTextContent(
+      texts.templates.editor.starterFor(texts.templates.sections.page)
+    )
     expect(templatesApi.getTemplateOutdated).not.toHaveBeenCalled()
+    expect(templatesApi.listTemplateUses).not.toHaveBeenCalled()
+
+    const preview = texts.editor.preview
+    const tools = screen.getByRole("toolbar", { name: preview.tools })
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.mode.read })
+    )
+    expect(
+      within(tools).queryByRole("button", { name: preview.reader.visitor })
+    ).toBeNull()
+    expect(
+      within(
+        screen.getByRole("region", { name: preview.screen.ios })
+      ).getByText("Question")
+    ).toBeVisible()
   })
 })

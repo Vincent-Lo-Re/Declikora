@@ -20,13 +20,18 @@ const kinds: ContentKind[] = [
 ]
 
 describe("profil d'une sorte de contenu", () => {
-  it("la mise en page : le Fil pour un article, un épisode et une page, l'écran d'une méthode, l'ancienne ailleurs (pour l'instant)", () => {
+  it("la mise en page : le Fil pour un article, un épisode, une page et un modèle, l'écran d'une méthode, l'ancienne ailleurs (pour l'instant)", () => {
     expect(contentProfile("method").layout).toBe("method")
-    for (const kind of ["chapter", "lesson", "template"] as const) {
+    for (const kind of ["chapter", "lesson"] as const) {
       expect(contentProfile(kind).layout).toBe("classic")
     }
-    expect(kinds.filter(isFeedKind)).toEqual(["article", "episode", "page"])
-    // Une page n'est dans aucune liste de l'app : pas de carte, pas d'image.
+    expect(kinds.filter(isFeedKind)).toEqual([
+      "article",
+      "episode",
+      "page",
+      "template",
+    ])
+    // Une page et un modèle ne sont dans aucune liste de l'app : pas de carte, pas d'image.
     expect(kinds.filter(isListedFeedKind)).toEqual(["article", "episode"])
   })
 

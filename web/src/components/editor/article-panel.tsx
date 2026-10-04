@@ -58,8 +58,8 @@ import type { RefusedSlug } from "@/lib/contents/slug"
 import {
   contentProfile,
   isListedFeedKind,
-  type FeedKind,
   type ListedFeedKind,
+  type PublishedFeedKind,
 } from "@/lib/editor/profile"
 import { READY_IDS, showReadySetting } from "@/lib/editor/ready-targets"
 import { focusSoon } from "@/lib/focus"
@@ -119,7 +119,7 @@ export function ArticlePanel({
   onChooseAudio,
   onRemoveAudio,
 }: {
-  kind: FeedKind
+  kind: PublishedFeedKind
   contentId: string
   draft: Draft
   editable: boolean

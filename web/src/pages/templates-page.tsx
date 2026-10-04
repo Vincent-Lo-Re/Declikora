@@ -3,8 +3,6 @@ import {
   Ellipsis,
   Layers,
   LayoutTemplate,
-  Link2,
-  Paintbrush,
   Plus,
   SquarePen,
   Trash2,
@@ -28,6 +26,7 @@ import { LoadState } from "@/components/load-state"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TemplateDialog } from "@/components/templates/template-dialog"
+import { templateSortIcons } from "@/components/templates/sort-icons"
 import { UsesList } from "@/components/templates/uses-list"
 import { TrashDialog } from "@/components/trash-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -94,9 +93,7 @@ type TemplateTab = typeof ALL | TemplateSort
 const tabs: TemplateTab[] = [ALL, ...templateSorts]
 const tabIcons: Record<TemplateTab, LucideIcon> = {
   all: Layers, // comme Modèles de bloc dans le menu
-  style: Paintbrush,
-  shared: Link2, // un bloc lié à son modèle (« Détacher » : le lien coupé)
-  starter: LayoutTemplate, // comme les points de départ de « Nouvel article »
+  ...templateSortIcons,
 }
 
 function nameOf(item: { title: string }) {

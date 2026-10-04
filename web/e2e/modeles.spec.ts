@@ -29,13 +29,6 @@ async function saved(page: Page) {
   })
 }
 
-/** Un choix d'un menu ouvert par le bouton `menu` (le précédent peut encore se fermer). */
-function menuItem(page: Page, menu: string, item: string) {
-  return page
-    .getByRole("menu", { name: menu })
-    .getByRole("menuitem", { name: item })
-}
-
 function nav(page: Page, title: string) {
   return page
     .getByRole("navigation", { name: texts.nav.label })
@@ -128,22 +121,30 @@ test("bloc partagé : deux pages, correction, mise à jour de l'app, détacher, 
   await create.getByRole("button", { name: labels.create.submit }).click()
   await expect(page).toHaveURL(/\/modeles\/[0-9a-f-]{36}$/)
   const templateId = contentIdFromUrl(page.url())
+  // L'éditeur du Fil : la sorte à droite, la règle d'un seul bloc à gauche ([D11]).
   await expect(
-    page.getByText(labels.editor.empty.sharedDescription)
+    page.getByRole("region", { name: labels.sorts.shared.title })
   ).toBeVisible()
-  await page
-    .getByRole("button", { name: editor.blocks.box, exact: true })
+  await expect(page.getByText(labels.editor.sharedLimit)).toBeVisible()
+  // Une section (par les Blocs), puis un texte dedans (« Ajouter dans la section »).
+  const add = page.locator("#colonne-gauche-ajouter")
+  const library = page.getByRole("region", { name: editor.columns.blocks })
+  await add.click()
+  await library
+    .getByRole("button", { name: editor.library.addLabel(editor.blocks.box) })
     .click()
   const box = page.locator('[data-block-type="box"]')
   await box.getByRole("button", { name: editor.add.inBox }).click()
-  await menuItem(page, editor.add.inBox, editor.blocks.text).click()
+  await library
+    .getByRole("button", { name: editor.library.addLabel(editor.blocks.text) })
+    .click()
+  await expect(
+    box.locator('[data-block-type="text"] [contenteditable]')
+  ).toBeFocused()
   await page.keyboard.type("Écris-nous à contact@exemple.fr")
   await saved(page)
-  // Un seul bloc ([D11]) : on n'en ajoute plus au premier niveau.
-  await expect(
-    page.getByRole("button", { name: editor.add.label }).first()
-  ).toBeDisabled()
-  await expect(page.getByText(labels.editor.sharedLimit)).toBeVisible()
+  // Un seul bloc : on n'en ajoute plus au premier niveau.
+  await expect(add).toBeDisabled()
   await leave(page, templatesTitle)
   // « Tous les blocs » : le modèle, avec sa sorte.
   await expect(page.locator(`[data-template="${templateId}"]`)).toContainText(
@@ -171,7 +172,7 @@ test("bloc partagé : deux pages, correction, mise à jour de l'app, détacher, 
   // 3. Corrigé dans le modèle : les deux brouillons le montrent aussitôt.
   await openFromList(page, templatesTitle, name)
   await expect(
-    page.getByRole("button", { name: labels.editor.usedIn(2) })
+    page.getByRole("region", { name: labels.editor.usedIn(2) })
   ).toBeVisible()
   await appendText(page, " (réponse sous 48 h)")
   await leave(page, templatesTitle)
@@ -206,6 +207,11 @@ test("bloc partagé : deux pages, correction, mise à jour de l'app, détacher, 
   // 5. Corrigé encore : rien ne change dans l'app avant « Mettre à jour ce contenu dans l'app ».
   await openFromList(page, templatesTitle, name)
   await appendText(page, " Merci !")
+  // Le bloc écrit est choisi : sa glissière se referme, la colonne du modèle revient.
+  await page
+    .getByRole("region", { name: editor.settings.label })
+    .getByRole("button", { name: texts.common.close })
+    .click()
   const push = page.getByRole("button", {
     name: labels.editor.outdated.push(1),
   })

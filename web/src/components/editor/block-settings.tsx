@@ -441,6 +441,12 @@ function ActionBar({
       {onDuplicate && (
         <IconAction
           label={texts.editor.outline.duplicate}
+          // Le premier niveau est plein (un bloc partagé n'a qu'un bloc) : pas de copie à côté.
+          disabled={
+            place.container === ROOT &&
+            props.rootLimit !== undefined &&
+            props.draft.blocks.length >= props.rootLimit
+          }
           onClick={() => onDuplicate(block.id)}
         >
           <Copy />
