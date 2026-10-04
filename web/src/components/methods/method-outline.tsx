@@ -29,9 +29,11 @@ import {
   ArrowUp,
   CircleOff,
   Ellipsis,
+  Eye,
   GripVertical,
   ListTree,
-  Plus,
+  LockOpen,
+  PenLine,
   SquarePen,
   Trash2,
   TriangleAlert,
@@ -41,7 +43,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useId,
   useMemo,
   useRef,
   useState,
@@ -50,11 +51,11 @@ import {
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
+import { AddBlockButton } from "@/components/editor/add-block-button"
+import { ColumnHeader } from "@/components/editor/column-header"
+import { InfoTip } from "@/components/info-tip"
 import { LoadState } from "@/components/load-state"
-import {
-  ElementStateBadge,
-  ElementStateHint,
-} from "@/components/methods/element-state-badge"
+import { ElementStateDot } from "@/components/methods/element-state-badge"
 import {
   NewElementDialog,
   type NewElement,
@@ -75,23 +76,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Spinner } from "@/components/ui/spinner"
 import {
   ContentError,
@@ -111,6 +104,7 @@ import {
   canDropOutline,
   elementState,
   findInTree,
+  lessonCount,
   lessonZoneId,
   liveIds,
   moveOnDropOutline,
@@ -131,7 +125,6 @@ import {
   unpublishContent,
 } from "@/lib/contents/publication"
 import { templateKeys } from "@/lib/contents/templates"
-import { formatDateTime } from "@/lib/dates"
 import { errorMessage } from "@/lib/errors"
 import { focusSoon } from "@/lib/focus"
 import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
@@ -141,6 +134,9 @@ import { texts } from "@/texts"
 
 const labels = texts.methods.outline
 const dnd = texts.methods.dnd
+
+// « Nouveau chapitre », en bas de la colonne (le focus y revient après une création annulée).
+const NEW_CHAPTER_ID = "plan-nouveau-chapitre"
 
 // ---------------------------------------------------------------------------------------------
 // Noms des éléments (boutons, annonces, cases à cocher)
@@ -281,12 +277,13 @@ function useRow(): RowActions {
 }
 
 /**
- * Le plan d'une méthode, dans son écran : les chapitres et leurs leçons, rangés par
- * glisser-déposer (souris et clavier, annonces en français) ou par « Monter » / « Descendre »,
- * avec l'état de chacun dans l'app, les cases « Montrer dans l'app » et « Leçon gratuite », et
- * « Nouveau chapitre », « Nouvelle leçon », « Retirer de l'app », « Supprimer ». Ranger et
- * créer demandent de tenir la main sur la méthode (outline_reorder) ; les cases sont des
- * réglages de chaque élément, enregistrés sous son propre verrou.
+ * Le plan d'une méthode, dans la colonne de gauche de son écran (ADMIN § 4) : les chapitres et
+ * leurs leçons, rangés par glisser-déposer (souris et clavier, annonces en français) ou par
+ * « Monter » / « Descendre », l'état de chacun dans l'app en pastille ; dans le menu ⋯ de chaque
+ * ligne, « Montrer dans l'app », « Leçon gratuite », « Retirer de l'app » et « Mettre à la
+ * corbeille » ; « Nouvelle leçon » dans chaque chapitre et « Nouveau chapitre » en bas. Ranger et
+ * créer demandent de tenir la main sur la méthode (outline_reorder) ; les cases sont des réglages
+ * de chaque élément, enregistrés sous son propre verrou.
  */
 export function MethodOutline({
   methodId,
@@ -295,6 +292,7 @@ export function MethodOutline({
   myId,
   live,
   preview,
+  back,
 }: {
   methodId: string
   // On tient la main sur la méthode (depuis cette ouverture de l'éditeur).
@@ -305,6 +303,8 @@ export function MethodOutline({
   live: LiveOutline | null
   // publish_preview (undefined tant qu'il n'est pas lu).
   preview: PreviewRow[] | undefined
+  // Le retour, en bas à gauche (la flèche vers la liste des méthodes).
+  back: ReactNode
 }) {
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
@@ -707,115 +707,120 @@ export function MethodOutline({
       }),
   }
 
+  const lessons = shown ? lessonCount(shown) : 0
   return (
-    <section
-      aria-labelledby="plan-methode-titre"
-      className="flex flex-col gap-4 p-6"
-      data-method-outline
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="max-w-xl space-y-1">
-          <h2 id="plan-methode-titre" className="text-base font-semibold">
-            {labels.title}
-          </h2>
-          <p className="text-sm text-muted-foreground">{labels.description}</p>
-        </div>
-        {editable && (
-          <Button data-new-chapter onClick={() => openNew({ kind: "chapter" })}>
-            <Plus />
-            {labels.newChapter}
-          </Button>
-        )}
-      </div>
-      {!editable && (
-        <p className="text-sm text-muted-foreground">{labels.readOnly}</p>
-      )}
-      <p role="status" className="sr-only">
-        {announcement}
-      </p>
-
-      {shown === undefined ? (
-        <LoadState
-          query={tree}
-          failed={labels.loadFailed}
-          rowClassName="h-20 w-full"
-        />
-      ) : shown.length === 0 ? (
-        <Empty className="border border-dashed">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <ListTree />
-            </EmptyMedia>
-            <EmptyTitle>{labels.emptyTitle}</EmptyTitle>
-            <EmptyDescription>{labels.emptyDescription}</EmptyDescription>
-          </EmptyHeader>
-          {editable && (
-            <Button
-              variant="outline"
-              onClick={() => openNew({ kind: "chapter" })}
-            >
-              <Plus />
-              {labels.newChapter}
-            </Button>
-          )}
-        </Empty>
-      ) : (
-        <>
-          {tree.isError && (
-            <p className="text-sm text-muted-foreground">
-              {labels.refreshFailed}
+    <div className="flex h-full flex-col">
+      <section
+        aria-labelledby="plan-methode-titre"
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-3"
+        data-method-outline
+      >
+        {/* Le haut du plan reste en haut de la colonne quand les lignes défilent, sur un fond
+            plein qui couvre aussi la marge. */}
+        <div className="sticky top-0 z-10 -mx-4 bg-background px-4">
+          <ColumnHeader
+            icon={ListTree}
+            title={labels.title}
+            titleId="plan-methode-titre"
+            className="-mx-4 mb-2"
+          >
+            <InfoTip text={labels.description} />
+          </ColumnHeader>
+          {shown && shown.length > 0 && (
+            <p className="px-2 pb-2 text-xs text-muted-foreground">
+              {labels.count(shown.length, lessons)}
             </p>
           )}
-          <RowContext value={row}>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={collisionDetection}
-              accessibility={{
-                announcements,
-                screenReaderInstructions: { draggable: dnd.instructions },
-              }}
-              onDragStart={onDragStart}
-              onDragOver={onDragOver}
-              onDragEnd={onDragEnd}
-              onDragCancel={onDragCancel}
-            >
-              <TreeContext value={shown}>
-                <DraggingContext value={active?.kind ?? null}>
-                  <SortableContext
-                    id="chapitres"
-                    items={shown.map((chapter) => chapter.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <ol aria-label={labels.label} className="space-y-3">
-                      {shown.map((chapter, index) => (
-                        <ChapterItem
-                          key={chapter.id}
-                          chapter={chapter}
-                          position={index + 1}
-                          count={shown.length}
-                          isFirst={index === 0}
-                          isLast={index === shown.length - 1}
-                        />
-                      ))}
-                    </ol>
-                  </SortableContext>
-                </DraggingContext>
-              </TreeContext>
-              <DragOverlay dropAnimation={null}>
-                {active && shown ? (
-                  <div className="flex items-center gap-2 rounded-md border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-md">
-                    <GripVertical
-                      aria-hidden
-                      className="size-4 text-muted-foreground"
-                    />
-                    {labelIn(shown, active.element.id)}
-                  </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-          </RowContext>
-        </>
-      )}
+          {!editable && (
+            <p className="px-2 pb-2 text-xs text-muted-foreground">
+              {labels.readOnly}
+            </p>
+          )}
+        </div>
+        <p role="status" className="sr-only">
+          {announcement}
+        </p>
+
+        {shown === undefined ? (
+          <LoadState
+            query={tree}
+            failed={labels.loadFailed}
+            rowClassName="h-8 w-full"
+          />
+        ) : shown.length === 0 ? (
+          <p className="px-2 text-sm text-muted-foreground">{labels.empty}</p>
+        ) : (
+          <>
+            {tree.isError && (
+              <p className="px-2 pb-2 text-xs text-muted-foreground">
+                {labels.refreshFailed}
+              </p>
+            )}
+            <RowContext value={row}>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={collisionDetection}
+                accessibility={{
+                  announcements,
+                  screenReaderInstructions: { draggable: dnd.instructions },
+                }}
+                onDragStart={onDragStart}
+                onDragOver={onDragOver}
+                onDragEnd={onDragEnd}
+                onDragCancel={onDragCancel}
+              >
+                <TreeContext value={shown}>
+                  <DraggingContext value={active?.kind ?? null}>
+                    <SortableContext
+                      id="chapitres"
+                      items={shown.map((chapter) => chapter.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <ol aria-label={labels.label} className="grid gap-1">
+                        {shown.map((chapter, index) => (
+                          <ChapterItem
+                            key={chapter.id}
+                            chapter={chapter}
+                            position={index + 1}
+                            count={shown.length}
+                            isFirst={index === 0}
+                            isLast={index === shown.length - 1}
+                          />
+                        ))}
+                      </ol>
+                    </SortableContext>
+                  </DraggingContext>
+                </TreeContext>
+                <DragOverlay dropAnimation={null}>
+                  {active && shown ? (
+                    <div className="flex items-center gap-2 rounded-md border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-md">
+                      <GripVertical
+                        aria-hidden
+                        className="size-4 text-muted-foreground"
+                      />
+                      {labelIn(shown, active.element.id)}
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            </RowContext>
+          </>
+        )}
+      </section>
+
+      {/* En bas, de la même hauteur que le bas de la colonne de droite : le retour sur toute la
+          hauteur, puis « Nouveau chapitre » sur toute la largeur qui reste. */}
+      <div className="flex h-feed-footer shrink-0 items-stretch border-t">
+        {back}
+        <div className="flex min-w-0 flex-1 items-center px-4">
+          <AddBlockButton
+            id={NEW_CHAPTER_ID}
+            label={labels.newChapter}
+            disabled={!editable}
+            onClick={() => openNew({ kind: "chapter" })}
+          />
+        </div>
+      </div>
 
       <NewElementDialog
         target={newTarget}
@@ -884,7 +889,7 @@ export function MethodOutline({
           </AlertDialogContent>
         )}
       </AlertDialog>
-    </section>
+    </div>
   )
 }
 
@@ -998,10 +1003,7 @@ function ChapterItem({
         transform: CSS.Translate.toString(transform),
         transition,
       }}
-      className={cn(
-        "rounded-lg border bg-card text-card-foreground shadow-xs",
-        isDragging && "opacity-40"
-      )}
+      className={cn("grid gap-0.5", isDragging && "opacity-40")}
     >
       <ElementRow
         element={chapter}
@@ -1030,16 +1032,18 @@ function ChapterItem({
         items={chapter.lessons.map((lesson) => lesson.id)}
         strategy={verticalListSortingStrategy}
       >
+        {/* Le trait part du début des lignes (après la place des poignées), comme les blocs d'une
+            section dans le plan du Fil. */}
         <ol
           ref={setZoneRef}
           aria-label={label}
           className={cn(
-            "space-y-2 border-t bg-muted/40 px-3 py-3 pl-9",
+            "ml-5 grid min-h-2 gap-0.5 rounded-md border-l pl-1.5",
             overZone && "bg-accent"
           )}
         >
           {chapter.lessons.length === 0 && (
-            <li className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+            <li className="px-2 py-1.5 text-xs text-muted-foreground">
               {labels.noLessons}
             </li>
           )}
@@ -1052,17 +1056,13 @@ function ChapterItem({
             />
           ))}
           {editable && (
-            <li>
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label={labels.newLessonIn(label)}
-                data-new-lesson={chapter.id}
+            <li className="py-1 pl-5">
+              <AddBlockButton
+                label={labels.newLesson}
+                ariaLabel={labels.newLessonIn(label)}
+                className="py-1.5 text-xs"
                 onClick={() => newLesson(chapter, label)}
-              >
-                <Plus />
-                {labels.newLesson}
-              </Button>
+              />
             </li>
           )}
         </ol>
@@ -1120,10 +1120,7 @@ function LessonItem({
         transform: CSS.Translate.toString(transform),
         transition,
       }}
-      className={cn(
-        "rounded-md border bg-background",
-        isDragging && "opacity-40"
-      )}
+      className={cn(isDragging && "opacity-40")}
     >
       <ElementRow
         element={lesson}
@@ -1146,13 +1143,12 @@ function LessonItem({
         isFirst={isFirst}
         isLast={isLast}
         canGoFurther
-        compact
       />
     </li>
   )
 }
 
-/** La poignée d'un chapitre ou d'une leçon : on la prend à la souris ou au clavier. */
+/** La poignée d'un chapitre ou d'une leçon, au début de sa ligne : à la souris ou au clavier. */
 function OutlineHandle({
   label,
   sortable: { setActivatorNodeRef, attributes, listeners, isDragging },
@@ -1174,11 +1170,12 @@ function OutlineHandle({
             {...attributes}
             {...listeners}
             aria-label={labels.handle(label)}
-            className="mt-0.5 flex size-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
+            // Au début de la ligne, centrée sur elle ; toujours devinée (pâle), franche au survol.
+            className="absolute top-1/2 left-0 flex h-7 w-4 -translate-y-1/2 cursor-grab touch-none items-center justify-center rounded-sm text-muted-foreground opacity-40 group-hover/row:text-foreground group-hover/row:opacity-100 hover:bg-accent focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
           />
         }
       >
-        <GripVertical className="size-4" />
+        <GripVertical aria-hidden className="size-4" />
       </TooltipTrigger>
       <TooltipContent>{labels.handle(label)}</TooltipContent>
     </Tooltip>
@@ -1188,7 +1185,11 @@ function OutlineHandle({
 // L'arbre affiché, pour « Monter » et « Descendre » d'une leçon (qui peut changer de chapitre).
 const TreeContext = createContext<MethodTree | null>(null)
 
-/** Une ligne du plan : poignée, numéro, titre, état, cases à cocher, actions. */
+/**
+ * Une ligne du plan : la poignée, le numéro et le titre (un clic ouvre son éditeur), puis en
+ * petites icônes ce qu'il faut savoir (gratuite, quelqu'un l'écrit, à corriger) et son état dans
+ * l'app en pastille ; le menu ⋯ porte « Montrer dans l'app », « Leçon gratuite » et les gestes.
+ */
 function ElementRow({
   element,
   number,
@@ -1198,7 +1199,6 @@ function ElementRow({
   isFirst,
   isLast,
   canGoFurther,
-  compact = false,
 }: {
   element: OutlineElement
   number: string
@@ -1209,7 +1209,6 @@ function ElementRow({
   isFirst: boolean
   isLast: boolean
   canGoFurther: boolean
-  compact?: boolean
 }) {
   const {
     editable,
@@ -1233,93 +1232,53 @@ function ElementRow({
       : element.editingId === myId
         ? labels.openElsewhere
         : labels.editing(element.editingName ?? texts.editor.lock.someone)
+  const title = titleOf(element)
   return (
-    <div className={cn("flex items-start gap-2", compact ? "p-2" : "p-3")}>
-      {handle || <span className="w-2 shrink-0" />}
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <p className="flex min-w-0 items-baseline gap-2">
-          <span className="shrink-0 text-xs text-muted-foreground">
-            {number}
-          </span>
-          {path ? (
-            <Link
-              to={path}
-              data-outline-title
-              className={cn(
-                "min-w-0 truncate underline-offset-4 hover:underline",
-                compact ? "text-sm font-medium" : "font-semibold"
-              )}
-            >
-              {titleOf(element)}
-            </Link>
-          ) : (
-            <span data-outline-title className="truncate font-medium">
-              {titleOf(element)}
-            </span>
-          )}
-        </p>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <ElementStateBadge state={state} />
-          {element.kind === "lesson" && isFree && (
-            <Badge variant="outline">{labels.free}</Badge>
-          )}
-          {row?.problem && (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Badge
-                    variant="destructive"
-                    data-element-problem={row.problem}
-                  />
-                }
-              >
-                <TriangleAlert aria-hidden />
-                {labels.problem}
-              </TooltipTrigger>
-              <TooltipContent>
-                {contentProblemText(row.problem, row.problemDetail)}
-              </TooltipContent>
-            </Tooltip>
-          )}
-          {editing && <Badge variant="secondary">{editing}</Badge>}
-          <span className="text-xs text-muted-foreground">
-            {labels.savedAt(formatDateTime(element.draftSavedAt))}
-            {element.savedByName &&
-              ` ${texts.common.savedBy(element.savedByName)}`}
-          </span>
-        </div>
-        <ElementStateHint state={state} />
-        {row?.problem && (
-          <p className="text-xs text-destructive">
-            {contentProblemText(row.problem, row.problemDetail)}
-          </p>
-        )}
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 pt-0.5">
-          <FlagCheckbox
-            label={labels.inApp}
-            ariaLabel={labels.inAppFor(label)}
-            checked={inApp}
-            pending={pending?.in_app !== undefined}
-            onChange={(checked) => setFlags(element, { in_app: checked })}
-          />
-          {element.kind === "lesson" && (
-            <FlagCheckbox
-              label={labels.isFree}
-              ariaLabel={labels.isFreeFor(label)}
-              checked={isFree}
-              pending={pending?.is_free !== undefined}
-              onChange={(checked) => setFlags(element, { is_free: checked })}
-            />
-          )}
-        </div>
-      </div>
+    <div
+      className={cn(
+        "group/row relative flex min-w-0 items-center gap-0.5 rounded-md hover:bg-accent/60",
+        // La place de la poignée, au début de la ligne.
+        editable && "pl-5"
+      )}
+    >
+      {handle}
+      {path ? (
+        <Link to={path} data-outline-title className={rowLink}>
+          <RowText number={number} title={title} kind={element.kind} />
+        </Link>
+      ) : (
+        <span data-outline-title className={rowLink}>
+          <RowText number={number} title={title} kind={element.kind} />
+        </span>
+      )}
+      {element.kind === "lesson" && isFree && (
+        <RowIcon icon={LockOpen} text={labels.free} />
+      )}
+      {editing && <RowIcon icon={PenLine} text={editing} />}
+      {row?.problem && (
+        <RowIcon
+          icon={TriangleAlert}
+          text={`${labels.problem} : ${contentProblemText(row.problem, row.problemDetail)}`}
+          className="text-destructive"
+          data-element-problem={row.problem}
+        />
+      )}
+      {pending ? (
+        <Spinner aria-label={texts.common.loading} className="mx-1 size-3" />
+      ) : (
+        <ElementStateDot state={state} />
+      )}
       <ElementMenu
         element={element}
         label={label}
         path={path}
+        inApp={inApp}
+        isFree={isFree}
+        flagsPending={pending !== undefined}
         inLive={live.has(element.id)}
         canMoveUp={editable && canGoFurther && !isFirst}
         canMoveDown={editable && canGoFurther && !isLast}
+        onFlags={(flags) => setFlags(element, flags)}
         onShift={(offset) => shift(element, offset)}
         onConfirm={(action) => confirm({ action, element, label })}
       />
@@ -1327,35 +1286,70 @@ function ElementRow({
   )
 }
 
-function FlagCheckbox({
-  label,
-  ariaLabel,
-  checked,
-  pending,
-  onChange,
+// scroll-mt-20 : une ligne amenée sous les yeux ne passe pas sous le haut collé du plan.
+const rowLink =
+  "flex min-w-0 flex-1 scroll-mt-20 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+
+/** Le numéro, puis le titre (coupé par « … ») ; un chapitre en gras. */
+function RowText({
+  number,
+  title,
+  kind,
 }: {
-  label: string
-  // Le nom complet, avec l'élément (plusieurs cases portent le même mot à l'écran).
-  ariaLabel: string
-  checked: boolean
-  pending: boolean
-  onChange: (checked: boolean) => void
+  number: string
+  title: string
+  kind: OutlineElement["kind"]
 }) {
-  const nameId = useId()
   return (
-    <label className="flex items-center gap-2 text-sm">
-      <Checkbox
-        aria-labelledby={nameId}
-        checked={checked}
-        disabled={pending}
-        onCheckedChange={(value) => onChange(value)}
-      />
-      {label}
-      <span id={nameId} className="sr-only">
-        {ariaLabel}
+    <>
+      <span
+        aria-hidden
+        className="shrink-0 text-xs text-muted-foreground tabular-nums"
+      >
+        {number}
       </span>
-      {pending && <Spinner className="size-3" />}
-    </label>
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate",
+          kind === "chapter" && "font-medium"
+        )}
+      >
+        {title}
+      </span>
+    </>
+  )
+}
+
+/** Une petite icône d'une ligne, son sens dans l'infobulle et pour les lecteurs d'écran. */
+function RowIcon({
+  icon: Icon,
+  text,
+  className,
+  ...props
+}: {
+  icon: typeof LockOpen
+  text: string
+  className?: string
+  "data-element-problem"?: string
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            {...props}
+            className={cn(
+              "flex size-5 shrink-0 items-center justify-center text-muted-foreground",
+              className
+            )}
+          />
+        }
+      >
+        <Icon aria-hidden className="size-3.5" />
+        <span className="sr-only">{text}</span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-64">{text}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -1363,18 +1357,26 @@ function ElementMenu({
   element,
   label,
   path,
+  inApp,
+  isFree,
+  flagsPending,
   inLive,
   canMoveUp,
   canMoveDown,
+  onFlags,
   onShift,
   onConfirm,
 }: {
   element: OutlineElement
   label: string
   path: string | null
+  inApp: boolean
+  isFree: boolean
+  flagsPending: boolean
   inLive: boolean
   canMoveUp: boolean
   canMoveDown: boolean
+  onFlags: (flags: ElementFlags) => void
   onShift: (offset: -1 | 1) => void
   onConfirm: (action: "unpublish" | "trash") => void
 }): ReactNode {
@@ -1384,17 +1386,46 @@ function ElementMenu({
       <DropdownMenuTrigger
         aria-label={labels.actions(label)}
         data-outline-actions={element.id}
-        render={<Button variant="ghost" size="icon-sm" />}
+        render={
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="shrink-0 text-muted-foreground"
+          />
+        }
       >
         <Ellipsis />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
+      <DropdownMenuContent align="end" className="w-56">
         {path && (
           <DropdownMenuItem onClick={() => void navigate(path)}>
             <SquarePen />
             {labels.open}
           </DropdownMenuItem>
         )}
+        <DropdownMenuSeparator />
+        {/* Des réglages de l'élément, enregistrés sous son propre verrou ([D29], [D43]). */}
+        <DropdownMenuCheckboxItem
+          checked={inApp}
+          disabled={flagsPending}
+          aria-label={labels.inAppFor(label)}
+          onCheckedChange={(checked) => onFlags({ in_app: checked })}
+        >
+          <Eye />
+          {labels.inApp}
+        </DropdownMenuCheckboxItem>
+        {element.kind === "lesson" && (
+          <DropdownMenuCheckboxItem
+            checked={isFree}
+            disabled={flagsPending}
+            aria-label={labels.isFreeFor(label)}
+            onCheckedChange={(checked) => onFlags({ is_free: checked })}
+          >
+            <LockOpen />
+            {labels.isFree}
+          </DropdownMenuCheckboxItem>
+        )}
+        <DropdownMenuSeparator />
         <DropdownMenuItem disabled={!canMoveUp} onClick={() => onShift(-1)}>
           <ArrowUp />
           {labels.moveUp}

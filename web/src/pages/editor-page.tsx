@@ -1,14 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { Editor } from "@tiptap/react"
 import { cn } from "cn"
-import {
-  ArrowLeft,
-  Blocks,
-  FileQuestion,
-  Focus,
-  History,
-  Settings2,
-} from "lucide-react"
+import { ArrowLeft, Blocks, FileQuestion, Focus, ListTree } from "lucide-react"
 import {
   useCallback,
   useEffect,
@@ -62,7 +55,6 @@ import { useMethodContext } from "@/components/editor/use-method-context"
 import { usePhoneDrop } from "@/components/editor/use-phone-drop"
 import { useSaveAsTemplate } from "@/components/editor/use-save-as-template"
 import { ColumnHeader } from "@/components/editor/column-header"
-import { ContentSettingsSheet } from "@/components/editor/content-settings-sheet"
 import {
   FeedPreview,
   ReadAppBar,
@@ -85,21 +77,18 @@ import {
   BlocksLibrary,
   LIBRARY_FIRST_ID,
 } from "@/components/editor/blocks-library"
-import {
-  AudioPreview,
-  CoverPreview,
-  PresentationPanel,
-} from "@/components/editor/presentation"
+import { AudioPreview, CoverPreview } from "@/components/editor/presentation"
 import {
   PublicationDialogs,
   PublicationBadge,
-  PublishBar,
   PublishButton,
   ScheduleBanner,
 } from "@/components/editor/publication"
 import { SaveStatus } from "@/components/editor/save-status"
 import { usePublication } from "@/components/editor/use-publication"
 import { ElementPanel, MethodButton } from "@/components/methods/element-panel"
+import { MethodChangesCard } from "@/components/methods/method-changes"
+import { MethodAppPlan } from "@/components/methods/method-preview"
 import { ElementStateBadge } from "@/components/methods/element-state-badge"
 import { MethodOutline } from "@/components/methods/method-outline"
 import { useAccessCheck } from "@/components/team/use-access-check"
@@ -127,7 +116,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Separator } from "@/components/ui/separator"
 import { Kbd } from "@/components/ui/kbd"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -147,8 +135,13 @@ import {
   type Content,
   type ContentKind,
 } from "@/lib/contents/api"
-import { methodKeys } from "@/lib/contents/methods"
-import { elementAccess, parseLiveOutline } from "@/lib/contents/outline"
+import { getMethodTree, methodKeys } from "@/lib/contents/methods"
+import {
+  appPlan,
+  elementAccess,
+  lessonCount,
+  parseLiveOutline,
+} from "@/lib/contents/outline"
 import { revertToVersion, type VersionItem } from "@/lib/contents/publication"
 import { publishChecks, readyItems } from "@/lib/contents/requirements"
 import {
@@ -172,7 +165,7 @@ import {
   contentProfile,
   isElementKind,
   isFeedKind,
-  isListedFeedKind,
+  isListedKind,
 } from "@/lib/editor/profile"
 import { lockSituation } from "@/lib/editor/lock-view"
 import { CONTENT_TITLE_ID, showReadySetting } from "@/lib/editor/ready-targets"
@@ -456,7 +449,6 @@ function ContentEditor({
   }
   const toggleFocusMode = () => showColumns(focusMode)
   useEffect(() => {
-    if (!feed) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (isFocusShortcut(event, apple)) {
         event.preventDefault()
@@ -479,7 +471,7 @@ function ContentEditor({
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [feed, apple, focusMode])
+  }, [apple, focusMode])
 
   // Méthode : le moment (dans ce navigateur) où sa fiche a été enregistrée pour la dernière fois.
   const [ficheSavedAt, setFicheSavedAt] = useState(0)
@@ -540,8 +532,8 @@ function ContentEditor({
   const phase = lock.state.phase
   const serverRev = lock.state.draftRev
   const holderIsMe = lock.state.holderId === lock.myId
-  // Éditeur du Fil : la lecture seule passe par le cadenas et sa fenêtre (ADMIN § 4).
-  const lockView = feed ? lockSituation(lock.state, holderIsMe) : null
+  // La lecture seule passe par le cadenas et sa fenêtre (ADMIN § 4).
+  const lockView = lockSituation(lock.state, holderIsMe)
   const lockDialog = useLockDialog(lockView)
   // Éditeur du Fil : la section où les Blocs ajouteront, tant qu'elle est le bloc choisi.
   const targetBox = liveBoxTarget(draft, boxTarget, selectedId)
@@ -933,7 +925,6 @@ function ContentEditor({
     queryKey: accessLevelsKey,
     queryFn: listAccessLevels,
   })
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
 
   /** « Revenir à cette version » : recopiée dans le brouillon par la base, puis relue. */
@@ -1088,8 +1079,7 @@ function ContentEditor({
     [draft, resolveLinked]
   )
 
-  // En tête de l'aperçu : l'image de présentation, le titre et l'audio, comme dans l'app (et,
-  // pour une méthode, toute sa fiche).
+  // En tête de l'aperçu : l'image de présentation, le titre et l'audio, comme dans l'app.
   const phoneTop = (
     <>
       {/* Un chapitre ou une leçon : l'image est facultative, montrée seulement une fois choisie
@@ -1138,17 +1128,19 @@ function ContentEditor({
     </>
   )
 
-  // Une méthode : sa présentation dans un panneau, sous l'aperçu (image : changer, retirer, texte
-  // alternatif).
-  const presentationPanel = isMethod ? (
-    <PresentationPanel
-      draft={draft}
-      editable={editable}
-      mediaFor={mediaFor}
-      onChooseCover={() => openPresentationPicker("cover")}
-      onRemoveCover={() => removePresentationFile("cover")}
-    />
-  ) : undefined
+  // Une méthode : son plan (le même que celui de la colonne de gauche, relu avec lui), montré
+  // dans le téléphone tel que l'app le montrera, et sa taille en bas de la colonne de droite.
+  const methodTree = useQuery({
+    queryKey: methodKeys.tree(contentId),
+    queryFn: () => getMethodTree(contentId),
+    enabled: isMethod,
+  })
+  const shownPlan = methodTree.data ? appPlan(methodTree.data) : undefined
+  const planCount = shownPlan
+    ? texts.methods.outline.count(shownPlan.length, lessonCount(shownPlan))
+    : null
+  // Une méthode réservée : ses leçons non gratuites le sont aussi ([D43]).
+  const reserved = settings.accessChosen && settings.accessLevelId !== null
   // Un épisode : son audio (carte Audio, téléphone, Lecture, bas de la colonne de droite).
   const audio = profile.audio ? mediaFor(draft.audio?.mediaId ?? null) : null
   // En Lecture, sous le titre d'un contenu des listes de l'app : la première catégorie, puis le
@@ -1158,12 +1150,14 @@ function ContentEditor({
       ? formatDuration(audio.media.duration_s)
       : null
     : texts.editor.preview.minutes(stats.minutes)
-  const readMeta = isListedFeedKind(kind)
-    ? [
-        ...(chosenCategoryNames ?? []).slice(0, 1),
-        ...(length ? [length] : []),
-      ].join(" · ")
-    : null
+  const readMeta = isMethod
+    ? planCount
+    : isListedKind(kind)
+      ? [
+          ...(chosenCategoryNames ?? []).slice(0, 1),
+          ...(length ? [length] : []),
+        ].join(" · ")
+      : null
   // Un chapitre ou une leçon : le niveau d'accès de sa méthode, sauf leçon gratuite ou
   // introduction d'un chapitre dont une leçon l'est ([D43]) ; la Lecture le suit.
   const methodAccess = elementContext?.method.access
@@ -1222,9 +1216,9 @@ function ContentEditor({
         )}
         {isShared && <TemplateUsesCard templateId={contentId} />}
       </div>
-    ) : feedKind ? (
+    ) : (
       <ArticlePanel
-        kind={feedKind}
+        kind={feedKind ?? "method"}
         contentId={contentId}
         draft={draft}
         editable={editable}
@@ -1272,8 +1266,10 @@ function ContentEditor({
         onRemoveCover={() => removePresentationFile("cover")}
         onChooseAudio={() => openPresentationPicker("audio")}
         onRemoveAudio={() => removePresentationFile("audio")}
-      />
-    ) : null
+      >
+        {methodBridge && <MethodChangesCard method={methodBridge} />}
+      </ArticlePanel>
+    )
   // Éditeur du Fil : le bloc choisi, dont les réglages glissent par-dessus l'Article.
   const selectedBlock = selectedId
     ? (findBlock(draft, selectedId)?.block ?? null)
@@ -1361,7 +1357,22 @@ function ContentEditor({
   )
   // Le téléphone en Édition : la présentation et les blocs, modifiables sur place. Le cadre du
   // téléphone l'entoure (FeedPreview) ; le trait d'un bloc glissé se place par rapport à lui.
-  const phone = (
+  const phone = isMethod ? (
+    // Une méthode : sa fiche, modifiable sur place, puis son plan tel que l'app le montrera ; un
+    // chapitre ou une leçon y ouvre son éditeur.
+    <div className={cn("blocks-phone", !editable && "cursor-default")}>
+      {phoneTop}
+      {planCount && <p className="blocks-meta">{planCount}</p>}
+      {methodTree.data && (
+        <MethodAppPlan
+          tree={methodTree.data}
+          reserved={reserved}
+          editable
+          subscriber={false}
+        />
+      )}
+    </div>
+  ) : (
     <div
       ref={phoneRef}
       className={cn("blocks-phone relative", !editable && "cursor-default")}
@@ -1426,25 +1437,21 @@ function ContentEditor({
   // fenêtre le montrera).
   const alwaysPublishable =
     linkedIds.length > 0 || (isMethod && methodBridge?.pending === undefined)
-  // Éditeur du Fil : au-dessus du téléphone, à sa largeur ; ailleurs, sous l'en-tête.
+  // Au-dessus du téléphone, à sa largeur.
   const lockBanner = (
     <LockBanner
       lock={lock.state}
-      holderIsMe={holderIsMe}
       autosave={autosave}
       canCopy={canCopy}
       onTake={take}
       onCopy={() => void onCopy()}
       onReload={reload}
       onDismissCopy={dismissStash}
-      lockInDialog={feed}
-      inline={feed}
     />
   )
   const scheduleBanner = (
     <ScheduleBanner
       pub={pub}
-      inline={feed}
       leave={
         <Link
           to={sections[section].path}
@@ -1455,8 +1462,8 @@ function ContentEditor({
       }
     />
   )
-  // L'état de l'enregistrement : en tête de l'écran d'une méthode et dans la pastille de la
-  // Concentration ; en icône seule en bas de la colonne de droite du Fil.
+  // L'état de l'enregistrement : dans la pastille de la Concentration, et en icône seule en bas de
+  // la colonne de droite.
   const saveVisible = phase === "mine" || autosave.unsaved
   const saveStatus = <SaveStatus state={autosave} visible={saveVisible} />
   const feedSaveStatus = (
@@ -1472,77 +1479,27 @@ function ContentEditor({
   return (
     <div className="flex h-svh flex-col bg-muted/40">
       <title>{`${title.trim() || untitled} — ${texts.app.name}`}</title>
-      {/* L'écran d'une méthode garde sa barre du haut (jusqu'à l'étape 5 du builder du Fil
-          partout). */}
-      {isMethod && (
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
-          <BackLink section={section} />
-          <p
-            className="min-w-0 flex-1 truncate text-sm font-medium"
-            aria-hidden
-          >
-            {title.trim() || untitled}
-            <span className="font-normal text-muted-foreground">
-              {" "}
-              · {sectionTitle}
-            </span>
-          </p>
-          {saveStatus}
-          <HeaderIconButton
-            label={texts.publication.actions.settings}
-            expanded={settingsOpen}
-            onClick={() => setSettingsOpen(true)}
-          >
-            <Settings2 />
-          </HeaderIconButton>
-          <HeaderIconButton
-            label={texts.publication.actions.history}
-            expanded={historyOpen}
-            onClick={() => setHistoryOpen(true)}
-          >
-            <History />
-          </HeaderIconButton>
-          <Separator orientation="vertical" className="h-6" />
-          <PublishBar
-            pub={pub}
-            disabled={publishDisabled}
-            alwaysPublishable={alwaysPublishable}
-          />
-        </header>
-      )}
-
       <p role="status" className="sr-only">
         {announcement}
       </p>
 
-      {isMethod && (
-        <>
-          {lockBanner}
-          {scheduleBanner}
-        </>
-      )}
-
-      {feedKind === null ? (
-        // Une méthode : sa fiche (dans l'aperçu du téléphone, puis son panneau) et son plan.
-        <div className="flex min-h-0 flex-1">
-          <main className="w-md shrink-0 overflow-y-auto xl:w-lg">
-            <div className="flex flex-col items-center gap-6 px-4 py-6">
-              <div
-                className={cn(
-                  "blocks-phone rounded-4xl border shadow-sm",
-                  !editable && "cursor-default"
-                )}
-                // La fiche d'une méthode n'a pas de blocs : pas la hauteur d'un écran (preview.css).
-                data-compact
-              >
-                {phoneTop}
-              </div>
-              <div className="w-full max-w-(--blocks-phone-width) rounded-xl border bg-background p-4">
-                {presentationPanel}
-              </div>
-            </div>
-          </main>
-          <aside className="min-w-0 flex-1 overflow-y-auto border-l bg-background">
+      {/* La mise en page du Fil, pour toutes les sortes (ADMIN § 4) : à gauche le plan (des blocs,
+          ou les chapitres et les leçons d'une méthode), au centre le téléphone, à droite tout ce
+          qui concerne le contenu. */}
+      <div className="flex min-h-0 flex-1">
+        <aside
+          id="editeur-plan"
+          aria-label={
+            isMethod ? texts.methods.outline.title : texts.editor.columns.left
+          }
+          // Caché (et non retiré) en Concentration : les Blocs et « Mes blocs » restent ouverts.
+          className={cn(
+            "flex w-feed-column shrink-0 flex-col border-r bg-background",
+            focusMode && "hidden"
+          )}
+        >
+          {isMethod ? (
+            // Une méthode : le plan de ses chapitres et de ses leçons, « Nouveau chapitre » en bas.
             <MethodOutline
               methodId={contentId}
               editable={editable}
@@ -1550,256 +1507,278 @@ function ContentEditor({
               myId={lock.myId ?? ""}
               live={parseLiveOutline(pub.publication?.live?.outline)}
               preview={methodPreview}
+              back={<BackLink section={section} compact />}
             />
-          </aside>
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1">
-          <aside
-            id="editeur-plan"
-            aria-label={texts.editor.columns.left}
-            // Caché (et non retiré) en Concentration : les Blocs et « Mes blocs » restent ouverts.
-            className={cn(
-              "flex w-feed-column shrink-0 flex-col border-r bg-background",
-              focusMode && "hidden"
-            )}
-          >
-            <div className="relative min-h-0 flex-1">
-              {/* Sous la glissière des Blocs : hors du clavier et des lecteurs d'écran. */}
-              <div inert={libraryOpen} className="h-full">
-                {outlinePanel}
-              </div>
-              {/* Les Blocs, en glissière par-dessus le Plan : × ou Échap la referment. */}
-              {libraryOpen && (
-                <section
-                  aria-labelledby="colonne-blocs-titre"
-                  className="absolute inset-0 z-20 flex flex-col bg-background motion-safe:animate-in motion-safe:slide-in-from-left-4"
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape" && !event.defaultPrevented) {
-                      event.preventDefault()
-                      closeLibrary()
-                      focusSoon(() => document.getElementById(LEFT_ADD_ID))
-                    }
-                  }}
-                >
-                  <ColumnHeader
-                    icon={Blocks}
-                    title={texts.editor.columns.blocks}
-                    titleId="colonne-blocs-titre"
-                    close={{
-                      label: texts.editor.library.close,
-                      onClick: () => {
+          ) : (
+            <>
+              <div className="relative min-h-0 flex-1">
+                {/* Sous la glissière des Blocs : hors du clavier et des lecteurs d'écran. */}
+                <div inert={libraryOpen} className="h-full">
+                  {outlinePanel}
+                </div>
+                {/* Les Blocs, en glissière par-dessus le Plan : × ou Échap la referment. */}
+                {libraryOpen && (
+                  <section
+                    aria-labelledby="colonne-blocs-titre"
+                    className="absolute inset-0 z-20 flex flex-col bg-background motion-safe:animate-in motion-safe:slide-in-from-left-4"
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape" && !event.defaultPrevented) {
+                        event.preventDefault()
                         closeLibrary()
                         focusSoon(() => document.getElementById(LEFT_ADD_ID))
-                      },
-                    }}
-                  />
-                  <div className="min-h-0 flex-1">
-                    <BlocksLibrary
-                      open={savedOpen}
-                      onOpenChange={setSavedOpen}
-                      editable={editable}
-                      canAdd={canAddRoot}
-                      inBox={targetBox !== null}
-                      onCancelTarget={() => setBoxTarget(null)}
-                      onAdd={addFromLibrary}
-                      onInsert={
-                        profile.savedBlocks
-                          ? (template) => {
-                              toEdit()
-                              onInsertTemplate(template)
-                            }
-                          : undefined
                       }
+                    }}
+                  >
+                    <ColumnHeader
+                      icon={Blocks}
+                      title={texts.editor.columns.blocks}
+                      titleId="colonne-blocs-titre"
+                      close={{
+                        label: texts.editor.library.close,
+                        onClick: () => {
+                          closeLibrary()
+                          focusSoon(() => document.getElementById(LEFT_ADD_ID))
+                        },
+                      }}
                     />
-                  </div>
-                </section>
-              )}
-            </div>
-            {/* Un bloc partagé : la règle d'un seul bloc ([D11]), qui grise « Ajouter un bloc ». */}
-            {isShared && (
-              <p className="shrink-0 px-4 pb-3 text-xs text-muted-foreground">
-                {texts.templates.editor.sharedLimit}
-              </p>
-            )}
-            {/* En bas, de la même hauteur que le bas de la colonne de droite : le retour sur
-                  toute la hauteur, puis « Ajouter un bloc » sur toute la largeur qui reste. */}
-            <div className="flex h-feed-footer shrink-0 items-stretch border-t">
-              <BackLink
-                section={section}
-                method={elementContext?.method}
-                compact
-              />
-              <div className="flex min-w-0 flex-1 items-center px-4">
-                {/* Le même bouton que dans le téléphone. */}
-                <AddBlockButton
-                  id={LEFT_ADD_ID}
-                  label={texts.editor.add.label}
-                  disabled={!editable || !canAddRoot}
-                  onClick={() => openLibrary()}
-                />
+                    <div className="min-h-0 flex-1">
+                      <BlocksLibrary
+                        open={savedOpen}
+                        onOpenChange={setSavedOpen}
+                        editable={editable}
+                        canAdd={canAddRoot}
+                        inBox={targetBox !== null}
+                        onCancelTarget={() => setBoxTarget(null)}
+                        onAdd={addFromLibrary}
+                        onInsert={
+                          profile.savedBlocks
+                            ? (template) => {
+                                toEdit()
+                                onInsertTemplate(template)
+                              }
+                            : undefined
+                        }
+                      />
+                    </div>
+                  </section>
+                )}
               </div>
-            </div>
-          </aside>
-
-          <main
-            className="flex min-w-0 flex-1 flex-col overflow-x-auto bg-dot-grid"
-            data-backdrop
-            // Un clic sur le fond autour du téléphone (data-backdrop) remet l'éditeur à son état de
-            // base. La souris seulement : au clavier, Échap et « Fermer ».
-            onClick={(event) => {
-              if (
-                event.target instanceof Element &&
-                event.target.hasAttribute("data-backdrop")
-              )
-                resetFeedEditor()
-            }}
-          >
-            <FeedPreview
-              preview={phoneView}
-              onPreviewChange={onPreviewChange}
-              readers={profile.access !== null}
-              toolbar={
-                <FormatToolbar editor={toolbarEditor} editable={editable} />
-              }
-              focus={{
-                on: focusMode,
-                shortcut: apple
-                  ? texts.editor.focusMode.shortcut.apple
-                  : texts.editor.focusMode.shortcut.other,
-                keys: apple ? "Meta+." : "Control+.",
-                onToggle: toggleFocusMode,
-              }}
-              notices={
-                <>
-                  {lockBanner}
-                  {profile.publication === "own" && scheduleBanner}
-                  {notices}
-                </>
-              }
-              appBar={
-                phoneView.mode === "read" ? (
-                  <ReadAppBar
-                    section={
-                      // Un chapitre ou une leçon : sa méthode, comme dans l'app.
-                      elementContext?.method.title.trim() || sectionTitle
-                    }
-                  />
-                ) : undefined
-              }
-            >
-              {phoneView.mode === "read" ? (
-                // Les images lisent l'éditeur (fichier, aperçu), en lecture seule.
-                <BlocksEditorContext value={readOnlyBlocks}>
-                  <ReadView
-                    draft={draft}
-                    title={title.trim() || untitled}
-                    // Une image facultative (chapitre, leçon) : seulement une fois choisie, comme
-                    // dans l'app.
-                    cover={
-                      profile.cover === "required" ||
-                      (profile.cover === "optional" && draft.cover)
-                        ? mediaFor(draft.cover?.mediaId ?? null)
-                        : null
-                    }
-                    audio={audio}
-                    meta={readMeta}
-                    locked={
-                      feedKind !== "template" &&
-                      previewLocked(phoneView, ownAccess)
-                        ? {
-                            kind: feedKind,
-                            level:
-                              levels.data?.find(
-                                (level) => level.id === ownAccess.accessLevelId
-                              )?.name ?? null,
-                          }
-                        : false
-                    }
-                    resolve={resolveLinked}
-                  />
-                </BlocksEditorContext>
-              ) : (
-                phone
+              {/* Un bloc partagé : la règle d'un seul bloc ([D11]), qui grise « Ajouter un bloc ». */}
+              {isShared && (
+                <p className="shrink-0 px-4 pb-3 text-xs text-muted-foreground">
+                  {texts.templates.editor.sharedLimit}
+                </p>
               )}
-            </FeedPreview>
-          </main>
-
-          <aside
-            aria-label={texts.editor.columns.right[feedKind]}
-            className={cn(
-              "flex w-feed-column shrink-0 flex-col border-l bg-background",
-              focusMode && "hidden"
-            )}
-          >
-            {/* En tête, l'icône de la section et le titre du contenu (en entier dans
-                  l'infobulle s'il est coupé). */}
-            <ColumnHeader
-              icon={SectionIcon}
-              title={title.trim() || untitled}
-              titleId={ARTICLE_TITLE_ID}
-              large
-            />
-            <div className="relative min-h-0 flex-1">
-              <section
-                aria-label={texts.editor.columns.content[feedKind]}
-                // Sous la glissière du bloc : hors du clavier et des lecteurs d'écran.
-                inert={selectedBlock !== null}
-                className="h-full overflow-y-auto px-4 py-3"
-              >
-                {articlePanel}
-              </section>
-              {/* Les réglages du bloc choisi, en glissière par-dessus l'Article. */}
-              {selectedBlock && (
-                <div className="absolute inset-0 z-10 bg-background motion-safe:animate-in motion-safe:slide-in-from-right-4">
-                  {blockSettings}
+              {/* En bas, de la même hauteur que le bas de la colonne de droite : le retour sur
+                  toute la hauteur, puis « Ajouter un bloc » sur toute la largeur qui reste. */}
+              <div className="flex h-feed-footer shrink-0 items-stretch border-t">
+                <BackLink
+                  section={section}
+                  method={elementContext?.method}
+                  compact
+                />
+                <div className="flex min-w-0 flex-1 items-center px-4">
+                  {/* Le même bouton que dans le téléphone. */}
+                  <AddBlockButton
+                    id={LEFT_ADD_ID}
+                    label={texts.editor.add.label}
+                    disabled={!editable || !canAddRoot}
+                    onClick={() => openLibrary()}
+                  />
                 </div>
-              )}
-            </div>
-            {/* En bas, toujours : la lecture (un épisode : la durée de son audio), la dernière
+              </div>
+            </>
+          )}
+        </aside>
+
+        <main
+          className="flex min-w-0 flex-1 flex-col overflow-x-auto bg-dot-grid"
+          data-backdrop
+          // Un clic sur le fond autour du téléphone (data-backdrop) remet l'éditeur à son état de
+          // base. La souris seulement : au clavier, Échap et « Fermer ».
+          onClick={(event) => {
+            if (
+              event.target instanceof Element &&
+              event.target.hasAttribute("data-backdrop")
+            )
+              resetFeedEditor()
+          }}
+        >
+          <FeedPreview
+            preview={phoneView}
+            onPreviewChange={onPreviewChange}
+            readers={profile.access !== null}
+            // Une méthode n'a pas de blocs : pas de barre de mise en forme.
+            toolbar={
+              isMethod ? null : (
+                <FormatToolbar editor={toolbarEditor} editable={editable} />
+              )
+            }
+            focus={{
+              on: focusMode,
+              shortcut: apple
+                ? texts.editor.focusMode.shortcut.apple
+                : texts.editor.focusMode.shortcut.other,
+              keys: apple ? "Meta+." : "Control+.",
+              onToggle: toggleFocusMode,
+            }}
+            notices={
+              <>
+                {lockBanner}
+                {profile.publication === "own" && scheduleBanner}
+                {notices}
+              </>
+            }
+            appBar={
+              phoneView.mode === "read" ? (
+                <ReadAppBar
+                  section={
+                    // Un chapitre ou une leçon : sa méthode, comme dans l'app.
+                    elementContext?.method.title.trim() || sectionTitle
+                  }
+                />
+              ) : undefined
+            }
+          >
+            {phoneView.mode === "read" ? (
+              // Les images lisent l'éditeur (fichier, aperçu), en lecture seule.
+              <BlocksEditorContext value={readOnlyBlocks}>
+                <ReadView
+                  draft={draft}
+                  title={title.trim() || untitled}
+                  // Une image facultative (chapitre, leçon) : seulement une fois choisie, comme
+                  // dans l'app.
+                  cover={
+                    profile.cover === "required" ||
+                    (profile.cover === "optional" && draft.cover)
+                      ? mediaFor(draft.cover?.mediaId ?? null)
+                      : null
+                  }
+                  audio={audio}
+                  meta={readMeta}
+                  // Une méthode : son plan, dont chaque leçon dit si elle est réservée.
+                  locked={
+                    feedKind !== null &&
+                    feedKind !== "template" &&
+                    previewLocked(phoneView, ownAccess)
+                      ? {
+                          kind: feedKind,
+                          level:
+                            levels.data?.find(
+                              (level) => level.id === ownAccess.accessLevelId
+                            )?.name ?? null,
+                        }
+                      : false
+                  }
+                  resolve={resolveLinked}
+                >
+                  {methodTree.data && (
+                    <MethodAppPlan
+                      tree={methodTree.data}
+                      reserved={reserved}
+                      editable={false}
+                      subscriber={phoneView.reader === "subscriber"}
+                    />
+                  )}
+                </ReadView>
+              </BlocksEditorContext>
+            ) : (
+              phone
+            )}
+          </FeedPreview>
+        </main>
+
+        <aside
+          aria-label={texts.editor.columns.right[kind]}
+          className={cn(
+            "flex w-feed-column shrink-0 flex-col border-l bg-background",
+            focusMode && "hidden"
+          )}
+        >
+          {/* En tête, l'icône de la section et le titre du contenu (en entier dans
+                  l'infobulle s'il est coupé). */}
+          <ColumnHeader
+            icon={SectionIcon}
+            title={title.trim() || untitled}
+            titleId={ARTICLE_TITLE_ID}
+            large
+          />
+          <div className="relative min-h-0 flex-1">
+            <section
+              aria-label={texts.editor.columns.content[kind]}
+              // Sous la glissière du bloc : hors du clavier et des lecteurs d'écran.
+              inert={selectedBlock !== null}
+              className="h-full overflow-y-auto px-4 py-3"
+            >
+              {articlePanel}
+            </section>
+            {/* Les réglages du bloc choisi, en glissière par-dessus l'Article. */}
+            {selectedBlock && (
+              <div className="absolute inset-0 z-10 bg-background motion-safe:animate-in motion-safe:slide-in-from-right-4">
+                {blockSettings}
+              </div>
+            )}
+          </div>
+          {/* En bas, toujours : la lecture (un épisode : la durée de son audio), la dernière
                   modification, puis le cadenas (en lecture seule), l'état de publication et
                   « Publier ». */}
-            <ArticleFooter
-              stats={stats}
-              audio={audio}
-              savedAt={autosave.savedAt}
-              saveStatus={feedSaveStatus}
-            >
-              {lockButton}
-              {templateSort ? (
-                // Un modèle ne se publie pas : sa sorte, à la place.
-                <TemplateSortBadge sort={templateSort} />
-              ) : isElement ? (
-                // Un chapitre ou une leçon part avec sa méthode : son état dans l'app, puis
-                // « Ouvrir la méthode », d'où elle se publie ([D29]).
-                <>
-                  {ownState && <ElementStateBadge state={ownState} />}
-                  <span className="flex-1" />
-                  <MethodButton
-                    method={elementContext?.method}
-                    schedule={methodSchedule}
-                    holding={editable}
-                    onHistory={() => setHistoryOpen(true)}
-                  />
-                </>
-              ) : (
-                <>
-                  <PublicationBadge pub={pub} />
-                  <span className="flex-1" />
-                  <PublishButton
-                    pub={pub}
-                    disabled={publishDisabled}
-                    alwaysPublishable={alwaysPublishable}
-                    onHistory={() => setHistoryOpen(true)}
-                  />
-                </>
-              )}
-            </ArticleFooter>
-          </aside>
-        </div>
-      )}
+          <ArticleFooter
+            stats={stats}
+            audio={audio}
+            measure={
+              // Une méthode : la taille de son plan au lieu du temps de lecture.
+              isMethod && methodTree.data
+                ? {
+                    Icon: ListTree,
+                    short: texts.editor.article.stats.lessons(
+                      lessonCount(methodTree.data)
+                    ),
+                    tip: texts.editor.article.stats.planTip(
+                      texts.methods.outline.count(
+                        methodTree.data.length,
+                        lessonCount(methodTree.data)
+                      )
+                    ),
+                  }
+                : undefined
+            }
+            savedAt={autosave.savedAt}
+            saveStatus={feedSaveStatus}
+          >
+            {lockButton}
+            {templateSort ? (
+              // Un modèle ne se publie pas : sa sorte, à la place.
+              <TemplateSortBadge sort={templateSort} />
+            ) : isElement ? (
+              // Un chapitre ou une leçon part avec sa méthode : son état dans l'app, puis
+              // « Ouvrir la méthode », d'où elle se publie ([D29]).
+              <>
+                {ownState && <ElementStateBadge state={ownState} />}
+                <span className="flex-1" />
+                <MethodButton
+                  method={elementContext?.method}
+                  schedule={methodSchedule}
+                  holding={editable}
+                  onHistory={() => setHistoryOpen(true)}
+                />
+              </>
+            ) : (
+              <>
+                <PublicationBadge pub={pub} />
+                <span className="flex-1" />
+                <PublishButton
+                  pub={pub}
+                  disabled={publishDisabled}
+                  alwaysPublishable={alwaysPublishable}
+                  onHistory={() => setHistoryOpen(true)}
+                />
+              </>
+            )}
+          </ArticleFooter>
+        </aside>
+      </div>
 
-      {feed && focusMode && (
+      {focusMode && (
         <div className="fixed top-3 right-4 z-20 flex items-center gap-2 rounded-full border bg-background py-1 pr-1 pl-3 shadow-sm">
           {saveStatus}
           {lockButton}
@@ -1821,41 +1800,18 @@ function ContentEditor({
           </Button>
         </div>
       )}
-      {feed && (
-        <LockDialog
-          situation={lockView}
-          holderName={lock.state.holderName}
-          open={lockDialog.open}
-          onOpenChange={lockDialog.setOpen}
-          canCopy={canCopy}
-          onTake={take}
-          onCopy={() => void onCopy()}
-        />
-      )}
+      <LockDialog
+        situation={lockView}
+        holderName={lock.state.holderName}
+        open={lockDialog.open}
+        onOpenChange={lockDialog.setOpen}
+        canCopy={canCopy}
+        onTake={take}
+        onCopy={() => void onCopy()}
+      />
 
       {!isTemplate && (
         <>
-          {/* L'éditeur du Fil règle tout dans sa colonne de droite. */}
-          {isMethod && (
-            <ContentSettingsSheet
-              open={settingsOpen}
-              onOpenChange={setSettingsOpen}
-              kind={kind}
-              contentId={contentId}
-              title={title}
-              onTitleChange={(value) =>
-                setDraft((current) => ({ ...current, title: value }))
-              }
-              settings={settings}
-              editable={editable}
-              levels={levels.data}
-              levelsFailed={levels.isError}
-              live={pub.publication?.live ?? null}
-              // Une méthode n'a pas d'adresse.
-              refusedSlug={null}
-              onChange={setSettings}
-            />
-          )}
           <HistorySheet
             open={historyOpen}
             onOpenChange={setHistoryOpen}
@@ -1924,38 +1880,5 @@ function ContentEditor({
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
-}
-
-/** Bouton d'icône de l'en-tête (Réglages, Historique), avec son nom en infobulle. */
-function HeaderIconButton({
-  label,
-  expanded,
-  onClick,
-  children,
-}: {
-  label: string
-  expanded: boolean
-  onClick: () => void
-  children: ReactNode
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={label}
-            aria-haspopup="dialog"
-            aria-expanded={expanded}
-            onClick={onClick}
-          />
-        }
-      >
-        {children}
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
   )
 }

@@ -625,9 +625,8 @@ describe("éditeur d'une page (éditeur du Fil)", () => {
     ).toBeNull()
     // Le téléphone commence par le titre : pas d'image de présentation.
     expect(document.querySelector('[data-presentation="cover"]')).toBeNull()
-    expect(
-      screen.queryByRole("button", { name: texts.publication.actions.settings })
-    ).toBeNull()
+    // Pas de barre du haut : l'adresse est dans la colonne de droite.
+    expect(document.querySelector("header")).toBeNull()
   })
 
   it("l'adresse, vérifiée en tapant : « Libre », puis elle part avec le brouillon", async () => {

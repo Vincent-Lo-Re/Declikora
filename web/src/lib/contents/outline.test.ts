@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  appPlan,
   canDropOutline,
   elementAccess,
   elementState,
@@ -322,5 +323,31 @@ describe("niveau d'accès d'un élément ([D43])", () => {
         lesson({ inApp: true, isFree: true }),
       ])
     ).toEqual(free)
+  })
+})
+
+describe("le plan tel que l'app le montrera", () => {
+  it("les chapitres montrés, et dans chacun ses leçons montrées ([D29])", () => {
+    const tree: MethodTree = [
+      {
+        ...element("c1", "chapter", { inApp: true }),
+        kind: "chapter",
+        lessons: [
+          element("l1", "lesson", { inApp: true }),
+          element("l2", "lesson"),
+        ],
+      },
+      {
+        ...element("c2", "chapter"),
+        kind: "chapter",
+        lessons: [element("l3", "lesson", { inApp: true })],
+      },
+    ]
+    expect(
+      appPlan(tree).map((chapter) => [
+        chapter.id,
+        chapter.lessons.map((lesson) => lesson.id),
+      ])
+    ).toEqual([["c1", ["l1"]]])
   })
 })

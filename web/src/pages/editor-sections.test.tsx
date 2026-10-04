@@ -256,9 +256,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     // Tout ce qui concerne l'article est à droite : pas de « Réglages » en haut. Sans bloc, le
     // téléphone et le plan n'ont qu'un bouton « Ajouter un bloc », comme le bas de la colonne de
     // gauche (avec le retour, au-dessus).
-    expect(
-      screen.queryByRole("button", { name: texts.publication.actions.settings })
-    ).toBeNull()
+    expect(document.querySelector("header")).toBeNull()
     expect(
       screen.getAllByRole("button", { name: texts.editor.add.label })
     ).toHaveLength(3)
@@ -1569,10 +1567,6 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
       name: texts.editor.lock.button,
     })
     expect(screen.queryByRole("alertdialog")).toBeNull()
-    // Pas de bandeau du verrou (il reste à l'écran d'une méthode).
-    expect(
-      screen.queryByText(texts.editor.lock.readOnly("Claire Martin"))
-    ).toBeNull()
 
     fireEvent.click(lock)
     const window = await screen.findByRole("alertdialog")
@@ -1677,9 +1671,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
       screen.getByRole("navigation", { name: outline.title })
     ).toBeVisible()
     // Pas de barre du haut : tout est dans la colonne de droite.
-    expect(
-      screen.queryByRole("button", { name: texts.publication.actions.settings })
-    ).toBeNull()
+    expect(document.querySelector("header")).toBeNull()
     const right = screen.getByRole("complementary", {
       name: columns.right.episode,
     })

@@ -1,5 +1,6 @@
 import { cn } from "cn"
 import {
+  type LucideIcon,
   AudioLines,
   Check,
   ChevronRight,
@@ -57,10 +58,10 @@ import { formatDateTime, formatShortDateTime } from "@/lib/dates"
 import type { RefusedSlug } from "@/lib/contents/slug"
 import {
   contentProfile,
-  isListedFeedKind,
+  isListedKind,
   type ElementKind,
-  type ListedFeedKind,
-  type PublishedFeedKind,
+  type ListedKind,
+  type PublishedKind,
 } from "@/lib/editor/profile"
 import { READY_IDS, showReadySetting } from "@/lib/editor/ready-targets"
 import { focusSoon } from "@/lib/focus"
@@ -93,9 +94,11 @@ const statTrigger =
   "flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
 /**
- * L'Article (l'Épisode, la Page), dans la colonne de droite de l'éditeur du Fil (ADMIN § 4) : ce
- * qui manque pour publier, la carte de la liste (image de présentation), l'audio d'un épisode,
- * l'adresse d'une page, le niveau d'accès et les catégories. Tout part avec le brouillon.
+ * L'Article (l'Épisode, la Page, la Méthode), dans la colonne de droite de l'éditeur du Fil
+ * (ADMIN § 4) : ce qui manque pour publier, la carte de la liste (image de présentation), l'audio
+ * d'un épisode, l'adresse d'une page, le niveau d'accès et les catégories, puis ce qui est propre
+ * à la sorte (children : « Ce qui changera dans l'app » d'une méthode). Tout part avec le
+ * brouillon.
  */
 export function ArticlePanel({
   kind,
@@ -118,8 +121,9 @@ export function ArticlePanel({
   onRemoveCover,
   onChooseAudio,
   onRemoveAudio,
+  children,
 }: {
-  kind: PublishedFeedKind
+  kind: PublishedKind
   contentId: string
   draft: Draft
   editable: boolean
@@ -143,9 +147,10 @@ export function ArticlePanel({
   onRemoveCover: () => void
   onChooseAudio: () => void
   onRemoveAudio: () => void
+  children?: ReactNode
 }) {
   // Une page n'est dans aucune liste de l'app : ni carte, ni image de présentation.
-  const listed = isListedFeedKind(kind) ? kind : null
+  const listed = isListedKind(kind) ? kind : null
   return (
     <div className="space-y-3">
       <ReadyCard
@@ -217,6 +222,7 @@ export function ArticlePanel({
           }
         />
       )}
+      {children}
     </div>
   )
 }
@@ -227,9 +233,13 @@ export function ArticlePanel({
  * modification (le détail dans les infobulles), puis les actions (le cadenas, l'état de
  * publication et « Publier »).
  */
+/** Une mesure du bas de la colonne : son icône, en court, et en entier dans l'infobulle. */
+type Measure = { Icon: LucideIcon; short: string; tip: string }
+
 export function ArticleFooter({
   stats,
   audio,
+  measure,
   savedAt,
   saveStatus,
   children,
@@ -237,6 +247,8 @@ export function ArticleFooter({
   stats: { words: number; minutes: number }
   // Un épisode : son audio, dont la durée remplace le temps de lecture.
   audio: BlockMedia | null
+  // À la place du temps de lecture (une méthode : la taille de son plan).
+  measure?: Measure
   savedAt: string | null
   // L'état de l'enregistrement, en icône (son infobulle dit l'état et l'heure).
   saveStatus: ReactNode
@@ -244,13 +256,15 @@ export function ArticleFooter({
 }) {
   const saved = savedAt ? formatShortDateTime(savedAt) : null
   const words = labels.stats.words(integer.format(stats.words))
-  const length = audio
-    ? audioLength(audio, words)
-    : {
-        Icon: Clock,
-        short: labels.stats.short(stats.minutes, words),
-        tip: labels.stats.readingTip(stats.minutes, words),
-      }
+  const length: Measure =
+    measure ??
+    (audio
+      ? audioLength(audio, words)
+      : {
+          Icon: Clock,
+          short: labels.stats.short(stats.minutes, words),
+          tip: labels.stats.readingTip(stats.minutes, words),
+        })
   return (
     <div className="grid h-feed-footer shrink-0 content-center gap-2 border-t bg-background px-4">
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -289,7 +303,7 @@ export function ArticleFooter({
 }
 
 /** Un épisode, en bas de la colonne : la durée de son audio (ou pourquoi elle manque) et les mots. */
-function audioLength(audio: BlockMedia, words: string) {
+function audioLength(audio: BlockMedia, words: string): Measure {
   if (audio.state === "none") {
     return {
       Icon: Headphones,
@@ -422,7 +436,7 @@ export function CoverCard({
   onChooseCover,
   onRemoveCover,
 }: {
-  kind: ListedFeedKind | ElementKind
+  kind: ListedKind | ElementKind
   draft: Draft
   editable: boolean
   cover: BlockMedia

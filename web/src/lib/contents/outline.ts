@@ -166,6 +166,19 @@ export function lessonCount(tree: MethodTree): number {
   return tree.reduce((count, chapter) => count + chapter.lessons.length, 0)
 }
 
+/**
+ * Ce que l'app montrera du plan à la prochaine publication de la méthode : les chapitres où
+ * « Montrer dans l'app » est coché, et dans chacun ses leçons cochées ([D29]).
+ */
+export function appPlan(tree: MethodTree): MethodTree {
+  return tree
+    .filter((chapter) => chapter.inApp)
+    .map((chapter) => ({
+      ...chapter,
+      lessons: chapter.lessons.filter((lesson) => lesson.inApp),
+    }))
+}
+
 // ---------------------------------------------------------------------------------------------
 // Glisser-déposer : un SortableContext pour les chapitres, un par chapitre pour ses leçons, et
 // une zone de dépôt pour un chapitre sans leçon.

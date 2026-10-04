@@ -1,14 +1,17 @@
 import {
   CircleMinus,
   CirclePlus,
+  GitCompare,
   ListOrdered,
   Pencil,
   TriangleAlert,
 } from "lucide-react"
+import { cn } from "cn"
 import { useId, type ReactNode } from "react"
 import { Link } from "react-router"
 
 import type { MethodPublication } from "@/components/editor/use-publication"
+import { PanelCard } from "@/components/panel-card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -56,9 +59,6 @@ export function MethodChanges({
   note?: string
 }) {
   const titleId = useId()
-  const { preview } = method
-  // « Corrige d'abord ce qui est signalé » : seulement s'il y a une ligne signalée ici.
-  const problems = preview?.filter((row) => shownProblem(row) !== null) ?? []
   return (
     <section
       aria-labelledby={titleId}
@@ -69,14 +69,58 @@ export function MethodChanges({
         <h3 id={titleId} className="font-medium">
           {labels.title}
         </h3>
-        {preview && preview.length > 0 && (
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {method.fetching && <Spinner className="size-3" />}
-            {labels.count(preview.length)}
-          </span>
-        )}
+        <ChangesCount method={method} />
       </div>
       {note && <p className="text-xs text-muted-foreground">{note}</p>}
+      <ChangesBody method={method} onOpen={onOpen} />
+    </section>
+  )
+}
+
+/**
+ * Dans la colonne de droite de l'écran d'une méthode (ADMIN § 4) : la même liste, toujours là,
+ * relue pendant qu'on travaille (les autres écrivent ses leçons) ; plus courte (qui a modifié et
+ * quand : dans la fenêtre Publier).
+ */
+export function MethodChangesCard({ method }: { method: MethodPublication }) {
+  return (
+    <PanelCard
+      id="methode-changements"
+      icon={GitCompare}
+      title={labels.cardTitle}
+      aside={method.fetching && <Spinner className="size-3" />}
+    >
+      <ChangesBody method={method} compact />
+    </PanelCard>
+  )
+}
+
+/** Le nombre de changements, avec un tourniquet pendant la relecture. */
+function ChangesCount({ method }: { method: MethodPublication }) {
+  const { preview } = method
+  if (!preview || preview.length === 0) return null
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      {method.fetching && <Spinner className="size-3" />}
+      {labels.count(preview.length)}
+    </span>
+  )
+}
+
+function ChangesBody({
+  method,
+  onOpen,
+  compact = false,
+}: {
+  method: MethodPublication
+  onOpen?: () => void
+  compact?: boolean
+}) {
+  const { preview } = method
+  // « Corrige d'abord ce qui est signalé » : seulement s'il y a une ligne signalée ici.
+  const problems = preview?.filter((row) => shownProblem(row) !== null) ?? []
+  return (
+    <>
       {method.failed ? (
         <div className="flex flex-wrap items-center gap-2">
           <p role="alert" className="text-sm text-destructive">
@@ -101,25 +145,31 @@ export function MethodChanges({
           {method.fetching ? labels.loading : labels.nothing}
         </p>
       ) : (
-        <ul className="max-h-72 divide-y overflow-y-auto rounded-lg border">
+        <ul
+          className={cn(
+            "divide-y rounded-lg border",
+            !compact && "max-h-72 overflow-y-auto"
+          )}
+        >
           {preview.map((row) => (
             <ChangeRow
               key={`${row.elementId}-${row.change}`}
               row={row}
               onOpen={onOpen}
+              compact={compact}
             />
           ))}
         </ul>
       )}
       {problems.length > 0 && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mt-2">
           <TriangleAlert />
           <AlertDescription className="text-foreground">
             {labels.blocked}
           </AlertDescription>
         </Alert>
       )}
-    </section>
+    </>
   )
 }
 
@@ -138,7 +188,15 @@ function shownProblem(row: PreviewRow): string | null {
   return row.problem
 }
 
-function ChangeRow({ row, onOpen }: { row: PreviewRow; onOpen: () => void }) {
+function ChangeRow({
+  row,
+  onOpen,
+  compact,
+}: {
+  row: PreviewRow
+  onOpen?: () => void
+  compact: boolean
+}) {
   const label = rowLabel(row)
   const path =
     row.kind === "method" ? null : contentEditorPath(row.kind, row.elementId)
@@ -173,7 +231,7 @@ function ChangeRow({ row, onOpen }: { row: PreviewRow; onOpen: () => void }) {
           </Badge>
         )}
       </div>
-      {row.savedAt && (
+      {row.savedAt && !compact && (
         <p className="pl-6 text-xs text-muted-foreground">
           {labels.savedAt(formatDateTime(row.savedAt))}
           {row.savedByName && ` ${texts.common.savedBy(row.savedByName)}`}
