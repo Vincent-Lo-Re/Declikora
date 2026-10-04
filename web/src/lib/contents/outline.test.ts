@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest"
 import {
   appPlan,
   canDropOutline,
+  changesView,
+  CHANGES_SHOWN,
   elementAccess,
   elementState,
   findInTree,
@@ -18,6 +20,7 @@ import {
   previewProblems,
   sameOrder,
   shiftInTree,
+  shownProblem,
   targetChapter,
   toOutlinePayload,
   type MethodTree,
@@ -349,5 +352,92 @@ describe("le plan tel que l'app le montrera", () => {
         chapter.lessons.map((lesson) => lesson.id),
       ])
     ).toEqual([["c1", ["l1"]]])
+  })
+})
+
+describe("la liste « Ce qui va changer dans l'app » (QCM du 04/10/2026)", () => {
+  const line = (
+    elementId: string,
+    kind: PreviewRow["kind"],
+    change: PreviewRow["change"],
+    problem: string | null = null
+  ): PreviewRow => ({
+    elementId,
+    kind,
+    title: elementId,
+    chapterId: null,
+    chapterTitle: null,
+    change,
+    problem,
+    problemDetail: null,
+    savedAt: null,
+    savedByName: null,
+  })
+  const ids = (rows: PreviewRow[]) => rows.map((row) => row.elementId)
+
+  it("la méthode entre dans l'app : un résumé, et seulement les lignes qui ont un problème", () => {
+    const view = changesView([
+      line("M", "method", "new"),
+      line("A", "chapter", "new"),
+      line("a1", "lesson", "new"),
+      line("a2", "lesson", "new", "image_sans_fichier"),
+      line("B", "chapter", "new"),
+    ])
+    expect(view.kind).toBe("entry")
+    if (view.kind !== "entry") return
+    expect(view.chapters).toBe(2)
+    expect(view.lessons).toBe(2)
+    expect(ids(view.problems)).toEqual(["a2"])
+  })
+
+  it("déjà dans l'app : la fiche à part, puis les groupes dans l'ordre ajouts, modifications, retraits, nouvelles places", () => {
+    const view = changesView([
+      line("M", "method", "reordered"),
+      line("a1", "lesson", "reordered"),
+      line("a2", "lesson", "modified"),
+      line("A", "chapter", "removed"),
+      line("a3", "lesson", "new"),
+      line("a4", "lesson", "modified"),
+    ])
+    expect(view.kind).toBe("groups")
+    if (view.kind !== "groups") return
+    expect(ids(view.method)).toEqual(["M"])
+    expect(view.groups.map((group) => group.change)).toEqual([
+      "new",
+      "modified",
+      "removed",
+      "reordered",
+    ])
+    // Dans un groupe, l'ordre du plan.
+    expect(ids(view.groups[1].rows)).toEqual(["a2", "a4"])
+  })
+
+  it("dans un groupe, les lignes qui ont un problème d'abord : « Voir tout » ne les cache pas", () => {
+    const rows = Array.from({ length: CHANGES_SHOWN + 2 }, (_, index) =>
+      line(`a${index}`, "lesson", "modified")
+    )
+    rows.push(line("z", "lesson", "modified", "image_sans_fichier"))
+    const view = changesView(rows)
+    if (view.kind !== "groups") throw new Error("groupes attendus")
+    expect(view.groups).toHaveLength(1)
+    expect(view.groups[0].rows[0].elementId).toBe("z")
+    expect(view.groups[0].rows).toHaveLength(CHANGES_SHOWN + 3)
+  })
+
+  it("le titre et l'image de la fiche se signalent au-dessus, pas dans la liste", () => {
+    expect(
+      shownProblem(line("M", "method", "modified", "titre_manquant"))
+    ).toBe(null)
+    expect(
+      shownProblem(
+        line("M", "method", "modified", "image_de_presentation_manquante")
+      )
+    ).toBe(null)
+    expect(
+      shownProblem(line("a1", "lesson", "modified", "image_sans_fichier"))
+    ).toBe("image_sans_fichier")
+    // La méthode entre dans l'app sans titre : rien à lister sous le résumé.
+    const view = changesView([line("M", "method", "new", "titre_manquant")])
+    expect(view.kind === "entry" && view.problems).toEqual([])
   })
 })

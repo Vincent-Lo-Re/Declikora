@@ -177,20 +177,29 @@ type Change = {
   text: string
 }
 
-/** « Publier » : la fenêtre, ce qu'elle liste (exactement), puis la publication. */
-async function publish(page: Page, expected: Change[], level?: string) {
+/**
+ * « Publier » : la fenêtre, ce qu'elle liste (exactement), ou son résumé quand la méthode entre
+ * dans l'app, puis la publication.
+ */
+async function publish(
+  page: Page,
+  expected: Change[] | string,
+  level?: string
+) {
   await page
     .getByRole("button", { name: publication.actions.publish, exact: true })
     .click()
   const dialog = page.getByRole("dialog")
   const list = dialog.getByRole("region", { name: changes.title })
-  for (const line of expected) {
+  const lines = typeof expected === "string" ? [] : expected
+  if (typeof expected === "string") await expect(list).toContainText(expected)
+  for (const line of lines) {
     const row = list.locator(
       `[data-element-id="${line.id}"][data-change="${line.change}"]`
     )
     await expect(row).toContainText(line.text)
   }
-  await expect(list.locator("[data-change]")).toHaveCount(expected.length)
+  await expect(list.locator("[data-change]")).toHaveCount(lines.length)
   if (level) await dialog.getByRole("radio", { name: level }).click()
   const confirm = dialog.getByRole("button", {
     name: publication.publishDialog.confirm,
@@ -351,34 +360,8 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     // Rien n'est encore dans l'app.
     expect(await appMethod(methodId)).toBeNull()
 
-    // --- Publication : la fenêtre liste ce qui arrive dans l'app ([D29]) --------------------
-    await publish(
-      page,
-      [
-        { id: methodId, change: "new", text: changes.method.new },
-        {
-          id: ids.move,
-          change: "new",
-          text: `${changes.kinds.chapter} « ${move} »`,
-        },
-        {
-          id: ids.breathe,
-          change: "new",
-          text: `${changes.kinds.chapter} « ${breathe} »`,
-        },
-        {
-          id: ids.souffle,
-          change: "new",
-          text: `${changes.kinds.lesson} « Le souffle »`,
-        },
-        {
-          id: ids.expirer,
-          change: "new",
-          text: `${changes.kinds.lesson} « Expirer »`,
-        },
-      ],
-      level
-    )
+    // --- Publication : la fenêtre résume ce qui entre dans l'app ([D29]) --------------------
+    await publish(page, changes.entry(2, 2), level)
     await expect(page.getByText(publication.published(1))).toBeVisible()
 
     // L'app : seuls les éléments cochés, dans l'ordre rangé.
