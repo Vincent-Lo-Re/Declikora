@@ -97,7 +97,7 @@ async function check(page: Page, label: string, name: string) {
   await item.click()
   await expect(item).toBeChecked()
   await expect(item).toBeEnabled()
-  await page.keyboard.press("Escape")
+  await closeMenu(page)
 }
 
 /** Vrai ou faux, une case du menu ⋯ d'une ligne du plan. */
@@ -110,7 +110,13 @@ async function expectFlag(
   const item = await flagItem(page, label, name)
   if (checked) await expect(item).toBeChecked()
   else await expect(item).not.toBeChecked()
+  await closeMenu(page)
+}
+
+/** Ferme le menu ouvert, et attend qu'il ait quitté la page (il s'efface en fondu). */
+async function closeMenu(page: Page) {
   await page.keyboard.press("Escape")
+  await expect(page.getByRole("menu")).toHaveCount(0)
 }
 
 /** Crée un chapitre ou une leçon depuis le plan (on reste sur le plan). */
@@ -207,6 +213,7 @@ async function elementAction(
   item: string,
   confirmLabel?: string
 ) {
+  await expect(page.getByRole("menu")).toHaveCount(0)
   await page.getByRole("button", { name: outline.actions(label) }).click()
   await page.getByRole("menuitem", { name: item }).click()
   if (!confirmLabel) return
