@@ -152,7 +152,19 @@ async function setSettings(page: Page, slug: string, level?: string) {
 }
 
 /** « Publier », puis la fenêtre de confirmation. */
+/**
+ * Les messages, en bas à droite, passent par-dessus « Publier » et son menu le temps de s'effacer :
+ * la souris ailleurs (survolés, ils restent), on attend qu'ils soient partis.
+ */
+async function noToasts(page: Page) {
+  await page.mouse.move(0, 0)
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, {
+    timeout: 15_000,
+  })
+}
+
 async function publish(page: Page, level?: string) {
+  await noToasts(page)
   await page
     .getByRole("button", { name: labels.actions.publish, exact: true })
     .click()
@@ -173,6 +185,7 @@ async function publish(page: Page, level?: string) {
 
 /** Un choix du menu « Autres actions de publication ». */
 async function publicationAction(page: Page, item: string) {
+  await noToasts(page)
   await page.getByRole("button", { name: labels.actions.more }).click()
   await page.getByRole("menuitem", { name: item }).click()
 }
@@ -254,12 +267,8 @@ test("publier une page, la modifier sans toucher à l'app, republier, revenir à
       .getByRole("region", { name: labels.settings.access.label })
       .getByText(labels.settings.access.notChosenShort)
   ).toBeVisible()
-  // Le message, en bas à droite, passe par-dessus « Publier » le temps de s'effacer (la souris
-  // ailleurs : survolé, il reste).
-  await page.mouse.move(0, 0)
-  await expect(page.getByText(labels.settings.slug.missing)).toBeHidden({
-    timeout: 15_000,
-  })
+  // Le message, en bas à droite, passe par-dessus « Publier » le temps de s'effacer.
+  await noToasts(page)
 
   // Première publication : le niveau d'accès est demandé ([D41]), on choisit « Gratuit ».
   expect(await appPage(slug)).toBeNull()
