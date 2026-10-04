@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react"
+import { fireEvent, screen, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { supabase } from "@/lib/supabase"
@@ -17,8 +17,10 @@ describe("Mon compte", () => {
     expect(screen.getByLabelText(texts.account.profile.name)).toHaveValue(
       testProfile.full_name
     )
-    expect(screen.getByText(testProfile.email)).toBeVisible()
-    expect(screen.getByText(texts.roles.editor)).toBeVisible()
+    // Dans la page : le menu de gauche montre aussi le rôle, à côté de l'avatar.
+    const page = within(screen.getByRole("main"))
+    expect(page.getByText(testProfile.email)).toBeVisible()
+    expect(page.getByText(texts.roles.editor)).toBeVisible()
     expect(
       screen.getByText(texts.account.mfa.configuredOn("27 sept. 2026 à 14h30"))
     ).toBeVisible()

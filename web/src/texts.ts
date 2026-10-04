@@ -43,10 +43,7 @@ export const texts = {
 
   nav: {
     label: "Menu principal",
-    description: "Les sections de l'administration.",
     footerLabel: "Équipe et Paramètres",
-    open: "Ouvrir la navigation",
-    close: "Refermer la navigation",
     groups: {
       contents: "Contenus",
       tools: "Outils",

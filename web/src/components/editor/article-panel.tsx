@@ -266,7 +266,11 @@ export function ArticleFooter({
           tip: labels.stats.readingTip(stats.minutes, words),
         })
   return (
-    <div className="grid h-feed-footer shrink-0 content-center gap-2 border-t bg-background px-4">
+    // data-feed-footer : les messages passent au-dessus (index.css).
+    <div
+      data-feed-footer
+      className="grid h-feed-footer shrink-0 content-center gap-2 border-t bg-background px-4"
+    >
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
         {/* L'icône à la taille de celles de la ligne. */}
         <span className="flex [&_svg]:size-3.5">{saveStatus}</span>

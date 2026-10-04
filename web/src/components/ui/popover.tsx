@@ -28,7 +28,7 @@ function PopoverContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-50"
+        className="isolate z-popup"
       >
         <PopoverPrimitive.Popup
           data-slot="popover-content"

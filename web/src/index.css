@@ -136,7 +136,7 @@
 /* Éditeur du Fil : le bas des deux colonnes, à la même hauteur (à gauche le retour et « Ajouter un
    bloc », à droite la lecture, l'état et « Publier »). */
 @utility h-feed-footer {
-  height: --spacing(20);
+  height: var(--feed-footer-height);
 }
 
 /* Éditeur du Fil : une trame de points au fond de la colonne centrale, tous les 16 px ; la couleur
@@ -167,10 +167,33 @@
  */
 :root {
   --upload-window-space: 0px;
+  --feed-footer-height: --spacing(20);
+  --feed-footer-space: 0px;
 }
 
 :root[data-upload-window] {
   --upload-window-space: calc(var(--upload-window-height) + --spacing(3));
+}
+
+/* Éditeur du Fil : les messages (Toaster) passent au-dessus du bas de la colonne de droite
+   (data-feed-footer), qui garde « Publier » et son menu visibles. */
+:root:has([data-feed-footer]) {
+  --feed-footer-space: var(--feed-footer-height);
+}
+
+/*
+ * Ce qui flotte sur la page, de bas en haut : les fenêtres et les glissières (z-50), les messages
+ * (Toaster), puis les menus, les listes de choix et les infobulles (z-popup). Un message reste
+ * lisible sur une fenêtre ouverte, et un menu ouvert près d'un message reste visible et cliquable
+ * (survolé, un message reste affiché). Sonner pose son propre calque, très haut : on le redescend
+ * (:root pour passer devant sa feuille de style, ajoutée après la nôtre).
+ */
+:root [data-sonner-toaster] {
+  z-index: 60;
+}
+
+@utility z-popup {
+  z-index: 70;
 }
 
 /* Le bas des pages avec le menu : leur marge, plus la place de la fenêtre des envois. */

@@ -673,15 +673,19 @@ describe("éditeur d'un modèle", () => {
       `Ancienne (${texts.templates.editor.inTrash})`
     )
 
-    // Un seul bloc : « Ajouter un bloc » est grisé, et la règle est dite.
+    // Un seul bloc : « Ajouter un bloc » est grisé, et la règle est dite, une icône info orange
+    // devant.
     await waitFor(() =>
       expect(
         within(left).getByRole("button", { name: texts.editor.add.label })
       ).toBeDisabled()
     )
-    expect(
-      within(left).getByText(texts.templates.editor.sharedLimit)
-    ).toBeVisible()
+    const rule = within(left).getByText(texts.templates.editor.sharedLimit)
+    expect(rule).toBeVisible()
+    expect(rule.previousElementSibling).toHaveClass(
+      "lucide-info",
+      "text-warning"
+    )
 
     // Le bloc d'un modèle utilisé ne se supprime pas, et ne se duplique pas (le premier niveau
     // est plein).

@@ -26,12 +26,15 @@ export function AppProviders({
             {children}
             {/*
             Au-dessus de la fenêtre des envois quand elle est ouverte (--upload-window-space,
-            index.css). Sonner n'accepte cet écart qu'en réglage : --spacing × 6 = ses 24 px.
+            index.css), et du bas de la colonne de droite de l'éditeur du Fil, où sont « Publier »
+            et son menu (--feed-footer-space). Sonner n'accepte cet écart qu'en réglage :
+            --spacing × 6 = ses 24 px.
           */}
             <Toaster
               position="bottom-right"
               offset={{
-                bottom: "calc(var(--spacing) * 6 + var(--upload-window-space))",
+                bottom:
+                  "calc(var(--spacing) * 6 + var(--upload-window-space) + var(--feed-footer-space))",
               }}
             />
           </TooltipProvider>
