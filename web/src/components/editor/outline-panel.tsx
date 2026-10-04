@@ -658,6 +658,7 @@ function RowActions({
   onRemove: () => void
   removeBlocked: string | null
 }) {
+  const reasonId = useId()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -699,11 +700,21 @@ function RowActions({
         <DropdownMenuItem
           variant="destructive"
           disabled={removeBlocked !== null}
+          aria-describedby={removeBlocked ? reasonId : undefined}
           onClick={onRemove}
         >
           <Trash2 />
           {labels.remove}
         </DropdownMenuItem>
+        {/* Grisé : pourquoi, juste dessous (un bloc partagé utilisé garde son bloc). */}
+        {removeBlocked && (
+          <p
+            id={reasonId}
+            className="max-w-64 px-2 pt-0.5 pb-1.5 text-xs text-muted-foreground"
+          >
+            {removeBlocked}
+          </p>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

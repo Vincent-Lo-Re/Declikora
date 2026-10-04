@@ -214,7 +214,7 @@ export function TemplateUsesCard({ templateId }: { templateId: string }) {
               {labels.outdated.title(stale.length)}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {labels.outdated.description}
+              {labels.outdated.description(stale.length)}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <ul className="max-h-48 space-y-1 overflow-y-auto text-sm">

@@ -1481,8 +1481,10 @@ export const texts = {
           count === 1
             ? "Mettre à jour ce contenu dans l'app ?"
             : `Mettre à jour ces ${count} contenus dans l'app ?`,
-        description:
-          "Ces contenus sont en ligne avec une ancienne version de ce bloc. Seul ce bloc sera remplacé dans l'app : les autres modifications de leurs brouillons ne sont pas publiées. Rien ne change dans l'app avant ce clic.",
+        description: (count: number) =>
+          count === 1
+            ? "Ce contenu est en ligne avec une ancienne version de ce bloc. Seul ce bloc sera remplacé dans l'app : les autres modifications de son brouillon ne sont pas publiées. Rien ne change dans l'app avant ce clic."
+            : "Ces contenus sont en ligne avec une ancienne version de ce bloc. Seul ce bloc sera remplacé dans l'app : les autres modifications de leurs brouillons ne sont pas publiées. Rien ne change dans l'app avant ce clic.",
         version: (number: number, date: string) =>
           `version n° ${number}, publiée le ${date}`,
         confirm: "Mettre à jour",

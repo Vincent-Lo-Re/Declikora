@@ -713,6 +713,22 @@ describe("éditeur d'un modèle", () => {
       screen.getByText(texts.templates.editor.keepBlock)
     ).toBeInTheDocument()
 
+    // Dans le menu ⋮ du plan aussi : « Supprimer » grisé dit pourquoi.
+    const boxRow = document
+      .querySelector(`[data-outline-id="${contactBox.id}"]`)!
+      .closest("li")!
+    fireEvent.click(
+      within(boxRow).getAllByRole("button", { name: /^Actions/ })[0]
+    )
+    const remove = within(await screen.findByRole("menu")).getByRole(
+      "menuitem",
+      { name: texts.editor.outline.remove }
+    )
+    expect(remove).toHaveAttribute("aria-disabled", "true")
+    expect(remove).toHaveAccessibleDescription(texts.templates.editor.keepBlock)
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" })
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
+
     fireEvent.click(
       await within(uses).findByRole("button", {
         name: texts.templates.editor.outdated.push(1),
@@ -723,6 +739,10 @@ describe("éditeur d'un modèle", () => {
     })
     expect(confirm).toHaveTextContent("Accueil")
     expect(confirm).toHaveTextContent("version n° 3, publiée le 27 sept. 2026")
+    // Un seul contenu : la phrase est au singulier.
+    expect(confirm).toHaveTextContent(
+      texts.templates.editor.outdated.description(1)
+    )
     expect(templatesApi.pushTemplate).not.toHaveBeenCalled()
     fireEvent.click(
       within(confirm).getByRole("button", {
