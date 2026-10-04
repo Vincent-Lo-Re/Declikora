@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   canDropOutline,
+  elementAccess,
   elementState,
   findInTree,
   lessonCount,
@@ -287,5 +288,39 @@ describe("plan en ligne et état de chaque élément", () => {
         row("a2", "new"),
       ]).map((entry) => entry.elementId)
     ).toEqual(["a1"])
+  })
+})
+
+describe("niveau d'accès d'un élément ([D43])", () => {
+  const reserved = { accessChosen: true, accessLevelId: "essentiel" }
+  const free = { accessChosen: true, accessLevelId: null }
+
+  it("une leçon : celui de la méthode, sauf si elle est gratuite", () => {
+    const lesson = { kind: "lesson", isFree: false } as const
+    expect(elementAccess(reserved, lesson, [])).toEqual(reserved)
+    expect(elementAccess(reserved, { ...lesson, isFree: true }, [])).toEqual(
+      free
+    )
+    // Le niveau de la méthode pas encore choisi : la leçon non plus.
+    const unchosen = { accessChosen: false, accessLevelId: null }
+    expect(elementAccess(unchosen, lesson, [])).toEqual(unchosen)
+  })
+
+  it("un chapitre : gratuit dès qu'une de ses leçons montrées dans l'app est gratuite", () => {
+    const chapter = { kind: "chapter", isFree: false } as const
+    const lesson = (changes: Partial<OutlineElement>) =>
+      element("l", "lesson", changes)
+    expect(
+      elementAccess(reserved, chapter, [
+        lesson({ inApp: true }),
+        lesson({ inApp: false, isFree: true }),
+      ])
+    ).toEqual(reserved)
+    expect(
+      elementAccess(reserved, chapter, [
+        lesson({ inApp: true }),
+        lesson({ inApp: true, isFree: true }),
+      ])
+    ).toEqual(free)
   })
 })

@@ -36,7 +36,7 @@ export type OutlineChapter = OutlineElement & {
 export type MethodTree = OutlineChapter[]
 
 /** La place d'un élément dans l'arbre. */
-type TreePlace =
+export type TreePlace =
   | { kind: "chapter"; element: OutlineChapter; chapterIndex: number }
   | {
       kind: "lesson"
@@ -393,4 +393,28 @@ export function elementState(
   if (element.inApp && !goes) return "blocked"
   if (element.inApp) return "new"
   return element.published ? "withdrawn" : "hidden"
+}
+
+// ---------------------------------------------------------------------------------------------
+// Le niveau d'accès d'un élément
+// ---------------------------------------------------------------------------------------------
+
+/** Un niveau d'accès tel que l'éditeur le lit (accessChosen : « Gratuit » ou une formule choisis). */
+type Access = { accessChosen: boolean; accessLevelId: string | null }
+
+const FREE: Access = { accessChosen: true, accessLevelId: null }
+
+/**
+ * Le niveau d'accès d'un chapitre ou d'une leçon à la prochaine publication de sa méthode
+ * ([D43]) : celui de la méthode, sauf pour une leçon gratuite, et pour l'introduction d'un
+ * chapitre dont une leçon montrée dans l'app est gratuite. lessons : celles du chapitre (pour
+ * un chapitre), dans le brouillon du plan.
+ */
+export function elementAccess(
+  method: Access,
+  element: { kind: "chapter" | "lesson"; isFree: boolean },
+  lessons: readonly Pick<OutlineElement, "inApp" | "isFree">[]
+): Access {
+  if (element.kind === "lesson") return element.isFree ? FREE : method
+  return lessons.some((lesson) => lesson.inApp && lesson.isFree) ? FREE : method
 }

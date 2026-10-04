@@ -46,18 +46,10 @@ export type BlocksEditorValue = {
   setActiveText: (blockId: string, editor: Editor, active: boolean) => void
   mediaFor: (mediaId: string | null) => BlockMedia
   openPicker: (blockId: string) => void
-  addToBox: (boxId: string, type: "text" | "image") => void
-  // Blocs liés : le modèle cité, et « Détacher » (copie ordinaire, à la même place).
+  // Blocs liés : le modèle cité, montré tel quel.
   templateFor: (templateId: string) => LinkedTemplateState
-  detachBlock: (blockId: string) => void
-  // Éditeur du Fil : pas de poignée dans l'aperçu, c'est le plan (toujours ouvert) qui range les
-  // blocs (ADMIN § 4).
-  withoutHandles?: boolean
-  // Éditeur du Fil : un bloc partagé sans barre au-dessus de lui dans l'aperçu (son nom est dans
-  // le plan ; « Modifier le modèle » et « Détacher », dans ses réglages).
-  linkedWithoutBar?: boolean
-  // Éditeur du Fil : « Ajouter dans la section » ouvre les Blocs pour cette section (ailleurs,
-  // un menu Texte, Image).
+  // « Ajouter dans la section » ouvre les Blocs pour cette section (absent : en lecture seule,
+  // la Lecture).
   onAddInBox?: (boxId: string) => void
 }
 

@@ -14,7 +14,6 @@ import {
   CornerLeftUp,
   EllipsisVertical,
   GripVertical,
-  LayoutTemplate,
   ListChecks,
   ListTree,
   Trash2,
@@ -40,7 +39,6 @@ import {
 import { zoneId, type DropData } from "@/blocks/dnd"
 import { flattenBlocks } from "@/blocks/draft"
 import { blockLabel } from "@/blocks/labels"
-import { blockRegistry } from "@/blocks/registry"
 import {
   ROOT,
   type Block,
@@ -136,23 +134,22 @@ export function OutlinePanel({
   templateName?: (block: Block) => string | null
   // Absent : pas de « Enregistrer comme modèle » (lecture seule, éditeur d'un modèle).
   selection?: OutlineSelection
-  feed?: FeedOutline
+  feed: FeedOutline
 }) {
-  // Les sections repliées (éditeur du Fil).
+  // Les sections repliées.
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
   const all = flattenBlocks(draft)
   const choosing = selection?.active ?? false
-  // Éditeur du Fil : les lignes se rangent par glisser-déposer (pas pendant « Choisir des
-  // blocs »), avec les règles de l'aperçu.
-  const sortable = feed?.onMove !== undefined && !choosing
+  // Les lignes se rangent par glisser-déposer (pas pendant « Choisir des blocs »).
+  const sortable = feed.onMove !== undefined && !choosing
   const drag = useBlockDrag({
     draft,
-    onChange: feed?.onMove ?? keep,
-    rootLimit: feed?.rootLimit,
+    onChange: feed.onMove ?? keep,
+    rootLimit: feed.rootLimit,
   })
   const shared: RowShared = {
-    // Le plan se range (éditeur du Fil, brouillon tenu) : un DndContext à lui, avec son annonce.
-    dnd: feed?.onMove !== undefined,
+    // Le plan se range (brouillon tenu) : un DndContext à lui, avec son annonce.
+    dnd: feed.onMove !== undefined,
     selectedId,
     onSelect,
     templateName,
@@ -197,31 +194,21 @@ export function OutlinePanel({
       aria-label={labels.title}
       // Les lignes alignées sur la marge de 16 px des colonnes (comme les en-têtes et les cartes) ;
       // leur poignée apparaît dans cette marge.
-      className={cn(
-        "flex h-full flex-col overflow-y-auto px-4",
-        feed ? "pb-3" : "py-3"
-      )}
+      className="flex h-full flex-col overflow-y-auto px-4 pb-3"
     >
-      {/* Éditeur du Fil : le haut du plan (titre, « Choisir des blocs », nombre) reste en haut de
-          la colonne quand les lignes défilent, sur un fond plein qui couvre aussi la marge ; son
-          titre est un en-tête de la hauteur de celui de droite. */}
-      <div className={cn(feed && "sticky top-0 z-10 -mx-4 bg-background px-4")}>
-        {feed ? (
-          <ColumnHeader
-            icon={ListTree}
-            title={labels.title}
-            className="-mx-4 mb-2"
-          >
-            {selectButton}
-          </ColumnHeader>
-        ) : (
-          <div className="flex items-center justify-between gap-2 px-2 pb-2">
-            <h2 className="text-sm font-semibold">{labels.title}</h2>
-            {selectButton}
-          </div>
-        )}
+      {/* Le haut du plan (titre, « Choisir des blocs », nombre) reste en haut de la colonne quand
+          les lignes défilent, sur un fond plein qui couvre aussi la marge ; son titre est un
+          en-tête de la hauteur de celui de droite. */}
+      <div className="sticky top-0 z-10 -mx-4 bg-background px-4">
+        <ColumnHeader
+          icon={ListTree}
+          title={labels.title}
+          className="-mx-4 mb-2"
+        >
+          {selectButton}
+        </ColumnHeader>
         {/* Sans bloc, « Aucun bloc pour l'instant » le dit déjà. */}
-        {feed && all.length > 0 && (
+        {all.length > 0 && (
           <p className="px-2 pb-2 text-xs text-muted-foreground">
             {/* Les blocs du premier niveau : une section donne le nombre des siens. Les points à
                 vérifier sont sur leurs lignes (et dans « Prêt à publier ? »). */}
@@ -237,7 +224,7 @@ export function OutlinePanel({
       {all.length === 0 ? (
         <div className="grid gap-3 px-2">
           <p className="text-sm text-muted-foreground">{labels.empty}</p>
-          {feed?.onAdd && (
+          {feed.onAdd && (
             <AddBlockButton
               label={texts.editor.add.label}
               onClick={feed.onAdd}
@@ -273,19 +260,15 @@ export function OutlinePanel({
               <DragOverlay dropAnimation={null}>
                 {drag.active ? (
                   <DragChip>
-                    {feed ? (
-                      <BlockSummary
-                        block={drag.active}
-                        media={
-                          drag.active.type === "image"
-                            ? feed.mediaFor(drag.active.mediaId)
-                            : null
-                        }
-                        templateName={templateName(drag.active)}
-                      />
-                    ) : (
-                      blockLabel(drag.active, templateName(drag.active))
-                    )}
+                    <BlockSummary
+                      block={drag.active}
+                      media={
+                        drag.active.type === "image"
+                          ? feed.mediaFor(drag.active.mediaId)
+                          : null
+                      }
+                      templateName={templateName(drag.active)}
+                    />
                   </DragChip>
                 ) : null}
               </DragOverlay>
@@ -310,7 +293,7 @@ export function OutlinePanel({
   )
 }
 
-// Rien à ranger (plan d'un autre éditeur, ou lecture seule).
+// Rien à ranger (lecture seule).
 const keep = () => {}
 
 type RowShared = {
@@ -320,18 +303,16 @@ type RowShared = {
   templateName: (block: Block) => string | null
   selection?: OutlineSelection
   choosing: boolean
-  feed?: FeedOutline
+  feed: FeedOutline
   sortable: boolean
   collapsed: ReadonlySet<string>
   toggleCollapsed: (id: string) => void
 }
 
-/**
- * Une ligne du plan : le bloc (et, pour une section dépliée, ses blocs). Dans l'éditeur du Fil, elle se range par sa poignée, comme dans l'aperçu.
- */
+/** Une ligne du plan : le bloc (et, pour une section dépliée, ses blocs). */
 type RowProps = { block: Block; container: ContainerId; shared: RowShared }
 
-/** Une ligne, déplaçable seulement là où le plan se range (éditeur du Fil). */
+/** Une ligne, déplaçable par sa poignée quand le plan se range (brouillon tenu). */
 function Row(props: RowProps) {
   return props.shared.dnd ? (
     <SortableRow {...props} />
@@ -408,11 +389,9 @@ function OutlineRow({
   handle?: ReactNode
 }) {
   const { selectedId, onSelect, selection, choosing, feed } = shared
-  const definition = block.type === "linked" ? null : blockRegistry[block.type]
-  const Icon = definition?.icon ?? LayoutTemplate
   const label = blockLabel(block, shared.templateName(block))
   const checkable = choosing && container === ROOT
-  const warning = feed?.warningOf(block) ?? null
+  const warning = feed.warningOf(block)
   const isCollapsed = shared.collapsed.has(block.id)
   const warningId = useId()
   return (
@@ -428,8 +407,8 @@ function OutlineRow({
           // La place de la poignée, au début de la ligne.
           shared.sortable && "pl-5"
         )}
-        onPointerEnter={feed && (() => feed.onHover(block.id))}
-        onPointerLeave={feed && (() => feed.onHover(null))}
+        onPointerEnter={() => feed.onHover(block.id)}
+        onPointerLeave={() => feed.onHover(null)}
       >
         {handle}
         {checkable && selection && (
@@ -440,15 +419,14 @@ function OutlineRow({
             onCheckedChange={(checked) => selection.onChoose(block.id, checked)}
           />
         )}
-        {/* Éditeur du Fil : un seul fond pour la ligne, son chevron et son menu (survol, ligne
-            choisie), sans la poignée. */}
+        {/* Un seul fond pour la ligne, son chevron et son menu (survol, ligne choisie), sans la
+            poignée. */}
         <div
           className={cn(
             "relative flex min-w-0 flex-1 items-center gap-1 rounded-md",
-            feed &&
-              (selectedId === block.id
-                ? "bg-accent"
-                : feed.hoveredId === block.id && "bg-accent/60")
+            selectedId === block.id
+              ? "bg-accent"
+              : feed.hoveredId === block.id && "bg-accent/60"
           )}
         >
           <button
@@ -461,53 +439,37 @@ function OutlineRow({
             onClick={() => onSelect(block.id)}
             className={cn(
               rowButton,
-              // Ailleurs, le fond est celui du bouton ; dans le Fil, celui de la ligne entière.
-              !feed && "hover:bg-accent",
-              selectedId === block.id &&
-                cn("font-medium", !feed && "bg-accent"),
+              selectedId === block.id && "font-medium",
               // Le menu « ⋮ » s'affiche au bout de la ligne (avant le chevron d'une section, qui ne
               // bouge pas) : la ligne lui fait place, rien n'est caché dessous.
-              feed?.actions &&
-                "group-focus-within/row:pr-8 group-hover/row:pr-8"
+              feed.actions && "group-focus-within/row:pr-8 group-hover/row:pr-8"
             )}
           >
-            {feed ? (
-              <BlockSummary
-                block={block}
-                media={
-                  block.type === "image" ? feed.mediaFor(block.mediaId) : null
-                }
-                templateName={shared.templateName(block)}
-                warning={
-                  warning && (
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={<span className="flex shrink-0 text-warning" />}
-                      >
-                        <TriangleAlert aria-hidden className="size-4" />
-                        <span id={warningId} className="sr-only">
-                          {labels.warnings[warning]}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
+            <BlockSummary
+              block={block}
+              media={
+                block.type === "image" ? feed.mediaFor(block.mediaId) : null
+              }
+              templateName={shared.templateName(block)}
+              warning={
+                warning && (
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={<span className="flex shrink-0 text-warning" />}
+                    >
+                      <TriangleAlert aria-hidden className="size-4" />
+                      <span id={warningId} className="sr-only">
                         {labels.warnings[warning]}
-                      </TooltipContent>
-                    </Tooltip>
-                  )
-                }
-              />
-            ) : (
-              <>
-                <Icon
-                  aria-hidden
-                  className="size-4 shrink-0 text-muted-foreground"
-                />
-                <span className="truncate">{label}</span>
-              </>
-            )}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{labels.warnings[warning]}</TooltipContent>
+                  </Tooltip>
+                )
+              }
+            />
           </button>
           {/* Déplier, replier une section : au bout de sa ligne, toujours à la même place. */}
-          {feed && block.type === "box" && (
+          {block.type === "box" && (
             <Button
               variant="ghost"
               size="icon-xs"
@@ -523,7 +485,7 @@ function OutlineRow({
               {isCollapsed ? <ChevronRight /> : <ChevronDown />}
             </Button>
           )}
-          {feed?.actions && (
+          {feed.actions && (
             <RowActions
               label={label}
               onDuplicate={() => feed.actions!.onDuplicate(block.id)}
@@ -555,11 +517,18 @@ function OutlineRow({
   )
 }
 
+// Les blocs d'une section : un trait qui part du début des lignes (après la place des poignées).
+const boxRowsClass = (shared: RowShared) =>
+  cn(
+    "grid min-h-2 gap-0.5 rounded-md border-l pl-1.5",
+    shared.choosing ? "ml-9" : "ml-5"
+  )
+
 /** Les blocs d'une section dépliée. */
 function BoxRows({ box, shared }: { box: BoxBlock; shared: RowShared }) {
   if (shared.dnd) return <DroppableBoxRows box={box} shared={shared} />
   return (
-    <ol className={cn("grid gap-0.5", shared.choosing ? "pl-11" : "pl-5")}>
+    <ol className={boxRowsClass(shared)}>
       {box.blocks.map((child) => (
         <Row key={child.id} block={child} container={box.id} shared={shared} />
       ))}
@@ -594,13 +563,7 @@ function DroppableBoxRows({
       <ol
         ref={setNodeRef}
         className={cn(
-          "grid min-h-2 gap-0.5 rounded-md",
-          shared.feed
-            ? // Le trait part du début des lignes (après la place des poignées).
-              cn("border-l pl-1.5", shared.choosing ? "ml-9" : "ml-5")
-            : shared.choosing
-              ? "pl-11"
-              : "pl-5",
+          boxRowsClass(shared),
           isOver && box.blocks.length === 0 && "outline-2 outline-ring/60"
         )}
       >
@@ -614,11 +577,11 @@ function DroppableBoxRows({
         ))}
         {/* Une section vide : le même bouton que dans le téléphone (une ligne du plan peut
             aussi y être glissée). */}
-        {shared.feed?.onAddInBox && box.blocks.length === 0 && (
+        {shared.feed.onAddInBox && box.blocks.length === 0 && (
           <li>
             <AddBlockButton
               label={texts.editor.add.inBox}
-              onClick={() => shared.feed!.onAddInBox!(box.id)}
+              onClick={() => shared.feed.onAddInBox?.(box.id)}
             />
           </li>
         )}

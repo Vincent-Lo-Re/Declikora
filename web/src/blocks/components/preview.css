@@ -192,43 +192,8 @@
   scroll-margin-top: var(--blocks-space-page-padding);
 }
 
-/* La poignée d'un bloc (les autres éditeurs ; celui du Fil range les blocs par le plan) : dans
-   la marge de l'écran, ou de la section pour ses blocs, sur toute la hauteur du bloc ; la poignée
-   y suit le défilement (sticky) tant que le bloc se voit. Une seule s'allume : celle du bloc le
-   plus intérieur sous la souris, du bloc choisi, ou atteinte au clavier. */
-.blocks-handle-rail {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(var(--blocks-space-page-padding) * -1);
-  width: var(--blocks-space-page-padding);
-  opacity: 0;
-}
-
-.blocks-box .blocks-handle-rail {
-  left: calc(var(--blocks-space-box-padding) * -1);
-  width: var(--blocks-space-box-padding);
-}
-
-.blocks-handle {
-  position: sticky;
-  top: 0;
-  display: flex;
-  width: 100%;
-  height: 1.75rem;
-}
-
-[data-sortable]:hover:not(:has([data-sortable]:hover)) > .blocks-handle-rail,
-[data-sortable][data-selected] > .blocks-handle-rail,
-.blocks-handle-rail:has(:focus-visible) {
-  opacity: 1;
-}
-
-/* Le contour de survol, ici ou depuis le plan de l'éditeur du Fil (data-hovered, posé sur le
-   bloc le plus intérieur) : un seul bloc, et pas un bloc partagé, qui a déjà son liseré. */
-[data-sortable]:not([data-selected], [data-block-type="linked"]):hover:not(
-    :has([data-sortable]:hover)
-  ),
+/* Le contour de survol, posé depuis l'aperçu ou le plan (data-hovered, sur le bloc le plus
+   intérieur) : un seul bloc, et pas un bloc partagé, qui a déjà son liseré. */
 [data-block-id][data-hovered]:not([data-selected], [data-block-type="linked"]) {
   outline: 1px solid var(--border);
 }

@@ -7,10 +7,6 @@ import {
   FileQuestion,
   Focus,
   History,
-  LayoutTemplate,
-  ListTree,
-  PanelTop,
-  Plus,
   Settings2,
 } from "lucide-react"
 import {
@@ -49,11 +45,7 @@ import {
   updateBlock,
 } from "@/blocks/draft"
 import { blockLabel } from "@/blocks/labels"
-import {
-  blockRegistry,
-  insertableBlocks,
-  type InsertableType,
-} from "@/blocks/registry"
+import { blockRegistry, type InsertableType } from "@/blocks/registry"
 import {
   canAddRootBlock,
   detachLinked,
@@ -107,7 +99,8 @@ import {
 } from "@/components/editor/publication"
 import { SaveStatus } from "@/components/editor/save-status"
 import { usePublication } from "@/components/editor/use-publication"
-import { ElementBanner } from "@/components/methods/element-banner"
+import { ElementPanel, MethodButton } from "@/components/methods/element-panel"
+import { ElementStateBadge } from "@/components/methods/element-state-badge"
 import { MethodOutline } from "@/components/methods/method-outline"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TemplateDialog } from "@/components/templates/template-dialog"
@@ -117,7 +110,6 @@ import {
   TemplateUsesCard,
 } from "@/components/templates/template-cards"
 import { useTemplateUses } from "@/components/templates/use-template-uses"
-import { TemplatePicker } from "@/components/templates/template-picker"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -128,13 +120,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button, buttonVariants } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   Empty,
   EmptyDescription,
@@ -163,7 +148,7 @@ import {
   type ContentKind,
 } from "@/lib/contents/api"
 import { methodKeys } from "@/lib/contents/methods"
-import { parseLiveOutline } from "@/lib/contents/outline"
+import { elementAccess, parseLiveOutline } from "@/lib/contents/outline"
 import { revertToVersion, type VersionItem } from "@/lib/contents/publication"
 import { publishChecks, readyItems } from "@/lib/contents/requirements"
 import {
@@ -185,7 +170,7 @@ import {
 import { isApple, isFocusShortcut } from "@/lib/editor/focus-mode"
 import {
   contentProfile,
-  hasPresentation,
+  isElementKind,
   isFeedKind,
   isListedFeedKind,
 } from "@/lib/editor/profile"
@@ -339,37 +324,27 @@ function BackLink({
   compact = false,
 }: {
   section: SectionKey
-  // Un chapitre ou une leçon : « ← nom de la méthode ».
+  // Un chapitre ou une leçon : le retour mène à sa méthode (son nom dans l'infobulle).
   method?: { id: string; title: string } | null
   // Éditeur du Fil : la flèche seule, sur toute la hauteur du bas de la colonne de gauche, le nom
-  // de la section dans l'infobulle.
+  // de la section (ou de la méthode) dans l'infobulle.
   compact?: boolean
 }) {
-  if (method) {
-    const title = method.title.trim() || texts.common.untitled
-    return (
-      <Link
-        to={editorPath("methods", method.id)}
-        aria-label={texts.methods.element.back(title)}
-        className={cn(
-          buttonVariants({ variant: "ghost", size: "sm" }),
-          "max-w-64"
-        )}
-      >
-        <ArrowLeft />
-        <span className="truncate">{title}</span>
-      </Link>
-    )
-  }
-  const title = texts.sections[section].title
+  const title = method
+    ? method.title.trim() || texts.common.untitled
+    : texts.sections[section].title
+  const to = method ? editorPath("methods", method.id) : sections[section].path
+  const label = method
+    ? texts.methods.element.back(title)
+    : texts.editor.back(title)
   if (compact) {
     return (
       <Tooltip>
         <TooltipTrigger
           render={
             <Link
-              to={sections[section].path}
-              aria-label={texts.editor.back(title)}
+              to={to}
+              aria-label={label}
               className="flex h-full w-14 shrink-0 items-center justify-center border-r text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset [&_svg]:size-4"
             />
           }
@@ -382,8 +357,8 @@ function BackLink({
   }
   return (
     <Link
-      to={sections[section].path}
-      aria-label={texts.editor.back(title)}
+      to={to}
+      aria-label={label}
       className={buttonVariants({ variant: "ghost", size: "sm" })}
     >
       <ArrowLeft />
@@ -398,8 +373,6 @@ function presentationChooseButton(key: "cover" | "audio"): HTMLElement | null {
     `[data-presentation-choose="${key}"]`
   )
 }
-
-const ADD_BLOCK_ID = "editeur-ajouter"
 
 // Éditeur du Fil : « Ajouter un bloc » en bas de la colonne de gauche (le focus y revient quand
 // la glissière des blocs se ferme).
@@ -432,19 +405,15 @@ function ContentEditor({
   const [profile] = useState(() => contentProfile(kind, templateSort))
   // Une méthode : sa fiche et son plan, sans blocs ([D4]).
   const isMethod = profile.layout === "method"
-  // L'éditeur du Fil (ADMIN § 4) : le Plan à gauche, l'Article (ou l'Épisode) à droite, sans
-  // onglets ni barre du haut. Les autres sortes y passent une à une (« Le builder du Fil
-  // partout »).
+  // L'éditeur du Fil (ADMIN § 4) : le Plan à gauche, l'Article (l'Épisode, la Leçon…) à droite,
+  // sans onglets ni barre du haut ; toutes les sortes, sauf l'écran d'une méthode.
   const feedKind = isFeedKind(kind) ? kind : null
   const feed = feedKind !== null
-  // Un chapitre ou une leçon : publié avec sa méthode, sans barre de publication ([D29]).
-  const elementKind = kind === "chapter" || kind === "lesson" ? kind : null
-  const isElement = profile.publication === "method"
-  // Hors de l'éditeur du Fil, le panneau de présentation (méthode, chapitre, leçon).
-  const presentationKind = hasPresentation(kind) ? kind : null
+  // Un chapitre ou une leçon : publié avec sa méthode, sans « Publier » ([D29]).
+  const elementKind = isElementKind(kind) ? kind : null
+  const isElement = elementKind !== null
   const categorySection = profile.categories
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [outlineOpen, setOutlineOpen] = useState(feed)
   // Éditeur du Fil : pas d'onglets. À gauche, le Plan, et les Blocs en glissière par-dessus ; à
   // droite, l'Article, et les réglages du bloc choisi en glissière par-dessus.
   const [libraryOpen, setLibraryOpen] = useState(false)
@@ -647,14 +616,6 @@ function ContentEditor({
     requestAnimationFrame(() => focusBlockSoon(block.id))
     if (type === "image") setPickerFor(block.id)
   }
-  const addRef = useRef(addBlock)
-  useEffect(() => {
-    addRef.current = addBlock
-  })
-  const addToBox = useCallback(
-    (boxId: string, type: "text" | "image") => addRef.current(type, boxId),
-    []
-  )
 
   // En Lecture, rien ne se choisit : on repasse en Édition pour montrer un bloc ou en ajouter un.
   const toEdit = () =>
@@ -669,7 +630,7 @@ function ContentEditor({
   const selectAndShow = (id: string) => {
     toEdit()
     setSelectedId(id)
-    requestAnimationFrame(() => focusBlockSoon(id, 0, feed))
+    requestAnimationFrame(() => focusBlockSoon(id, 0, true))
   }
 
   // Un bloc partagé n'a qu'un bloc au premier niveau ([D11]).
@@ -752,9 +713,7 @@ function ContentEditor({
     // Une fois fermé le menu ⋮ du plan, s'il a servi (il rendrait sinon le focus à son bouton,
     // parti avec la ligne).
     focusSoon(() =>
-      neighbor
-        ? blockAnchor(neighbor, feed)
-        : document.getElementById(feed ? LEFT_ADD_ID : ADD_BLOCK_ID)
+      neighbor ? blockAnchor(neighbor) : document.getElementById(LEFT_ADD_ID)
     )
     undoToast(texts.editor.settings.removed(blockLabel(place.block)), () =>
       setDraft(
@@ -829,14 +788,6 @@ function ContentEditor({
     return presentationChooseButton(picker.key) ?? true
   }, [])
 
-  /** « Voir la présentation » disparaît au clic : le focus va au titre du panneau. */
-  const showPresentation = () => {
-    setSelectedId(null)
-    focusOnceShown(() =>
-      document.querySelector<HTMLElement>("[data-presentation-title]")
-    )
-  }
-
   // « Détacher » : le bloc lié devient une copie ordinaire du bloc de son modèle, à la même
   // place (même id ; nouveaux id dans une section), enregistrée comme toute modification.
   const detachRef = useRef<(blockId: string) => void>(() => {})
@@ -849,7 +800,7 @@ function ContentEditor({
       const name = state.name.trim() || texts.templates.list.untitled
       setDraft((current) => detachLinked(current, blockId, state.block))
       setSelectedId(blockId)
-      focusSoon(() => blockAnchor(blockId, feed))
+      focusSoon(() => blockAnchor(blockId))
       undoToast(texts.templates.linked.detached(name), () =>
         setDraft((current) => ({
           ...current,
@@ -865,31 +816,19 @@ function ContentEditor({
     []
   )
 
-  // « Ajouter un bloc » › « Un modèle… » : une mise en forme devient une copie (nouveaux id),
-  // un bloc identique partout un bloc lié, au premier niveau, après le bloc choisi.
-  const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
-  // at : la place au premier niveau d'un bloc glissé dans l'aperçu.
+  // « Mes blocs » : une mise en forme devient une copie (nouveaux id), un bloc partagé un bloc
+  // lié, au premier niveau, après le bloc choisi ; at : la place d'un bloc glissé dans l'aperçu.
   const onInsertTemplate = (template: TemplateItem, at?: number) => {
-    setTemplatePickerOpen(false)
     const result = insertTemplate(draft, template, selectedId, at)
     if (!result) return
     if (template.sort === "shared") rememberShared(template)
     setDraft(result.draft)
     setSelectedId(result.firstId)
-    // Éditeur du Fil : le plan est caché sous les Blocs ; le bloc vient sous les yeux dans le
-    // téléphone, le curseur dans son texte s'il en a un (comme un bloc ajouté des Blocs).
-    requestAnimationFrame(() =>
-      feed
-        ? focusBlockSoon(result.firstId)
-        : focusOnceShown(() => blockAnchor(result.firstId, false))
-    )
-    // Éditeur du Fil : « Mes blocs » parle de blocs qu'on ajoute ; ailleurs, d'un modèle inséré.
+    // Le plan est caché sous les Blocs : le bloc vient sous les yeux dans le téléphone, le
+    // curseur dans son texte s'il en a un (comme un bloc ajouté des Blocs).
+    requestAnimationFrame(() => focusBlockSoon(result.firstId))
     const name = template.title.trim() || texts.templates.list.untitled
-    toast.success(
-      feed
-        ? texts.editor.library.mine.added(name)
-        : texts.templates.insert.inserted(name)
-    )
+    toast.success(texts.editor.library.mine.added(name))
   }
 
   // Éditeur du Fil : un bloc des Blocs glissé dans l'aperçu, à la place montrée par un trait.
@@ -913,14 +852,10 @@ function ContentEditor({
     handlers: dropHandlers,
   } = usePhoneDrop(feed && editable && phoneView.mode === "edit", onLibraryDrop)
 
-  // « Ajouter un bloc » › « Un modèle… » (hors de l'éditeur du Fil, qui passe par « Mes blocs »).
-  const openTemplates = () => setTemplatePickerOpen(true)
-
   // Éditeur du Fil : ajouter un bloc ouvre les Blocs, le curseur sur le premier ; depuis une
   // section, elle devient le bloc choisi et un bandeau le dit (ADMIN § 4).
   const openLibrary = (box: string | null = null) => {
     setFocusMode(false)
-    setOutlineOpen(true)
     setLibraryOpen(true)
     setSavedOpen(false)
     setBoxTarget(box)
@@ -967,15 +902,10 @@ function ContentEditor({
       setActiveText: onActiveText,
       mediaFor,
       openPicker,
-      addToBox,
       templateFor,
-      detachBlock,
-      onAddInBox: feed ? onAddInBox : undefined,
-      withoutHandles: feed,
-      linkedWithoutBar: feed,
+      onAddInBox,
     }),
     [
-      feed,
       onAddInBox,
       editable,
       selectedId,
@@ -983,9 +913,7 @@ function ContentEditor({
       onActiveText,
       mediaFor,
       openPicker,
-      addToBox,
       templateFor,
-      detachBlock,
     ]
   )
 
@@ -1059,6 +987,7 @@ function ContentEditor({
 
   const {
     element: elementContext,
+    place: elementPlace,
     preview: methodPreview,
     ownState,
     methodSchedule,
@@ -1209,11 +1138,10 @@ function ContentEditor({
     </>
   )
 
-  // La présentation dans un panneau (méthode, chapitre, leçon) : image (changer, retirer, texte
+  // Une méthode : sa présentation dans un panneau, sous l'aperçu (image : changer, retirer, texte
   // alternatif).
-  const presentationPanel = presentationKind ? (
+  const presentationPanel = isMethod ? (
     <PresentationPanel
-      kind={presentationKind}
       draft={draft}
       editable={editable}
       mediaFor={mediaFor}
@@ -1236,10 +1164,48 @@ function ContentEditor({
         ...(length ? [length] : []),
       ].join(" · ")
     : null
+  // Un chapitre ou une leçon : le niveau d'accès de sa méthode, sauf leçon gratuite ou
+  // introduction d'un chapitre dont une leçon l'est ([D43]) ; la Lecture le suit.
+  const methodAccess = elementContext?.method.access
+  const ownAccess =
+    elementKind && methodAccess
+      ? elementAccess(
+          methodAccess,
+          { kind: elementKind, isFree: settings.isFree },
+          elementPlace?.kind === "chapter" ? elementPlace.element.lessons : []
+        )
+      : settings
+  const problemText = ownProblem?.problem
+    ? contentProblemText(ownProblem.problem, ownProblem.problemDetail)
+    : null
+  const onSettingsChange = (next: typeof settings) => {
+    if (next.slug !== settings.slug) setRefusedSlug(null)
+    setSettings(next)
+  }
   // Éditeur du Fil : la colonne de droite, tout ce qui concerne l'article (l'épisode, la page) ;
-  // un modèle de bloc ne se publie pas : sa sorte et, pour un bloc partagé, où il est utilisé.
+  // un chapitre ou une leçon : sa place dans la méthode ; un modèle de bloc ne se publie pas : sa
+  // sorte et, pour un bloc partagé, où il est utilisé.
   const articlePanel =
-    feedKind === "template" ? (
+    feedKind === "chapter" || feedKind === "lesson" ? (
+      <ElementPanel
+        kind={feedKind}
+        draft={draft}
+        editable={editable}
+        settings={settings}
+        onSettingsChange={onSettingsChange}
+        context={elementContext}
+        place={elementPlace}
+        state={ownState}
+        problem={problemText}
+        schedule={methodSchedule}
+        levels={levels.data}
+        levelsFailed={levels.isError}
+        retryLevels={() => void levels.refetch()}
+        cover={mediaFor(draft.cover?.mediaId ?? null)}
+        onChooseCover={() => openPresentationPicker("cover")}
+        onRemoveCover={() => removePresentationFile("cover")}
+      />
+    ) : feedKind === "template" ? (
       <div className="space-y-3">
         {!editable && (
           <p className="text-sm text-muted-foreground">
@@ -1263,10 +1229,7 @@ function ContentEditor({
         draft={draft}
         editable={editable}
         settings={settings}
-        onSettingsChange={(next) => {
-          if (next.slug !== settings.slug) setRefusedSlug(null)
-          setSettings(next)
-        }}
+        onSettingsChange={onSettingsChange}
         refusedSlug={refusedSlug}
         levels={levels.data}
         levelsFailed={levels.isError}
@@ -1334,39 +1297,36 @@ function ContentEditor({
       }
       onDuplicate={onDuplicate}
       rootLimit={rootLimit}
-      actionBar
     />
   )
 
-  // Le plan, dans la colonne de gauche. Éditeur du Fil : il montre le contenu de chaque bloc
-  // (première ligne d'un texte, vignette d'une image) et ce qui manque, avec un menu ⋮ par ligne.
-  const feedOutline: FeedOutline | undefined = feed
-    ? {
-        mediaFor,
-        hoveredId,
-        onHover: setHoveredId,
-        warningOf: (block) => blockWarning(block, mediaFor, templateFor),
-        onMove: editable ? setDraft : undefined,
-        onAdd: editable ? () => openLibrary() : undefined,
-        onAddInBox: editable ? onAddInBox : undefined,
-        actions: editable
-          ? {
-              onDuplicate,
-              onSaveToMine: profile.savedBlocks
-                ? (id) => openSaveAs([id])
-                : undefined,
-              onLeaveBox,
-              onRemove,
-              removeBlocked: (id) =>
-                keepsBlock && id === draft.blocks[0]?.id
-                  ? texts.templates.editor.keepBlock
-                  : null,
-              rootFull: !canAddRoot,
-            }
-          : undefined,
-        rootLimit,
-      }
-    : undefined
+  // Le plan, dans la colonne de gauche : le contenu de chaque bloc (première ligne d'un texte,
+  // vignette d'une image) et ce qui manque, avec un menu ⋮ par ligne.
+  const feedOutline: FeedOutline = {
+    mediaFor,
+    hoveredId,
+    onHover: setHoveredId,
+    warningOf: (block) => blockWarning(block, mediaFor, templateFor),
+    onMove: editable ? setDraft : undefined,
+    onAdd: editable ? () => openLibrary() : undefined,
+    onAddInBox: editable ? onAddInBox : undefined,
+    actions: editable
+      ? {
+          onDuplicate,
+          onSaveToMine: profile.savedBlocks
+            ? (id) => openSaveAs([id])
+            : undefined,
+          onLeaveBox,
+          onRemove,
+          removeBlocked: (id) =>
+            keepsBlock && id === draft.blocks[0]?.id
+              ? texts.templates.editor.keepBlock
+              : null,
+          rootFull: !canAddRoot,
+        }
+      : undefined,
+    rootLimit,
+  }
   const outlinePanel = (
     <OutlinePanel
       draft={draft}
@@ -1378,69 +1338,51 @@ function ContentEditor({
     />
   )
 
-  // Au-dessus du téléphone : brouillon trop lourd, échec d'enregistrement.
-  // Dans l'éditeur du Fil, les messages prennent la largeur du téléphone, et la grille de
-  // l'aperçu les espace elle-même.
-  const notice = cn(
-    "text-sm",
-    !feed && "mx-auto mb-3 max-w-(--blocks-phone-width)"
-  )
+  // Au-dessus du téléphone, à sa largeur (la grille de l'aperçu les espace elle-même) : brouillon
+  // trop lourd, échec d'enregistrement.
   const notices = (
     <>
       {nearLimit && (
-        <p role="status" className={cn(notice, "text-warning")}>
+        <p role="status" className="text-sm text-warning">
           {texts.editor.save.nearLimit}
         </p>
       )}
       {reloadFailed && mustReload && (
-        <p role="status" className={cn(notice, "text-warning")}>
+        <p role="status" className="text-sm text-warning">
           {texts.editor.save.rereadFailed}
         </p>
       )}
       {autosave.status === "failed" && autosave.error && (
-        <p role="alert" className={cn(notice, "text-destructive")}>
+        <p role="alert" className="text-sm text-destructive">
           {autosave.error.message} {autosave.error.detail}
         </p>
       )}
     </>
   )
-  // Le téléphone en Édition : la présentation et les blocs, modifiables sur place.
+  // Le téléphone en Édition : la présentation et les blocs, modifiables sur place. Le cadre du
+  // téléphone l'entoure (FeedPreview) ; le trait d'un bloc glissé se place par rapport à lui.
   const phone = (
     <div
       ref={phoneRef}
-      className={cn(
-        "blocks-phone",
-        // Éditeur du Fil : le cadre du téléphone l'entoure (FeedPreview) ; le trait d'un bloc
-        // glissé se place par rapport à lui.
-        feed ? "relative" : "rounded-4xl border shadow-sm",
-        !editable && "cursor-default"
-      )}
-      // Éditeur du Fil : un clic hors d'un bloc ferme ses réglages (l'Article revient).
-      onClick={
-        feed
-          ? (event) => {
-              if (
-                event.target instanceof Element &&
-                !event.target.closest("[data-block-id]")
-              ) {
-                setSelectedId(null)
-              }
-            }
-          : undefined
-      }
-      // Éditeur du Fil : le bloc survolé dans l'aperçu l'est aussi dans le plan.
-      onPointerOver={
-        feed
-          ? (event) => {
-              const block =
-                event.target instanceof Element
-                  ? event.target.closest<HTMLElement>("[data-block-id]")
-                  : null
-              setHoveredId(block?.dataset.blockId ?? null)
-            }
-          : undefined
-      }
-      onPointerLeave={feed ? () => setHoveredId(null) : undefined}
+      className={cn("blocks-phone relative", !editable && "cursor-default")}
+      // Un clic hors d'un bloc ferme ses réglages (l'Article revient).
+      onClick={(event) => {
+        if (
+          event.target instanceof Element &&
+          !event.target.closest("[data-block-id]")
+        ) {
+          setSelectedId(null)
+        }
+      }}
+      // Le bloc survolé dans l'aperçu l'est aussi dans le plan.
+      onPointerOver={(event) => {
+        const block =
+          event.target instanceof Element
+            ? event.target.closest<HTMLElement>("[data-block-id]")
+            : null
+        setHoveredId(block?.dataset.blockId ?? null)
+      }}
+      onPointerLeave={() => setHoveredId(null)}
       {...dropHandlers}
     >
       {dropLineTop !== null && (
@@ -1453,67 +1395,22 @@ function ContentEditor({
       )}
       {phoneTop}
       <BlocksEditorContext value={blocksValue}>
-        <BlockCanvas
-          key={viewKey}
-          draft={draft}
-          onChange={setDraft}
-          rootLimit={rootLimit}
-        />
+        <BlockCanvas key={viewKey} draft={draft} />
       </BlocksEditorContext>
-      {/* Éditeur du Fil : un seul bouton, qui ouvre les Blocs. */}
-      {feed && editable && draft.blocks.length === 0 && (
+      {/* Un seul bouton, qui ouvre les Blocs. */}
+      {editable && draft.blocks.length === 0 && (
         <AddBlockButton
           large
           label={texts.editor.add.label}
           onClick={() => openLibrary()}
         />
       )}
-      {!feed && draft.blocks.length === 0 && (
-        <Empty className="border border-dashed font-sans">
-          <EmptyHeader>
-            <EmptyTitle>{texts.editor.emptyPage.title}</EmptyTitle>
-            <EmptyDescription>
-              {texts.editor.emptyPage.description}
-            </EmptyDescription>
-          </EmptyHeader>
-          {editable && (
-            <div className="flex flex-wrap justify-center gap-2">
-              {insertableBlocks.map((definition) => (
-                <Button
-                  key={definition.type}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addBlock(definition.type)}
-                >
-                  <definition.icon />
-                  {definition.label}
-                </Button>
-              ))}
-              {profile.savedBlocks && (
-                <Button variant="outline" size="sm" onClick={openTemplates}>
-                  <LayoutTemplate />
-                  {texts.templates.insert.menu}
-                </Button>
-              )}
-            </div>
-          )}
-        </Empty>
-      )}
-      {editable && draft.blocks.length > 0 && canAddRoot && feed && (
+      {editable && draft.blocks.length > 0 && canAddRoot && (
         <AddBlockButton
           className="mt-6"
           label={texts.editor.add.label}
           onClick={() => openLibrary()}
         />
-      )}
-      {editable && draft.blocks.length > 0 && canAddRoot && !feed && (
-        <div className="mt-6 flex justify-center font-sans">
-          <AddBlockMenu
-            variant="ghost"
-            onAdd={(type) => addBlock(type, undefined)}
-            onTemplate={profile.savedBlocks ? openTemplates : undefined}
-          />
-        </div>
       )}
     </div>
   )
@@ -1558,7 +1455,7 @@ function ContentEditor({
       }
     />
   )
-  // L'état de l'enregistrement : en tête des autres éditeurs et dans la pastille de la
+  // L'état de l'enregistrement : en tête de l'écran d'une méthode et dans la pastille de la
   // Concentration ; en icône seule en bas de la colonne de droite du Fil.
   const saveVisible = phase === "mine" || autosave.unsaved
   const saveStatus = <SaveStatus state={autosave} visible={saveVisible} />
@@ -1575,32 +1472,11 @@ function ContentEditor({
   return (
     <div className="flex h-svh flex-col bg-muted/40">
       <title>{`${title.trim() || untitled} — ${texts.app.name}`}</title>
-      {!feed && (
+      {/* L'écran d'une méthode garde sa barre du haut (jusqu'à l'étape 5 du builder du Fil
+          partout). */}
+      {isMethod && (
         <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
-          <BackLink
-            section={section}
-            method={isElement ? (elementContext?.method ?? null) : null}
-          />
-          {!isMethod && (
-            <>
-              <Separator orientation="vertical" className="h-6" />
-              <Button
-                variant={outlineOpen ? "secondary" : "ghost"}
-                size="sm"
-                aria-expanded={outlineOpen}
-                aria-controls="editeur-plan"
-                aria-label={
-                  outlineOpen
-                    ? texts.editor.outline.hide
-                    : texts.editor.outline.show
-                }
-                onClick={() => setOutlineOpen((open) => !open)}
-              >
-                <ListTree />
-                {texts.editor.outline.toggle}
-              </Button>
-            </>
-          )}
+          <BackLink section={section} />
           <p
             className="min-w-0 flex-1 truncate text-sm font-medium"
             aria-hidden
@@ -1608,7 +1484,7 @@ function ContentEditor({
             {title.trim() || untitled}
             <span className="font-normal text-muted-foreground">
               {" "}
-              · {elementKind ? texts.methods.kinds[elementKind] : sectionTitle}
+              · {sectionTitle}
             </span>
           </p>
           {saveStatus}
@@ -1626,29 +1502,12 @@ function ContentEditor({
           >
             <History />
           </HeaderIconButton>
-          {!isMethod && (
-            <AddBlockMenu
-              id={ADD_BLOCK_ID}
-              variant="outline"
-              disabled={!editable || !canAddRoot}
-              onAdd={(type) => addBlock(type)}
-              onTemplate={
-                profile.savedBlocks
-                  ? () => setTemplatePickerOpen(true)
-                  : undefined
-              }
-            />
-          )}
-          {profile.publication === "own" && (
-            <>
-              <Separator orientation="vertical" className="h-6" />
-              <PublishBar
-                pub={pub}
-                disabled={publishDisabled}
-                alwaysPublishable={alwaysPublishable}
-              />
-            </>
-          )}
+          <Separator orientation="vertical" className="h-6" />
+          <PublishBar
+            pub={pub}
+            disabled={publishDisabled}
+            alwaysPublishable={alwaysPublishable}
+          />
         </header>
       )}
 
@@ -1656,26 +1515,14 @@ function ContentEditor({
         {announcement}
       </p>
 
-      {!feed && lockBanner}
-      {elementKind && (
-        <ElementBanner
-          kind={elementKind}
-          context={elementContext}
-          state={ownState}
-          isFree={settings.isFree}
-          problem={
-            ownProblem?.problem
-              ? contentProblemText(ownProblem.problem, ownProblem.problemDetail)
-              : null
-          }
-          schedule={methodSchedule}
-          holding={editable}
-          onOpenSettings={() => setSettingsOpen(true)}
-        />
+      {isMethod && (
+        <>
+          {lockBanner}
+          {scheduleBanner}
+        </>
       )}
-      {!feed && profile.publication === "own" && scheduleBanner}
 
-      {isMethod ? (
+      {feedKind === null ? (
         // Une méthode : sa fiche (dans l'aperçu du téléphone, puis son panneau) et son plan.
         <div className="flex min-h-0 flex-1">
           <main className="w-md shrink-0 overflow-y-auto xl:w-lg">
@@ -1708,295 +1555,247 @@ function ContentEditor({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1">
-          {outlineOpen && feed && (
-            <aside
-              id="editeur-plan"
-              aria-label={texts.editor.columns.left}
-              // Caché (et non retiré) en Concentration : les Blocs et « Mes blocs » restent ouverts.
-              className={cn(
-                "flex w-feed-column shrink-0 flex-col border-r bg-background",
-                focusMode && "hidden"
-              )}
-            >
-              <div className="relative min-h-0 flex-1">
-                {/* Sous la glissière des Blocs : hors du clavier et des lecteurs d'écran. */}
-                <div inert={libraryOpen} className="h-full">
-                  {outlinePanel}
-                </div>
-                {/* Les Blocs, en glissière par-dessus le Plan : × ou Échap la referment. */}
-                {libraryOpen && (
-                  <section
-                    aria-labelledby="colonne-blocs-titre"
-                    className="absolute inset-0 z-20 flex flex-col bg-background motion-safe:animate-in motion-safe:slide-in-from-left-4"
-                    onKeyDown={(event) => {
-                      if (event.key === "Escape" && !event.defaultPrevented) {
-                        event.preventDefault()
+          <aside
+            id="editeur-plan"
+            aria-label={texts.editor.columns.left}
+            // Caché (et non retiré) en Concentration : les Blocs et « Mes blocs » restent ouverts.
+            className={cn(
+              "flex w-feed-column shrink-0 flex-col border-r bg-background",
+              focusMode && "hidden"
+            )}
+          >
+            <div className="relative min-h-0 flex-1">
+              {/* Sous la glissière des Blocs : hors du clavier et des lecteurs d'écran. */}
+              <div inert={libraryOpen} className="h-full">
+                {outlinePanel}
+              </div>
+              {/* Les Blocs, en glissière par-dessus le Plan : × ou Échap la referment. */}
+              {libraryOpen && (
+                <section
+                  aria-labelledby="colonne-blocs-titre"
+                  className="absolute inset-0 z-20 flex flex-col bg-background motion-safe:animate-in motion-safe:slide-in-from-left-4"
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape" && !event.defaultPrevented) {
+                      event.preventDefault()
+                      closeLibrary()
+                      focusSoon(() => document.getElementById(LEFT_ADD_ID))
+                    }
+                  }}
+                >
+                  <ColumnHeader
+                    icon={Blocks}
+                    title={texts.editor.columns.blocks}
+                    titleId="colonne-blocs-titre"
+                    close={{
+                      label: texts.editor.library.close,
+                      onClick: () => {
                         closeLibrary()
                         focusSoon(() => document.getElementById(LEFT_ADD_ID))
-                      }
+                      },
                     }}
-                  >
-                    <ColumnHeader
-                      icon={Blocks}
-                      title={texts.editor.columns.blocks}
-                      titleId="colonne-blocs-titre"
-                      close={{
-                        label: texts.editor.library.close,
-                        onClick: () => {
-                          closeLibrary()
-                          focusSoon(() => document.getElementById(LEFT_ADD_ID))
-                        },
-                      }}
-                    />
-                    <div className="min-h-0 flex-1">
-                      <BlocksLibrary
-                        open={savedOpen}
-                        onOpenChange={setSavedOpen}
-                        editable={editable}
-                        canAdd={canAddRoot}
-                        inBox={targetBox !== null}
-                        onCancelTarget={() => setBoxTarget(null)}
-                        onAdd={addFromLibrary}
-                        onInsert={
-                          profile.savedBlocks
-                            ? (template) => {
-                                toEdit()
-                                onInsertTemplate(template)
-                              }
-                            : undefined
-                        }
-                      />
-                    </div>
-                  </section>
-                )}
-              </div>
-              {/* Un bloc partagé : la règle d'un seul bloc ([D11]), qui grise « Ajouter un bloc ». */}
-              {isShared && (
-                <p className="shrink-0 px-4 pb-3 text-xs text-muted-foreground">
-                  {texts.templates.editor.sharedLimit}
-                </p>
-              )}
-              {/* En bas, de la même hauteur que le bas de la colonne de droite : le retour sur
-                  toute la hauteur, puis « Ajouter un bloc » sur toute la largeur qui reste. */}
-              <div className="flex h-feed-footer shrink-0 items-stretch border-t">
-                <BackLink section={section} compact />
-                <div className="flex min-w-0 flex-1 items-center px-4">
-                  {/* Le même bouton que dans le téléphone. */}
-                  <AddBlockButton
-                    id={LEFT_ADD_ID}
-                    label={texts.editor.add.label}
-                    disabled={!editable || !canAddRoot}
-                    onClick={() => openLibrary()}
                   />
-                </div>
+                  <div className="min-h-0 flex-1">
+                    <BlocksLibrary
+                      open={savedOpen}
+                      onOpenChange={setSavedOpen}
+                      editable={editable}
+                      canAdd={canAddRoot}
+                      inBox={targetBox !== null}
+                      onCancelTarget={() => setBoxTarget(null)}
+                      onAdd={addFromLibrary}
+                      onInsert={
+                        profile.savedBlocks
+                          ? (template) => {
+                              toEdit()
+                              onInsertTemplate(template)
+                            }
+                          : undefined
+                      }
+                    />
+                  </div>
+                </section>
+              )}
+            </div>
+            {/* Un bloc partagé : la règle d'un seul bloc ([D11]), qui grise « Ajouter un bloc ». */}
+            {isShared && (
+              <p className="shrink-0 px-4 pb-3 text-xs text-muted-foreground">
+                {texts.templates.editor.sharedLimit}
+              </p>
+            )}
+            {/* En bas, de la même hauteur que le bas de la colonne de droite : le retour sur
+                  toute la hauteur, puis « Ajouter un bloc » sur toute la largeur qui reste. */}
+            <div className="flex h-feed-footer shrink-0 items-stretch border-t">
+              <BackLink
+                section={section}
+                method={elementContext?.method}
+                compact
+              />
+              <div className="flex min-w-0 flex-1 items-center px-4">
+                {/* Le même bouton que dans le téléphone. */}
+                <AddBlockButton
+                  id={LEFT_ADD_ID}
+                  label={texts.editor.add.label}
+                  disabled={!editable || !canAddRoot}
+                  onClick={() => openLibrary()}
+                />
               </div>
-            </aside>
-          )}
-          {outlineOpen && !feed && (
-            <aside
-              id="editeur-plan"
-              className="w-60 shrink-0 border-r bg-background"
-            >
-              {outlinePanel}
-            </aside>
-          )}
+            </div>
+          </aside>
 
           <main
-            className={
-              feed
-                ? "flex min-w-0 flex-1 flex-col overflow-x-auto bg-dot-grid"
-                : "min-w-0 flex-1 overflow-y-auto"
-            }
-            data-backdrop={feed || undefined}
-            // Éditeur du Fil : un clic sur le fond autour du téléphone (data-backdrop) remet
-            // l'éditeur à son état de base. La souris seulement : au clavier, Échap et « Fermer ».
-            onClick={
-              feed
-                ? (event) => {
-                    if (
-                      event.target instanceof Element &&
-                      event.target.hasAttribute("data-backdrop")
-                    )
-                      resetFeedEditor()
-                  }
-                : undefined
-            }
+            className="flex min-w-0 flex-1 flex-col overflow-x-auto bg-dot-grid"
+            data-backdrop
+            // Un clic sur le fond autour du téléphone (data-backdrop) remet l'éditeur à son état de
+            // base. La souris seulement : au clavier, Échap et « Fermer ».
+            onClick={(event) => {
+              if (
+                event.target instanceof Element &&
+                event.target.hasAttribute("data-backdrop")
+              )
+                resetFeedEditor()
+            }}
           >
-            {feedKind ? (
-              <FeedPreview
-                preview={phoneView}
-                onPreviewChange={onPreviewChange}
-                readers={profile.access === "own"}
-                toolbar={
-                  <FormatToolbar
-                    editor={toolbarEditor}
-                    editable={editable}
-                    orientation="vertical"
+            <FeedPreview
+              preview={phoneView}
+              onPreviewChange={onPreviewChange}
+              readers={profile.access !== null}
+              toolbar={
+                <FormatToolbar editor={toolbarEditor} editable={editable} />
+              }
+              focus={{
+                on: focusMode,
+                shortcut: apple
+                  ? texts.editor.focusMode.shortcut.apple
+                  : texts.editor.focusMode.shortcut.other,
+                keys: apple ? "Meta+." : "Control+.",
+                onToggle: toggleFocusMode,
+              }}
+              notices={
+                <>
+                  {lockBanner}
+                  {profile.publication === "own" && scheduleBanner}
+                  {notices}
+                </>
+              }
+              appBar={
+                phoneView.mode === "read" ? (
+                  <ReadAppBar
+                    section={
+                      // Un chapitre ou une leçon : sa méthode, comme dans l'app.
+                      elementContext?.method.title.trim() || sectionTitle
+                    }
                   />
-                }
-                focus={{
-                  on: focusMode,
-                  shortcut: apple
-                    ? texts.editor.focusMode.shortcut.apple
-                    : texts.editor.focusMode.shortcut.other,
-                  keys: apple ? "Meta+." : "Control+.",
-                  onToggle: toggleFocusMode,
-                }}
-                notices={
-                  <>
-                    {lockBanner}
-                    {profile.publication === "own" && scheduleBanner}
-                    {notices}
-                  </>
-                }
-                appBar={
-                  phoneView.mode === "read" ? (
-                    <ReadAppBar section={sectionTitle} />
-                  ) : undefined
-                }
-              >
-                {phoneView.mode === "read" ? (
-                  // Les images lisent l'éditeur (fichier, aperçu), en lecture seule.
-                  <BlocksEditorContext value={readOnlyBlocks}>
-                    <ReadView
-                      draft={draft}
-                      title={title.trim() || untitled}
-                      cover={
-                        profile.cover
-                          ? mediaFor(draft.cover?.mediaId ?? null)
-                          : null
-                      }
-                      audio={audio}
-                      meta={readMeta}
-                      locked={
-                        feedKind !== "template" &&
-                        previewLocked(phoneView, settings)
-                          ? {
-                              kind: feedKind,
-                              level:
-                                levels.data?.find(
-                                  (level) => level.id === settings.accessLevelId
-                                )?.name ?? null,
-                            }
-                          : false
-                      }
-                      resolve={resolveLinked}
-                    />
-                  </BlocksEditorContext>
-                ) : (
-                  phone
-                )}
-              </FeedPreview>
-            ) : (
-              <>
-                <div className="sticky top-0 z-10 flex justify-center bg-muted/40 px-6 py-3 backdrop-blur">
-                  <FormatToolbar editor={toolbarEditor} editable={editable} />
-                </div>
-                {notices}
-                <div className="flex justify-center px-6 pb-16">{phone}</div>
-              </>
-            )}
+                ) : undefined
+              }
+            >
+              {phoneView.mode === "read" ? (
+                // Les images lisent l'éditeur (fichier, aperçu), en lecture seule.
+                <BlocksEditorContext value={readOnlyBlocks}>
+                  <ReadView
+                    draft={draft}
+                    title={title.trim() || untitled}
+                    // Une image facultative (chapitre, leçon) : seulement une fois choisie, comme
+                    // dans l'app.
+                    cover={
+                      profile.cover === "required" ||
+                      (profile.cover === "optional" && draft.cover)
+                        ? mediaFor(draft.cover?.mediaId ?? null)
+                        : null
+                    }
+                    audio={audio}
+                    meta={readMeta}
+                    locked={
+                      feedKind !== "template" &&
+                      previewLocked(phoneView, ownAccess)
+                        ? {
+                            kind: feedKind,
+                            level:
+                              levels.data?.find(
+                                (level) => level.id === ownAccess.accessLevelId
+                              )?.name ?? null,
+                          }
+                        : false
+                    }
+                    resolve={resolveLinked}
+                  />
+                </BlocksEditorContext>
+              ) : (
+                phone
+              )}
+            </FeedPreview>
           </main>
 
-          {feedKind ? (
-            <aside
-              aria-label={texts.editor.columns.right[feedKind]}
-              className={cn(
-                "flex w-feed-column shrink-0 flex-col border-l bg-background",
-                focusMode && "hidden"
-              )}
-            >
-              {/* En tête, l'icône de la section et le titre du contenu (en entier dans
+          <aside
+            aria-label={texts.editor.columns.right[feedKind]}
+            className={cn(
+              "flex w-feed-column shrink-0 flex-col border-l bg-background",
+              focusMode && "hidden"
+            )}
+          >
+            {/* En tête, l'icône de la section et le titre du contenu (en entier dans
                   l'infobulle s'il est coupé). */}
-              <ColumnHeader
-                icon={SectionIcon}
-                title={title.trim() || untitled}
-                titleId={ARTICLE_TITLE_ID}
-                large
-              />
-              <div className="relative min-h-0 flex-1">
-                <section
-                  aria-label={texts.editor.columns.content[feedKind]}
-                  // Sous la glissière du bloc : hors du clavier et des lecteurs d'écran.
-                  inert={selectedBlock !== null}
-                  className="h-full overflow-y-auto px-4 py-3"
-                >
-                  {articlePanel}
-                </section>
-                {/* Les réglages du bloc choisi, en glissière par-dessus l'Article. */}
-                {selectedBlock && (
-                  <div className="absolute inset-0 z-10 bg-background motion-safe:animate-in motion-safe:slide-in-from-right-4">
-                    {blockSettings}
-                  </div>
-                )}
-              </div>
-              {/* En bas, toujours : la lecture (un épisode : la durée de son audio), la dernière
+            <ColumnHeader
+              icon={SectionIcon}
+              title={title.trim() || untitled}
+              titleId={ARTICLE_TITLE_ID}
+              large
+            />
+            <div className="relative min-h-0 flex-1">
+              <section
+                aria-label={texts.editor.columns.content[feedKind]}
+                // Sous la glissière du bloc : hors du clavier et des lecteurs d'écran.
+                inert={selectedBlock !== null}
+                className="h-full overflow-y-auto px-4 py-3"
+              >
+                {articlePanel}
+              </section>
+              {/* Les réglages du bloc choisi, en glissière par-dessus l'Article. */}
+              {selectedBlock && (
+                <div className="absolute inset-0 z-10 bg-background motion-safe:animate-in motion-safe:slide-in-from-right-4">
+                  {blockSettings}
+                </div>
+              )}
+            </div>
+            {/* En bas, toujours : la lecture (un épisode : la durée de son audio), la dernière
                   modification, puis le cadenas (en lecture seule), l'état de publication et
                   « Publier ». */}
-              <ArticleFooter
-                stats={stats}
-                audio={audio}
-                savedAt={autosave.savedAt}
-                saveStatus={feedSaveStatus}
-              >
-                {lockButton}
-                {templateSort ? (
-                  // Un modèle ne se publie pas : sa sorte, à la place.
-                  <TemplateSortBadge sort={templateSort} />
-                ) : (
-                  <>
-                    <PublicationBadge pub={pub} />
-                    <span className="flex-1" />
-                    <PublishButton
-                      pub={pub}
-                      disabled={publishDisabled}
-                      alwaysPublishable={alwaysPublishable}
-                      onHistory={() => setHistoryOpen(true)}
-                    />
-                  </>
-                )}
-              </ArticleFooter>
-            </aside>
-          ) : (
-            <aside className="w-72 shrink-0 border-l bg-background">
-              <BlockSettings
-                header={
-                  presentationKind && selectedId ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="self-start"
-                      onClick={showPresentation}
-                    >
-                      <PanelTop />
-                      {texts.editor.presentation.show}
-                    </Button>
-                  ) : null
-                }
-                emptyLabel={
-                  presentationKind
-                    ? texts.editor.presentation.panelTitle[presentationKind]
-                    : undefined
-                }
-                empty={presentationPanel}
-                draft={draft}
-                selectedId={selectedId}
-                editable={editable}
-                mediaFor={mediaFor}
-                onUpdate={onUpdateBlock}
-                onShift={onShift}
-                rootLimit={rootLimit}
-                onRemove={onRemove}
-                onChooseImage={openPicker}
-                templateFor={templateFor}
-                onDetach={detachBlock}
-                removeBlocked={removeBlocked}
-                onSaveAsTemplate={
-                  profile.savedBlocks ? (id) => openSaveAs([id]) : undefined
-                }
-              />
-            </aside>
-          )}
+            <ArticleFooter
+              stats={stats}
+              audio={audio}
+              savedAt={autosave.savedAt}
+              saveStatus={feedSaveStatus}
+            >
+              {lockButton}
+              {templateSort ? (
+                // Un modèle ne se publie pas : sa sorte, à la place.
+                <TemplateSortBadge sort={templateSort} />
+              ) : isElement ? (
+                // Un chapitre ou une leçon part avec sa méthode : son état dans l'app, puis
+                // « Ouvrir la méthode », d'où elle se publie ([D29]).
+                <>
+                  {ownState && <ElementStateBadge state={ownState} />}
+                  <span className="flex-1" />
+                  <MethodButton
+                    method={elementContext?.method}
+                    schedule={methodSchedule}
+                    holding={editable}
+                    onHistory={() => setHistoryOpen(true)}
+                  />
+                </>
+              ) : (
+                <>
+                  <PublicationBadge pub={pub} />
+                  <span className="flex-1" />
+                  <PublishButton
+                    pub={pub}
+                    disabled={publishDisabled}
+                    alwaysPublishable={alwaysPublishable}
+                    onHistory={() => setHistoryOpen(true)}
+                  />
+                </>
+              )}
+            </ArticleFooter>
+          </aside>
         </div>
       )}
 
@@ -2037,7 +1836,7 @@ function ContentEditor({
       {!isTemplate && (
         <>
           {/* L'éditeur du Fil règle tout dans sa colonne de droite. */}
-          {!feed && (
+          {isMethod && (
             <ContentSettingsSheet
               open={settingsOpen}
               onOpenChange={setSettingsOpen}
@@ -2052,7 +1851,7 @@ function ContentEditor({
               levels={levels.data}
               levelsFailed={levels.isError}
               live={pub.publication?.live ?? null}
-              // Pas de page ici (l'éditeur du Fil) : pas d'adresse refusée.
+              // Une méthode n'a pas d'adresse.
               refusedSlug={null}
               onChange={setSettings}
             />
@@ -2067,11 +1866,6 @@ function ContentEditor({
             onRevert={onRevert}
           />
           <PublicationDialogs pub={pub} />
-          <TemplatePicker
-            open={templatePickerOpen}
-            onOpenChange={setTemplatePickerOpen}
-            onChoose={onInsertTemplate}
-          />
           <TemplateDialog
             open={saveAs.dialog.open}
             onOpenChange={(open) => {
@@ -2163,56 +1957,5 @@ function HeaderIconButton({
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
-  )
-}
-
-/**
- * « Ajouter un bloc » des autres éditeurs : Texte, Image, Section (après le bloc choisi, ou à la
- * fin), et, dans un contenu, « Un modèle… » (mise en forme ou bloc partagé).
- */
-function AddBlockMenu({
-  onAdd,
-  onTemplate,
-  id,
-  disabled = false,
-  variant = "default",
-}: {
-  onAdd: (type: InsertableType) => void
-  onTemplate?: () => void
-  id?: string
-  disabled?: boolean
-  variant?: "default" | "ghost" | "outline"
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        id={id}
-        disabled={disabled}
-        render={<Button size="sm" variant={variant} />}
-      >
-        <Plus />
-        {texts.editor.add.label}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
-        {insertableBlocks.map((definition) => (
-          <DropdownMenuItem
-            key={definition.type}
-            onClick={() => onAdd(definition.type)}
-          >
-            <definition.icon />
-            {definition.label}
-          </DropdownMenuItem>
-        ))}
-        {onTemplate && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onTemplate}>
-              <LayoutTemplate />
-              {texts.templates.insert.menu}
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }

@@ -1,5 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { useState } from "react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import { BlockCanvas } from "@/blocks/components/block-canvas"
@@ -33,7 +32,7 @@ const draft: Draft = {
   ],
 }
 
-function renderCanvas(onChange = vi.fn()) {
+function renderCanvas(changes: Partial<BlocksEditorValue> = {}) {
   const value: BlocksEditorValue = {
     editable: true,
     selectedId: null,
@@ -42,102 +41,39 @@ function renderCanvas(onChange = vi.fn()) {
     setActiveText: () => {},
     mediaFor: () => ({ state: "none" }),
     openPicker: () => {},
-    addToBox: () => {},
     templateFor: () => ({ state: "missing" }),
-    detachBlock: () => {},
+    ...changes,
   }
-  function Harness() {
-    const [current, setCurrent] = useState(draft)
-    return (
-      <BlocksEditorContext value={value}>
-        <BlockCanvas
-          draft={current}
-          onChange={(update) => {
-            onChange()
-            setCurrent(update)
-          }}
-        />
-      </BlocksEditorContext>
-    )
-  }
-  render(<Harness />)
-  return onChange
+  render(
+    <BlocksEditorContext value={value}>
+      <BlockCanvas draft={draft} />
+    </BlocksEditorContext>
+  )
 }
 
-/** Tout ce que la région « live » de dnd-kit annonce aux lecteurs d'écran. */
-function recordAnnouncements(): () => string {
-  const heard: string[] = []
-  const observer = new MutationObserver(() => {
-    for (const region of document.querySelectorAll('[id^="DndLiveRegion"]')) {
-      if (region.textContent && heard.at(-1) !== region.textContent) {
-        heard.push(region.textContent)
-      }
-    }
-  })
-  observer.observe(document.body, {
-    subtree: true,
-    childList: true,
-    characterData: true,
-  })
-  return () => heard.join(" | ")
-}
-
-describe("glisser-déposer par la poignée", () => {
-  it("Espace et Entrée tapés dans un bloc Texte ne déplacent pas le bloc", async () => {
-    const onChange = renderCanvas()
-    const announcements = recordAnnouncements()
-    const text = await waitFor(() => {
-      const element = document.querySelector<HTMLElement>(".ProseMirror")
-      expect(element).not.toBeNull()
-      return element!
-    })
-    text.focus()
-    for (const [code, key] of [
-      ["Space", " "],
-      ["Enter", "Enter"],
-    ]) {
-      fireEvent.keyDown(text, { code, key })
-      fireEvent.keyUp(text, { code, key })
-    }
-    expect(announcements()).not.toContain("Tu as pris")
-    expect(onChange).not.toHaveBeenCalled()
-    for (const handle of screen.getAllByRole("button", { name: /Déplacer/ })) {
-      expect(handle).not.toHaveAttribute("aria-pressed", "true")
-    }
-  })
-
-  it("la poignée se prend au clavier (Espace), avec les annonces en français", async () => {
-    renderCanvas()
-    const announcements = recordAnnouncements()
-    const handle = screen.getByRole("button", {
-      name: texts.editor.handle("Texte « Bonjour »"),
-    })
-    expect(handle).toHaveAttribute(
-      "aria-roledescription",
-      texts.editor.dnd.roleDescription
-    )
-    handle.focus()
-    await act(async () => {
-      fireEvent.keyDown(handle, { code: "Space", key: " " })
-    })
+describe("le téléphone en Édition", () => {
+  it("pas de poignée (les blocs se rangent dans le plan) ; un clic choisit le bloc", async () => {
+    const selectBlock = vi.fn()
+    renderCanvas({ selectBlock, selectedId: id(2) })
     await waitFor(() =>
-      expect(announcements()).toContain(
-        texts.editor.dnd.start("Texte « Bonjour »")
-      )
+      expect(document.querySelector(".ProseMirror")).not.toBeNull()
     )
-    await act(async () => {
-      fireEvent.keyDown(handle, { code: "Escape", key: "Escape" })
-    })
-    await waitFor(() =>
-      expect(announcements()).toContain(
-        texts.editor.dnd.cancel("Texte « Bonjour »")
-      )
-    )
+    expect(screen.queryByRole("button", { name: /Déplacer/ })).toBeNull()
+    fireEvent.pointerDown(document.querySelector(".ProseMirror")!)
+    expect(selectBlock).toHaveBeenCalledWith(id(1))
+    expect(
+      document.querySelector(`[data-block-id="${id(2)}"]`)
+    ).toHaveAttribute("data-selected")
   })
 
-  it("donne des consignes en français aux lecteurs d'écran", () => {
-    renderCanvas()
-    expect(screen.getByText(texts.editor.dnd.instructions)).toBeInTheDocument()
+  it("une section vide le dit ; « Ajouter dans la section » ouvre les Blocs pour elle", () => {
+    const onAddInBox = vi.fn()
+    renderCanvas({ onAddInBox })
+    expect(screen.getByText(texts.editor.emptyBox)).toBeVisible()
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.editor.add.inBox })
+    )
+    expect(onAddInBox).toHaveBeenCalledWith(id(2))
   })
 })
 
@@ -157,9 +93,7 @@ describe("aperçu tel quel (Lecture, bloc d'un modèle)", () => {
           }
         : { state: "none" },
     openPicker: () => {},
-    addToBox: () => {},
     templateFor: () => ({ state: "missing" }),
-    detachBlock: () => {},
   }
 
   it("une section vide ne s'affiche pas, comme dans l'app", () => {

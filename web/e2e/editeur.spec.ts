@@ -111,7 +111,7 @@ test("écrire une page, ranger un bloc dans le plan au clavier, recharger et ret
     .getByRole("button", { name: labels.library.close })
     .click()
   const box = page.locator('[data-block-type="box"]')
-  await expect(box).toContainText(labels.emptyBoxFeed)
+  await expect(box).toContainText(labels.emptyBox)
   await saved(page)
 
   // Au clavier, dans le plan : la section monte au-dessus du texte (Espace, flèche, Espace).

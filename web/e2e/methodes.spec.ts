@@ -105,16 +105,30 @@ async function createElement(
   await expect(outlineRow(page, kind, title)).toBeVisible()
 }
 
-/** Ajoute un paragraphe dans l'éditeur ouvert, et attend son enregistrement. */
+/**
+ * Ajoute un paragraphe dans l'éditeur ouvert (« Ajouter un bloc » en bas de la colonne de gauche,
+ * puis Texte dans les Blocs), et attend son enregistrement.
+ */
 async function addText(page: Page, text: string) {
   await expect(page.getByLabel(editor.title.label)).toBeEditable()
-  await page.getByRole("button", { name: editor.add.label }).first().click()
-  await page.getByRole("menuitem", { name: editor.blocks.text }).click()
+  await page.locator("#colonne-gauche-ajouter").click()
+  await page
+    .getByRole("region", { name: editor.columns.blocks })
+    .getByRole("button", { name: editor.library.addLabel(editor.blocks.text) })
+    .click()
+  await expect(
+    page.locator('[data-block-type="text"] [contenteditable]').last()
+  ).toBeFocused()
   await page.keyboard.type(text)
   await saved(page)
 }
 
-/** Depuis l'éditeur d'un chapitre ou d'une leçon : « ← méthode », jusqu'au plan. */
+/** La carte « Dans la méthode » d'un chapitre ou d'une leçon, en tête de la colonne de droite. */
+function elementCard(page: Page, kind: "chapter" | "lesson") {
+  return page.locator(`[data-element-card="${kind}"]`)
+}
+
+/** Depuis l'éditeur d'un chapitre ou d'une leçon : le retour à la méthode, jusqu'au plan. */
 async function backToMethod(page: Page, methodTitle: string) {
   await page
     .getByRole("link", { name: texts.methods.element.back(methodTitle) })
@@ -258,8 +272,8 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     // --- Le texte de la leçon gratuite, dans son éditeur (« ← méthode ») -----------------
     await page.getByRole("link", { name: "Le souffle", exact: true }).click()
     await expect(page).toHaveURL(/\/methodes\/lecons\//)
-    await expect(page.locator('[data-element-banner="lesson"]')).toContainText(
-      texts.methods.element.reminder.lesson
+    await expect(elementCard(page, "lesson")).toContainText(
+      texts.methods.element.place.lesson(1)
     )
     // Un chapitre ou une leçon part avec sa méthode : pas de bouton Publier ([D29]).
     await expect(
@@ -527,9 +541,7 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
       .getByRole("button", { name: texts.trash.open, exact: true })
       .click()
     await expect(page).toHaveURL(new RegExp(`/methodes/chapitres/${ids.move}$`))
-    await expect(page.locator('[data-element-banner="chapter"]')).toContainText(
-      texts.methods.element.reminder.chapter
-    )
+    await expect(elementCard(page, "chapter")).toBeVisible()
     await backToMethod(page, title)
     await expect.poll(() => chapterOrder(methodId)).toEqual([breathe, move])
     await expect(
@@ -559,9 +571,7 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     await expect(draft).toContainText(texts.home.inMethod(title))
     await draft.getByRole("link", { name: "Expirer", exact: true }).click()
     await expect(page).toHaveURL(new RegExp(`/methodes/lecons/${ids.expirer}$`))
-    await expect(page.locator('[data-element-banner="lesson"]')).toContainText(
-      texts.methods.element.reminder.lesson
-    )
+    await expect(elementCard(page, "lesson")).toBeVisible()
     await expect(page.getByLabel(editor.title.label)).toHaveValue("Expirer")
   } finally {
     await deleteAccessLevels(id)
