@@ -397,6 +397,7 @@ export function ReadView({
   meta,
   locked,
   resolve,
+  children,
 }: {
   draft: Draft
   title: string
@@ -412,6 +413,8 @@ export function ReadView({
   locked: { kind: LockableKind; level: string | null } | false
   // Le bloc d'un modèle partagé, tel qu'il est aujourd'hui.
   resolve: (block: Block) => Block | null
+  // À la place des blocs : le plan d'une méthode.
+  children?: ReactNode
 }) {
   return (
     <article className="blocks-phone blocks-read">
@@ -445,12 +448,14 @@ export function ReadView({
           <span className="blocks-locked-action">{labels.locked.action}</span>
         </div>
       ) : (
-        <div className="blocks-list">
-          {draft.blocks.map((block) => {
-            const shown = block.type === "linked" ? resolve(block) : block
-            return shown ? <StaticBlock key={block.id} block={shown} /> : null
-          })}
-        </div>
+        (children ?? (
+          <div className="blocks-list">
+            {draft.blocks.map((block) => {
+              const shown = block.type === "linked" ? resolve(block) : block
+              return shown ? <StaticBlock key={block.id} block={shown} /> : null
+            })}
+          </div>
+        ))
       )}
     </article>
   )

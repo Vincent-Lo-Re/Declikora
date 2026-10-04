@@ -1037,16 +1037,19 @@ export const texts = {
       readOnly:
         "Lecture seule : prends la main sur la méthode pour ranger le plan et y ajouter des chapitres ou des leçons.",
       label: "Chapitres et leçons",
+      // « 2 chapitres · 5 leçons » : en tête du plan, sous le titre dans le téléphone.
+      count: (chapters: number, lessons: number) =>
+        `${chapters === 1 ? "1 chapitre" : `${chapters} chapitres`} · ${lessons === 1 ? "1 leçon" : `${lessons} leçons`}`,
+      empty:
+        "Aucun chapitre pour l'instant : commence par « Nouveau chapitre », en bas. Chaque chapitre a sa propre introduction en blocs, affichée avant ses leçons.",
       newChapter: "Nouveau chapitre",
       newLesson: "Nouvelle leçon",
       newLessonIn: (chapter: string) => `Nouvelle leçon dans ${chapter}`,
-      emptyTitle: "Aucun chapitre pour l'instant",
-      emptyDescription:
-        "Commence par un chapitre : il a sa propre introduction en blocs, affichée avant ses leçons.",
       noLessons:
         "Aucune leçon dans ce chapitre. Dépose une leçon ici, ou crée-la.",
-      chapterNumber: (position: number) => `Chapitre ${position}`,
-      lessonNumber: (position: number) => `Leçon ${position}`,
+      // Le numéro devant le titre, dans le plan : « 1 · Les bases », « 2 Respirer ».
+      chapterNumber: (position: number) => `${position} ·`,
+      lessonNumber: (position: number) => `${position}`,
       // Nom complet d'un élément (boutons, annonces, cases à cocher).
       chapterLabel: (position: number, title: string) =>
         `le chapitre ${position} « ${title} »`,
@@ -1058,9 +1061,8 @@ export const texts = {
       isFree: "Leçon gratuite",
       isFreeFor: (label: string) => `Leçon gratuite : ${label}`,
       free: "Gratuite",
-      savedAt: (date: string) => `Modifié le ${date}`,
-      editing: (name: string) => `${name} écrit`,
-      openElsewhere: "Ouvert dans un autre de tes onglets",
+      editing: (name: string) => `${name} écrit cet élément en ce moment.`,
+      openElsewhere: "Ouvert dans un autre de tes onglets.",
       actions: (label: string) => `Actions pour ${label}`,
       open: "Ouvrir",
       moveUp: "Monter",
@@ -1241,9 +1243,21 @@ export const texts = {
       problem: (text: string) =>
         `À corriger avant de publier la méthode : ${text}`,
     },
+    // Dans le téléphone de l'écran d'une méthode : son plan, tel que l'app le montrera après la
+    // prochaine publication (ADMIN § 4).
+    preview: {
+      label: "Chapitres et leçons, comme dans l'app",
+      empty:
+        "Aucun chapitre montré dans l'app pour l'instant : coche « Montrer dans l'app » dans le menu ⋯ du plan.",
+      chapter: (position: number, title: string) => `${position} · ${title}`,
+      free: "Gratuite",
+      locked: "Réservée",
+    },
     // Avant de publier ou de programmer une méthode : la liste de ce qui va changer ([D29]).
     changes: {
       title: "Ce qui va changer dans l'app",
+      // La même liste, dans la colonne de droite de l'écran d'une méthode.
+      cardTitle: "Ce qui changera dans l'app",
       loading: "Recherche de ce qui a changé…",
       failed: "La liste des changements n'a pas pu être lue.",
       nothing:
@@ -1724,15 +1738,8 @@ export const texts = {
     // Présentation d'un article ou d'un épisode (étape 7) : image de présentation, audio,
     // catégories. [D45], [D46]. Plus de résumé depuis le 03/10/2026.
     presentation: {
-      // L'écran d'une méthode : sa fiche, sous l'aperçu.
-      panelTitle: "Fiche de la méthode",
-      methodPanelHint:
-        "Ce que l'app montre en tête de la méthode et dans ses listes. Son plan est à droite : chaque chapitre et chaque leçon s'écrit dans son propre éditeur.",
       cover: {
-        label: "Image de présentation",
-        hint: "Obligatoire pour publier : c'est la vignette des listes de l'app. Elle reste publique, même pour un contenu réservé.",
         choose: "Choisir l'image de présentation",
-        replace: "Changer d'image",
         remove: "Retirer l'image",
         removed: "Image de présentation retirée.",
         none: "Pas encore d'image de présentation",
@@ -1769,6 +1776,7 @@ export const texts = {
         article: "Article et réglages du bloc",
         episode: "Épisode et réglages du bloc",
         page: "Page et réglages du bloc",
+        method: "Méthode",
         chapter: "Chapitre et réglages du bloc",
         lesson: "Leçon et réglages du bloc",
         template: "Modèle et réglages du bloc",
@@ -1778,6 +1786,7 @@ export const texts = {
         article: "Article",
         episode: "Épisode",
         page: "Page",
+        method: "Méthode",
         chapter: "Chapitre",
         lesson: "Leçon",
         template: "Modèle",
@@ -1920,6 +1929,7 @@ export const texts = {
         title: {
           article: "Dans la liste du Fil",
           episode: "Dans la liste de Radio Éclaircies",
+          method: "Dans la liste des Méthodes",
           chapter: "Dans le plan de la méthode",
           lesson: "Dans le plan de la méthode",
         },
@@ -1931,6 +1941,8 @@ export const texts = {
             "L'image est obligatoire pour publier : c'est aussi celle en tête de l'article.",
           episode:
             "L'image est obligatoire pour publier : c'est aussi celle en tête de l'épisode.",
+          method:
+            "L'image est obligatoire pour publier : c'est aussi celle en tête de la méthode.",
           // Elle n'est pas exigée : [D45] ne vise que les contenus des listes.
           chapter:
             "Image facultative : la vignette du chapitre dans le plan de la méthode, dans l'app, et en tête du chapitre. Elle reste publique.",
@@ -1951,6 +1963,10 @@ export const texts = {
         readingTip: (minutes: number, words: string) =>
           `Environ ${minutes} min de lecture, ${words}`,
         // Un épisode : la durée de son audio au lieu du temps de lecture.
+        // Une méthode : la taille de son plan au lieu du temps de lecture.
+        lessons: (count: number) =>
+          count === 1 ? "1 leçon" : `${count} leçons`,
+        planTip: (count: string) => `Dans le plan : ${count}`,
         audioShort: (duration: string, words: string) =>
           `${duration} · ${words}`,
         audioTip: (duration: string, words: string) =>
@@ -2036,27 +2052,6 @@ export const texts = {
     },
     // Un seul membre à la fois sur un brouillon.
     lock: {
-      readOnly: (name: string) =>
-        `${name} écrit ce brouillon. Tu le vois en lecture seule, et il se met à jour à chaque enregistrement.`,
-      readOnlySelf:
-        "Tu écris ce brouillon dans un autre onglet. Ici, tu le vois en lecture seule.",
-      free: "Personne n'écrit ce brouillon en ce moment.",
-      take: "Modifier",
-      forceTake: "Reprendre la main",
-      confirmForce: {
-        title: "Reprendre la main ?",
-        description: (name: string) =>
-          `${name} passera en lecture seule. Ce qui n'est pas encore enregistré de son côté restera dans son navigateur.`,
-        descriptionSelf:
-          "L'autre onglet passera en lecture seule. Ce qui n'y est pas encore enregistré y restera.",
-        confirm: "Reprendre la main",
-      },
-      lost: (name: string) =>
-        `${name} a repris la main : tu vois maintenant ce brouillon en lecture seule.`,
-      lostUnknown:
-        "Quelqu'un a repris la main : tu vois maintenant ce brouillon en lecture seule.",
-      lostSelf:
-        "Tu as pris la main dans un autre onglet : ici, tu vois maintenant ce brouillon en lecture seule.",
       unsaved:
         "Ce que tu n'avais pas encore enregistré n'est pas perdu : copie-le avant de quitter la page.",
       stashKept:
@@ -2065,9 +2060,6 @@ export const texts = {
       copy: "Copier mon texte",
       copied: "Ton texte est copié. Colle-le où tu veux.",
       copyFailed: "La copie n'a pas marché. Sélectionne ton texte à la main.",
-      released:
-        "Cet onglet est resté caché plus de 30 minutes : le brouillon a été libéré pour l'équipe.",
-      retake: "Reprendre l'écriture",
       someone: "Quelqu'un",
       trashed:
         "Ce contenu est dans la corbeille : restaure-le pour le modifier.",
@@ -2075,7 +2067,7 @@ export const texts = {
         "L'état du brouillon n'a pas pu être lu. Réessaie dans un instant.",
       reloadFailed:
         "Le brouillon n'a pas pu être relu. Ton texte reste à l'écran : réessaie dans un instant.",
-      // Éditeur du Fil : le cadenas à côté de Concentration, et sa fenêtre (au lieu du bandeau).
+      // Le cadenas à côté de Concentration, et sa fenêtre.
       button: "Lecture seule",
       dialog: {
         title: {
@@ -2280,7 +2272,6 @@ export const texts = {
       dismissFailure: "Effacer l'échec",
       unpublish: "Retirer de l'app",
       history: "Historique",
-      settings: "Réglages",
     },
     publishDialog: {
       title: "Publier dans l'app ?",

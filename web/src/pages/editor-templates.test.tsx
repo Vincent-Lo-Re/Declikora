@@ -651,12 +651,9 @@ describe("éditeur d'un modèle", () => {
       within(right).getByRole("region", { name: sorts.shared.title })
     ).toHaveTextContent(sorts.shared.description)
     expect(right.querySelector('[data-template-sort="shared"]')).not.toBeNull()
-    for (const name of [
-      texts.publication.actions.publish,
-      texts.publication.actions.settings,
-    ]) {
-      expect(screen.queryByRole("button", { name })).toBeNull()
-    }
+    expect(
+      screen.queryByRole("button", { name: texts.publication.actions.publish })
+    ).toBeNull()
     expect(
       within(right).queryByText(texts.editor.article.ready.title)
     ).toBeNull()

@@ -6,7 +6,7 @@ import {
   contentProfile,
   isElementKind,
   isFeedKind,
-  isListedFeedKind,
+  isListedKind,
 } from "@/lib/editor/profile"
 
 const kinds: ContentKind[] = [
@@ -20,7 +20,7 @@ const kinds: ContentKind[] = [
 ]
 
 describe("profil d'une sorte de contenu", () => {
-  it("la mise en page : le Fil partout, sauf l'écran d'une méthode", () => {
+  it("la mise en page : des blocs partout, sauf l'écran d'une méthode (le plan de ses chapitres)", () => {
     expect(contentProfile("method").layout).toBe("method")
     expect(kinds.filter(isFeedKind)).toEqual([
       "article",
@@ -32,7 +32,7 @@ describe("profil d'une sorte de contenu", () => {
     ])
     // Une page, un élément d'une méthode et un modèle ne sont dans aucune liste de l'app : pas
     // de carte de la liste.
-    expect(kinds.filter(isListedFeedKind)).toEqual(["article", "episode"])
+    expect(kinds.filter(isListedKind)).toEqual(["article", "episode", "method"])
     expect(kinds.filter(isElementKind)).toEqual(["chapter", "lesson"])
   })
 

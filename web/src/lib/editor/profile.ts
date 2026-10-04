@@ -11,8 +11,8 @@ import type { ContentKind } from "@/lib/contents/api"
 import type { TemplateSort } from "@/lib/contents/templates"
 
 export type ContentProfile = {
-  // Sa mise en page : celle du Fil, ou l'écran d'une méthode (sa fiche et son plan, sans blocs,
-  // [D4]).
+  // Ce que montre son éditeur, dans la mise en page du Fil : des blocs, ou le plan d'une méthode
+  // (ses chapitres et ses leçons, sans blocs, [D4]).
   layout: "feed" | "method"
   // Qui la publie : elle-même, sa méthode (un chapitre, une leçon, [D29]), ou personne (un
   // modèle de bloc).
@@ -37,27 +37,31 @@ export type ContentProfile = {
   rootLimit: number | undefined
 }
 
-/** Les sortes qui ont l'éditeur du Fil (layout « feed ») : leurs mots dans la colonne de droite. */
+/**
+ * Les sortes faites de blocs (layout « feed ») : le plan de leurs blocs à gauche, la barre de mise
+ * en forme et les Blocs. Toutes, sauf la méthode, dont l'écran a la même mise en page avec le plan
+ * de ses chapitres et de ses leçons.
+ */
 export type FeedKind = Exclude<ContentKind, "method">
 
-/** Vrai pour une sorte qui a l'éditeur du Fil. */
+/** Vrai pour une sorte faite de blocs. */
 export function isFeedKind(kind: ContentKind): kind is FeedKind {
   return contentProfile(kind).layout === "feed"
 }
 
 /**
- * Celles qui ont une carte dans une liste de l'app (le Fil, Radio Éclaircies) : leur image de
- * présentation est exigée ([D45]), et la colonne de droite montre cette carte.
+ * Celles qui ont une carte dans une liste de l'app (le Fil, Radio Éclaircies, les Méthodes) : leur
+ * image de présentation est exigée ([D45]), et la colonne de droite montre cette carte.
  */
-export type ListedFeedKind = Extract<FeedKind, "article" | "episode">
+export type ListedKind = Extract<ContentKind, "article" | "episode" | "method">
 
 /**
  * Celles qui se publient elles-mêmes (ni un modèle de bloc, ni un élément d'une méthode) : la
  * colonne de droite montre « Prêt à publier ? » et leur publication.
  */
-export type PublishedFeedKind = Extract<
-  FeedKind,
-  "article" | "episode" | "page"
+export type PublishedKind = Extract<
+  ContentKind,
+  "article" | "episode" | "page" | "method"
 >
 
 /** Un chapitre ou une leçon : publié avec sa méthode ([D29]), au niveau d'accès de la méthode. */
@@ -69,10 +73,9 @@ export type ElementKind = Extract<FeedKind, "chapter" | "lesson">
  */
 export type LockableKind = Exclude<FeedKind, "template">
 
-/** Vrai pour une sorte de l'éditeur du Fil qui a une carte dans une liste de l'app. */
-export function isListedFeedKind(kind: ContentKind): kind is ListedFeedKind {
-  const profile = contentProfile(kind)
-  return profile.layout === "feed" && profile.cover === "required"
+/** Vrai pour une sorte qui a une carte dans une liste de l'app. */
+export function isListedKind(kind: ContentKind): kind is ListedKind {
+  return contentProfile(kind).cover === "required"
 }
 
 /** Vrai pour un chapitre ou une leçon. */

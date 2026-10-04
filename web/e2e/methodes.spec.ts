@@ -75,17 +75,48 @@ async function elementId(
   return id
 }
 
+/** La colonne de gauche de l'écran d'une méthode : son plan. */
+function plan(page: Page) {
+  return page.getByRole("complementary", { name: outline.title })
+}
+
 /** L'état affiché d'une leçon (« new », « modified »…). */
 function lessonState(page: Page, title: string) {
   return outlineRow(page, "lesson", title).locator("[data-element-state]")
 }
 
-/** Coche une case du plan, et attend la fin de son enregistrement. */
-async function check(page: Page, name: string) {
-  const box = page.getByRole("checkbox", { name })
-  await box.click()
-  await expect(box).toBeChecked()
-  await expect(box).toBeEnabled()
+/** Ouvre le menu ⋯ d'une ligne du plan, et donne l'une de ses cases. */
+async function flagItem(page: Page, label: string, name: string) {
+  await page.getByRole("button", { name: outline.actions(label) }).click()
+  return page.getByRole("menuitemcheckbox", { name })
+}
+
+/** Coche une case du menu ⋯ d'une ligne du plan, et attend la fin de son enregistrement. */
+async function check(page: Page, label: string, name: string) {
+  const item = await flagItem(page, label, name)
+  await item.click()
+  await expect(item).toBeChecked()
+  await expect(item).toBeEnabled()
+  await closeMenu(page)
+}
+
+/** Vrai ou faux, une case du menu ⋯ d'une ligne du plan. */
+async function expectFlag(
+  page: Page,
+  label: string,
+  name: string,
+  checked: boolean
+) {
+  const item = await flagItem(page, label, name)
+  if (checked) await expect(item).toBeChecked()
+  else await expect(item).not.toBeChecked()
+  await closeMenu(page)
+}
+
+/** Ferme le menu ouvert, et attend qu'il ait quitté la page (il s'efface en fondu). */
+async function closeMenu(page: Page) {
+  await page.keyboard.press("Escape")
+  await expect(page.getByRole("menu")).toHaveCount(0)
 }
 
 /** Crée un chapitre ou une leçon depuis le plan (on reste sur le plan). */
@@ -133,7 +164,9 @@ async function backToMethod(page: Page, methodTitle: string) {
   await page
     .getByRole("link", { name: texts.methods.element.back(methodTitle) })
     .click()
-  await expect(page.getByRole("heading", { name: outline.title })).toBeVisible()
+  await expect(
+    page.getByRole("complementary", { name: outline.title })
+  ).toBeVisible()
   // La main sur la méthode est reprise : le plan se range de nouveau.
   await expect(page.getByLabel(editor.title.label)).toBeEditable()
 }
@@ -146,6 +179,12 @@ type Change = {
 
 /** « Publier » : la fenêtre, ce qu'elle liste (exactement), puis la publication. */
 async function publish(page: Page, expected: Change[], level?: string) {
+  // Les messages, en bas à droite, passent par-dessus « Publier » le temps de s'effacer : la
+  // souris ailleurs (survolés, ils restent), on attend qu'ils soient partis.
+  await page.mouse.move(0, 0)
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, {
+    timeout: 15_000,
+  })
   await page
     .getByRole("button", { name: publication.actions.publish, exact: true })
     .click()
@@ -174,6 +213,7 @@ async function elementAction(
   item: string,
   confirmLabel?: string
 ) {
+  await expect(page.getByRole("menu")).toHaveCount(0)
   await page.getByRole("button", { name: outline.actions(label) }).click()
   await page.getByRole("menuitem", { name: item }).click()
   if (!confirmLabel) return
@@ -203,7 +243,7 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     await open(page, "/methodes", admin)
     await createFromDialog(page, "method", title)
     await expect(
-      page.getByRole("heading", { name: outline.title })
+      page.getByRole("complementary", { name: outline.title })
     ).toBeVisible()
     const methodId = contentIdFromUrl(page.url())
     await expect(page.getByLabel(editor.title.label)).toBeEditable()
@@ -255,11 +295,15 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     }
 
     // Tout est montré dans l'app, sauf « Marcher » ; « Le souffle » est gratuite.
-    await check(page, outline.inAppFor(outline.chapterLabel(1, breathe)))
-    await check(page, outline.inAppFor(outline.chapterLabel(2, move)))
-    await check(page, outline.inAppFor(outline.lessonLabel(1, "Le souffle")))
-    await check(page, outline.isFreeFor(outline.lessonLabel(1, "Le souffle")))
-    await check(page, outline.inAppFor(outline.lessonLabel(2, "Expirer")))
+    const breatheLabel = outline.chapterLabel(1, breathe)
+    const moveLabel2 = outline.chapterLabel(2, move)
+    const souffleLabel = outline.lessonLabel(1, "Le souffle")
+    const expirerLabel = outline.lessonLabel(2, "Expirer")
+    await check(page, breatheLabel, outline.inAppFor(breatheLabel))
+    await check(page, moveLabel2, outline.inAppFor(moveLabel2))
+    await check(page, souffleLabel, outline.inAppFor(souffleLabel))
+    await check(page, souffleLabel, outline.isFreeFor(souffleLabel))
+    await check(page, expirerLabel, outline.inAppFor(expirerLabel))
     await expect(lessonState(page, "Le souffle")).toHaveAttribute(
       "data-element-state",
       "new"
@@ -270,7 +314,9 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     )
 
     // --- Le texte de la leçon gratuite, dans son éditeur (« ← méthode ») -----------------
-    await page.getByRole("link", { name: "Le souffle", exact: true }).click()
+    await plan(page)
+      .getByRole("link", { name: "Le souffle", exact: true })
+      .click()
     await expect(page).toHaveURL(/\/methodes\/lecons\//)
     await expect(elementCard(page, "lesson")).toContainText(
       texts.methods.element.place.lesson(1)
@@ -302,11 +348,12 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
       texts.methods.dnd.end(moveLabel, outline.chapterPlace(1, 2))
     )
     await expect.poll(() => chapterOrder(methodId)).toEqual([move, breathe])
-    await expect(
-      page.getByRole("checkbox", {
-        name: outline.inAppFor(outline.chapterLabel(1, move)),
-      })
-    ).toBeChecked()
+    await expectFlag(
+      page,
+      outline.chapterLabel(1, move),
+      outline.inAppFor(outline.chapterLabel(1, move)),
+      true
+    )
     // Rien n'est encore dans l'app.
     expect(await appMethod(methodId)).toBeNull()
 
@@ -406,7 +453,7 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     // 2. Modifier une leçon, en ranger deux : l'app ne change qu'à la publication
     // =========================================================================================
 
-    await page.getByRole("link", { name: "Expirer", exact: true }).click()
+    await plan(page).getByRole("link", { name: "Expirer", exact: true }).click()
     await expect(page).toHaveURL(/\/methodes\/lecons\//)
     await addText(page, "Souffle lent.")
     await backToMethod(page, title)
@@ -490,11 +537,12 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
       "data-element-state",
       "withdrawn"
     )
-    await expect(
-      page.getByRole("checkbox", {
-        name: outline.inAppFor(outline.lessonLabel(1, "Expirer")),
-      })
-    ).not.toBeChecked()
+    await expectFlag(
+      page,
+      outline.lessonLabel(1, "Expirer"),
+      outline.inAppFor(outline.lessonLabel(1, "Expirer")),
+      false
+    )
 
     // --- Le chapitre « Bouger » à la corbeille : il sort du plan en ligne ([D36]) ------------
     await elementAction(
@@ -544,11 +592,12 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     await expect(elementCard(page, "chapter")).toBeVisible()
     await backToMethod(page, title)
     await expect.poll(() => chapterOrder(methodId)).toEqual([breathe, move])
-    await expect(
-      page.getByRole("checkbox", {
-        name: outline.inAppFor(outline.chapterLabel(2, move)),
-      })
-    ).not.toBeChecked()
+    await expectFlag(
+      page,
+      outline.chapterLabel(2, move),
+      outline.inAppFor(outline.chapterLabel(2, move)),
+      false
+    )
     // Sa leçon revient avec lui.
     await expect(outlineRow(page, "lesson", "Marcher")).toBeVisible()
     // Rien n'est republié.

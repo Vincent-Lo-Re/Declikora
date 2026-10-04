@@ -96,3 +96,32 @@ export function ElementStateHint({
     </span>
   )
 }
+
+/**
+ * L'état d'une ligne du plan d'une méthode, en pastille seule (la place manque pour son nom) :
+ * son nom et son explication dans l'infobulle, et pour les lecteurs d'écran.
+ */
+export function ElementStateDot({ state }: { state: ElementState }) {
+  const dot = stateDots[state]
+  const text = `${labels.states[state]} : ${labels.stateHints[state]}`
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            data-element-state={state}
+            className="flex size-5 shrink-0 items-center justify-center text-muted-foreground"
+          />
+        }
+      >
+        {dot ? (
+          <span aria-hidden className={`size-2 rounded-full ${dot}`} />
+        ) : (
+          <CircleOff aria-hidden className="size-3.5" />
+        )}
+        <span className="sr-only">{text}</span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-64">{text}</TooltipContent>
+    </Tooltip>
+  )
+}

@@ -237,38 +237,6 @@ function UnknownStatus({ pub }: { pub: PublicationControls }) {
   )
 }
 
-// ---------------------------------------------------------------------------------------------
-// Barre de publication (en-tête de l'éditeur)
-// ---------------------------------------------------------------------------------------------
-
-export function PublishBar({
-  pub,
-  disabled,
-  alwaysPublishable = false,
-}: {
-  pub: PublicationControls
-  // Verrou en cours de prise, contenu illisible…
-  disabled: boolean
-  // Le brouillon cite un bloc identique partout : son modèle a pu changer depuis la
-  // publication sans que le brouillon change, « Publier » reste donc possible.
-  alwaysPublishable?: boolean
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      {pub.failed ? (
-        <UnknownStatus pub={pub} />
-      ) : (
-        !pub.loading && <LiveBadge live={pub.status.live} />
-      )}
-      <PublishButton
-        pub={pub}
-        disabled={disabled}
-        alwaysPublishable={alwaysPublishable}
-      />
-    </div>
-  )
-}
-
 /**
  * « Publier » et le menu de ses autres actions (programmer, retirer de l'app ; dans l'éditeur du
  * Fil, l'historique).
@@ -360,19 +328,16 @@ export function PublishButton({
 }
 
 // ---------------------------------------------------------------------------------------------
-// Bandeau de programmation (sous l'en-tête) : [D16], [D31]
+// Bandeau de programmation (au-dessus du téléphone) : [D16], [D31]
 // ---------------------------------------------------------------------------------------------
 
 export function ScheduleBanner({
   pub,
   leave,
-  inline = false,
 }: {
   pub: PublicationControls
   // « Quitter l'éditeur » : la programmation en attente ne part qu'une fois l'éditeur fermé.
   leave?: ReactNode
-  // Au-dessus du téléphone (éditeur du Fil), à sa largeur.
-  inline?: boolean
 }) {
   const { schedule } = pub.status
   if (schedule.kind === "none") return null
@@ -454,7 +419,7 @@ export function ScheduleBanner({
   }
 
   return (
-    <div className={inline ? "w-full" : "border-b bg-muted/40 px-4 py-2"}>
+    <div className="w-full">
       <Alert
         variant={schedule.kind === "failed" ? "destructive" : "default"}
         data-schedule-banner={schedule.kind}

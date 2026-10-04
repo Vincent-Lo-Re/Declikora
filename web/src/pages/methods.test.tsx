@@ -347,11 +347,28 @@ function stateOf(id: string): string | null {
   )
 }
 
+/** La colonne de gauche de l'écran d'une méthode : son plan. */
+function planColumn(): Promise<HTMLElement> {
+  return screen.findByRole("complementary", { name: outline.title })
+}
+
+/** Coche ou décoche une case du menu ⋯ d'une ligne du plan. */
+async function flag(label: string, name: string) {
+  fireEvent.click(
+    within(await planColumn()).getByRole("button", {
+      name: outline.actions(label),
+    })
+  )
+  fireEvent.click(await screen.findByRole("menuitemcheckbox", { name }))
+}
+
 /** Ouvre le plan d'une méthode et attend ses lignes. */
 async function openMethod() {
   renderApp(`/methodes/${METHOD}`)
   await editable()
-  await screen.findByRole("link", { name: "Respiration carrée" })
+  await within(await planColumn()).findByRole("link", {
+    name: "Respiration carrée",
+  })
   // La liste des changements est lue : les états en tiennent compte.
   await waitFor(() => expect(stateOf(CARREE)).toBe("new"))
 }
@@ -404,7 +421,7 @@ describe("liste des méthodes", () => {
         null
       )
     )
-    expect(await screen.findByText(outline.emptyTitle)).toBeVisible()
+    expect(await screen.findByText(outline.empty)).toBeVisible()
     expect(
       screen.getByRole("link", { name: texts.editor.back("Méthodes") })
     ).toHaveAttribute("href", "/methodes")
@@ -412,47 +429,110 @@ describe("liste des méthodes", () => {
 })
 
 describe("écran d'une méthode", () => {
-  it("montre la fiche, puis le plan avec l'état de chaque élément dans l'app", async () => {
+  it("la mise en page du Fil : le plan à gauche, la méthode comme dans l'app au centre, sa publication à droite", async () => {
     await openMethod()
-    expect(
-      screen.getByRole("heading", {
-        name: texts.editor.presentation.panelTitle,
-      })
-    ).toBeVisible()
-    // Pas de blocs pour une méthode ([D4]).
+    // Pas de blocs pour une méthode ([D4]), ni de barre du haut.
     expect(
       screen.queryByRole("button", { name: texts.editor.add.label })
     ).toBeNull()
+    expect(
+      screen.queryByRole("toolbar", { name: texts.editor.toolbar.label })
+    ).toBeNull()
+    expect(document.querySelector("header")).toBeNull()
+    const plan = await planColumn()
+    expect(
+      within(plan).getByRole("button", { name: outline.newChapter })
+    ).toBeEnabled()
+    expect(plan).toHaveTextContent(outline.count(2, 3))
+
+    // Au centre, ce que l'app montrera : « Les bases » (montré) et ses deux leçons montrées ;
+    // « Aller plus loin » est caché. Un élément y ouvre son éditeur.
+    const phone = screen.getByRole("region", {
+      name: texts.editor.preview.screen.ios,
+    })
+    expect(within(phone).getByText(outline.count(1, 2))).toBeVisible()
+    expect(
+      within(phone).getByRole("link", {
+        name: texts.methods.preview.chapter(1, "Les bases"),
+      })
+    ).toHaveAttribute("href", `/methodes/chapitres/${BASES}`)
+    expect(
+      within(phone).getByRole("link", { name: /Respiration carrée/ })
+    ).toHaveAttribute("href", `/methodes/lecons/${CARREE}`)
+    expect(within(phone).queryByText(/Aller plus loin/)).toBeNull()
+    // « Le souffle » est gratuite dans une méthode réservée.
+    expect(
+      within(phone).getByRole("link", { name: /Le souffle/ })
+    ).toHaveTextContent(texts.methods.preview.free)
+
+    // À droite : « Prêt à publier ? », la carte de la liste, le niveau d'accès et ce qui
+    // changera dans l'app.
+    const right = screen.getByRole("complementary", {
+      name: texts.editor.columns.right.method,
+    })
+    expect(
+      within(right).getByRole("region", {
+        name: texts.editor.article.feed.title.method,
+      })
+    ).toBeVisible()
+    const changesCard = within(right).getByRole("region", {
+      name: changes.cardTitle,
+    })
+    await waitFor(() =>
+      expect(
+        changesCard.querySelector(`[data-element-id="${CARREE}"]`)
+      ).toHaveAttribute("data-change", "new")
+    )
+    // En bas, la taille du plan au lieu du temps de lecture.
+    expect(right).toHaveTextContent(texts.editor.article.stats.lessons(3))
+
     expect(stateOf(BASES)).toBe("live")
     expect(stateOf(SOUFFLE)).toBe("modified")
     expect(stateOf(CARREE)).toBe("new")
     expect(stateOf(LOIN)).toBe("hidden")
     // Cochée, mais dans un chapitre caché : elle ne part pas.
     expect(stateOf(EXPIRER)).toBe("blocked")
-    expect(within(row(SOUFFLE)).getByText(outline.free)).toBeVisible()
+    expect(within(row(SOUFFLE)).getByText(outline.free)).toBeInTheDocument()
     // Chaque élément s'ouvre dans son éditeur.
-    expect(screen.getByRole("link", { name: "Le souffle" })).toHaveAttribute(
-      "href",
-      `/methodes/lecons/${SOUFFLE}`
-    )
-    expect(screen.getByRole("link", { name: "Les bases" })).toHaveAttribute(
-      "href",
-      `/methodes/chapitres/${BASES}`
-    )
+    expect(
+      within(plan).getByRole("link", { name: "Le souffle" })
+    ).toHaveAttribute("href", `/methodes/lecons/${SOUFFLE}`)
+    expect(
+      within(plan).getByRole("link", { name: "Les bases" })
+    ).toHaveAttribute("href", `/methodes/chapitres/${BASES}`)
     // La méthode a des changements à publier (une leçon modifiée ne change pas sa fiche).
-    expect(document.querySelector("header [data-publication]")).toHaveAttribute(
+    expect(document.querySelector("[data-publication]")).toHaveAttribute(
       "data-publication",
       "modified"
     )
   })
 
-  it("coche « Montrer dans l'app » et « Leçon gratuite » sous le verrou de l'élément", async () => {
+  it("en Lecture, « sans la formule » : les leçons réservées ont un cadenas, pas la leçon gratuite", async () => {
     await openMethod()
+    const preview = texts.editor.preview
+    const tools = screen.getByRole("toolbar", { name: preview.tools })
     fireEvent.click(
-      screen.getByRole("checkbox", {
-        name: outline.inAppFor(outline.chapterLabel(2, "Aller plus loin")),
-      })
+      within(tools).getByRole("button", { name: preview.mode.read })
     )
+    const phone = screen.getByRole("region", { name: preview.screen.ios })
+    // Comme un abonné : rien de réservé.
+    expect(within(phone).queryByText(texts.methods.preview.locked)).toBeNull()
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.reader.visitor })
+    )
+    const carree = within(phone).getByText("Respiration carrée").parentElement!
+    expect(carree).toHaveTextContent(texts.methods.preview.locked)
+    const souffle = within(phone).getByText("Le souffle").parentElement!
+    expect(souffle).not.toHaveTextContent(texts.methods.preview.locked)
+    // En Lecture, rien ne se clique.
+    expect(within(phone).queryByRole("link")).toBeNull()
+  })
+
+  it("coche « Montrer dans l'app » et « Leçon gratuite » (menu ⋯) sous le verrou de l'élément", async () => {
+    await openMethod()
+    const reads = vi.mocked(methodsApi.getMethodTree).mock.calls.length
+    const loin = outline.chapterLabel(2, "Aller plus loin")
+    await flag(loin, outline.inAppFor(loin))
     await waitFor(() =>
       expect(methodsApi.setElementFlags).toHaveBeenCalledWith(
         LOIN,
@@ -460,11 +540,8 @@ describe("écran d'une méthode", () => {
         testProfile.id
       )
     )
-    fireEvent.click(
-      screen.getByRole("checkbox", {
-        name: outline.isFreeFor(outline.lessonLabel(2, "Respiration carrée")),
-      })
-    )
+    const carree = outline.lessonLabel(2, "Respiration carrée")
+    await flag(carree, outline.isFreeFor(carree))
     await waitFor(() =>
       expect(methodsApi.setElementFlags).toHaveBeenCalledWith(
         CARREE,
@@ -474,7 +551,9 @@ describe("écran d'une méthode", () => {
     )
     // Le plan et la liste des changements sont relus.
     await waitFor(() =>
-      expect(methodsApi.getMethodTree).toHaveBeenCalledTimes(3)
+      expect(
+        vi.mocked(methodsApi.getMethodTree).mock.calls.length
+      ).toBeGreaterThan(reads)
     )
   })
 
@@ -486,11 +565,8 @@ describe("écran d'une méthode", () => {
       })
     )
     await openMethod()
-    fireEvent.click(
-      screen.getByRole("checkbox", {
-        name: outline.inAppFor(outline.lessonLabel(1, "Le souffle")),
-      })
-    )
+    const souffle = outline.lessonLabel(1, "Le souffle")
+    await flag(souffle, outline.inAppFor(souffle))
     expect(
       await screen.findByText(outline.heldBy("Claire Martin"))
     ).toBeVisible()
@@ -811,19 +887,19 @@ describe("plan d'une méthode : focus et explications", () => {
     )
   })
 
-  it("l'explication de chaque état est dans la page, écrite quand il faut un geste", async () => {
+  it("la pastille d'un élément porte son état et son explication, pour les lecteurs d'écran", async () => {
     await openMethod()
-    // « Caché de l'app » et « Caché avec son chapitre » : ce qu'il faut faire est écrit.
-    expect(
-      within(row(LOIN)).getAllByText(outline.stateHints.hidden)[0]
-    ).toBeVisible()
-    expect(
-      within(row(EXPIRER)).getByText(outline.stateHints.blocked)
-    ).toBeVisible()
-    // Les autres états : lue par les lecteurs d'écran, juste après le badge.
-    const hint = row(CARREE).querySelector('[data-element-state-hint="new"]')
-    expect(hint).toHaveTextContent(outline.stateHints.new)
-    expect(hint).toHaveClass("sr-only")
+    const said = (id: string) =>
+      row(id).querySelector(":scope > div [data-element-state]")
+    expect(said(LOIN)).toHaveTextContent(
+      `${outline.states.hidden} : ${outline.stateHints.hidden}`
+    )
+    expect(said(EXPIRER)).toHaveTextContent(
+      `${outline.states.blocked} : ${outline.stateHints.blocked}`
+    )
+    expect(said(CARREE)).toHaveTextContent(
+      `${outline.states.new} : ${outline.stateHints.new}`
+    )
   })
 })
 
@@ -873,11 +949,17 @@ describe("publier une méthode d'un seul geste ([D29])", () => {
       }),
     ])
     await openMethod().catch(() => undefined)
-    await screen.findByRole("link", { name: "Le souffle" })
-    // Le plan le signale déjà.
+    await within(await planColumn()).findByRole("link", { name: "Le souffle" })
+    // Le plan le signale déjà, et la carte « Ce qui changera dans l'app » aussi.
     expect(
       await within(row(SOUFFLE)).findByText(
-        "Une image n'a pas de fichier : bloc n° 2."
+        "Une image n'a pas de fichier : bloc n° 2.",
+        { exact: false }
+      )
+    ).toBeInTheDocument()
+    expect(
+      within(screen.getByRole("region", { name: changes.cardTitle })).getByText(
+        changes.blocked
       )
     ).toBeVisible()
     fireEvent.click(
@@ -906,7 +988,7 @@ describe("publier une méthode d'un seul geste ([D29])", () => {
         screen.getByRole("button", { name: texts.publication.actions.publish })
       ).toBeDisabled()
     )
-    expect(document.querySelector("header [data-publication]")).toHaveAttribute(
+    expect(document.querySelector("[data-publication]")).toHaveAttribute(
       "data-publication",
       "live"
     )
@@ -994,7 +1076,12 @@ describe("publier une méthode d'un seul geste ([D29])", () => {
     ])
     await openMethod()
     fireEvent.click(
-      screen.getByRole("button", { name: texts.publication.actions.history })
+      screen.getByRole("button", { name: texts.publication.actions.more })
+    )
+    fireEvent.click(
+      await screen.findByRole("menuitem", {
+        name: texts.publication.actions.history,
+      })
     )
     fireEvent.click(
       await screen.findByRole("button", {
@@ -1039,10 +1126,8 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
         name: element.back("Mieux respirer"),
       })
     ).toHaveAttribute("href", `/methodes/${METHOD}`)
-    // Pas de barre du haut, ni de réglages à part : tout est dans la colonne de droite.
-    expect(
-      screen.queryByRole("button", { name: texts.publication.actions.settings })
-    ).toBeNull()
+    // Pas de barre du haut : tout est dans la colonne de droite.
+    expect(document.querySelector("header")).toBeNull()
     expect(
       screen.queryByRole("button", { name: texts.publication.actions.publish })
     ).toBeNull()
@@ -1296,7 +1381,9 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
         queryKey: [...methodsApi.methodKeys.all, "preview"],
       })
     )
-    await screen.findByRole("link", { name: "Respiration carrée" })
+    await within(await planColumn()).findByRole("link", {
+      name: "Respiration carrée",
+    })
 
     // Rouverte (la base n'est pas relue) : la case enregistrée, pas l'ancienne.
     await act(() => router.navigate(`/methodes/lecons/${SOUFFLE}`))
@@ -1326,7 +1413,9 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
     const { router } = renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()
     await act(() => router.navigate(`/methodes/${METHOD}`))
-    await screen.findByRole("link", { name: "Respiration carrée" })
+    await within(await planColumn()).findByRole("link", {
+      name: "Respiration carrée",
+    })
     fireEvent.click(
       screen.getByRole("button", {
         name: outline.actions(outline.lessonLabel(1, "Le souffle")),

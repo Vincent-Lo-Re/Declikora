@@ -1,4 +1,4 @@
-import { Copy, Lock, LockOpen, RefreshCw, TriangleAlert } from "lucide-react"
+import { Copy, Lock, RefreshCw, TriangleAlert } from "lucide-react"
 import { useState, type ReactNode } from "react"
 
 import {
@@ -34,40 +34,27 @@ function isGone(code: string | null | undefined): boolean {
 }
 
 /**
- * Bandeau sous l'en-tête : lecture seule (avec le nom de la personne qui écrit et « Reprendre
- * la main »), verrou libre, main perdue (avec « Copier mon texte »), enregistrement arrêté.
- * Rien quand on écrit normalement. Dans l'éditeur du Fil, la lecture seule passe par le cadenas
- * et sa fenêtre (`LockDialog`), et le bandeau se pose au-dessus du téléphone.
+ * Bandeau au-dessus du téléphone, à sa largeur : main perdue ou reprise avec du texte pas encore
+ * enregistré (« Copier mon texte »), enregistrement arrêté, verrou impossible à prendre. Rien
+ * quand on écrit normalement ; la lecture seule passe par le cadenas et sa fenêtre (`LockDialog`).
  */
 export function LockBanner({
   lock,
-  holderIsMe,
   autosave,
   canCopy,
   onTake,
   onCopy,
   onReload,
   onDismissCopy,
-  lockInDialog = false,
-  inline = false,
 }: {
   lock: LockState
-  // Celui qui écrit, c'est nous, dans un autre onglet (ou une autre fenêtre).
-  holderIsMe: boolean
   autosave: AutosaveState
   canCopy: boolean
   onTake: (force: boolean) => void
   onCopy: () => void
   onReload: () => void
   onDismissCopy: () => void
-  // La lecture seule (quelqu'un écrit, verrou libre ou libéré) est dite par LockDialog.
-  lockInDialog?: boolean
-  // Au-dessus du téléphone, à sa largeur, plutôt que sur toute la largeur de la page.
-  inline?: boolean
 }) {
-  const [confirming, setConfirming] = useState(false)
-  const holder = lock.holderName ?? labels.someone
-
   const copyButton = canCopy && (
     <Button size="sm" variant="outline" onClick={onCopy}>
       <Copy />
@@ -94,52 +81,6 @@ export function LockBanner({
             {texts.common.retry}
           </Button>
         )}
-      </Row>
-    )
-  } else if (lockInDialog && isReadOnlyPhase(lock)) {
-    content = null
-  } else if (lock.phase === "readonly") {
-    content = (
-      <Row
-        icon={<Lock />}
-        message={
-          holderIsMe
-            ? lock.lost
-              ? labels.lostSelf
-              : labels.readOnlySelf
-            : lock.lost
-              ? lock.holderName
-                ? labels.lost(lock.holderName)
-                : labels.lostUnknown
-              : labels.readOnly(holder)
-        }
-        extra={lock.lost && canCopy ? labels.unsaved : null}
-      >
-        {copyButton}
-        <Button size="sm" onClick={() => setConfirming(true)}>
-          {labels.forceTake}
-        </Button>
-      </Row>
-    )
-  } else if (lock.phase === "free") {
-    content = (
-      <Row
-        icon={<LockOpen />}
-        message={labels.free}
-        extra={lock.lost && canCopy ? labels.unsaved : null}
-      >
-        {copyButton}
-        <Button size="sm" onClick={() => onTake(false)}>
-          {labels.take}
-        </Button>
-      </Row>
-    )
-  } else if (lock.phase === "released") {
-    content = (
-      <Row icon={<LockOpen />} message={labels.released}>
-        <Button size="sm" onClick={() => onTake(false)}>
-          {labels.retake}
-        </Button>
       </Row>
     )
   } else if (lock.phase === "mine" && canCopy) {
@@ -173,53 +114,18 @@ export function LockBanner({
     )
   }
 
-  return (
-    <>
-      {content && (
-        <div className={inline ? "w-full" : "border-b bg-muted/40 px-4 py-2"}>
-          <Alert
-            variant={destructive ? "destructive" : "default"}
-            // L'icône au milieu de la ligne (message et boutons), et non sur la première ligne
-            // du texte comme dans les autres alertes.
-            className="items-center *:[svg]:row-span-1 *:[svg]:translate-y-0"
-          >
-            {content}
-          </Alert>
-        </div>
-      )}
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{labels.confirmForce.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {holderIsMe
-                ? labels.confirmForce.descriptionSelf
-                : labels.confirmForce.description(holder)}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{texts.common.cancel}</AlertDialogCancel>
-            <Button
-              onClick={() => {
-                setConfirming(false)
-                onTake(true)
-              }}
-            >
-              {labels.confirmForce.confirm}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
-  )
-}
-
-function isReadOnlyPhase(lock: LockState): boolean {
-  return (
-    lock.phase === "readonly" ||
-    lock.phase === "free" ||
-    lock.phase === "released"
-  )
+  return content ? (
+    <div className="w-full">
+      <Alert
+        variant={destructive ? "destructive" : "default"}
+        // L'icône au milieu de la ligne (message et boutons), et non sur la première ligne du
+        // texte comme dans les autres alertes.
+        className="items-center *:[svg]:row-span-1 *:[svg]:translate-y-0"
+      >
+        {content}
+      </Alert>
+    </div>
+  ) : null
 }
 
 /**
