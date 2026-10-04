@@ -4,7 +4,7 @@ import { SHARED_ROOT_LIMIT } from "@/blocks/templates"
 import type { ContentKind } from "@/lib/contents/api"
 import {
   contentProfile,
-  hasPresentation,
+  isElementKind,
   isFeedKind,
   isListedFeedKind,
 } from "@/lib/editor/profile"
@@ -20,19 +20,20 @@ const kinds: ContentKind[] = [
 ]
 
 describe("profil d'une sorte de contenu", () => {
-  it("la mise en page : le Fil pour un article, un épisode, une page et un modèle, l'écran d'une méthode, l'ancienne ailleurs (pour l'instant)", () => {
+  it("la mise en page : le Fil partout, sauf l'écran d'une méthode", () => {
     expect(contentProfile("method").layout).toBe("method")
-    for (const kind of ["chapter", "lesson"] as const) {
-      expect(contentProfile(kind).layout).toBe("classic")
-    }
     expect(kinds.filter(isFeedKind)).toEqual([
       "article",
       "episode",
       "page",
+      "chapter",
+      "lesson",
       "template",
     ])
-    // Une page et un modèle ne sont dans aucune liste de l'app : pas de carte, pas d'image.
+    // Une page, un élément d'une méthode et un modèle ne sont dans aucune liste de l'app : pas
+    // de carte de la liste.
     expect(kinds.filter(isListedFeedKind)).toEqual(["article", "episode"])
+    expect(kinds.filter(isElementKind)).toEqual(["chapter", "lesson"])
   })
 
   it("qui publie : le contenu, sa méthode (chapitre, leçon, [D29]), personne (modèle)", () => {
@@ -52,12 +53,6 @@ describe("profil d'une sorte de contenu", () => {
     expect(contentProfile("lesson").cover).toBe("optional")
     expect(contentProfile("page").cover).toBeNull()
     expect(contentProfile("template").cover).toBeNull()
-    // Le panneau de présentation : les sortes qui n'ont pas encore l'éditeur du Fil.
-    expect(kinds.filter(hasPresentation)).toEqual([
-      "method",
-      "chapter",
-      "lesson",
-    ])
   })
 
   it("audio, catégories, adresse, niveau d'accès", () => {

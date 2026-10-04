@@ -11,9 +11,9 @@ import type { ContentKind } from "@/lib/contents/api"
 import type { TemplateSort } from "@/lib/contents/templates"
 
 export type ContentProfile = {
-  // Sa mise en page : celle du Fil, l'ancienne (tant que la sorte n'y est pas passée), ou
-  // l'écran d'une méthode (sa fiche et son plan, sans blocs, [D4]).
-  layout: "feed" | "classic" | "method"
+  // Sa mise en page : celle du Fil, ou l'écran d'une méthode (sa fiche et son plan, sans blocs,
+  // [D4]).
+  layout: "feed" | "method"
   // Qui la publie : elle-même, sa méthode (un chapitre, une leçon, [D29]), ou personne (un
   // modèle de bloc).
   publication: "own" | "method" | null
@@ -37,15 +37,8 @@ export type ContentProfile = {
   rootLimit: number | undefined
 }
 
-/**
- * Les sortes dont l'éditeur a un panneau de présentation (l'image de présentation, à droite) :
- * celles qui ont une image sans avoir encore l'éditeur du Fil, où elle se règle dans la colonne de
- * droite.
- */
-export type PresentationKind = "method" | "chapter" | "lesson"
-
-/** Les sortes qui ont déjà l'éditeur du Fil (layout « feed ») : leurs mots dans la colonne de droite. */
-export type FeedKind = "article" | "episode" | "page" | "template"
+/** Les sortes qui ont l'éditeur du Fil (layout « feed ») : leurs mots dans la colonne de droite. */
+export type FeedKind = Exclude<ContentKind, "method">
 
 /** Vrai pour une sorte qui a l'éditeur du Fil. */
 export function isFeedKind(kind: ContentKind): kind is FeedKind {
@@ -56,18 +49,35 @@ export function isFeedKind(kind: ContentKind): kind is FeedKind {
  * Celles qui ont une carte dans une liste de l'app (le Fil, Radio Éclaircies) : leur image de
  * présentation est exigée ([D45]), et la colonne de droite montre cette carte.
  */
-export type ListedFeedKind = Exclude<FeedKind, "page" | "template">
+export type ListedFeedKind = Extract<FeedKind, "article" | "episode">
 
 /**
- * Celles qui se publient elles-mêmes (pas un modèle de bloc) : la colonne de droite montre leur
- * publication, et la Lecture peut les montrer à une personne sans la formule.
+ * Celles qui se publient elles-mêmes (ni un modèle de bloc, ni un élément d'une méthode) : la
+ * colonne de droite montre « Prêt à publier ? » et leur publication.
  */
-export type PublishedFeedKind = Exclude<FeedKind, "template">
+export type PublishedFeedKind = Extract<
+  FeedKind,
+  "article" | "episode" | "page"
+>
+
+/** Un chapitre ou une leçon : publié avec sa méthode ([D29]), au niveau d'accès de la méthode. */
+export type ElementKind = Extract<FeedKind, "chapter" | "lesson">
+
+/**
+ * Celles qui ont un niveau d'accès (le leur, ou celui de leur méthode) : la Lecture peut les
+ * montrer à une personne sans la formule.
+ */
+export type LockableKind = Exclude<FeedKind, "template">
 
 /** Vrai pour une sorte de l'éditeur du Fil qui a une carte dans une liste de l'app. */
 export function isListedFeedKind(kind: ContentKind): kind is ListedFeedKind {
   const profile = contentProfile(kind)
   return profile.layout === "feed" && profile.cover === "required"
+}
+
+/** Vrai pour un chapitre ou une leçon. */
+export function isElementKind(kind: ContentKind): kind is ElementKind {
+  return contentProfile(kind).publication === "method"
 }
 
 /** Le profil d'une sorte de contenu ; templateSort : la sorte d'un modèle de bloc. */
@@ -76,7 +86,7 @@ export function contentProfile(
   templateSort: TemplateSort | null = null
 ): ContentProfile {
   const base = {
-    layout: "classic",
+    layout: "feed",
     publication: "own",
     titleRequired: true,
     cover: null,
@@ -89,17 +99,16 @@ export function contentProfile(
   } satisfies ContentProfile
   switch (kind) {
     case "article":
-      return { ...base, layout: "feed", cover: "required", categories: "blog" }
+      return { ...base, cover: "required", categories: "blog" }
     case "episode":
       return {
         ...base,
-        layout: "feed",
         cover: "required",
         audio: true,
         categories: "podcasts",
       }
     case "page":
-      return { ...base, layout: "feed", address: true }
+      return { ...base, address: true }
     case "method":
       return {
         ...base,
@@ -118,7 +127,6 @@ export function contentProfile(
     case "template":
       return {
         ...base,
-        layout: "feed",
         publication: null,
         titleRequired: false,
         access: null,
@@ -126,10 +134,4 @@ export function contentProfile(
         rootLimit: templateSort === "shared" ? SHARED_ROOT_LIMIT : undefined,
       }
   }
-}
-
-/** Vrai pour une sorte dont l'éditeur a un panneau de présentation (PresentationKind). */
-export function hasPresentation(kind: ContentKind): kind is PresentationKind {
-  const profile = contentProfile(kind)
-  return profile.cover !== null && profile.layout !== "feed"
 }

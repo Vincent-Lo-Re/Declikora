@@ -54,7 +54,7 @@ import {
   previewThemes,
   type PreviewSettings,
 } from "@/lib/editor/preview"
-import type { PublishedFeedKind } from "@/lib/editor/profile"
+import type { LockableKind } from "@/lib/editor/profile"
 import { texts } from "@/texts"
 
 const labels = texts.editor.preview
@@ -409,7 +409,7 @@ export function ReadView({
   meta: string | null
   // `false` : tout se lit ; sinon la sorte du contenu (ses mots) et le nom de la formule (`null`
   // s'il n'est pas encore lu). Un modèle de bloc ne se publie pas : il se lit toujours.
-  locked: { kind: PublishedFeedKind; level: string | null } | false
+  locked: { kind: LockableKind; level: string | null } | false
   // Le bloc d'un modèle partagé, tel qu'il est aujourd'hui.
   resolve: (block: Block) => Block | null
 }) {

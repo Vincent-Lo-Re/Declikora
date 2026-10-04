@@ -1,5 +1,4 @@
 import type { Editor } from "@tiptap/react"
-import { cn } from "cn"
 import {
   Bold,
   Heading2,
@@ -91,28 +90,19 @@ function useFormats(editor: Editor | null): Formats {
 }
 
 /**
- * Barre de mise en forme, au-dessus du téléphone (verticale à sa gauche dans l'éditeur du Fil) :
- * elle agit sur le texte du bloc choisi. Désactivée en lecture seule, ou quand le bloc choisi
- * n'est pas un texte.
+ * Barre de mise en forme, verticale, à gauche du téléphone : elle agit sur le texte du bloc
+ * choisi. Désactivée en lecture seule, ou quand le bloc choisi n'est pas un texte.
  */
 export function FormatToolbar({
   editor,
   editable,
-  orientation = "horizontal",
 }: {
   editor: Editor | null
   editable: boolean
-  orientation?: "horizontal" | "vertical"
 }) {
-  const vertical = orientation === "vertical"
-  // Verticale : les infobulles s'ouvrent à droite, loin du texte qu'on met en forme.
-  const side = vertical ? "right" : "top"
-  const separator = (
-    <Separator
-      orientation={vertical ? "horizontal" : "vertical"}
-      className={vertical ? "my-1 w-5" : "mx-1 h-5"}
-    />
-  )
+  // Les infobulles s'ouvrent à droite, loin du texte qu'on met en forme.
+  const side = "right"
+  const separator = <Separator orientation="horizontal" className="my-1 w-5" />
   const [linkOpen, setLinkOpen] = useState(false)
   const formats = useFormats(editor)
 
@@ -150,11 +140,8 @@ export function FormatToolbar({
     <div
       role="toolbar"
       aria-label={labels.label}
-      aria-orientation={orientation}
-      className={cn(
-        "flex items-center gap-0.5 rounded-lg border bg-background p-1 shadow-xs",
-        vertical ? "flex-col" : "flex-wrap"
-      )}
+      aria-orientation="vertical"
+      className="flex flex-col items-center gap-0.5 rounded-lg border bg-background p-1 shadow-xs"
     >
       {toggle("paragraph", labels.paragraph, Pilcrow, () =>
         chain().setParagraph().run()
@@ -221,14 +208,7 @@ export function FormatToolbar({
         <TooltipContent side={side}>{labels.redo}</TooltipContent>
       </Tooltip>
       {!usable && editable && (
-        <span
-          className={cn(
-            "px-2 text-xs text-muted-foreground",
-            vertical && "sr-only"
-          )}
-        >
-          {labels.unavailable}
-        </span>
+        <span className="sr-only">{labels.unavailable}</span>
       )}
       {editor && (
         <LinkDialog

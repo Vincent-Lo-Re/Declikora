@@ -7,7 +7,6 @@ import type { Draft } from "@/blocks/types"
 import { AudioPlayer } from "@/components/media/audio-player"
 import { MediaThumbnail } from "@/components/media/media-visuals"
 import { Button } from "@/components/ui/button"
-import { contentProfile, type PresentationKind } from "@/lib/editor/profile"
 import { texts } from "@/texts"
 
 const labels = texts.editor.presentation
@@ -110,40 +109,29 @@ export function AudioPreview({
 // ---------------------------------------------------------------------------------------------
 
 /**
- * La présentation d'une méthode, d'un chapitre ou d'une leçon, quand aucun bloc n'est choisi :
- * l'image de présentation (changer, retirer, texte alternatif). L'éditeur du Fil la règle dans sa
- * colonne de droite.
+ * La fiche d'une méthode, sous son aperçu : l'image de présentation (changer, retirer, texte
+ * alternatif). Les autres sortes la règlent dans la colonne de droite de l'éditeur du Fil.
  */
 export function PresentationPanel({
-  kind,
   draft,
   editable,
   mediaFor,
   onChooseCover,
   onRemoveCover,
 }: {
-  kind: PresentationKind
   draft: Draft
   editable: boolean
   mediaFor: (mediaId: string | null) => BlockMedia
   onChooseCover: () => void
   onRemoveCover: () => void
 }) {
-  const profile = contentProfile(kind)
   const cover = mediaFor(draft.cover?.mediaId ?? null)
   return (
     <div className="space-y-5">
       <div className="space-y-1">
-        {/* Reçoit le focus après « Voir la présentation » (le bouton disparaît). */}
-        <h2
-          tabIndex={-1}
-          data-presentation-title
-          className="text-sm font-semibold outline-none"
-        >
-          {labels.panelTitle[kind]}
-        </h2>
+        <h2 className="text-sm font-semibold">{labels.panelTitle}</h2>
         <p className="text-sm text-muted-foreground">
-          {kind === "method" ? labels.methodPanelHint : labels.panelHint}
+          {labels.methodPanelHint}
         </p>
       </div>
       {!editable && (
@@ -154,11 +142,7 @@ export function PresentationPanel({
 
       <section className="space-y-2">
         <h3 className="text-sm font-medium">{labels.cover.label}</h3>
-        <p className="text-xs text-muted-foreground">
-          {profile.cover === "required"
-            ? labels.cover.hint
-            : labels.cover.optionalHint}
-        </p>
+        <p className="text-xs text-muted-foreground">{labels.cover.hint}</p>
         <CoverChoice
           media={cover}
           editable={editable}

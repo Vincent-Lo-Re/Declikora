@@ -11,6 +11,7 @@ import {
 } from "@/lib/contents/methods"
 import {
   elementState,
+  findInTree,
   liveIds,
   parseLiveOutline,
   previewByElement,
@@ -24,8 +25,9 @@ import {
 /**
  * Les méthodes, vues depuis l'éditeur ([D29], [D31]). Une méthode : ce qui changera dans l'app si
  * on la publie (relu régulièrement, les autres écrivent ses leçons). Un chapitre ou une leçon : sa
- * méthode et son chapitre (« ← méthode »), son état dans l'app, la programmation de sa méthode, et
- * ce qui ferait refuser sa publication à cause de lui. Rien pour les autres sortes.
+ * méthode et son chapitre (le retour, le niveau d'accès), sa place dans le plan, son état dans
+ * l'app, la programmation de sa méthode, et ce qui ferait refuser sa publication à cause de lui.
+ * Rien pour les autres sortes.
  */
 export function useMethodContext({
   contentId,
@@ -74,35 +76,25 @@ export function useMethodContext({
     enabled: isElement && methodId !== null,
   })
 
+  // Sa place dans le plan (chapitre et rang), undefined tant que le plan n'est pas lu.
+  const place = useMemo(
+    () =>
+      isElement && methodTree.data
+        ? findInTree(methodTree.data, contentId)
+        : undefined,
+    [isElement, methodTree.data, contentId]
+  )
+
   // L'état de cet élément dans l'app (« À publier », « En ligne »…).
   const ownState = useMemo(() => {
-    if (!isElement || !methodPublication.data || !methodTree.data) {
-      return undefined
-    }
-    const place = methodTree.data
-      .flatMap((chapter) => [
-        { element: chapter, chapterInApp: true },
-        ...chapter.lessons.map((lesson) => ({
-          element: lesson,
-          chapterInApp: chapter.inApp,
-        })),
-      ])
-      .find((entry) => entry.element.id === contentId)
-    if (!place) return undefined
+    if (!methodPublication.data || !place) return undefined
     return elementState(
       { ...place.element, inApp },
-      place.chapterInApp,
+      place.kind === "chapter" || place.chapter.inApp,
       liveIds(parseLiveOutline(methodPublication.data.live?.outline)),
       preview.data ? previewByElement(preview.data) : undefined
     )
-  }, [
-    isElement,
-    methodPublication.data,
-    methodTree.data,
-    contentId,
-    inApp,
-    preview.data,
-  ])
+  }, [methodPublication.data, place, inApp, preview.data])
 
   // La programmation de la méthode, vue depuis cet élément ([D31]).
   const methodSchedule: ScheduleState = methodPublication.data
@@ -138,6 +130,7 @@ export function useMethodContext({
 
   return {
     element: elementContext.data,
+    place,
     preview: preview.data,
     ownState,
     methodSchedule,

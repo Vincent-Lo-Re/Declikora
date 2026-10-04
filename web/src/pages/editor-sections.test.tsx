@@ -269,9 +269,6 @@ describe("éditeur d'un article (Le Fil)", () => {
       })
     ).toBeVisible()
     expect(
-      screen.queryByRole("button", { name: texts.templates.insert.menu })
-    ).toBeNull()
-    expect(
       within(articleTab()).getByRole("heading", { name: article.ready.title })
     ).toBeVisible()
     expect(
@@ -1572,7 +1569,7 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
       name: texts.editor.lock.button,
     })
     expect(screen.queryByRole("alertdialog")).toBeNull()
-    // Le bandeau des autres éditeurs n'est pas là.
+    // Pas de bandeau du verrou (il reste à l'écran d'une méthode).
     expect(
       screen.queryByText(texts.editor.lock.readOnly("Claire Martin"))
     ).toBeNull()
@@ -1679,11 +1676,10 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
     expect(
       screen.getByRole("navigation", { name: outline.title })
     ).toBeVisible()
-    // Ni barre du haut, ni panneau de présentation : tout est dans la colonne de droite.
+    // Pas de barre du haut : tout est dans la colonne de droite.
     expect(
       screen.queryByRole("button", { name: texts.publication.actions.settings })
     ).toBeNull()
-    expect(screen.queryByRole("button", { name: words.show })).toBeNull()
     const right = screen.getByRole("complementary", {
       name: columns.right.episode,
     })
@@ -2288,9 +2284,11 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
     const linked = texts.templates.linked
     renderApp(`/blog/${ARTICLE}`)
     await editable()
-    // Le bloc du modèle s'affiche, sans « Bloc partagé « … » » au-dessus.
+    // Le bloc du modèle s'affiche, sans barre au-dessus.
     expect(await screen.findByText("Écris-nous.")).toBeInTheDocument()
-    expect(screen.queryByText(linked.label(name))).toBeNull()
+    expect(
+      screen.queryByRole("button", { name: linked.detachLabel(name) })
+    ).toBeNull()
 
     choose(texts.editor.blockLabel.linked(name))
     expect(await screen.findByText(linked.settings(name))).toBeVisible()
@@ -2302,7 +2300,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
       within(bar).getByRole("link", { name: linked.editLabel(name) })
     ).toHaveAttribute("href", `/modeles/${TEMPLATE}`)
     // Des icônes seules, leur nom dans l'infobulle.
-    expect(bar).not.toHaveTextContent(linked.detach)
+    expect(bar.textContent).toBe("")
     fireEvent.click(
       within(bar).getByRole("button", { name: linked.detachLabel(name) })
     )

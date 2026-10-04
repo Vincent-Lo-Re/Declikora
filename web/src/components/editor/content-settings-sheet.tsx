@@ -8,12 +8,7 @@ import { AccessLevelChoice } from "@/components/editor/access-level-choice"
 import { SlugField } from "@/components/editor/slug-field"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -169,29 +164,20 @@ export function ContentSettingsFields({
         </Field>
       )}
       {afterTitle}
-      {kind === "chapter" || kind === "lesson" ? (
-        <ElementSection
-          kind={kind}
-          settings={settings}
-          editable={editable}
-          onChange={onChange}
-        />
-      ) : (
-        !creating && (
-          <>
-            {onTitleChange && <Separator />}
-            <AccessSection
-              settings={settings}
-              editable={editable}
-              levels={levels}
-              levelsFailed={levelsFailed}
-              live={live}
-              onChange={(accessLevelId) =>
-                onChange({ ...settings, accessChosen: true, accessLevelId })
-              }
-            />
-          </>
-        )
+      {!creating && (
+        <>
+          {onTitleChange && <Separator />}
+          <AccessSection
+            settings={settings}
+            editable={editable}
+            levels={levels}
+            levelsFailed={levelsFailed}
+            live={live}
+            onChange={(accessLevelId) =>
+              onChange({ ...settings, accessChosen: true, accessLevelId })
+            }
+          />
+        </>
       )}
       {categories && (
         <>
@@ -384,61 +370,6 @@ export function AddCategory({
       </div>
       <FieldError>{error}</FieldError>
     </Field>
-  )
-}
-
-/**
- * Chapitre ou leçon : « Montrer dans l'app » et « Leçon gratuite » ([D29], [D43]). Pas de niveau
- * d'accès : c'est celui de la méthode.
- */
-function ElementSection({
-  kind,
-  settings,
-  editable,
-  onChange,
-}: {
-  kind: "chapter" | "lesson"
-  settings: ContentSettings
-  editable: boolean
-  onChange: (next: ContentSettings) => void
-}) {
-  const words = labels.element
-  return (
-    <section className="space-y-3" data-element-settings>
-      <div className="space-y-1">
-        <h3 className="text-sm font-medium">{words.label}</h3>
-        <p className="text-sm text-muted-foreground">{words.description}</p>
-      </div>
-      <Field orientation="horizontal">
-        <Checkbox
-          id="reglages-dans-app"
-          checked={settings.inApp}
-          disabled={!editable}
-          onCheckedChange={(inApp) => onChange({ ...settings, inApp })}
-        />
-        <div className="space-y-1">
-          <FieldLabel htmlFor="reglages-dans-app">{words.inApp}</FieldLabel>
-          <FieldDescription>
-            {words.inAppHint}
-            {kind === "chapter" && ` ${words.chapterInAppHint}`}
-          </FieldDescription>
-        </div>
-      </Field>
-      {kind === "lesson" && (
-        <Field orientation="horizontal">
-          <Checkbox
-            id="reglages-gratuite"
-            checked={settings.isFree}
-            disabled={!editable}
-            onCheckedChange={(isFree) => onChange({ ...settings, isFree })}
-          />
-          <div className="space-y-1">
-            <FieldLabel htmlFor="reglages-gratuite">{words.isFree}</FieldLabel>
-            <FieldDescription>{words.isFreeHint}</FieldDescription>
-          </div>
-        </Field>
-      )}
-    </section>
   )
 }
 

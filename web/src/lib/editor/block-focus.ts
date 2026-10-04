@@ -17,21 +17,11 @@ export function focusOnceShown(find: () => HTMLElement | null, attempts = 20) {
 }
 
 /**
- * Où va le focus après un geste sur un bloc (voisin d'un bloc supprimé, bloc détaché, modèle
- * inséré) : sa poignée dans l'aperçu (et non celle d'un bloc de sa section) ; dans l'éditeur du
- * Fil, dont l'aperçu n'a pas de poignée, sa ligne du plan.
+ * Où va le focus après un geste sur un bloc (voisin d'un bloc supprimé, bloc détaché) : sa ligne
+ * du plan, l'aperçu n'ayant pas de poignée.
  */
-export function blockAnchor(id: string, feed: boolean): HTMLElement | null {
-  if (feed) {
-    return document.querySelector<HTMLElement>(`[data-outline-id="${id}"]`)
-  }
-  return (
-    document
-      .querySelector(`[data-block-id="${id}"]`)
-      ?.querySelector<HTMLElement>(
-        ":scope > .blocks-handle-rail [data-block-handle]"
-      ) ?? null
-  )
+export function blockAnchor(id: string): HTMLElement | null {
+  return document.querySelector<HTMLElement>(`[data-outline-id="${id}"]`)
 }
 
 /**

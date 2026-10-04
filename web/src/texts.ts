@@ -1030,10 +1030,6 @@ export const texts = {
 
   // Méthodes (étape 7, partie 7b) : ADMIN § 1 et § 3, [D29], [D26], [D36], [D42], [D43].
   methods: {
-    kinds: {
-      chapter: "Chapitre",
-      lesson: "Leçon",
-    },
     outline: {
       title: "Plan de la méthode",
       description:
@@ -1180,18 +1176,43 @@ export const texts = {
       startersFailed:
         "Les points de départ n'ont pas pu être chargés : l'élément sera vide.",
     },
-    // L'éditeur d'un chapitre ou d'une leçon : il n'a pas de bouton Publier ([D29]).
+    // L'éditeur d'un chapitre ou d'une leçon (éditeur du Fil) : il n'a pas de bouton Publier, tout
+    // part avec la méthode ([D29]).
     element: {
       back: (method: string) => `Retour à la méthode « ${method} »`,
-      reminder: {
+      // La carte « Dans la méthode », en tête de la colonne de droite.
+      card: "Dans la méthode",
+      cardHint: {
         chapter:
-          "Ce chapitre part dans l'app avec sa méthode : il n'a pas de bouton Publier. Son introduction est affichée avant ses leçons.",
+          "Ce chapitre part dans l'app avec sa méthode : publie la méthode depuis son écran. Son introduction est affichée avant ses leçons.",
         lesson:
-          "Cette leçon part dans l'app avec sa méthode : elle n'a pas de bouton Publier.",
+          "Cette leçon part dans l'app avec sa méthode : publie la méthode depuis son écran.",
       },
-      publishFromMethod: "Publie la méthode depuis l'écran de la méthode.",
+      // Sa place : « Respirer en conscience › Chapitre 1 « Les bases » › Leçon 2 ».
+      place: {
+        label: "Sa place dans la méthode",
+        chapter: (position: number) => `Chapitre ${position}`,
+        chapterOf: (position: number, title: string) =>
+          `Chapitre ${position} « ${title} »`,
+        lesson: (position: number) => `Leçon ${position}`,
+      },
+      // « Montrer dans l'app » et « Leçon gratuite » ([D29], [D43]) : partent avec le brouillon.
+      inApp: "Montrer dans l'app",
+      chapterInAppHint:
+        "Ses leçons ne partent que si leur chapitre est montré.",
+      isFree: "Leçon gratuite",
+      isFreeHint:
+        "Lisible par tout le monde, même si la méthode est réservée. L'introduction de son chapitre devient gratuite elle aussi.",
+      // Le niveau d'accès : celui de la méthode, en lecture.
+      access: {
+        method: (level: string) => `Celui de la méthode : ${level}`,
+        notChosen: "Celui de la méthode, pas encore choisi",
+        chapterHint:
+          "Son introduction devient gratuite dès qu'une de ses leçons montrées dans l'app l'est.",
+        change: "Le niveau d'accès se choisit dans l'écran de la méthode.",
+      },
       openMethod: "Ouvrir la méthode",
-      inChapter: (chapter: string) => `Dans le chapitre « ${chapter} »`,
+      more: "Autres actions",
       // La programmation de la méthode, vue depuis un chapitre ou une leçon ([D31]).
       schedule: {
         scheduled: (date: string) => `La méthode est programmée le ${date}.`,
@@ -1219,7 +1240,6 @@ export const texts = {
         "Sa méthode est dans la corbeille : restaure-la pour publier cet élément.",
       problem: (text: string) =>
         `À corriger avant de publier la méthode : ${text}`,
-      settings: "Réglages",
     },
     // Avant de publier ou de programmer une méthode : la liste de ce qui va changer ([D29]).
     changes: {
@@ -1500,15 +1520,12 @@ export const texts = {
     },
     // Un bloc lié (bloc partagé) dans l'éditeur d'un contenu.
     linked: {
-      label: (name: string) => `Bloc partagé « ${name} »`,
       loading: "Chargement du modèle…",
       loadFailed: "Le modèle n'a pas pu être chargé.",
       missing:
         "Ce modèle n'existe plus ou est dans la corbeille : supprime ce bloc, ou restaure le modèle.",
       empty: "Ce modèle est vide.",
-      edit: "Modifier le modèle",
       editLabel: (name: string) => `Modifier le modèle « ${name} »`,
-      detach: "Détacher",
       detachLabel: (name: string) => `Détacher du modèle « ${name} »`,
       detached: (name: string) =>
         `Bloc détaché de « ${name} » : c'est maintenant une copie ordinaire, que tu peux modifier ici.`,
@@ -1518,20 +1535,10 @@ export const texts = {
       detachHint:
         "« Détacher » en fait une copie modifiable ici, qui ne suit plus le modèle ; les autres contenus restent liés.",
     },
-    // « Ajouter un bloc » › « Un modèle… ».
+    // « Mes blocs », dans les Blocs de l'éditeur.
     insert: {
-      menu: "Un modèle…",
-      title: "Insérer un modèle",
-      description:
-        "Une mise en forme s'insère en copie, que tu modifies ici. Un bloc partagé reste lié à son modèle.",
-      empty:
-        "Aucun modèle à insérer pour l'instant. Crée-en un dans Modèles de bloc.",
-      insert: "Insérer",
-      insertLabel: (name: string) => `Insérer ${name}`,
       emptyTemplate: "Vide : complète-le dans Modèles de bloc.",
       loadFailed: "Les modèles n'ont pas pu être chargés.",
-      manage: "Gérer les modèles",
-      inserted: (name: string) => `Modèle « ${name} » inséré.`,
     },
     // « Enregistrer comme modèle » : une sélection de blocs (plan, ou bloc choisi).
     saveAs: {
@@ -1595,16 +1602,9 @@ export const texts = {
       label: "Ajouter un bloc",
       inBox: "Ajouter dans la section",
     },
-    emptyPage: {
-      title: "Aucun bloc pour l'instant",
-      description:
-        "Ajoute un premier bloc : un texte, une image ou une section.",
-    },
-    emptyBox:
-      "Section vide : ajoute un texte ou une image, ou dépose un bloc ici.",
-    // Éditeur du Fil : rien ne se dépose dans une section (le bouton « Ajouter dans la section »
-    // est juste dessous) ; ce que dit aussi le plan.
-    emptyBoxFeed: "Section vide : elle n'apparaîtra pas dans l'app.",
+    // Rien ne se dépose dans une section du téléphone (« Ajouter dans la section » est juste
+    // dessous) ; ce que dit aussi le plan.
+    emptyBox: "Section vide : elle n'apparaîtra pas dans l'app.",
     handle: (label: string) => `Déplacer : ${label}`,
     // Glisser-déposer : annonces lues par les lecteurs d'écran.
     dnd: {
@@ -1628,9 +1628,6 @@ export const texts = {
         `Déplacement annulé : ${label} reprend sa place.`,
     },
     outline: {
-      toggle: "Plan",
-      show: "Afficher le plan",
-      hide: "Masquer le plan",
       title: "Plan",
       empty: "Aucun bloc pour l'instant.",
       select: (label: string) => `Aller à ${label}`,
@@ -1727,22 +1724,13 @@ export const texts = {
     // Présentation d'un article ou d'un épisode (étape 7) : image de présentation, audio,
     // catégories. [D45], [D46]. Plus de résumé depuis le 03/10/2026.
     presentation: {
-      panelTitle: {
-        method: "Fiche de la méthode",
-        chapter: "Présentation du chapitre",
-        lesson: "Présentation de la leçon",
-      },
-      panelHint:
-        "Ce que l'app montre en tête du contenu et dans ses listes. Choisis un bloc dans l'aperçu pour voir ses réglages.",
+      // L'écran d'une méthode : sa fiche, sous l'aperçu.
+      panelTitle: "Fiche de la méthode",
       methodPanelHint:
         "Ce que l'app montre en tête de la méthode et dans ses listes. Son plan est à droite : chaque chapitre et chaque leçon s'écrit dans son propre éditeur.",
-      show: "Voir la présentation",
       cover: {
         label: "Image de présentation",
         hint: "Obligatoire pour publier : c'est la vignette des listes de l'app. Elle reste publique, même pour un contenu réservé.",
-        // Chapitre ou leçon : elle n'est pas exigée ([D45] ne vise que les contenus des listes).
-        optionalHint:
-          "Facultative : la vignette de cet élément dans le plan de la méthode, dans l'app. Elle reste publique.",
         choose: "Choisir l'image de présentation",
         replace: "Changer d'image",
         remove: "Retirer l'image",
@@ -1781,6 +1769,8 @@ export const texts = {
         article: "Article et réglages du bloc",
         episode: "Épisode et réglages du bloc",
         page: "Page et réglages du bloc",
+        chapter: "Chapitre et réglages du bloc",
+        lesson: "Leçon et réglages du bloc",
         template: "Modèle et réglages du bloc",
       },
       blocks: "Blocs",
@@ -1788,6 +1778,8 @@ export const texts = {
         article: "Article",
         episode: "Épisode",
         page: "Page",
+        chapter: "Chapitre",
+        lesson: "Leçon",
         template: "Modèle",
       },
     },
@@ -1845,11 +1837,17 @@ export const texts = {
             `Avec la formule ${level}, tu écoutes tout l'épisode.`,
           page: (level: string) =>
             `Avec la formule ${level}, tu lis toute la page.`,
+          chapter: (level: string) =>
+            `Avec la formule ${level}, tu lis tout le chapitre.`,
+          lesson: (level: string) =>
+            `Avec la formule ${level}, tu lis toute la leçon.`,
         },
         textUnknown: {
           article: "Avec la bonne formule, tu lis tout l'article.",
           episode: "Avec la bonne formule, tu écoutes tout l'épisode.",
           page: "Avec la bonne formule, tu lis toute la page.",
+          chapter: "Avec la bonne formule, tu lis tout le chapitre.",
+          lesson: "Avec la bonne formule, tu lis toute la leçon.",
         },
         action: "Voir les formules",
       },
@@ -1922,6 +1920,8 @@ export const texts = {
         title: {
           article: "Dans la liste du Fil",
           episode: "Dans la liste de Radio Éclaircies",
+          chapter: "Dans le plan de la méthode",
+          lesson: "Dans le plan de la méthode",
         },
         choose: "Choisir",
         chooseLabel: "Choisir l'image de présentation",
@@ -1931,6 +1931,11 @@ export const texts = {
             "L'image est obligatoire pour publier : c'est aussi celle en tête de l'article.",
           episode:
             "L'image est obligatoire pour publier : c'est aussi celle en tête de l'épisode.",
+          // Elle n'est pas exigée : [D45] ne vise que les contenus des listes.
+          chapter:
+            "Image facultative : la vignette du chapitre dans le plan de la méthode, dans l'app, et en tête du chapitre. Elle reste publique.",
+          lesson:
+            "Image facultative : la vignette de la leçon dans le plan de la méthode, dans l'app, et en tête de la leçon. Elle reste publique.",
         },
       },
       categories: {
@@ -1962,7 +1967,6 @@ export const texts = {
       title: (label: string) => `Réglages : ${label}`,
       // Éditeur du Fil : la barre d'icônes en bas de la glissière du bloc.
       actions: "Actions du bloc",
-      none: "Choisis un bloc dans l'aperçu pour voir ses réglages.",
       readOnly: "Lecture seule : tu ne peux rien modifier.",
       text: "Écris directement dans l'aperçu. Sélectionne des mots pour les mettre en gras, en italique ou en lien.",
       image: {
@@ -2460,20 +2464,6 @@ export const texts = {
           "Facultatives : l'app s'en sert pour filtrer. Elles ne changent l'app qu'à la prochaine publication.",
         none: "Aucune catégorie dans cette section pour l'instant.",
         loadFailed: "Les catégories n'ont pas pu être chargées.",
-      },
-      // Chapitre ou leçon : « Montrer dans l'app » et « Leçon gratuite » ([D29], [D43]).
-      element: {
-        label: "Dans l'app",
-        description:
-          "Ils ne changent l'app qu'à la prochaine publication de la méthode.",
-        inApp: "Montrer dans l'app",
-        inAppHint:
-          "Décoché à la création : coche-le quand l'élément est prêt. Il partira avec la prochaine publication de la méthode.",
-        chapterInAppHint:
-          "Ses leçons ne partent que si leur chapitre est montré.",
-        isFree: "Leçon gratuite",
-        isFreeHint:
-          "Lisible par tout le monde, même si la méthode est réservée. L'introduction de son chapitre devient gratuite elle aussi.",
       },
       // Un réglage refusé par la base : le brouillon s'enregistre quand même, sans lui.
       refused:

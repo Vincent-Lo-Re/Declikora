@@ -58,6 +58,7 @@ import type { RefusedSlug } from "@/lib/contents/slug"
 import {
   contentProfile,
   isListedFeedKind,
+  type ElementKind,
   type ListedFeedKind,
   type PublishedFeedKind,
 } from "@/lib/editor/profile"
@@ -92,10 +93,9 @@ const statTrigger =
   "flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
 /**
- * L'Article (ou l'Épisode), dans la colonne de droite de l'éditeur du Fil (ADMIN § 4) : ce qui
- * manque pour publier, la carte de la liste (image de présentation), l'audio d'un épisode, le
- * niveau d'accès et les catégories. Tout part avec le brouillon, comme dans la glissière Réglages
- * des autres éditeurs.
+ * L'Article (l'Épisode, la Page), dans la colonne de droite de l'éditeur du Fil (ADMIN § 4) : ce
+ * qui manque pour publier, la carte de la liste (image de présentation), l'audio d'un épisode,
+ * l'adresse d'une page, le niveau d'accès et les catégories. Tout part avec le brouillon.
  */
 export function ArticlePanel({
   kind,
@@ -159,7 +159,7 @@ export function ArticlePanel({
         </p>
       )}
       {listed && (
-        <FeedCard
+        <CoverCard
           kind={listed}
           draft={draft}
           editable={editable}
@@ -409,11 +409,12 @@ function ReadyCard({
 }
 
 /**
- * La carte du contenu dans la liste de sa section (le Fil, Radio Éclaircies) : son image de
- * présentation (la vignette, qui est aussi en tête du contenu) et son titre. Pas de résumé
- * (03/10/2026, ADMIN § 4).
+ * La carte du contenu dans la liste de sa section (le Fil, Radio Éclaircies), ou d'un chapitre ou
+ * d'une leçon dans le plan de sa méthode : son image de présentation (la vignette, qui est aussi
+ * en tête du contenu ; facultative pour un élément) et son titre. Pas de résumé (03/10/2026,
+ * ADMIN § 4).
  */
-function FeedCard({
+export function CoverCard({
   kind,
   draft,
   editable,
@@ -421,7 +422,7 @@ function FeedCard({
   onChooseCover,
   onRemoveCover,
 }: {
-  kind: ListedFeedKind
+  kind: ListedFeedKind | ElementKind
   draft: Draft
   editable: boolean
   cover: BlockMedia

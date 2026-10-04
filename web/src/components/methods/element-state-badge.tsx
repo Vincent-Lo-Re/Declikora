@@ -34,12 +34,20 @@ const GESTURE_STATES: ReadonlySet<ElementState> = new Set([
  * publication », « Neuf », « Sera retiré de l'app », « Retiré de l'app », « Caché de l'app »…
  * L'explication est dans l'infobulle pour la souris, et dans le texte de la page pour le clavier
  * et les lecteurs d'écran : lue juste après le badge, ou écrite dessous (ElementStateHint).
+ * describedBelow : elle est toujours écrite dessous (`ElementStateHint` avec `always`), sans
+ * infobulle.
  */
-export function ElementStateBadge({ state }: { state: ElementState }) {
+export function ElementStateBadge({
+  state,
+  describedBelow = false,
+}: {
+  state: ElementState
+  describedBelow?: boolean
+}) {
   const dot = stateDots[state]
   return (
     <>
-      <Tooltip>
+      <Tooltip disabled={describedBelow}>
         <TooltipTrigger
           render={
             <Badge
@@ -58,7 +66,7 @@ export function ElementStateBadge({ state }: { state: ElementState }) {
         </TooltipTrigger>
         <TooltipContent>{labels.stateHints[state]}</TooltipContent>
       </Tooltip>
-      {!GESTURE_STATES.has(state) && (
+      {!describedBelow && !GESTURE_STATES.has(state) && (
         <span className="sr-only" data-element-state-hint={state}>
           {labels.stateHints[state]}
         </span>
@@ -67,9 +75,18 @@ export function ElementStateBadge({ state }: { state: ElementState }) {
   )
 }
 
-/** L'explication d'un état qui demande un geste (« Coche « Montrer dans l'app »… »), en clair. */
-export function ElementStateHint({ state }: { state: ElementState }) {
-  if (!GESTURE_STATES.has(state)) return null
+/**
+ * L'explication d'un état qui demande un geste (« Coche « Montrer dans l'app »… »), en clair ;
+ * always : celle de tous les états.
+ */
+export function ElementStateHint({
+  state,
+  always = false,
+}: {
+  state: ElementState
+  always?: boolean
+}) {
+  if (!always && !GESTURE_STATES.has(state)) return null
   return (
     <span
       className="block text-xs text-muted-foreground"

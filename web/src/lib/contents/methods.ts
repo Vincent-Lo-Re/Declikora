@@ -183,9 +183,17 @@ export function setElementFlags(
   return saveSettingsPayload(elementId, myId, texts.methods.outline, flags)
 }
 
-/** La méthode (et le chapitre) d'un chapitre ou d'une leçon. */
+/**
+ * La méthode (et le chapitre) d'un chapitre ou d'une leçon. access : le niveau d'accès du
+ * brouillon de la méthode, celui de l'élément à sa prochaine publication.
+ */
 export type ElementContext = {
-  method: { id: string; title: string; deleted: boolean }
+  method: {
+    id: string
+    title: string
+    deleted: boolean
+    access: { accessChosen: boolean; accessLevelId: string | null }
+  }
   chapter: { id: string; title: string } | null
 }
 
@@ -195,12 +203,16 @@ type ParentRow = {
   title: string | null
   deleted_at: string | null
   parent_id: string | null
+  access_chosen: boolean
+  access_level_id: string | null
 }
 
 async function getParent(id: string): Promise<ParentRow | null> {
   const { data, error, status } = await supabase
     .from("contents")
-    .select("id, kind, title, deleted_at, parent_id")
+    .select(
+      "id, kind, title, deleted_at, parent_id, access_chosen, access_level_id"
+    )
     .eq("id", id)
     .maybeSingle()
   if (error) throw toContentError(error, status)
@@ -219,23 +231,24 @@ export async function getElementContext(
   const parent = await getParent(element.parent_id)
   if (!parent) return null
   if (parent.kind === "method") {
-    return {
-      method: {
-        id: parent.id,
-        title: parent.title ?? "",
-        deleted: parent.deleted_at !== null,
-      },
-      chapter: null,
-    }
+    return { method: methodOf(parent), chapter: null }
   }
   const method = parent.parent_id ? await getParent(parent.parent_id) : null
   if (!method) return null
   return {
-    method: {
-      id: method.id,
-      title: method.title ?? "",
-      deleted: method.deleted_at !== null,
-    },
+    method: methodOf(method),
     chapter: { id: parent.id, title: parent.title ?? "" },
+  }
+}
+
+function methodOf(row: ParentRow): ElementContext["method"] {
+  return {
+    id: row.id,
+    title: row.title ?? "",
+    deleted: row.deleted_at !== null,
+    access: {
+      accessChosen: row.access_chosen,
+      accessLevelId: row.access_level_id,
+    },
   }
 }

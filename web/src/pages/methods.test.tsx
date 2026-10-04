@@ -251,6 +251,14 @@ const preview: PreviewRow[] = [
   }),
 ]
 
+// La méthode vue depuis une leçon ou un chapitre : réservée à « Essentiel ».
+const methodOfElement = {
+  id: METHOD,
+  title: "Mieux respirer",
+  deleted: false,
+  access: { accessChosen: true, accessLevelId: LEVEL },
+}
+
 const mine: api.LockRow = {
   mine: true,
   holder_id: testProfile.id,
@@ -306,7 +314,7 @@ beforeEach(() => {
   vi.mocked(methodsApi.getMethodTree).mockResolvedValue(tree)
   vi.mocked(methodsApi.getMethodPreview).mockResolvedValue(preview)
   vi.mocked(methodsApi.getElementContext).mockResolvedValue({
-    method: { id: METHOD, title: "Mieux respirer", deleted: false },
+    method: methodOfElement,
     chapter: { id: BASES, title: "Les bases" },
   })
   vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([
@@ -408,7 +416,7 @@ describe("écran d'une méthode", () => {
     await openMethod()
     expect(
       screen.getByRole("heading", {
-        name: texts.editor.presentation.panelTitle.method,
+        name: texts.editor.presentation.panelTitle,
       })
     ).toBeVisible()
     // Pas de blocs pour une méthode ([D4]).
@@ -648,7 +656,7 @@ describe("écran d'une méthode", () => {
     expect(api.lockReleaseCreated).not.toHaveBeenCalled()
     await waitFor(() =>
       expect(
-        document.querySelector(`[data-element-banner="lesson"]`)
+        document.querySelector(`[data-element-card="lesson"]`)
       ).not.toBeNull()
     )
   })
@@ -1001,187 +1009,261 @@ describe("publier une méthode d'un seul geste ([D29])", () => {
   })
 })
 
-describe("éditeur d'une leçon", () => {
-  it("ancien éditeur : le bandeau dit qui écrit ; « Reprendre la main » demande confirmation, puis force la prise du verrou", async () => {
-    const claire: api.LockRow = {
+describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
+  const element = texts.methods.element
+  const preview = texts.editor.preview
+
+  /** La carte « Dans la méthode », en tête de la colonne de droite. */
+  function placeCard(kind: "chapter" | "lesson" = "lesson"): HTMLElement {
+    const found = document.querySelector<HTMLElement>(
+      `[data-element-card="${kind}"]`
+    )
+    if (!found) throw new Error("carte « Dans la méthode » introuvable")
+    return found
+  }
+
+  function rightColumn(kind: "chapter" | "lesson" = "lesson") {
+    return screen.getByRole("complementary", {
+      name: texts.editor.columns.right[kind],
+    })
+  }
+
+  it("la mise en page du Fil : le retour à la méthode, « Dans la méthode » en tête, « Ouvrir la méthode » au lieu de « Publier »", async () => {
+    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    await editable()
+    const left = screen.getByRole("complementary", {
+      name: texts.editor.columns.left,
+    })
+    expect(
+      await within(left).findByRole("link", {
+        name: element.back("Mieux respirer"),
+      })
+    ).toHaveAttribute("href", `/methodes/${METHOD}`)
+    // Pas de barre du haut, ni de réglages à part : tout est dans la colonne de droite.
+    expect(
+      screen.queryByRole("button", { name: texts.publication.actions.settings })
+    ).toBeNull()
+    expect(
+      screen.queryByRole("button", { name: texts.publication.actions.publish })
+    ).toBeNull()
+
+    // Sa place dans la méthode, puis son état dans l'app (d'après la liste des changements).
+    const card = placeCard()
+    expect(within(card).getByRole("heading", { name: element.card }))
+    const place = card.querySelector("[data-element-place]")!
+    await waitFor(() =>
+      expect(place).toHaveTextContent(
+        `${element.place.label} : Mieux respirer, ${element.place.chapterOf(1, "Les bases")}, ${element.place.lesson(1)}`
+      )
+    )
+    await waitFor(() =>
+      expect(card.querySelector("[data-element-state]")).toHaveAttribute(
+        "data-element-state",
+        "modified"
+      )
+    )
+    expect(card).toHaveTextContent(outline.stateHints.modified)
+
+    // En bas : l'état, puis « Ouvrir la méthode », d'où elle se publie ([D29]) ; son menu donne
+    // l'Historique.
+    const right = rightColumn()
+    expect(
+      within(right).getByRole("link", { name: element.openMethod })
+    ).toHaveAttribute("href", `/methodes/${METHOD}`)
+    fireEvent.click(within(right).getByRole("button", { name: element.more }))
+    fireEvent.click(
+      await screen.findByRole("menuitem", {
+        name: texts.publication.actions.history,
+      })
+    )
+    expect(
+      await screen.findByRole("dialog", {
+        name: texts.publication.history.title,
+      })
+    ).toBeVisible()
+    // Les blocs s'écrivent ici, comme dans le Fil.
+    expect(document.getElementById("colonne-gauche-ajouter")).toBeEnabled()
+  })
+
+  it("« Montrer dans l'app » et « Leçon gratuite » partent avec le brouillon ; le niveau d'accès est celui de la méthode, en lecture", async () => {
+    vi.mocked(api.saveDraft).mockResolvedValue({
+      rev: 5,
+      savedAt: "2026-09-28T12:35:00Z",
+    })
+    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    await editable()
+    const right = rightColumn()
+    const inApp = within(right).getByRole("switch", { name: element.inApp })
+    const isFree = within(right).getByRole("switch", { name: element.isFree })
+    expect(inApp).toBeChecked()
+    expect(isFree).toBeChecked()
+    expect(
+      await within(right).findByText(element.access.method("Essentiel"))
+    ).toBeVisible()
+    // Pas de liste des niveaux : il se choisit dans l'écran de la méthode.
+    expect(within(right).queryByRole("combobox")).toBeNull()
+
+    fireEvent.click(isFree)
+    await waitFor(() => expect(isFree).not.toBeChecked())
+    await waitFor(
+      () =>
+        expect(api.saveDraft).toHaveBeenCalledWith(
+          SOUFFLE,
+          4,
+          expect.anything(),
+          expect.any(String),
+          { is_free: false }
+        ),
+      { timeout: 4000 }
+    )
+  })
+
+  it("en Lecture, « sans la formule » suit le niveau de la méthode et « Leçon gratuite »", async () => {
+    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    await editable()
+    const tools = screen.getByRole("toolbar", { name: preview.tools })
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.mode.read })
+    )
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.reader.visitor })
+    )
+    const phone = screen.getByRole("region", { name: preview.screen.ios })
+    // Une leçon gratuite se lit en entier, même sans la formule ; la barre de l'app nomme la
+    // méthode. Son image est facultative : sans elle, rien à sa place.
+    expect(await within(phone).findByText("Mieux respirer")).toBeVisible()
+    expect(within(phone).queryByText(preview.locked.title)).toBeNull()
+    expect(
+      within(phone).queryByText(texts.editor.presentation.cover.none)
+    ).toBeNull()
+
+    fireEvent.click(
+      within(rightColumn()).getByRole("switch", { name: element.isFree })
+    )
+    expect(
+      await within(phone).findByText(preview.locked.text.lesson("Essentiel"))
+    ).toBeVisible()
+  })
+
+  it("un chapitre : sa place, sans « Leçon gratuite » ; son introduction est gratuite si une de ses leçons l'est ([D43])", async () => {
+    vi.mocked(methodsApi.getElementContext).mockResolvedValue({
+      method: methodOfElement,
+      chapter: null,
+    })
+    vi.mocked(api.getContent).mockImplementation(async (id) =>
+      id === LOIN
+        ? contentOf(LOIN, "chapter", "Aller plus loin", { parent_id: METHOD })
+        : null
+    )
+    renderApp(`/methodes/chapitres/${LOIN}`)
+    await editable()
+    const card = placeCard("chapter")
+    await waitFor(() =>
+      expect(card.querySelector("[data-element-place]")).toHaveTextContent(
+        `${element.place.label} : Mieux respirer, ${element.place.chapter(2)}`
+      )
+    )
+    const right = rightColumn("chapter")
+    expect(
+      within(right).queryByRole("switch", { name: element.isFree })
+    ).toBeNull()
+    expect(within(right).getByText(element.access.chapterHint)).toBeVisible()
+    expect(
+      within(right).getByText(element.chapterInAppHint, { exact: false })
+    ).toBeVisible()
+
+    // « Aller plus loin » n'a pas de leçon gratuite : réservé ; « Les bases » en a une.
+    const tools = screen.getByRole("toolbar", { name: preview.tools })
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.mode.read })
+    )
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.reader.visitor })
+    )
+    const phone = screen.getByRole("region", { name: preview.screen.ios })
+    expect(
+      await within(phone).findByText(preview.locked.text.chapter("Essentiel"))
+    ).toBeVisible()
+  })
+
+  it("lecture seule : quelqu'un écrit la leçon, les réglages sont grisés et le cadenas propose de prendre la main", async () => {
+    vi.mocked(api.lockTake).mockResolvedValueOnce({
       ...mine,
       mine: false,
       holder_id: "00000000-0000-4000-8000-00000000c1a1",
       holder_name: "Claire Martin",
-    }
-    vi.mocked(api.lockTake).mockResolvedValueOnce(claire)
+    })
     renderApp(`/methodes/lecons/${SOUFFLE}`)
-    expect(
-      await screen.findByText(texts.editor.lock.readOnly("Claire Martin"))
-    ).toBeInTheDocument()
+    const lock = await screen.findByRole("button", {
+      name: texts.editor.lock.button,
+    })
     expect(screen.getByLabelText(texts.editor.title.label)).toHaveAttribute(
       "readonly"
     )
+    const right = rightColumn()
     expect(
-      screen.getByRole("button", { name: texts.editor.add.label })
-    ).toBeDisabled()
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.editor.lock.forceTake })
+      within(right).getByRole("switch", { name: element.inApp })
+    ).toHaveAttribute("aria-disabled", "true")
+    expect(
+      within(right).getByRole("switch", { name: element.isFree })
+    ).toHaveAttribute("aria-disabled", "true")
+    expect(document.getElementById("colonne-gauche-ajouter")).toBeDisabled()
+    fireEvent.click(lock)
+    expect(await screen.findByRole("alertdialog")).toHaveTextContent(
+      "Claire Martin"
     )
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: texts.editor.lock.confirmForce.confirm,
-      })
-    )
-    await waitFor(() =>
-      expect(api.lockTake).toHaveBeenLastCalledWith(
-        SOUFFLE,
-        true,
-        expect.any(String)
-      )
-    )
-    await editable()
   })
 
-  it("ancien éditeur : « Un modèle… » insère une mise en forme en copie, sans point de départ ni bloc partagé vide", async () => {
-    const STYLE = "00000000-0000-4000-8000-00000000a501"
-    const INNER = "00000000-0000-4000-8000-00000000a502"
+  it("« Mes blocs » propose les mises en forme, pas les points de départ", async () => {
     const item = (
       id: string,
       title: string,
-      sort: templatesApi.TemplateSort,
-      blocks: Draft["blocks"]
+      sort: templatesApi.TemplateSort
     ): templatesApi.TemplateItem => ({
       id,
       title,
       sort,
       templateFor: sort === "starter" ? "lesson" : null,
-      draft: { v: 1, title, summary: null, cover: null, audio: null, blocks },
-      draft_saved_at: "2026-09-28T12:30:00Z",
-    })
-    const text: Draft["blocks"][number] = {
-      id: INNER,
-      type: "text",
-      doc: {
-        type: "doc",
-        content: [
-          { type: "paragraph", content: [{ type: "text", text: "À retenir" }] },
+      draft: {
+        v: 1,
+        title,
+        summary: null,
+        cover: null,
+        audio: null,
+        blocks: [
+          {
+            id: `${id.slice(0, -2)}ff`,
+            type: "text",
+            doc: { type: "doc", content: [{ type: "paragraph" }] },
+          },
         ],
       },
-    }
+      draft_saved_at: "2026-09-28T12:30:00Z",
+    })
     vi.mocked(templatesApi.listTemplates).mockResolvedValue([
-      item(STYLE, "À retenir", "style", [text]),
-      item("00000000-0000-4000-8000-00000000a503", "Vide", "shared", []),
-      item("00000000-0000-4000-8000-00000000a504", "Interview", "starter", [
-        { ...text, id: "00000000-0000-4000-8000-00000000a505" },
-      ]),
+      item("00000000-0000-4000-8000-00000000a501", "À retenir", "style"),
+      item("00000000-0000-4000-8000-00000000a504", "Interview", "starter"),
     ])
-    vi.mocked(api.saveDraft).mockResolvedValue({
-      rev: 5,
-      savedAt: "2026-09-28T12:31:00Z",
-    })
     renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()
-
+    fireEvent.click(document.getElementById("colonne-gauche-ajouter")!)
+    const library = screen.getByRole("region", {
+      name: texts.editor.columns.blocks,
+    })
     fireEvent.click(
-      await screen.findByRole("button", { name: texts.templates.insert.menu })
-    )
-    const picker = await screen.findByRole("dialog", {
-      name: texts.templates.insert.title,
-    })
-    expect(
-      await within(picker).findByRole("button", {
-        name: texts.templates.insert.insertLabel("Vide"),
-      })
-    ).toBeDisabled()
-    expect(within(picker).queryByText("Interview")).toBeNull()
-    fireEvent.click(
-      within(picker).getByRole("button", {
-        name: texts.templates.insert.insertLabel("À retenir"),
+      await within(library).findByRole("button", {
+        name: new RegExp(texts.editor.library.mine.title),
       })
     )
-    await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), {
-      timeout: 4000,
+    const saved = await within(library).findByRole("region", {
+      name: texts.editor.library.mine.title,
     })
-    const [copy] = vi.mocked(api.saveDraft).mock.calls.at(-1)![2].blocks
-    expect(copy).toMatchObject({ type: "text", doc: text.doc })
-    expect(copy.id).not.toBe(INNER)
-  })
-
-  it("« ← nom de la méthode », un rappel au lieu de la barre de publication", async () => {
-    renderApp(`/methodes/lecons/${SOUFFLE}`)
-    await editable()
-    const back = await screen.findByRole("link", {
-      name: texts.methods.element.back("Mieux respirer"),
-    })
-    expect(back).toHaveAttribute("href", `/methodes/${METHOD}`)
-    const banner = document.querySelector<HTMLElement>(
-      '[data-element-banner="lesson"]'
-    )!
-    expect(banner).toHaveTextContent(texts.methods.element.reminder.lesson)
-    expect(banner).toHaveTextContent(
-      texts.methods.element.inChapter("Les bases")
-    )
     expect(
-      within(banner).getByRole("link", {
-        name: texts.methods.element.openMethod,
+      await within(saved).findByRole("button", {
+        name: texts.editor.library.mine.insertLabel("À retenir"),
       })
-    ).toHaveAttribute("href", `/methodes/${METHOD}`)
-    // Son état dans l'app vient de la liste des changements de la méthode.
-    await waitFor(() =>
-      expect(banner.querySelector("[data-element-state]")).toHaveAttribute(
-        "data-element-state",
-        "modified"
-      )
-    )
-    expect(
-      screen.queryByRole("button", { name: texts.publication.actions.publish })
-    ).toBeNull()
-    // Les blocs s'écrivent ici, comme dans une page.
-    expect(
-      screen.getByRole("button", { name: texts.editor.add.label })
     ).toBeEnabled()
-  })
-
-  it("ses réglages : « Montrer dans l'app » et « Leçon gratuite », sans niveau d'accès", async () => {
-    renderApp(`/methodes/lecons/${SOUFFLE}`)
-    await editable()
-    const header = document.querySelector<HTMLElement>(
-      '[data-element-banner="lesson"]'
-    )!
-    fireEvent.click(
-      within(header).getByRole("button", {
-        name: texts.methods.element.settings,
-      })
-    )
-    const sheet = await screen.findByRole("dialog")
-    const words = texts.publication.settings.element
-    expect(
-      within(sheet).queryByText(texts.publication.settings.access.label)
-    ).toBeNull()
-    const inApp = within(sheet).getByRole("checkbox", { name: words.inApp })
-    const isFree = within(sheet).getByRole("checkbox", { name: words.isFree })
-    expect(inApp).toBeChecked()
-    expect(isFree).toBeChecked()
-    fireEvent.click(isFree)
-    await waitFor(() => expect(isFree).not.toBeChecked())
-    // Le rappel suit aussitôt ce qui est à l'écran (l'enregistrement part ensuite).
-    const banner = document.querySelector<HTMLElement>(
-      '[data-element-banner="lesson"]'
-    )!
-    expect(within(banner).queryByText(texts.methods.outline.free)).toBeNull()
-  })
-
-  it("un chapitre : son introduction en blocs, « ← méthode »", async () => {
-    vi.mocked(methodsApi.getElementContext).mockResolvedValue({
-      method: { id: METHOD, title: "Mieux respirer", deleted: false },
-      chapter: null,
-    })
-    renderApp(`/methodes/chapitres/${BASES}`)
-    await editable()
-    expect(
-      await screen.findByRole("link", {
-        name: texts.methods.element.back("Mieux respirer"),
-      })
-    ).toHaveAttribute("href", `/methodes/${METHOD}`)
-    expect(
-      document.querySelector('[data-element-banner="chapter"]')
-    ).toHaveTextContent(texts.methods.element.reminder.chapter)
+    expect(within(saved).queryByText("Interview")).toBeNull()
   })
 
   it("rouverte, une leçon montre les cases enregistrées ; son état est relu après l'enregistrement", async () => {
@@ -1192,21 +1274,12 @@ describe("éditeur d'une leçon", () => {
     const { router, queryClient } = renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()
     const invalidate = vi.spyOn(queryClient, "invalidateQueries")
-    const words = texts.publication.settings.element
-    const banner = () =>
-      document.querySelector<HTMLElement>('[data-element-banner="lesson"]')!
-    fireEvent.click(
-      within(banner()).getByRole("button", {
-        name: texts.methods.element.settings,
-      })
-    )
-    const isFree = within(await screen.findByRole("dialog")).getByRole(
-      "checkbox",
-      { name: words.isFree }
-    )
+    const isFree = within(rightColumn()).getByRole("switch", {
+      name: element.isFree,
+    })
     fireEvent.click(isFree)
     await waitFor(() => expect(isFree).not.toBeChecked())
-    // « ← méthode » : ce qui attendait part tout de suite.
+    // Le retour à la méthode : ce qui attendait part tout de suite.
     await act(() => router.navigate(`/methodes/${METHOD}`))
     await waitFor(() =>
       expect(api.saveDraft).toHaveBeenCalledWith(
@@ -1228,21 +1301,15 @@ describe("éditeur d'une leçon", () => {
     // Rouverte (la base n'est pas relue) : la case enregistrée, pas l'ancienne.
     await act(() => router.navigate(`/methodes/lecons/${SOUFFLE}`))
     await editable()
-    fireEvent.click(
-      within(banner()).getByRole("button", {
-        name: texts.methods.element.settings,
-      })
-    )
-    const sheet = await screen.findByRole("dialog")
     expect(
-      within(sheet).getByRole("checkbox", { name: words.isFree })
+      within(rightColumn()).getByRole("switch", { name: element.isFree })
     ).not.toBeChecked()
     expect(
-      within(sheet).getByRole("checkbox", { name: words.inApp })
+      within(rightColumn()).getByRole("switch", { name: element.inApp })
     ).toBeChecked()
   })
 
-  it("retirée de l'app depuis le plan, une leçon rouverte n'est plus cochée", async () => {
+  it("retirée de l'app depuis le plan, une leçon rouverte n'est plus montrée dans l'app", async () => {
     vi.mocked(publicationApi.unpublishContent).mockImplementation(async () => {
       // unpublish décoche « Montrer dans l'app » sans changer la révision du brouillon.
       vi.mocked(api.getContent).mockImplementation(async (id) =>
@@ -1280,18 +1347,8 @@ describe("éditeur d'une leçon", () => {
 
     await act(() => router.navigate(`/methodes/lecons/${SOUFFLE}`))
     await editable()
-    const banner = document.querySelector<HTMLElement>(
-      '[data-element-banner="lesson"]'
-    )!
-    fireEvent.click(
-      within(banner).getByRole("button", {
-        name: texts.methods.element.settings,
-      })
-    )
     expect(
-      within(await screen.findByRole("dialog")).getByRole("checkbox", {
-        name: texts.publication.settings.element.inApp,
-      })
+      within(rightColumn()).getByRole("switch", { name: element.inApp })
     ).not.toBeChecked()
   })
 
@@ -1309,16 +1366,14 @@ describe("éditeur d'une leçon", () => {
       deleted_at: null,
       live: null,
     }))
-    const words = texts.methods.element.schedule
+    const words = element.schedule
     const { queryClient } = renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()
-    const banner = document.querySelector<HTMLElement>(
-      '[data-element-banner="lesson"]'
-    )!
+    const card = placeCard()
     expect(
-      await within(banner).findByText(words.scheduled(formatDateTime(soon)))
+      await within(card).findByText(words.scheduled(formatDateTime(soon)))
     ).toBeVisible()
-    expect(banner).toHaveTextContent(words.scheduledHint)
+    expect(card).toHaveTextContent(words.scheduledHint)
 
     // L'heure est passée, la méthode n'est pas partie : on tient la main sur cette leçon.
     scheduledAt = past
@@ -1328,11 +1383,11 @@ describe("éditeur d'une leçon", () => {
       })
     )
     expect(
-      await within(banner).findByText(words.waitingMine(formatDateTime(past)))
+      await within(card).findByText(words.waitingMine(formatDateTime(past)))
     ).toBeVisible()
-    expect(banner).toHaveTextContent(words.waitingMineHint)
+    expect(card).toHaveTextContent(words.waitingMineHint)
     expect(
-      within(banner).getByRole("link", { name: words.leave })
+      within(rightColumn()).getByRole("link", { name: words.leave })
     ).toHaveAttribute("href", `/methodes/${METHOD}`)
   })
 

@@ -7,18 +7,12 @@ afterEach(() => {
 })
 
 describe("où va le focus après un geste sur un bloc", () => {
-  it("éditeur du Fil : la ligne du plan ; ailleurs : la poignée du bloc, pas celle d'un bloc de sa section", () => {
+  it("la ligne du plan du bloc (l'aperçu n'a pas de poignée)", () => {
     document.body.innerHTML = `
       <button data-outline-id="b1">ligne</button>
-      <div data-block-id="b1">
-        <span class="blocks-handle-rail"><button data-block-handle>poignée</button></span>
-        <div data-block-id="b2">
-          <span class="blocks-handle-rail"><button data-block-handle>intérieure</button></span>
-        </div>
-      </div>`
-    expect(blockAnchor("b1", true)?.textContent).toBe("ligne")
-    expect(blockAnchor("b1", false)?.textContent).toBe("poignée")
-    expect(blockAnchor("absent", true)).toBeNull()
+      <div data-block-id="b1"></div>`
+    expect(blockAnchor("b1")?.textContent).toBe("ligne")
+    expect(blockAnchor("absent")).toBeNull()
   })
 
   it("le curseur va dans le texte du bloc lui-même, pas dans celui d'un bloc de sa section", () => {

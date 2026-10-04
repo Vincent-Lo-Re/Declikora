@@ -32,7 +32,6 @@ import {
   type BoxBlock,
   type Draft,
   type ImageBlock,
-  type LinkedBlock,
 } from "@/blocks/types"
 import { LoadState } from "@/components/load-state"
 import { ColumnHeader } from "@/components/editor/column-header"
@@ -69,23 +68,13 @@ type Props = {
   removeBlocked?: string | null
   // « Enregistrer comme modèle… » pour un bloc de premier niveau (absent : pas proposé).
   onSaveAsTemplate?: (id: string) => void
-  // Au-dessus des réglages d'un bloc (par exemple « Voir la présentation »).
-  header?: ReactNode
-  // À la place du message « Choisis un bloc… » quand aucun bloc n'est choisi (la présentation
-  // d'un article ou d'un épisode).
-  empty?: ReactNode
-  // Le nom du panneau quand il montre `empty` (par défaut « Réglages du bloc »).
-  emptyLabel?: string
-  // Éditeur du Fil : les actions (monter, descendre, dupliquer, modèle, supprimer) en icônes,
-  // dans une barre fixe en bas du panneau.
-  actionBar?: boolean
-  // « Dupliquer » (éditeur du Fil, comme dans le menu « … » du plan).
+  // « Dupliquer » (comme dans le menu « … » du plan).
   onDuplicate?: (id: string) => void
   // Nombre maximal de blocs au premier niveau (un bloc partagé : 1) : « Monter » ne fait alors
   // pas sortir un bloc de sa section.
   rootLimit?: number
-  // Éditeur du Fil : la glissière du bloc, avec en tête son icône, son nom et « Fermer » (×).
-  onClose?: () => void
+  // « Fermer » (×), en tête de la glissière, et Échap.
+  onClose: () => void
 }
 
 /** « Monter » ou « Descendre » : possible ou non, et son nom (il peut sortir de la section). */
@@ -108,60 +97,38 @@ function shiftAction(
   }
 }
 
-/** Panneau de droite : les réglages du bloc choisi dans l'aperçu. */
+/**
+ * Les réglages du bloc choisi, en glissière par-dessus la colonne de droite : en tête son icône,
+ * son nom et « Fermer » ; en bas, ses actions en icônes (monter, descendre, dupliquer, modèle,
+ * supprimer).
+ */
 export function BlockSettings(props: Props) {
   const place = props.selectedId
     ? findBlock(props.draft, props.selectedId)
     : null
-  if (place && props.actionBar) {
-    const { onClose } = props
-    return (
-      <section
-        aria-label={labels.label}
-        data-side-panel
-        className="flex h-full flex-col"
-        onKeyDown={
-          onClose
-            ? (event) => {
-                if (event.key === "Escape" && !event.defaultPrevented) {
-                  event.preventDefault()
-                  onClose()
-                }
-              }
-            : undefined
-        }
-      >
-        {onClose && (
-          <PanelHeader
-            block={place.block}
-            templateFor={props.templateFor}
-            onClose={onClose}
-          />
-        )}
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-3">
-          {props.header}
-          <SelectedBlock place={place} {...props} />
-        </div>
-        {props.editable && <ActionBar place={place} {...props} />}
-      </section>
-    )
-  }
+  if (!place) return null
+  const { onClose } = props
   return (
     <section
-      aria-label={place ? labels.label : (props.emptyLabel ?? labels.label)}
+      aria-label={labels.label}
       data-side-panel
-      className="flex h-full flex-col gap-4 overflow-y-auto p-4"
+      className="flex h-full flex-col"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && !event.defaultPrevented) {
+          event.preventDefault()
+          onClose()
+        }
+      }}
     >
-      {place ? (
-        <>
-          {props.header}
-          <SelectedBlock place={place} {...props} />
-        </>
-      ) : (
-        (props.empty ?? (
-          <p className="text-sm text-muted-foreground">{labels.none}</p>
-        ))
-      )}
+      <PanelHeader
+        block={place.block}
+        templateFor={props.templateFor}
+        onClose={onClose}
+      />
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-3">
+        <SelectedBlock place={place} {...props} />
+      </div>
+      {props.editable && <ActionBar place={place} {...props} />}
     </section>
   )
 }
@@ -199,28 +166,18 @@ function SelectedBlock({
   editable,
   mediaFor,
   onUpdate,
-  onShift,
-  onRemove,
   onChooseImage,
   templateFor,
-  onDetach,
   removeBlocked = null,
-  onSaveAsTemplate,
-  actionBar = false,
-  ...props
 }: Props & { place: BlockPlace }) {
   const { block } = place
-  const up = shiftAction(props, place, -1)
-  const down = shiftAction(props, place, 1)
   const linkedState =
     block.type === "linked" ? templateFor(block.templateId) : null
   const label = blockLabel(block, linkedState && templateNameOf(linkedState))
   return (
     <>
-      {/* Dans la glissière, le nom est dans son en-tête. */}
-      <h2 className={cn("text-sm font-semibold", props.onClose && "sr-only")}>
-        {labels.title(label)}
-      </h2>
+      {/* Le nom est dans l'en-tête de la glissière. */}
+      <h2 className="sr-only">{labels.title(label)}</h2>
       {!editable && (
         <p className="text-sm text-muted-foreground">{labels.readOnly}</p>
       )}
@@ -239,99 +196,27 @@ function SelectedBlock({
       {block.type === "box" && (
         <BoxSettings block={block} editable={editable} onUpdate={onUpdate} />
       )}
-      {block.type === "linked" && linkedState && (
-        <LinkedSettings
-          block={block}
-          state={linkedState}
-          editable={editable}
-          actionBar={actionBar}
-          onDetach={() => onDetach(block.id)}
-        />
+      {linkedState && (
+        <LinkedSettings state={linkedState} editable={editable} />
       )}
       {/* La barre d'icônes porte les actions ; dessus, ce qui empêche de supprimer. */}
-      {actionBar && editable && removeBlocked && (
+      {editable && removeBlocked && (
         <p className="text-sm text-muted-foreground">{removeBlocked}</p>
-      )}
-      {!actionBar && editable && canSaveAs(place, onSaveAsTemplate) && (
-        <>
-          <Separator />
-          <Button
-            variant="outline"
-            size="sm"
-            className="justify-self-start"
-            onClick={() => onSaveAsTemplate?.(block.id)}
-          >
-            <BookmarkPlus />
-            {texts.templates.saveAs.action}
-          </Button>
-        </>
-      )}
-      {!actionBar && editable && (
-        <>
-          <Separator />
-          <div className="flex flex-wrap gap-2">
-            {/* Désactivés sans perdre le focus (aria-disabled) : on peut appuyer plusieurs
-                fois de suite au clavier, et la nouvelle place est annoncée. */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="aria-disabled:opacity-50"
-              disabled={up.disabled}
-              focusableWhenDisabled
-              onClick={() => onShift(block.id, -1)}
-            >
-              <ArrowUp />
-              {up.label}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="aria-disabled:opacity-50"
-              disabled={down.disabled}
-              focusableWhenDisabled
-              onClick={() => onShift(block.id, 1)}
-            >
-              <ArrowDown />
-              {down.label}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive aria-disabled:opacity-50"
-              disabled={removeBlocked !== null}
-              focusableWhenDisabled
-              onClick={() => onRemove(block.id)}
-            >
-              <Trash2 />
-              {labels.remove}
-            </Button>
-          </div>
-          {removeBlocked && (
-            <p className="text-sm text-muted-foreground">{removeBlocked}</p>
-          )}
-        </>
       )}
     </>
   )
 }
 
 /**
- * Un bloc lié : d'où il vient et ce que fait « Détacher », en deux points courts ; puis
- * « Modifier le modèle » et « Détacher », sauf dans l'éditeur du Fil, où ils sont dans la barre
- * d'icônes du bas (actionBar).
+ * Un bloc lié : d'où il vient et ce que fait « Détacher », en deux points courts. « Modifier le
+ * modèle » et « Détacher » sont dans la barre d'icônes du bas.
  */
 function LinkedSettings({
-  block,
   state,
   editable,
-  actionBar,
-  onDetach,
 }: {
-  block: LinkedBlock
   state: LinkedTemplateState
   editable: boolean
-  actionBar: boolean
-  onDetach: () => void
 }) {
   const linked = texts.templates.linked
   const name = templateNameOf(state)?.trim() || texts.templates.list.untitled
@@ -351,30 +236,11 @@ function LinkedSettings({
   if (state.state === "loading") {
     return <p className="text-sm text-muted-foreground">{linked.loading}</p>
   }
-  const canDetach = editable && state.state === "ready"
   return (
-    <div className="grid gap-3">
-      <ul className="grid list-disc gap-1.5 pl-4 text-sm text-muted-foreground">
-        <li>{linked.settings(name)}</li>
-        {canDetach && <li>{linked.detachHint}</li>}
-      </ul>
-      {!actionBar && (
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to={editorPath("templates", block.templateId)}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            {linked.edit}
-          </Link>
-          {canDetach && (
-            <Button variant="outline" size="sm" onClick={onDetach}>
-              <Unlink />
-              {linked.detach}
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
+    <ul className="grid list-disc gap-1.5 pl-4 text-sm text-muted-foreground">
+      <li>{linked.settings(name)}</li>
+      {editable && state.state === "ready" && <li>{linked.detachHint}</li>}
+    </ul>
   )
 }
 
