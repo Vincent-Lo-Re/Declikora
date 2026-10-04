@@ -1,7 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { Editor } from "@tiptap/react"
 import { cn } from "cn"
-import { ArrowLeft, Blocks, FileQuestion, Focus, ListTree } from "lucide-react"
+import {
+  ArrowLeft,
+  Blocks,
+  FileQuestion,
+  Focus,
+  Info,
+  ListTree,
+} from "lucide-react"
 import {
   useCallback,
   useEffect,
@@ -1563,10 +1570,12 @@ function ContentEditor({
                   </section>
                 )}
               </div>
-              {/* Un bloc partagé : la règle d'un seul bloc ([D11]), qui grise « Ajouter un bloc ». */}
+              {/* Un bloc partagé : la règle d'un seul bloc ([D11]), qui grise « Ajouter un bloc ».
+                  L'icône orange la signale (la couleur des avertissements). */}
               {isShared && (
-                <p className="shrink-0 px-4 pb-3 text-xs text-muted-foreground">
-                  {texts.templates.editor.sharedLimit}
+                <p className="flex shrink-0 items-start gap-2 px-4 pb-3 text-xs text-muted-foreground">
+                  <Info aria-hidden className="size-4 shrink-0 text-warning" />
+                  <span>{texts.templates.editor.sharedLimit}</span>
                 </p>
               )}
               {/* En bas, de la même hauteur que le bas de la colonne de droite : le retour sur

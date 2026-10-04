@@ -127,7 +127,9 @@ export function bottomMenu(page: Page) {
   return page.getByRole("navigation", { name: texts.nav.footerLabel })
 }
 
-/** L'avatar en haut à droite, qui ouvre le menu du compte (Mon compte, thème, déconnexion). */
+/**
+ * L'avatar en bas du menu de gauche, qui ouvre le menu du compte (Mon compte, thème, déconnexion).
+ */
 export function accountMenuButton(page: Page) {
   return page.getByRole("button", { name: texts.accountMenu.open })
 }

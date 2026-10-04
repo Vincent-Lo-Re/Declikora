@@ -627,6 +627,11 @@ describe("éditeur d'une page (éditeur du Fil)", () => {
     expect(document.querySelector('[data-presentation="cover"]')).toBeNull()
     // Pas de barre du haut : l'adresse est dans la colonne de droite.
     expect(document.querySelector("header")).toBeNull()
+    // « Publier » est dans le bas de la colonne de droite, que les messages laissent voir
+    // (data-feed-footer, index.css).
+    expect(document.querySelector("[data-feed-footer]")).toContainElement(
+      screen.getByRole("button", { name: texts.publication.actions.publish })
+    )
   })
 
   it("l'adresse, vérifiée en tapant : « Libre », puis elle part avec le brouillon", async () => {

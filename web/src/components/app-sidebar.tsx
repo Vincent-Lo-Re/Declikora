@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router"
 
+import { AccountMenu } from "@/components/account-menu"
 import {
   Sidebar,
   SidebarContent,
@@ -11,7 +12,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
+  SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/auth/auth-context"
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/navigation"
 import { texts } from "@/texts"
 
+/** Le menu de gauche, toujours ouvert (docs/ADMINISTRATION.md § 7). */
 export function AppSidebar() {
   const { profile } = useAuth()
   // Équipe et Paramètres n'apparaissent que pour les admins.
@@ -32,18 +34,10 @@ export function AppSidebar() {
       : menu.bottom.filter((key) => !adminOnlySections.includes(key))
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar>
       <SidebarHeader>
         <div className="flex h-8 items-center px-2 text-sm font-semibold">
-          <span className="group-data-[collapsible=icon]:hidden">
-            {texts.app.name}
-          </span>
-          <span
-            aria-hidden
-            className="hidden group-data-[collapsible=icon]:inline"
-          >
-            {texts.app.name.charAt(0)}
-          </span>
+          {texts.app.name}
         </div>
       </SidebarHeader>
 
@@ -65,16 +59,21 @@ export function AppSidebar() {
         </nav>
       </SidebarContent>
 
-      {/* Équipe et Paramètres (admins). « Mon compte » est dans le menu de l'avatar, en haut. */}
-      {bottom.length > 0 && (
-        <SidebarFooter>
-          <nav aria-label={texts.nav.footerLabel}>
-            <MenuItems sectionKeys={bottom} />
-          </nav>
-        </SidebarFooter>
-      )}
-
-      <SidebarRail />
+      {/*
+        Équipe et Paramètres (admins), un trait, puis l'avatar du membre : « Mon compte », le
+        thème et « Se déconnecter » sont dans son menu.
+      */}
+      <SidebarFooter>
+        {bottom.length > 0 && (
+          <>
+            <nav aria-label={texts.nav.footerLabel}>
+              <MenuItems sectionKeys={bottom} />
+            </nav>
+            <SidebarSeparator />
+          </>
+        )}
+        <AccountMenu />
+      </SidebarFooter>
     </Sidebar>
   )
 }
@@ -92,7 +91,6 @@ function MenuItems({ sectionKeys }: { sectionKeys: SectionKey[] }) {
             <SidebarMenuButton
               render={<NavLink to={path} end={path === "/"} />}
               isActive={isInSection(path, pathname)}
-              tooltip={title}
             >
               <Icon />
               <span>{title}</span>
