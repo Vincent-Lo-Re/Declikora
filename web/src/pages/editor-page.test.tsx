@@ -599,13 +599,35 @@ describe("éditeur d'une page (éditeur du Fil)", () => {
     renderApp(`/pages/${PAGE_ID}`)
     await editable()
     expect(screen.queryByRole("banner")).toBeNull()
-    expect(
+    const back = within(
+      screen.getByRole("complementary", { name: columns.left })
+    ).getByRole("link", {
+      name: texts.editor.back(texts.sections.pages.title),
+    })
+    expect(back).toHaveAttribute("href", "/pages")
+    // La sortie en haut à gauche, dans l'en-tête du plan ; « Ajouter un bloc » reste en bas.
+    expect(back.parentElement).toHaveTextContent(texts.editor.outline.title)
+    expect(back.parentElement).not.toHaveTextContent(texts.editor.add.label)
+    // Les Blocs ouverts couvrent le plan : la sortie reste au même endroit, dans leur en-tête.
+    fireEvent.click(
       within(
         screen.getByRole("complementary", { name: columns.left })
-      ).getByRole("link", {
+      ).getAllByRole("button", { name: texts.editor.add.label })[0]
+    )
+    const blocks = await screen.findByRole("region", {
+      name: texts.editor.columns.blocks,
+    })
+    expect(
+      within(blocks).getByRole("link", {
         name: texts.editor.back(texts.sections.pages.title),
       })
     ).toHaveAttribute("href", "/pages")
+    // Une seule flèche à la fois.
+    expect(
+      screen.getAllByRole("link", {
+        name: texts.editor.back(texts.sections.pages.title),
+      })
+    ).toHaveLength(1)
     const panel = screen.getByRole("region", { name: columns.content.page })
     const todo = within(panel)
       .getAllByRole("button")

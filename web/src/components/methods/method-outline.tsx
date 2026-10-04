@@ -303,7 +303,7 @@ export function MethodOutline({
   live: LiveOutline | null
   // publish_preview (undefined tant qu'il n'est pas lu).
   preview: PreviewRow[] | undefined
-  // Le retour, en bas à gauche (la flèche vers la liste des méthodes).
+  // Le retour, dans l'en-tête du plan (la flèche vers la liste des méthodes).
   back: ReactNode
 }) {
   const queryClient = useQueryClient()
@@ -722,6 +722,7 @@ export function MethodOutline({
             icon={ListTree}
             title={labels.title}
             titleId="plan-methode-titre"
+            back={back}
             className="-mx-4 mb-2"
           >
             <InfoTip text={labels.description} />
@@ -808,10 +809,9 @@ export function MethodOutline({
         )}
       </section>
 
-      {/* En bas, de la même hauteur que le bas de la colonne de droite : le retour sur toute la
-          hauteur, puis « Nouveau chapitre » sur toute la largeur qui reste. */}
+      {/* En bas, de la même hauteur que le bas de la colonne de droite : « Nouveau chapitre » sur
+          toute la largeur (le retour est en haut, dans l'en-tête du plan). */}
       <div className="flex h-feed-footer shrink-0 items-stretch border-t">
-        {back}
         <div className="flex min-w-0 flex-1 items-center px-4">
           <AddBlockButton
             id={NEW_CHAPTER_ID}

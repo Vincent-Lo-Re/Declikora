@@ -126,6 +126,7 @@ export function OutlinePanel({
   templateName = () => null,
   selection,
   feed,
+  back,
 }: {
   draft: Draft
   selectedId: string | null
@@ -135,6 +136,8 @@ export function OutlinePanel({
   // Absent : pas de « Enregistrer comme modèle » (lecture seule, éditeur d'un modèle).
   selection?: OutlineSelection
   feed: FeedOutline
+  // La flèche de retour, à gauche de l'en-tête du plan.
+  back?: ReactNode
 }) {
   // Les sections repliées.
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
@@ -196,13 +199,14 @@ export function OutlinePanel({
       // leur poignée apparaît dans cette marge.
       className="flex h-full flex-col overflow-y-auto px-4 pb-3"
     >
-      {/* Le haut du plan (titre, « Choisir des blocs », nombre) reste en haut de la colonne quand
-          les lignes défilent, sur un fond plein qui couvre aussi la marge ; son titre est un
-          en-tête de la hauteur de celui de droite. */}
+      {/* Le haut du plan (retour, titre, « Choisir des blocs », nombre) reste en haut de la
+          colonne quand les lignes défilent, sur un fond plein qui couvre aussi la marge ; son titre
+          est un en-tête de la hauteur de celui de droite. */}
       <div className="sticky top-0 z-10 -mx-4 bg-background px-4">
         <ColumnHeader
           icon={ListTree}
           title={labels.title}
+          back={back}
           className="-mx-4 mb-2"
         >
           {selectButton}

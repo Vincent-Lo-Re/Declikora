@@ -422,9 +422,13 @@ describe("liste des méthodes", () => {
       )
     )
     expect(await screen.findByText(outline.empty)).toBeVisible()
-    expect(
-      screen.getByRole("link", { name: texts.editor.back("Méthodes") })
-    ).toHaveAttribute("href", "/methodes")
+    const back = screen.getByRole("link", {
+      name: texts.editor.back("Méthodes"),
+    })
+    expect(back).toHaveAttribute("href", "/methodes")
+    // Dans l'en-tête du plan, en haut ; « Nouveau chapitre » reste en bas.
+    expect(back.parentElement).toHaveTextContent(outline.title)
+    expect(back.parentElement).not.toHaveTextContent(outline.newChapter)
   })
 })
 
