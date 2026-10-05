@@ -79,10 +79,10 @@ ADMIN § 10 remet à plus tard les formules et le service de paiement. Cette tab
 | Colonne | Détail |
 |---|---|
 | `id uuid` | |
-| `kind text` | `article`, `episode`, `method`, `chapter`, `lesson`, `page`, `template`. Ne change jamais (trigger). |
-| `parent_id uuid` → `contents` `on delete cascade` | obligatoire pour `chapter` (parent : une méthode) et `lesson` (parent : un chapitre), interdit sinon. Un trigger vérifie la sorte du parent. |
+| `kind text` | `article`, `episode`, `method`, `chapter`, `lesson`, `exercise` (depuis le 04/10/2026), `page`, `template`. Ne change jamais (trigger). |
+| `parent_id uuid` → `contents` `on delete cascade` | obligatoire pour `chapter` (parent : une méthode), `lesson` (parent : un chapitre) et `exercise` (parent : une leçon), interdit sinon. Un trigger vérifie la sorte du parent. |
 | `position int` | ordre dans le parent (voir la contrainte d'exclusion ci-dessous) |
-| `in_app bool not null default false` | chapitres et leçons : « Montrer dans l'app » à la prochaine publication de la méthode. **Décoché à la création**, pour qu'une leçon à moitié écrite ne parte pas avec les autres (§ 1.8, [D29]) |
+| `in_app bool not null default false` | chapitres, leçons et exercices : « Montrer dans l'app » à la prochaine publication de la méthode. **Décoché à la création**, pour qu'une leçon à moitié écrite ne parte pas avec les autres (§ 1.8, [D29]) |
 | `draft jsonb` | **le brouillon unique** (forme au § 2.2) |
 | `title text` | colonne générée : `draft->>'title'` (listes, recherche) |
 | `draft_rev int` | augmente à chaque changement du brouillon (contrôle de conflit) |
@@ -92,7 +92,7 @@ ADMIN § 10 remet à plus tard les formules et le service de paiement. Cette tab
 | `is_free bool default false` | `lesson` seulement : leçon gratuite dans une méthode réservée |
 | `slug text` | `page` seulement : l'adresse que l'app demande (`mentions-legales`…), **dans le brouillon**. L'adresse en ligne est celle de la version publiée (`versions.slug`, § 1.7). `unique (slug) where kind = 'page' and deleted_at is null` |
 | `template_sort text` | `template` seulement : `style` (mise en forme), `shared` (bloc partagé) ou `starter` (point de départ). Ne change jamais (trigger). |
-| `template_for text` | `starter` seulement, obligatoire : la sorte de contenu que le point de départ sert à créer (`article`, `episode`, `chapter`, `lesson`, `page`) **[D42]**. Choisie à la création, ne change jamais (trigger). Ajoutée à l'étape 6 |
+| `template_for text` | `starter` seulement, obligatoire : la sorte de contenu que le point de départ sert à créer (`article`, `episode`, `chapter`, `lesson`, `exercise`, `page`) **[D42]**. Choisie à la création, ne change jamais (trigger). Ajoutée à l'étape 6 |
 | `live_version_id uuid null` | la version que lit l'app (`null` = pas dans l'app). Sortes « racines » seulement : `article`, `episode`, `method`, `page`. |
 | `first_published_at timestamptz` | date de la première publication (l'app triait sur elle jusqu'au 30/09/2026, **[D27]** ; elle suit maintenant `list_position`) |
 | `list_position integer` | article, épisode ou méthode : sa place dans la liste de sa section, la plus petite en tête ; un contenu neuf arrive en tête (déclencheur `contents_05_list_position`) ; rangée par `contents_reorder` ; l'admin et l'app suivent cet ordre, brouillons compris **[D47]** |
@@ -102,7 +102,7 @@ ADMIN § 10 remet à plus tard les formules et le service de paiement. Cette tab
 | `created_at`, `created_by` | |
 
 **Contraintes**
-- `check` sur chaque combinaison de sorte : `parent_id`, `in_app` (chapitre, leçon), `is_free` (leçon), `slug` (page), `template_sort` (modèle, obligatoire), `access_level_id`, `live_version_id`, `scheduled_at` (sortes racines ; toujours `null` pour un chapitre, une leçon ou un modèle).
+- `check` sur chaque combinaison de sorte : `parent_id`, `in_app` (chapitre, leçon, exercice), `is_free` (leçon), `slug` (page), `template_sort` (modèle, obligatoire), `access_level_id`, `live_version_id`, `scheduled_at` (sortes racines ; toujours `null` pour un chapitre, une leçon ou un modèle).
 - **Ordre dans le parent** : `exclude using btree (parent_id with =, position with =) where (deleted_at is null) deferrable initially deferred`. Une contrainte d'exclusion accepte à la fois un `where` et `deferrable`, ce que ne permet pas un index unique partiel. Les éléments dans la corbeille ne comptent donc pas : on peut renuméroter les leçons restantes 1, 2, 3 après en avoir supprimé une. `restore` replace l'élément **en fin de liste** de son parent.
 - **Clé étrangère composite** `(live_version_id, id) → versions (id, content_id)`, `on delete set null (live_version_id)` (Postgres 15+) : un contenu ne peut pas pointer vers la version d'un autre. Ajoutée à l'étape 5.
 - `check (octet_length(draft::text) <= 262144)` : 256 Ko par brouillon, pour ménager les 500 Mo de base **[D35]**. Un long article fait quelques dizaines de Ko ; les images ne sont que des références.
@@ -137,8 +137,8 @@ Pourquoi une seule table, modèles compris ? Toutes ces sortes ont besoin des m�
 
 ### 1.8 Les méthodes
 
-- Une méthode, chacun de ses chapitres et chacune de ses leçons sont **des lignes distinctes** de `contents`. Chacune a son brouillon, son verrou (deux membres peuvent écrire deux leçons en même temps) et son historique.
-- Le brouillon d'une méthode porte sa fiche (titre, résumé, image de présentation) ; sa liste de blocs reste vide pour l'instant **[D4]**. L'introduction d'un chapitre, c'est le brouillon en blocs de la ligne `chapter`.
+- Une méthode, chacun de ses chapitres et chacune de ses leçons sont **des lignes distinctes** de `contents`. Depuis le 04/10/2026, une leçon peut avoir des **exercices** (ADMIN § 1), eux aussi des lignes de `contents` (`kind = 'exercise'`, parent : la leçon), gérés comme une leçon : brouillon en blocs, verrou, historique, « Montrer dans l'app », place dans la leçon, points de départ ; ni « Gratuit » ni niveau à eux. Chacune a son brouillon, son verrou (deux membres peuvent écrire deux leçons en même temps) et son historique.
+- Le brouillon d'une méthode porte sa fiche (titre, image de présentation) ; sa liste de blocs reste vide pour l'instant **[D4]**. L'introduction d'un chapitre, c'est le brouillon en blocs de la ligne `chapter`.
 - **Un seul bouton « Publier », celui de la méthode** **[D29]**, validé le 27/09/2026 (question 4 du § 8.2, réponse A). Il publie la fiche, le plan et **tous** les chapitres et leçons modifiés qui ont « Montrer dans l'app » coché. Conséquence : corriger une virgule dans la leçon 1 envoie aussi dans l'app les autres leçons modifiées depuis la dernière publication. Deux garde-fous le rendent sûr :
   - une leçon ou un chapitre **neuf** est créé avec « Montrer dans l'app » **décoché** : on le coche quand il est prêt ;
   - avant de publier (ou de programmer) une méthode, l'admin affiche **la liste des éléments qui vont changer dans l'app** (neufs, modifiés, retirés), avec qui les a modifiés et quand, et demande de confirmer.
@@ -148,13 +148,16 @@ Pourquoi une seule table, modèles compris ? Toutes ces sortes ont besoin des m�
 ```json
 [
   { "chapterId": "…", "versionId": "…",
-    "lessons": [ { "lessonId": "…", "versionId": "…" } ] }
+    "lessons": [ { "lessonId": "…", "versionId": "…",
+      "exercises": [ { "exerciseId": "…", "versionId": "…" } ] } ] }
 ]
 ```
 
+  `exercises` est écrit par chaque publication depuis le 04/10/2026 ; une leçon d'un plan plus ancien, sans `exercises`, reste valable.
+
   Chaque `versionId` pointe vers la version d'un chapitre ou d'une leçon. Celles qui n'ont pas changé depuis la dernière publication sont **réutilisées**, pas recopiées : on ne duplique pas trente leçons pour une virgule. « Pas changé » se juge sur le contenu **résolu** (§ 3.4), pas seulement sur `draft_rev`. Un trigger vérifie, à l'insertion, que chaque `versionId` existe et appartient bien à un enfant de cette méthode.
 - Les chapitres et les leçons n'ont donc pas de `live_version_id` : ce qui est en ligne, c'est ce que cite le plan de la version en ligne de la méthode. **Réordonner ou déplacer une leçon ne change l'app qu'à la publication suivante**, comme tout le reste (ADMIN § 3).
-- **Niveau d'une leçon** : `null` (gratuit) si la version de la leçon a `is_free`, sinon celui de la version de la méthode. **Introduction d'un chapitre** : calculée par `private.chapter_intro_level()` : gratuite dès qu'une leçon du chapitre, en ligne dans le plan, est gratuite, sinon le niveau de la méthode **[D43]** (question 2, décidée le 28/09/2026). Tout cela est calculé à un seul endroit, la vue `private.live` (§ 3.2).
+- **Niveau d'une leçon** : `null` (gratuit) si la version de la leçon a `is_free`, sinon celui de la version de la méthode. **Introduction d'un chapitre** : calculée par `private.chapter_intro_level()` : gratuite dès qu'une leçon du chapitre, en ligne dans le plan, est gratuite, sinon le niveau de la méthode **[D43]** (question 2, décidée le 28/09/2026). **Niveau d'un exercice** : celui de sa leçon dans ce plan (gratuit si elle l'est). Tout cela est calculé à un seul endroit, la vue `private.live` (§ 3.2).
 
 ### 1.9 `media` (médiathèque)
 
@@ -228,7 +231,6 @@ Pourquoi une seule table, modèles compris ? Toutes ces sortes ont besoin des m�
 {
   "v": 1,
   "title": "Bien respirer",
-  "summary": "…",
   "cover": { "mediaId": "c0de…" },
   "audio": null,
   "blocks": [
@@ -540,10 +542,10 @@ Des RPC `security definer`, `stable`, exécutables par `anon` et `authenticated`
 
 | RPC | Renvoie |
 |---|---|
-| `app_feed(section, category_id, before, lim)` | articles ou épisodes en ligne, triés par `first_published_at`, 50 au plus par page : `id`, `versionId`, titre, résumé, couverture, catégories existantes, niveau (`name`, `rank`) ou `null`, `locked`, dates |
-| `app_content(id)` | la version en ligne (racine, chapitre ou leçon) : titre, résumé, niveau, `locked`, `blockTypes`, et **seulement si** c'est gratuit ou si `reader_rank()` suffit : `blocks`, le son d'un épisode. Plus une table `files` : `mediaId → { kind, mime, path, alt, transcript, width, height, durationS }` (informations figées). Sans le niveau : `locked: true`, et `files` ne contient que la couverture. **L'emplacement (public ou protégé) n'y figure pas** : il peut changer sans nouvelle version. |
+| `app_feed(section, category_id, before, lim)` | articles ou épisodes en ligne, dans l'ordre de leur section (`list_position`, [D47]), 50 au plus par page : `id`, `versionId`, titre, couverture, catégories existantes, niveau (`name`, `rank`) ou `null`, `locked`, dates |
+| `app_content(id)` | la version en ligne (racine, chapitre, leçon ou exercice) : titre, niveau, `locked`, `blockTypes`, pour une leçon ses exercices en ligne (`exercises`, dans l'ordre, même verrouillée), pour un exercice sa leçon (`lessonId`), et **seulement si** c'est gratuit ou si `reader_rank()` suffit : `blocks`, le son d'un épisode. Plus une table `files` : `mediaId → { kind, mime, path, alt, transcript, width, height, durationS }` (informations figées). Sans le niveau : `locked: true`, et `files` ne contient que la couverture. **L'emplacement (public ou protégé) n'y figure pas** : il peut changer sans nouvelle version. |
 | `app_file_locations(mediaIds uuid[])` | pour chaque fichier que l'appelant a le droit de voir (cité par une version en ligne gratuite, ou d'un rang qu'il atteint, ou couverture d'un contenu en ligne), son emplacement réel : `public` ou `protected` |
-| `app_method(id)` | la fiche et le plan figé : chapitres (titre, `locked` de l'introduction) et leçons (titre, `isFree`, `locked`), dans l'ordre. On ouvre ensuite chaque élément avec `app_content`. |
+| `app_method(id)` | la fiche et le plan figé : chapitres (titre, `locked` de l'introduction) et leçons (titre, `isFree`, `locked`, nombre d'exercices `exerciseCount`), dans l'ordre. On ouvre ensuite chaque élément avec `app_content`. |
 | `app_page(slug)` | la page **en ligne** dont la version porte ce `slug` (`versions.slug`), comme `app_content`. Changer l'adresse dans le brouillon ne change rien avant la publication. |
 | `app_categories(section)`, `app_access_levels()` | pour les filtres et l'affichage des niveaux |
 
@@ -996,7 +998,7 @@ Les noms des jobs ne changent pas : les Deployment Checks de Vercel attendent «
 **Écarts de la partie admin (7a)**
 - Les catégories d'un contenu se choisissent dans les **Réglages** (avec le niveau d'accès), et la présentation les rappelle avec « Choisir les catégories » : ce sont des réglages de `save_draft`, pas une partie du brouillon.
 - Le résumé est un texte simple sur une ligne (comme la légende d'une image) : les retours à la ligne sont remplacés par des espaces.
-- **Depuis le 03/10/2026, plus de résumé** (ADMIN § 4) : l'admin ne l'écrit plus et le retire d'un brouillon à l'enregistrement. Le champ `summary` reste dans le schéma des blocs (on ne fait qu'ajouter) et dans les lectures de l'app (`app_feed`, `app_content`, `app_method`), toujours à `null`.
+- **Depuis le 03/10/2026, plus de résumé** (ADMIN § 4) : l'admin ne l'écrit plus et le retire d'un brouillon à l'enregistrement. Le champ `summary` reste dans le schéma des blocs (on ne fait qu'ajouter) et dans les lectures de l'app (`app_feed`, `app_content`, `app_method`), toujours à `null`. **Le 04/10/2026**, il est retiré de la base aussi (« Ménage de la base », plus bas).
 - La liste lit toujours les 500 contenus les plus récents d'une sorte (comme à l'étape 4) ; recherche et filtres se font dans le navigateur.
 - `/mediatheque?fichier=<id>` (nouveau) ouvre la fiche d'un fichier ; l'adresse revient à `/mediatheque` à la fermeture, et un identifiant inconnu est signalé.
 - Corrigé en passant : le texte de remplacement d'une image sans fichier (bloc Image) n'était pas centré (`display: block` de `preview.css` l'emportait sur les classes `flex`).
@@ -1088,6 +1090,25 @@ Les noms des jobs ne changent pas : les Deployment Checks de Vercel attendent «
 **Libellés revus le 02/10/2026** (test complet de l'admin) : les états des éléments d'une méthode sont neutres, pour un chapitre comme pour une leçon (« À publier », « Sortira de l'app », « Plus dans l'app », « Pas dans l'app », « Pas dans l'app, comme son chapitre ») ; la liste des changements nomme le changement (« Ajout », « Modification », « Retrait », « Nouvelle place ») ; un chapitre ou une leçon a la pastille « Part avec sa méthode » à l'Accueil. Les noms donnés plus haut dans cette partie sont ceux d'avant.
 
 **Titre obligatoire ([D49], 02/10/2026, base)** : `private.check_publish_requirements` (remplacée) refuse d'abord un titre vide ou fait d'espaces (`titre_manquant`, un message par sorte), puis l'image de présentation et le son comme avant. Elle sert déjà à `prepare_version` (chaque élément d'une méthode compris), à `schedule` et donc à `publish_preview` : un chapitre ou une leçon sans titre est signalé avant de publier la méthode. Une programmation déjà posée sur un contenu sans titre échoue à l'heure dite. pgTAP : `50_titre_obligatoire`.
+
+**Ménage de la base (04/10/2026, base ; inventaire de toute la base, QCM)** : la base ne garde que ce qui sert, tant qu'aucun contenu n'existe ni en local ni en ligne. Migration `…_menage_de_la_base.sql` :
+- **le résumé** quitte la base : `private.empty_draft` ne l'écrit plus, `app_feed` ne le rend plus (`app_content` et `app_method` : migration des exercices ci-dessous), et la forme des blocs le perd (migration générée `…_schema_blocs.sql` ; cas partagé `refuse-resume`). C'est la seule fois où la forme des blocs rétrécit. L'admin retire encore le résumé d'un brouillon plus ancien (`prepareDraft`) ;
+- **un droit en double** retiré : `select (list_position)` sur `contents` pour `authenticated`, qui lit déjà toute la table ;
+- **la Corbeille** (`public.trash_items`) perd `deleted_by`, que personne ne lisait (l'admin lit `deleted_by_name`) ; la vue est recréée ;
+- **les fonctions internes de l'équipe** passent dans `private`, comme toutes celles écrites depuis : `session_is_open`, `initial_role` et les fonctions des déclencheurs (`handle_new_user`, `sync_profile_email`, `profiles_before_write`, `protect_last_admin`), exécutables par leur propriétaire seulement ; `is_staff`, `is_admin` et `handle_new_user` appellent les nouvelles.
+- Gardé exprès : ce qui est prévu pour l'app (`app_*`, `reader_access` provisoire), les traces (`created_at`, `created_by`, `published_by`), la note d'erreur d'un envoi (`media.sync_error`). L'historique des migrations reste tel quel : le fusionner ferait perdre les tâches planifiées et les réglages qu'elles créent.
+- pgTAP : `52_menage` ; `10_equipe` suit les fonctions dans `private` ; `32`, `35`, `44` et `46` n'écrivent plus de résumé et vérifient qu'il n'est plus lu.
+
+**Exercices (04/10/2026), base** (`supabase/`, `blocks/` ; ADMIN § 1, « Exercices » ; les écrans sont construits à part). Migration `…_methodes_exercices.sql` :
+- **la sorte `exercise`** : `contents_kind_check`, `contents_parent_kind`, `contents_in_app_kind` et `contents_template_for_value` l'acceptent ; parent : une leçon (`private.contents_check_kind`, `content_create`) ; ni `is_free` ni niveau d'accès (`reglages_invalides`) ; points de départ `template_for = 'exercise'` (`content_create`, `template_create_from`) ;
+- **le plan figé** (§ 1.8) : `private.outline_exercises(lesson_entry)` lit les exercices d'une leçon (vide pour un plan plus ancien) ; `outline_shape_ok`, `versions_check_outline` (chaque exercice cité une fois, exercice d'une leçon de cette méthode, sa propre version), `outline_versions`, `outline_with_versions` (versions remplacées par `template_push`, `media_push` et `media_replace_live`), `outline_without` (retrait d'un exercice, ou d'une leçon avec ses exercices) ;
+- **publier une méthode** (`private.do_publish_method`, [D29]) : les exercices cochés des leçons cochées des chapitres cochés, dans l'ordre ; un exercice inchangé garde sa version (`private.element_version`). Un exercice invalide bloque la méthode, et l'erreur le nomme par sa place : « Chapitre 1, leçon 2, exercice 1 « … » » (`private.element_label`, aide `private.place_in_parent`) ; titre obligatoire : « Donne un titre à l'exercice avant de publier la méthode. » ;
+- **`private.live`** : un exercice cité par le plan en ligne est en ligne (lui, sa leçon, son chapitre et la méthode hors corbeille), avec `method_id` et **le niveau de sa leçon dans ce plan**. Tout ce qui s'appuie sur la vue suit : fichiers publics ou protégés, `reader_can_open`, `app_file_locations`, « Où il est utilisé » (`media_uses` donne la leçon en `parent_title`), modèles et textes à mettre à jour ;
+- **`publish_preview`** (recréée : le type rendu change) : deux colonnes de plus après `chapter_title`, **`lesson_id` et `lesson_title`** (la leçon d'un exercice ; `chapter_id` et `chapter_title` sont alors son chapitre) ; les exercices neufs, modifiés et retirés, après leur leçon ; « rangés autrement » compte aussi un exercice rangé autrement ou passé dans une autre leçon ;
+- **`outline_reorder`** : nouvelle forme `[{ chapterId, lessons: [{ lessonId, exerciseIds: [...] }] }]`, où chaque exercice prend la leçon et la place demandées, et `plan_perime` compte aussi les exercices ; l'ancienne forme `[{ chapterId, lessonIds }]` reste acceptée (les exercices restent dans leur leçon, à leur place) : l'admin en ligne continue de ranger entre `db push` et sa mise à jour ; toutes les entrées d'une demande ont la même forme ; la réponse liste aussi les exercices ;
+- **`unpublish`, `trash`, `restore`** : un exercice comme une leçon (la méthode d'abord, nouvelle version de la méthode `origin = 'outline'`, « Montrer dans l'app » décoché ; une leçon part à la corbeille avec ses exercices, dans le même lot ; un exercice seul revient en fin de sa leçon, après elle : « Restaure d'abord la leçon « … ». ») ; `private.method_of` connaît l'exercice ; la Corbeille donne à un exercice le titre de sa méthode (`parent_title`) ;
+- **l'app** : `app_content` d'une leçon donne `exercises` (`[{ id, versionId, title, cover, level, locked }]` dans l'ordre du plan en ligne, même quand la leçon est verrouillée ; leurs images de présentation s'ajoutent à `files`), d'un exercice `lessonId` ; `null` pour les autres sortes. `app_method` donne `exerciseCount` pour chaque leçon (pas la liste : le plan reste court) ; ses `files` restent les images de la méthode, des chapitres et des leçons. Aucune des deux ne rend plus de résumé.
+- pgTAP : `51_exercices` (création et parent, réglages refusés, point de départ ; `publish_preview` avec la leçon ; publication, exercice décoché absent ; niveau d'un exercice dans une leçon gratuite ou réservée, `app_content` d'un exercice et d'une leçon, `app_method`, fichiers publics ou protégés, lecteur du bon rang, `media_uses` ; versions gardées ; erreur qui nomme l'exercice ; `outline_reorder` dans les deux formes, `plan_perime`, demande mal formée ; retrait, corbeille avec la leçon, seul, restauration et ordre ; plan vérifié à l'insertion). Les tests de parcours des Méthodes et des sections passent sans changement, sauf l'élément de `app_feed`, qui n'a plus de résumé.
 
 ---
 

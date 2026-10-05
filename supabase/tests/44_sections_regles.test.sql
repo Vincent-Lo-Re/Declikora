@@ -1,6 +1,6 @@
 -- Sections (étape 7, partie 7a) : règles.
 --   - [D45] : image de présentation obligatoire pour publier ou programmer un article, un épisode
---     (et une méthode, préparé pour 7b) ; résumé facultatif ; rien pour une page ; le son d'un
+--     (et une méthode, préparé pour 7b) ; plus de résumé (retiré le 04/10/2026) ; rien pour une page ; le son d'un
 --     épisode (son_manquant, fichier_inadapte, fichier_indisponible) ; échec d'une programmation
 --     dont l'image a été retirée ensuite ;
 --   - catégories : [D44] facultatives, rangement (categories_reorder), suppression définitive
@@ -76,7 +76,7 @@ begin
   perform pg_temp.save(
     content_name,
     pg_temp.draft(jsonb_build_array(pg_temp.text_block('00000000-0000-4000-8000-000000000001', 'Texte')),
-      title, pg_temp.cover() || jsonb_build_object('summary', 'Résumé de ' || title) || extra),
+      title, pg_temp.cover() || extra),
     settings
   );
 end;
@@ -107,7 +107,7 @@ select lives_ok($$select pg_temp.create_content('nu', 'article', content_title =
 select lives_ok(
   $$select pg_temp.save('nu', pg_temp.draft(jsonb_build_array(pg_temp.text_block('00000000-0000-4000-8000-000000000002')), 'Nu'),
     '{"access_level_id": null}')$$,
-  'gratuit, sans image de présentation ni résumé'
+  'gratuit, sans image de présentation'
 );
 select throws_ok(
   $$select pg_temp.publish('nu')$$, 'P0001', 'image_de_presentation_manquante',
@@ -140,11 +140,11 @@ select throws_ok(
   'un son en image de présentation ne se publie pas'
 );
 select lives_ok($$select pg_temp.save('nu', pg_temp.draft('[]', 'Nu', pg_temp.cover()))$$, 'avec une image');
-select lives_ok($$select pg_temp.publish('nu')$$, 'l''article se publie, sans résumé (facultatif)');
+select lives_ok($$select pg_temp.publish('nu')$$, 'l''article se publie');
 select is(
-  (select array[x ->> 'summary', x #>> '{cover,mediaId}'] from public.app_content(pg_temp.cid('nu')) x),
-  array[null, pg_temp.mid('couverture')::text],
-  'l''app : pas de résumé, l''image de présentation'
+  (select array[(x ? 'summary')::text, x #>> '{cover,mediaId}'] from public.app_content(pg_temp.cid('nu')) x),
+  array['false', pg_temp.mid('couverture')::text],
+  'l''app : plus de résumé (retiré le 04/10/2026), l''image de présentation'
 );
 select is(
   (pg_temp.live('nu')).cover_media_id, pg_temp.mid('couverture'), 'la version retient l''image de présentation'
@@ -427,12 +427,12 @@ select is(
 select is(
   (select jsonb_build_object('locked', x -> 'locked', 'level', x #>> '{level,name}',
       'files', (select array_agg(k) from jsonb_object_keys(x -> 'files') k),
-      'blocks', x ? 'blocks', 'audio', x ? 'audio', 'summary', x -> 'summary',
+      'blocks', x ? 'blocks', 'audio', x ? 'audio', 'summary', x ? 'summary',
       'cover', x #>> '{cover,mediaId}', 'categories', x -> 'categoryIds')
     from jsonb_array_elements(public.app_feed('blog') -> 'items') x
     where (x ->> 'id')::uuid = pg_temp.cid('r')),
   jsonb_build_object('locked', true, 'level', 'Complet', 'files', jsonb_build_array(pg_temp.mid('couverture')),
-    'blocks', false, 'audio', false, 'summary', 'Résumé de Réservé',
+    'blocks', false, 'audio', false, 'summary', false,
     'cover', pg_temp.mid('couverture'), 'categories', jsonb_build_array(pg_temp.catid('sommeil'))),
   'réservé, pour un anonyme : verrouillé, sa formule, sa vignette et rien d''autre'
 );

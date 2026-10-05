@@ -167,7 +167,7 @@ select pg_temp.as_person('editor');
 select lives_ok($$select pg_temp.create_content('page', 'page', content_title => 'Aide')$$, 'une page est créée');
 select is(
   (select draft from public.contents where id = pg_temp.cid('page')),
-  '{"v":1,"title":"Aide","summary":null,"cover":null,"audio":null,"blocks":[]}'::jsonb,
+  '{"v":1,"title":"Aide","cover":null,"audio":null,"blocks":[]}'::jsonb,
   'création : brouillon vide avec le titre donné'
 );
 select is(

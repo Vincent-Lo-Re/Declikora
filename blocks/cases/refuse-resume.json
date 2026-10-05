@@ -1,10 +1,11 @@
 {
-  "description": "v vaut 2",
+  "description": "un résumé (retiré le 04/10/2026)",
   "variant": "draft",
   "valid": false,
   "data": {
-    "v": 2,
+    "v": 1,
     "title": "Bien respirer",
+    "summary": "Trois minutes pour souffler",
     "cover": null,
     "audio": null,
     "blocks": []

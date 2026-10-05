@@ -542,11 +542,12 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     expect(item).toMatchObject({
       kind: "article",
       title,
-      summary: null,
       locked: false,
       durationS: null,
       categoryIds: [sommeilId],
     })
+    // Plus de résumé dans l'app (retiré de la base le 04/10/2026).
+    expect(item).not.toHaveProperty("summary")
     expect(item.cover).not.toBeNull()
     const thumbnail = item.files[item.cover!.mediaId]
     expect(thumbnail).toMatchObject({ kind: "image" })

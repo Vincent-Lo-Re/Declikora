@@ -81,7 +81,6 @@ const CLAIRE = "00000000-0000-4000-8000-0000000000cc"
 const draft: Draft = {
   v: 1,
   title: "Mentions légales",
-  summary: null,
   cover: null,
   audio: null,
   blocks: [

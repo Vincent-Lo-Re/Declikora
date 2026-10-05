@@ -125,7 +125,6 @@ function contentOf(
   const full: Draft = {
     v: 1,
     title: kind === "article" ? "Bien dormir" : "Entretien",
-    summary: null,
     cover: null,
     audio: null,
     blocks: [],

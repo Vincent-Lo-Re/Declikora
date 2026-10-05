@@ -17,13 +17,6 @@
       "type": "string",
       "maxLength": 200
     },
-    "summary": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "maxLength": 1000
-    },
     "cover": {
       "$ref": "#/definitions/mediaRef"
     },
@@ -1058,13 +1051,6 @@
           "type": "string",
           "maxLength": 200
         },
-        "summary": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "maxLength": 1000
-        },
         "cover": {
           "$ref": "#/definitions/mediaRef"
         },
@@ -1097,13 +1083,6 @@
           "type": "string",
           "maxLength": 200
         },
-        "summary": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "maxLength": 1000
-        },
         "cover": {
           "$ref": "#/definitions/mediaRef"
         },
@@ -1135,13 +1114,6 @@
         "title": {
           "type": "string",
           "maxLength": 200
-        },
-        "summary": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "maxLength": 1000
         },
         "cover": {
           "$ref": "#/definitions/mediaRef"

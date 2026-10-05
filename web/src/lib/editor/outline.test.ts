@@ -143,7 +143,6 @@ describe("duplicateBlock", () => {
     const draft: Draft = {
       v: 1,
       title: "",
-      summary: null,
       cover: null,
       audio: null,
       blocks: [{ ...box, blocks: [inner] }, after],
@@ -166,7 +165,6 @@ describe("duplicateBlock", () => {
     const draft: Draft = {
       v: 1,
       title: "",
-      summary: null,
       cover: null,
       audio: null,
       blocks: [box],

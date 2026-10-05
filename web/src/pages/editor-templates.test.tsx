@@ -99,7 +99,7 @@ const contactBox: BoxBlock = {
 }
 
 function draftOf(blocks: Draft["blocks"], title = "Accueil"): Draft {
-  return { v: 1, title, summary: null, cover: null, audio: null, blocks }
+  return { v: 1, title, cover: null, audio: null, blocks }
 }
 
 function page(blocks: Draft["blocks"]): api.Content {

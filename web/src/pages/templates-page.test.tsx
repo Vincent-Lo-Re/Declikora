@@ -97,7 +97,7 @@ const created: api.Content = {
   id: CONTACT,
   kind: "template",
   title: "Contact",
-  draft: { ...draftOf("Contact"), summary: null, cover: null, audio: null },
+  draft: { ...draftOf("Contact"), cover: null, audio: null },
   draft_rev: 1,
   draft_saved_at: "2026-09-27T12:30:00Z",
   deleted_at: null,

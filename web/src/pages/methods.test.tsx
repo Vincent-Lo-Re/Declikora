@@ -134,7 +134,6 @@ function contentOf(
   const draft: Draft = {
     v: 1,
     title,
-    summary: null,
     cover: kind === "method" ? { mediaId: COVER } : null,
     audio: null,
     blocks: [],
@@ -1385,7 +1384,6 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
       draft: {
         v: 1,
         title,
-        summary: null,
         cover: null,
         audio: null,
         blocks: [
