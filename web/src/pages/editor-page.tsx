@@ -326,7 +326,7 @@ function BackLink({
   section: SectionKey
   // Un chapitre ou une leçon : le retour mène à sa méthode (son nom dans l'infobulle).
   method?: { id: string; title: string } | null
-  // Éditeur du Fil : la flèche seule, sur toute la hauteur du bas de la colonne de gauche, le nom
+  // Éditeur du Fil : la flèche seule, à gauche de l'en-tête du plan (sur toute sa hauteur), le nom
   // de la section (ou de la méthode) dans l'infobulle.
   compact?: boolean
 }) {
@@ -345,7 +345,7 @@ function BackLink({
             <Link
               to={to}
               aria-label={label}
-              className="flex h-full w-14 shrink-0 items-center justify-center border-r text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset [&_svg]:size-4"
+              className="flex h-full w-12 shrink-0 items-center justify-center border-r text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset [&_svg]:size-4"
             />
           }
         >
@@ -1330,6 +1330,11 @@ function ContentEditor({
       : undefined,
     rootLimit,
   }
+  // La sortie en haut à gauche (ADMIN § 4, « Le retour en haut ») : dans l'en-tête du plan, et dans
+  // celui des Blocs quand leur glissière le couvre.
+  const backLink = (
+    <BackLink section={section} method={elementContext?.method} compact />
+  )
   const outlinePanel = (
     <OutlinePanel
       draft={draft}
@@ -1338,6 +1343,8 @@ function ContentEditor({
       templateName={templateName}
       feed={feedOutline}
       selection={profile.savedBlocks && editable ? saveAs.selection : undefined}
+      // Une seule flèche à la fois : sous la glissière des Blocs, c'est la leur.
+      back={libraryOpen ? undefined : backLink}
     />
   )
 
@@ -1540,6 +1547,7 @@ function ContentEditor({
                       icon={Blocks}
                       title={texts.editor.columns.blocks}
                       titleId="colonne-blocs-titre"
+                      back={backLink}
                       close={{
                         label: texts.editor.library.close,
                         onClick: () => {
@@ -1578,14 +1586,9 @@ function ContentEditor({
                   <span>{texts.templates.editor.sharedLimit}</span>
                 </p>
               )}
-              {/* En bas, de la même hauteur que le bas de la colonne de droite : le retour sur
-                  toute la hauteur, puis « Ajouter un bloc » sur toute la largeur qui reste. */}
+              {/* En bas, de la même hauteur que le bas de la colonne de droite : « Ajouter un bloc »
+                  sur toute la largeur (le retour est en haut, dans l'en-tête du plan). */}
               <div className="flex h-feed-footer shrink-0 items-stretch border-t">
-                <BackLink
-                  section={section}
-                  method={elementContext?.method}
-                  compact
-                />
                 <div className="flex min-w-0 flex-1 items-center px-4">
                   {/* Le même bouton que dans le téléphone. */}
                   <AddBlockButton
