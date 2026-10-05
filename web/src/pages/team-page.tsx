@@ -47,11 +47,11 @@ import {
 } from "@/components/ui/table"
 import { formatDateTime } from "@/lib/dates"
 import { displayName } from "@/lib/people"
+import { teamRead } from "@/lib/reads"
 import {
   callTeam,
   countActiveAdmins,
   isInvitationExpired,
-  listMembers,
   teamQueryKey,
   type Member,
   type TeamRequest,
@@ -84,7 +84,7 @@ export function TeamPage() {
 
   const checkAccess = useAccessCheck()
 
-  const members = useQuery({ queryKey: teamQueryKey, queryFn: listMembers })
+  const members = useQuery(teamRead())
   useEffect(() => {
     if (members.error) checkAccess(members.error)
   }, [members.error, checkAccess])

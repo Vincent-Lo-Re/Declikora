@@ -22,6 +22,8 @@ vi.mock("@/lib/contents/api", async (importOriginal) => {
     ...actual,
     getContent: vi.fn(),
     getMediaByIds: vi.fn(async () => []),
+    // La liste, au retour de l'éditeur.
+    listContents: vi.fn(async () => []),
     saveDraft: vi.fn(),
     lockTake: vi.fn(),
     lockStatus: vi.fn(),
@@ -49,6 +51,7 @@ vi.mock("@/lib/contents/templates", async (importOriginal) => {
     ...actual,
     getTemplatesByIds: vi.fn(async () => []),
     listTemplates: vi.fn(async () => []),
+    listStarters: vi.fn(async () => []),
   }
 })
 
@@ -239,7 +242,7 @@ async function pick(list: HTMLElement, option: string) {
 describe("éditeur d'un article (Le Fil)", () => {
   it("s'ouvre à /blog/<id> avec le plan à gauche et l'Article à droite", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     expect(
       screen.getByRole("link", {
@@ -282,7 +285,7 @@ describe("éditeur d'un article (Le Fil)", () => {
   it("choisit l'image de présentation dans l'aperçu ; la carte du Fil n'a pas de résumé", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     vi.mocked(mediaApi.listMedia).mockResolvedValue([plage])
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
 
     // Dans l'aperçu, comme l'app la montrera, en tête de l'article.
@@ -329,7 +332,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(ARTICLE, "article", { cover: { mediaId: PLAGE } })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     fireEvent.click(
       await within(articleTab()).findByRole("button", {
@@ -362,7 +365,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     vi.mocked(mediaApi.getPreviewUrls).mockImplementation(async (keys) =>
       Object.fromEntries(keys.map((key) => [key, `blob:${key}`]))
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const preview = document.querySelector<HTMLElement>(
       '[data-presentation="cover"]'
@@ -404,7 +407,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         ],
       })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     const title = await editable()
     const right = screen.getByRole("complementary", {
       name: columns.right.article,
@@ -486,7 +489,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         ],
       })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     fireEvent.pointerDown(
       document.querySelector<HTMLElement>(`[data-block-id="${BLOCK}"]`)!
@@ -541,7 +544,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         { access_level_id: LEVEL, category_ids: [SOMMEIL] }
       )
     )
-    const { router } = renderApp(`/blog/${ARTICLE}`)
+    const { router } = await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const tools = screen.getByRole("toolbar", { name: preview.tools })
     expect(
@@ -663,7 +666,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         ],
       })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     // Le contenu plutôt que le type : « Texte « … » » reste le nom lu par les lecteurs d'écran.
@@ -700,7 +703,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         ],
       })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     expect(await within(plan).findByText("plage.png")).toBeVisible()
@@ -733,7 +736,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         ],
       })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     // Les blocs du premier niveau : la section (son image est comptée par elle).
@@ -815,7 +818,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         ],
       })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     fireEvent.click(
@@ -847,7 +850,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         ],
       })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     fireEvent.click(
@@ -902,7 +905,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         ],
       })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     const section = texts.editor.blockLabel.box(outline.box.border, 1)
@@ -940,7 +943,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         ],
       })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     const name = texts.editor.blockLabel.image
@@ -954,7 +957,7 @@ describe("éditeur d'un article (Le Fil)", () => {
 
   it("Concentration : le raccourci cache les deux colonnes, Échap les ramène", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const left = screen.getByRole("complementary", { name: columns.left })
     const button = screen.getByRole("button", {
@@ -986,7 +989,7 @@ describe("éditeur d'un article (Le Fil)", () => {
       }
     )
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const tools = screen.getByRole("toolbar", { name: preview.tools })
     expect(
@@ -1017,7 +1020,7 @@ describe("éditeur d'un article (Le Fil)", () => {
 
   it("« Ajouter un bloc » ouvre les Blocs par-dessus le Plan, le curseur sur le premier ; × les referme", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     // Celui du téléphone (le plan vide a le même).
     fireEvent.click(
@@ -1057,7 +1060,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         blocks: [{ id: BOX, type: "box", look: "fill", blocks: [] }],
       })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     // Le téléphone et le plan ont chacun le bouton ; celui du téléphone.
     expect(
@@ -1121,7 +1124,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         rank: 1,
       },
     ])
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const tab = articleTab()
     expect(
@@ -1158,7 +1161,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(ARTICLE, "article", {}, { category_ids: [SOMMEIL, STRESS] })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const tab = articleTab()
     fireEvent.click(await within(tab).findByRole("button", { name: "Sommeil" }))
@@ -1204,7 +1207,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         draft_saved_at: "2026-09-30T10:00:00Z",
       },
     ])
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     openBlocks()
     const library = blocksPanel()
@@ -1274,7 +1277,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         category_ids: [STRESS, "00000000-0000-4000-8000-00000000c0ff", SOMMEIL],
       },
     ])
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     // L'historique s'ouvre depuis le menu de « Publier ».
     fireEvent.click(
@@ -1306,7 +1309,7 @@ describe("éditeur d'un article (Le Fil)", () => {
   it("« Publier » explique qu'il manque l'image de présentation ([D45])", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     vi.mocked(mediaApi.listMedia).mockResolvedValue([plage])
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
 
     fireEvent.click(
@@ -1365,7 +1368,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(ARTICLE, "article", { title: "  " })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     const title = await editable()
     const todo = within(articleTab()).getByRole("button", {
       name: article.ready.todo(article.ready.items.title),
@@ -1403,7 +1406,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     vi.mocked(publicationApi.publishContent).mockRejectedValue(
       new api.ContentError("titre_manquant")
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     const title = await editable()
     fireEvent.click(
       screen.getByRole("button", { name: texts.publication.actions.publish })
@@ -1426,7 +1429,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     vi.mocked(publicationApi.publishContent).mockRejectedValue(
       new api.ContentError("image_de_presentation_manquante")
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     fireEvent.click(
       await screen.findByRole("button", {
@@ -1451,7 +1454,7 @@ describe("éditeur d'un article (Le Fil)", () => {
 
   it("un article ne s'ouvre pas dans l'éditeur des Podcasts", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
-    renderApp(`/podcasts/${ARTICLE}`)
+    await renderApp(`/podcasts/${ARTICLE}`)
     expect(await screen.findByText(texts.editor.notFound.title)).toBeVisible()
   })
 })
@@ -1468,7 +1471,7 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
 
   it("pas de barre du haut : le retour et « Ajouter un bloc » en bas à gauche ; l'enregistrement, Publier et son état à droite", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     expect(screen.queryByRole("banner")).toBeNull()
     const left = screen.getByRole("complementary", { name: columns.left })
@@ -1535,7 +1538,7 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
       deleted_at: null,
       live: null,
     })
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const right = screen.getByRole("complementary", {
       name: columns.right.article,
@@ -1558,7 +1561,7 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
     vi.mocked(publicationApi.getPublication).mockRejectedValueOnce(
       new Error("réseau")
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const right = screen.getByRole("complementary", {
       name: columns.right.article,
@@ -1587,7 +1590,7 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
     vi.mocked(api.lockTake).mockResolvedValueOnce(claire)
     vi.mocked(api.lockStatus).mockResolvedValue(claire)
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     const lock = await screen.findByRole("button", {
       name: texts.editor.lock.button,
     })
@@ -1629,7 +1632,7 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
       return () => {}
     })
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
 
     vi.mocked(api.lockStatus).mockResolvedValue(claire)
@@ -1660,7 +1663,7 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
 
   it("Concentration : une pastille garde l'enregistrement et « Quitter la Concentration »", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(ARTICLE, "article"))
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     expect(
       screen.queryByRole("button", { name: texts.editor.focusMode.exit })
@@ -1684,7 +1687,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
 
   it("s'ouvre à /podcasts/<id> avec le plan à gauche et l'Épisode à droite, sa carte Audio", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(EPISODE, "episode"))
-    renderApp(`/podcasts/${EPISODE}`)
+    await renderApp(`/podcasts/${EPISODE}`)
     await editable()
     const left = screen.getByRole("complementary", { name: columns.left })
     expect(
@@ -1732,7 +1735,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
       contentOf(EPISODE, "episode", { cover: { mediaId: PLAGE } })
     )
     vi.mocked(mediaApi.listMedia).mockResolvedValue([son])
-    renderApp(`/podcasts/${EPISODE}`)
+    await renderApp(`/podcasts/${EPISODE}`)
     await editable()
 
     fireEvent.click(
@@ -1788,7 +1791,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
     vi.mocked(api.getContent).mockResolvedValue(
       contentOf(EPISODE, "episode", { cover: { mediaId: PLAGE } })
     )
-    renderApp(`/podcasts/${EPISODE}`)
+    await renderApp(`/podcasts/${EPISODE}`)
     await editable()
     fireEvent.click(
       within(episodeTab()).getByRole("button", {
@@ -1809,7 +1812,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
         audio: { mediaId: SON },
       })
     )
-    renderApp(`/podcasts/${EPISODE}`)
+    await renderApp(`/podcasts/${EPISODE}`)
     await editable()
     fireEvent.click(
       await within(audioCard()).findByRole("button", {
@@ -1837,7 +1840,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
         audio: { mediaId: SON },
       })
     )
-    renderApp(`/podcasts/${EPISODE}`)
+    await renderApp(`/podcasts/${EPISODE}`)
     await editable()
     // Dans la carte seulement.
     const warnings = await screen.findAllByText(words.audio.transcriptMissing)
@@ -1874,7 +1877,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
         audio: { mediaId: SON },
       })
     )
-    renderApp(`/podcasts/${EPISODE}`)
+    await renderApp(`/podcasts/${EPISODE}`)
     await editable()
     expect(
       await within(audioCard()).findByText(words.audio.transcriptOk)
@@ -1890,7 +1893,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
         audio: { mediaId: SON },
       })
     )
-    renderApp(`/podcasts/${EPISODE}`)
+    await renderApp(`/podcasts/${EPISODE}`)
     await editable()
     expect(
       await within(audioCard()).findByText(words.audio.missing)
@@ -1918,7 +1921,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
         { access_level_id: LEVEL }
       )
     )
-    renderApp(`/podcasts/${EPISODE}`)
+    await renderApp(`/podcasts/${EPISODE}`)
     await editable()
     const tools = screen.getByRole("toolbar", { name: preview.tools })
     fireEvent.click(
@@ -1948,7 +1951,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
 
   it("« Publier » et « Programmer » demandent l'image et l'audio qui manquent", async () => {
     vi.mocked(api.getContent).mockResolvedValue(contentOf(EPISODE, "episode"))
-    renderApp(`/podcasts/${EPISODE}`)
+    await renderApp(`/podcasts/${EPISODE}`)
     await editable()
 
     fireEvent.click(
@@ -1994,7 +1997,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
     vi.mocked(publicationApi.publishContent).mockRejectedValue(
       new api.ContentError("son_manquant")
     )
-    renderApp(`/podcasts/${EPISODE}`)
+    await renderApp(`/podcasts/${EPISODE}`)
     await editable()
     await within(audioCard()).findByText("entretien.mp3")
     fireEvent.click(
@@ -2088,7 +2091,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
   }
 
   it("la barre de mise en forme suit le bloc choisi : grisée pour une image ou un bloc partagé", async () => {
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const toolbar = screen.getByRole("toolbar", {
       name: texts.editor.toolbar.label,
@@ -2109,7 +2112,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
   })
 
   it("une section vide est signalée dans le plan et dans « Prêt à publier ? », qui y mène", async () => {
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     expect(within(plan).getByText(outline.warnings.emptyBox)).toBeVisible()
@@ -2140,7 +2143,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
   })
 
   it("« Prêt à publier ? » : la carte à régler s'allume, et le curseur va sur son réglage", async () => {
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     fireEvent.click(
       within(articleTab()).getByRole("button", {
@@ -2157,7 +2160,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
   })
 
   it("colonne de droite : le titre en tête, et en bas la lecture, l'état et « Publier » ; l'image a son icône Info", async () => {
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const right = screen.getByRole("complementary", {
       name: columns.right.article,
@@ -2190,7 +2193,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
   })
 
   it("un texte se résume par sa première ligne, dans le plan comme dans « Bloc choisi »", async () => {
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     expect(within(plan).getByText("Astuce")).toBeVisible()
@@ -2204,7 +2207,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
   })
 
   it("un bloc sort de sa section : « Monter hors de la section », et « Sortir de la section » du plan", async () => {
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     choose(texts.editor.blockLabel.text("Astuce"))
     const bar = await screen.findByRole("toolbar", {
@@ -2267,7 +2270,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
         draft_saved_at: "2026-09-30T10:00:00Z",
       },
     ])
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     openBlocks()
     const library = blocksPanel()
@@ -2285,7 +2288,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
   })
 
   it("une image : sa vignette et sa fiche dans la Médiathèque", async () => {
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     choose(texts.editor.blockLabel.image)
     // Le lien dit aussi qu'il ouvre un nouvel onglet (lecteurs d'écran).
@@ -2299,7 +2302,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
   it("un bloc partagé : pas de barre dans l'aperçu ; deux points courts et ses actions en icônes dans « Bloc choisi »", async () => {
     const name = "Besoin d'aide ?"
     const linked = texts.templates.linked
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     // Le bloc du modèle s'affiche, sans barre au-dessus.
     expect(await screen.findByText("Écris-nous.")).toBeInTheDocument()
@@ -2331,7 +2334,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
   })
 
   it("le plan : une section a son icône, comme les autres lignes (l'icône dit le type)", async () => {
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     for (const id of [TEXT, IMAGE, BOX, EMPTY, LINKED]) {
       const row = document.querySelector(`[data-outline-id="${id}"]`)!
@@ -2343,7 +2346,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
   })
 
   it("supprimer un bloc (barre du bas ou menu ⋮ du plan) : le focus va à la ligne de son voisin", async () => {
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     choose(texts.editor.blockLabel.image)
     const bar = await screen.findByRole("toolbar", {
@@ -2393,7 +2396,7 @@ describe("éditeur du Fil : une adresse d'aperçu qui ne vient pas", () => {
     vi.mocked(mediaApi.getPreviewUrls).mockRejectedValueOnce(
       new Error("réseau")
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const phone = screen.getByRole("region", { name: preview.screen.ios })
     expect(
@@ -2425,7 +2428,7 @@ describe("éditeur du Fil : un brouillon changé ailleurs qui ne se relit pas", 
       )
     vi.mocked(api.lockTake).mockResolvedValue({ ...mine, draft_rev: 6 })
     vi.mocked(api.lockStatus).mockResolvedValue({ ...mine, draft_rev: 6 })
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     expect(
       await screen.findByText(texts.editor.save.rereadFailed)
     ).toBeInTheDocument()
@@ -2455,7 +2458,7 @@ describe("éditeur du Fil : le dernier bloc supprimé", () => {
         ],
       })
     )
-    renderApp(`/blog/${ARTICLE}`)
+    await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
     fireEvent.click(

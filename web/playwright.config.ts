@@ -50,6 +50,8 @@ export default defineConfig({
       VITE_SUPABASE_PUBLISHABLE_KEY: supabase.publishableKey,
       // Pas d'alerte Sentry pendant les tests.
       VITE_SENTRY_DSN: "",
+      // Le contrôle des lectures non préparées (e2e/navigation.spec.ts).
+      VITE_PREPARATION_CHECK: "1",
     },
   },
 })

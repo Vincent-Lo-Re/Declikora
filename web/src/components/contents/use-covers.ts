@@ -2,12 +2,9 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { useCallback, useMemo } from "react"
 
 import { usePreviewUrls } from "@/components/media/use-preview-urls"
-import {
-  contentKeys,
-  getMediaByIds,
-  type ContentListItem,
-} from "@/lib/contents/api"
+import type { ContentListItem } from "@/lib/contents/api"
 import type { Media } from "@/lib/media/constants"
+import { coverIds, mediaByIdsRead, shownFiles } from "@/lib/reads"
 
 /**
  * Les images de présentation d'une liste de contenus, lues en une demande, avec leurs adresses
@@ -15,22 +12,13 @@ import type { Media } from "@/lib/media/constants"
  * ou pas encore lue n'a pas d'adresse : la vignette montre alors l'icône.
  */
 export function useCovers(items: ContentListItem[]) {
-  const ids = [
-    ...new Set(items.flatMap((item) => (item.cover_id ? [item.cover_id] : []))),
-  ].sort()
+  const ids = coverIds(items)
   const query = useQuery({
-    queryKey: contentKeys.media(ids),
-    queryFn: () => getMediaByIds(ids),
+    ...mediaByIdsRead(ids),
     enabled: ids.length > 0,
     placeholderData: keepPreviousData,
   })
-  const ready = useMemo(
-    () =>
-      (query.data ?? []).filter(
-        (media) => media.status === "ready" && !media.deleted_at
-      ),
-    [query.data]
-  )
+  const ready = useMemo(() => shownFiles(query.data ?? []), [query.data])
   const byId = useMemo(
     () => new Map(ready.map((media) => [media.id, media])),
     [ready]

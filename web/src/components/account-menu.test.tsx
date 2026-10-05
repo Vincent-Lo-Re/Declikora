@@ -22,7 +22,7 @@ describe("menu de l'avatar", () => {
 
   it("montre l'initiale du prénom, le nom et, dessous, le rôle ; un clic sur le nom ouvre le menu", async () => {
     // Anne Admin (fakeAuth) : « A ».
-    renderApp("/", fakeAuth({ role: "editor" }))
+    await renderApp("/", fakeAuth({ role: "editor" }))
 
     expect(trigger()).toHaveAccessibleName(
       `Anne Admin ${texts.roles.editor} ${texts.accountMenu.open}`
@@ -39,7 +39,7 @@ describe("menu de l'avatar", () => {
   })
 
   it("mène à Mon compte, et « Se déconnecter » ferme la session", async () => {
-    const { router } = renderApp("/", fakeAuth({ role: "editor" }))
+    const { router } = await renderApp("/", fakeAuth({ role: "editor" }))
 
     fireEvent.click(
       within(await openMenu()).getByRole("menuitem", {
@@ -61,7 +61,7 @@ describe("menu de l'avatar", () => {
   })
 
   it("change le thème", async () => {
-    renderApp("/", fakeAuth({ role: "editor" }))
+    await renderApp("/", fakeAuth({ role: "editor" }))
 
     fireEvent.click(
       within(await openMenu()).getByRole("menuitem", {

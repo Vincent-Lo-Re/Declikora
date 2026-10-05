@@ -380,7 +380,7 @@ async function flag(label: string, name: string) {
 
 /** Ouvre le plan d'une méthode et attend ses lignes. */
 async function openMethod() {
-  renderApp(`/methodes/${METHOD}`)
+  await renderApp(`/methodes/${METHOD}`)
   await editable()
   await within(await planColumn()).findByRole("link", {
     name: "Respiration carrée",
@@ -410,7 +410,7 @@ describe("liste des méthodes", () => {
         access_level_id: LEVEL,
       },
     ])
-    renderApp("/methodes")
+    await renderApp("/methodes")
     const link = await screen.findByRole("link", { name: "Mieux respirer" })
     expect(link).toHaveAttribute("href", `/methodes/${METHOD}`)
     expect(await screen.findByText("Essentiel")).toBeVisible()
@@ -428,7 +428,7 @@ describe("liste des méthodes", () => {
     )
     vi.mocked(methodsApi.getMethodTree).mockResolvedValue([])
     vi.mocked(methodsApi.getMethodPreview).mockResolvedValue([])
-    renderApp("/methodes")
+    await renderApp("/methodes")
     await createFromDialog("method", "Mieux respirer")
     await waitFor(() =>
       expect(api.createContent).toHaveBeenCalledWith(
@@ -1017,7 +1017,7 @@ describe("publier une méthode d'un seul geste ([D29])", () => {
       previewRow(METHOD, "method", "Mieux respirer", "reordered"),
       ...lessons,
     ])
-    renderApp(`/methodes/${METHOD}`)
+    await renderApp(`/methodes/${METHOD}`)
     await editable()
     const card = screen.getByRole("region", { name: changes.cardTitle })
     const group = await within(card).findByRole("region", {
@@ -1075,7 +1075,7 @@ describe("publier une méthode d'un seul geste ([D29])", () => {
 
   it("rien à publier : « Publier » est grisé", async () => {
     vi.mocked(methodsApi.getMethodPreview).mockResolvedValue([])
-    renderApp(`/methodes/${METHOD}`)
+    await renderApp(`/methodes/${METHOD}`)
     await editable()
     await waitFor(() =>
       expect(
@@ -1210,7 +1210,7 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
   }
 
   it("la mise en page du Fil : le retour à la méthode, « Dans la méthode » en tête, « Ouvrir la méthode » au lieu de « Publier »", async () => {
-    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    await renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()
     const left = screen.getByRole("complementary", {
       name: texts.editor.columns.left,
@@ -1269,7 +1269,7 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
       rev: 5,
       savedAt: "2026-09-28T12:35:00Z",
     })
-    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    await renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()
     const right = rightColumn()
     const inApp = within(right).getByRole("switch", { name: element.inApp })
@@ -1298,7 +1298,7 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
   })
 
   it("en Lecture, « sans la formule » suit le niveau de la méthode et « Leçon gratuite »", async () => {
-    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    await renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()
     const tools = screen.getByRole("toolbar", { name: preview.tools })
     fireEvent.click(
@@ -1335,7 +1335,7 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
         ? contentOf(LOIN, "chapter", "Aller plus loin", { parent_id: METHOD })
         : null
     )
-    renderApp(`/methodes/chapitres/${LOIN}`)
+    await renderApp(`/methodes/chapitres/${LOIN}`)
     await editable()
     const card = placeCard("chapter")
     await waitFor(() =>
@@ -1373,7 +1373,7 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
       holder_id: "00000000-0000-4000-8000-00000000c1a1",
       holder_name: "Claire Martin",
     })
-    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    await renderApp(`/methodes/lecons/${SOUFFLE}`)
     const lock = await screen.findByRole("button", {
       name: texts.editor.lock.button,
     })
@@ -1423,7 +1423,7 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
       item("00000000-0000-4000-8000-00000000a501", "À retenir", "style"),
       item("00000000-0000-4000-8000-00000000a504", "Interview", "starter"),
     ])
-    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    await renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()
     fireEvent.click(document.getElementById("colonne-gauche-ajouter")!)
     const library = screen.getByRole("region", {
@@ -1450,7 +1450,9 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
       rev: 5,
       savedAt: "2026-09-28T12:35:00Z",
     })
-    const { router, queryClient } = renderApp(`/methodes/lecons/${SOUFFLE}`)
+    const { router, queryClient } = await renderApp(
+      `/methodes/lecons/${SOUFFLE}`
+    )
     await editable()
     const invalidate = vi.spyOn(queryClient, "invalidateQueries")
     const isFree = within(rightColumn()).getByRole("switch", {
@@ -1504,7 +1506,7 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
       )
       return false
     })
-    const { router } = renderApp(`/methodes/lecons/${SOUFFLE}`)
+    const { router } = await renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()
     await act(() => router.navigate(`/methodes/${METHOD}`))
     await within(await planColumn()).findByRole("link", {
@@ -1550,7 +1552,7 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
       live: null,
     }))
     const words = element.schedule
-    const { queryClient } = renderApp(`/methodes/lecons/${SOUFFLE}`)
+    const { queryClient } = await renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()
     const card = placeCard()
     expect(
@@ -1575,7 +1577,7 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
   })
 
   it("une leçon ne s'ouvre pas à l'adresse d'un chapitre", async () => {
-    renderApp(`/methodes/chapitres/${SOUFFLE}`)
+    await renderApp(`/methodes/chapitres/${SOUFFLE}`)
     expect(await screen.findByText(texts.editor.notFound.title)).toBeVisible()
   })
 })
@@ -1797,7 +1799,7 @@ describe("les exercices d'une leçon (04/10/2026)", () => {
   })
 
   it("une leçon montre ses exercices en bas du téléphone, comme dans l'app", async () => {
-    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    await renderApp(`/methodes/lecons/${SOUFFLE}`)
     await editable()
     const phone = screen.getByRole("region", {
       name: texts.editor.preview.screen.ios,
@@ -1826,7 +1828,7 @@ describe("les exercices d'une leçon (04/10/2026)", () => {
       chapter: { id: BASES, title: "Les bases" },
       lesson: { id: SOUFFLE, title: "Le souffle", isFree: true },
     })
-    renderApp(`/methodes/exercices/${INSPIRER}`)
+    await renderApp(`/methodes/exercices/${INSPIRER}`)
     await editable()
     expect(
       await screen.findByRole("link", { name: words.back("Mieux respirer") })
@@ -1877,7 +1879,7 @@ describe("la Lecture, comme dans l'app (QCM du 04/10/2026)", () => {
 
   it("le téléphone d'une méthode ouvre une leçon en Lecture, sans prendre la main ; sa flèche ramène à la méthode", async () => {
     const reading = "?mode=lecture&lecteur=sans-formule"
-    const { router } = renderApp(`/methodes/${METHOD}${reading}`)
+    const { router } = await renderApp(`/methodes/${METHOD}${reading}`)
     const souffle = await within(
       await screen.findByRole("region", { name: preview.screen.ios })
     ).findByRole("link", { name: /Le souffle/ })
@@ -1895,11 +1897,15 @@ describe("la Lecture, comme dans l'app (QCM du 04/10/2026)", () => {
       expect(router.state.location.pathname).toBe(`/methodes/lecons/${SOUFFLE}`)
     )
     expect(router.state.location.search).toBe(reading)
+    // Le téléphone de la leçon (celui de la méthode a pu rester un instant à l'écran).
+    const lessonTitle = await screen.findByRole("heading", {
+      level: 1,
+      name: "Le souffle",
+    })
+    expect(lessonTitle).toBeVisible()
     expect(
-      await within(
-        await screen.findByRole("region", { name: preview.screen.ios })
-      ).findByRole("heading", { level: 1, name: "Le souffle" })
-    ).toBeVisible()
+      lessonTitle.closest('[role="region"]')?.getAttribute("aria-label")
+    ).toBe(preview.screen.ios)
     expect(screen.queryByLabelText(texts.editor.title.label)).toBeNull()
     await waitFor(() =>
       expect(api.lockStatus).toHaveBeenCalledWith(SOUFFLE, expect.any(String))
@@ -1921,7 +1927,9 @@ describe("la Lecture, comme dans l'app (QCM du 04/10/2026)", () => {
   })
 
   it("« Édition » prend la main, « Lecture » la rend ; l'adresse suit", async () => {
-    const { router } = renderApp(`/methodes/lecons/${SOUFFLE}?mode=lecture`)
+    const { router } = await renderApp(
+      `/methodes/lecons/${SOUFFLE}?mode=lecture`
+    )
     const tools = await screen.findByRole("toolbar", { name: preview.tools })
     expect(await screen.findByText(preview.reading)).toBeInTheDocument()
     await waitFor(() => expect(api.lockStatus).toHaveBeenCalled())
@@ -1948,7 +1956,7 @@ describe("la Lecture, comme dans l'app (QCM du 04/10/2026)", () => {
   })
 
   it("un chapitre montre ses leçons sous son introduction, puis « Suivant »", async () => {
-    renderApp(`/methodes/chapitres/${BASES}`)
+    await renderApp(`/methodes/chapitres/${BASES}`)
     await editable()
     const list = await within(phone()).findByRole("region", {
       name: words.chapterLessons,
@@ -1991,7 +1999,7 @@ describe("la Lecture, comme dans l'app (QCM du 04/10/2026)", () => {
       chapter: { id: BASES, title: "Les bases" },
       lesson: { id: SOUFFLE, title: "Le souffle", isFree: true },
     })
-    renderApp(`/methodes/exercices/${INSPIRER}?mode=lecture`)
+    await renderApp(`/methodes/exercices/${INSPIRER}?mode=lecture`)
     expect(
       await screen.findByRole("link", { name: preview.back("Le souffle") })
     ).toHaveAttribute("href", `/methodes/lecons/${SOUFFLE}?mode=lecture`)
@@ -2014,7 +2022,7 @@ describe("la Lecture, comme dans l'app (QCM du 04/10/2026)", () => {
       chapter: { id: LOIN, title: "Aller plus loin" },
       lesson: null,
     })
-    renderApp(`/methodes/lecons/${EXPIRER}?mode=lecture`)
+    await renderApp(`/methodes/lecons/${EXPIRER}?mode=lecture`)
     expect(
       await screen.findByText(preview.notInApp.chapter)
     ).toBeInTheDocument()
@@ -2024,7 +2032,7 @@ describe("la Lecture, comme dans l'app (QCM du 04/10/2026)", () => {
   })
 
   it("le plan de gauche d'une méthode, en Lecture : il ouvre, mais ne modifie rien", async () => {
-    renderApp(`/methodes/${METHOD}?mode=lecture`)
+    await renderApp(`/methodes/${METHOD}?mode=lecture`)
     const plan = await planColumn()
     expect(await within(plan).findByText(outline.reading)).toBeInTheDocument()
     const souffle = outline.lessonLabel(1, "Le souffle")

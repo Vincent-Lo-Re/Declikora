@@ -2,11 +2,11 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { useCallback, useMemo, useState } from "react"
 
 import type { BlockMedia } from "@/blocks/components/context"
-import { flattenBlocks } from "@/blocks/draft"
+import { draftMediaIds } from "@/blocks/draft"
 import type { Block, Draft } from "@/blocks/types"
 import { usePreviewUrlsState } from "@/components/media/use-preview-urls"
-import { contentKeys, getMediaByIds } from "@/lib/contents/api"
 import type { Media } from "@/lib/media/constants"
+import { mediaByIdsRead, shownFiles } from "@/lib/reads"
 
 /**
  * Les fichiers d'un brouillon : ceux des blocs Image (blocs partagés compris, linkedBlocks),
@@ -17,24 +17,11 @@ import type { Media } from "@/lib/media/constants"
 export function useDraftMedia(draft: Draft, linkedBlocks: Block[]) {
   const [picked, setPicked] = useState<Record<string, Media>>({})
   const mediaIds = useMemo(
-    () =>
-      [
-        ...new Set([
-          ...[
-            ...flattenBlocks(draft).map(({ block }) => block),
-            ...linkedBlocks,
-          ].flatMap((block) =>
-            block.type === "image" && block.mediaId ? [block.mediaId] : []
-          ),
-          ...(draft.cover?.mediaId ? [draft.cover.mediaId] : []),
-          ...(draft.audio?.mediaId ? [draft.audio.mediaId] : []),
-        ]),
-      ].sort(),
+    () => draftMediaIds(draft, linkedBlocks),
     [draft, linkedBlocks]
   )
   const query = useQuery({
-    queryKey: contentKeys.media(mediaIds),
-    queryFn: () => getMediaByIds(mediaIds),
+    ...mediaByIdsRead(mediaIds),
     enabled: mediaIds.length > 0,
     placeholderData: keepPreviousData,
     // Un texte alternatif ou une transcription ajoutés dans la Médiathèque (autre onglet) :
@@ -47,10 +34,7 @@ export function useDraftMedia(draft: Draft, linkedBlocks: Block[]) {
     return map
   }, [query.data, picked])
   const readyMedia = useMemo(
-    () =>
-      [...mediaById.values()].filter(
-        (media) => media.status === "ready" && !media.deleted_at
-      ),
+    () => shownFiles([...mediaById.values()]),
     [mediaById]
   )
   const previews = usePreviewUrlsState(readyMedia)

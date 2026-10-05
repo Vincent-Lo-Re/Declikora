@@ -55,26 +55,26 @@ import {
 } from "@/components/ui/tooltip"
 import { useAddressState } from "@/hooks/use-address-state"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
-import { mediaFiltersFromAddress, writeMediaFilters } from "@/lib/address"
+import {
+  askedFileFromAddress,
+  FILE_PARAM,
+  mediaFiltersFromAddress,
+  writeMediaFilters,
+} from "@/lib/address"
 import {
   selectionOf,
   toggleAll,
   toggleSelected,
   type Kept,
 } from "@/lib/bulk-trash"
-import {
-  getMedia,
-  listMedia,
-  MEDIA_LIST_LIMIT,
-  mediaKeys,
-  type MediaFilters,
-} from "@/lib/media/api"
+import { MEDIA_LIST_LIMIT, type MediaFilters } from "@/lib/media/api"
 import {
   INTERRUPTED_AFTER_MS,
   mediaKinds,
   type Media,
 } from "@/lib/media/constants"
 import { getUploadQueue } from "@/lib/media/upload-queue"
+import { mediaListRead, mediaRead } from "@/lib/reads"
 import { sections } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -86,11 +86,6 @@ const viewChoices: { value: View; Icon: typeof LayoutGrid }[] = [
   { value: "grid", Icon: LayoutGrid },
   { value: "list", Icon: List },
 ]
-
-// « /mediatheque?fichier=<id> » ouvre la fiche de ce fichier (lien depuis l'éditeur : la
-// transcription d'un audio, le texte alternatif d'une image de présentation).
-const FILE_PARAM = "fichier"
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function readView(): View {
   try {
@@ -158,8 +153,7 @@ export function MediaPage() {
 
   const filters: MediaFilters = { kind, search: debouncedSearch, unused }
   const media = useQuery({
-    queryKey: mediaKeys.list(filters),
-    queryFn: () => listMedia(filters),
+    ...mediaListRead(filters),
     placeholderData: keepPreviousData,
     refetchInterval: (query) => (needsRefresh(query.state.data) ? 3000 : false),
   })
@@ -170,10 +164,9 @@ export function MediaPage() {
   // La fiche demandée par l'adresse, tant qu'aucune autre n'a été ouverte.
   const [searchParams, setSearchParams] = useSearchParams()
   const askedParam = searchParams.get(FILE_PARAM)
-  const askedId = askedParam && UUID.test(askedParam) ? askedParam : null
+  const askedId = askedFileFromAddress(searchParams)
   const asked = useQuery({
-    queryKey: mediaKeys.one(askedId ?? ""),
-    queryFn: () => getMedia(askedId ?? ""),
+    ...mediaRead(askedId ?? ""),
     enabled: askedId !== null,
   })
   const forgetAsked = useCallback(() => {

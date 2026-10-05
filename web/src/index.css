@@ -276,6 +276,33 @@
   }
 }
 
+/* La barre du haut, pendant que la page suivante se prépare (components/navigation-bar.tsx) : un
+   trait qui court ; immobile si l'ordinateur demande moins d'animations. */
+@keyframes navigation-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+[data-navigation-bar]::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  width: 40%;
+  background-color: var(--primary);
+  animation: navigation-bar 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-navigation-bar]::before {
+    width: 100%;
+    animation: none;
+  }
+}
+
 /* En revenant à une liste, la ligne du contenu qu'on venait d'ouvrir s'allume un instant
    (lib/scroll-memory.ts, data-returned) : son fond prend la teinte du survol, puis s'efface. */
 @keyframes returned-row {

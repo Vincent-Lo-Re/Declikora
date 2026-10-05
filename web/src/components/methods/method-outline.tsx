@@ -97,7 +97,6 @@ import {
   lockReleaseCreated,
 } from "@/lib/contents/api"
 import {
-  getMethodTree,
   methodKeys,
   reorderOutline,
   setElementFlags,
@@ -135,6 +134,7 @@ import { templateKeys } from "@/lib/contents/templates"
 import { errorMessage } from "@/lib/errors"
 import { focusSoon } from "@/lib/focus"
 import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
+import { methodTreeRead } from "@/lib/reads"
 import type { OutlineElementValues } from "@/lib/schemas"
 import { useEditorLink } from "@/hooks/use-editor-link"
 import { contentEditorPath } from "@/navigation"
@@ -369,8 +369,7 @@ export function MethodOutline({
   const navigate = useNavigate()
   const editorLink = useEditorLink()
   const tree = useQuery({
-    queryKey: methodKeys.tree(methodId),
-    queryFn: () => getMethodTree(methodId),
+    ...methodTreeRead(methodId),
     // Qui écrit quoi, et ce que les autres ont ajouté : relu régulièrement.
     refetchInterval: 30_000,
   })

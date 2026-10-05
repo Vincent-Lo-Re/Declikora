@@ -251,6 +251,25 @@ export function flattenBlocks(
   ])
 }
 
+/**
+ * Les fichiers d'un brouillon, sans doublon et triés : ceux des blocs Image (blocs partagés
+ * compris, linkedBlocks), l'image de présentation et l'audio.
+ */
+export function draftMediaIds(draft: Draft, linkedBlocks: Block[]): string[] {
+  return [
+    ...new Set([
+      ...[
+        ...flattenBlocks(draft).map(({ block }) => block),
+        ...linkedBlocks,
+      ].flatMap((block) =>
+        block.type === "image" && block.mediaId ? [block.mediaId] : []
+      ),
+      ...(draft.cover?.mediaId ? [draft.cover.mediaId] : []),
+      ...(draft.audio?.mediaId ? [draft.audio.mediaId] : []),
+    ]),
+  ].sort()
+}
+
 /** Un extrait de texte, pour nommer un bloc (plan, annonces). */
 export function excerpt(text: string, max = 40): string {
   const flat = text.replace(/\s+/g, " ").trim()

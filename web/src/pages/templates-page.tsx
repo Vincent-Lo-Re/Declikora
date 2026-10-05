@@ -73,7 +73,6 @@ import { restoreContent, trashContent } from "@/lib/contents/publication"
 import {
   createTemplate,
   detachTemplateEverywhere,
-  listTemplates,
   listTemplateUses,
   templateKeys,
   templateSorts,
@@ -83,6 +82,7 @@ import {
 } from "@/lib/contents/templates"
 import { errorMessage } from "@/lib/errors"
 import { kickFiles } from "@/lib/media/api"
+import { templateListRead } from "@/lib/reads"
 import { refreshAfterContentTrash } from "@/lib/refresh"
 import { editorPath, sections } from "@/navigation"
 import { texts } from "@/texts"
@@ -117,8 +117,7 @@ export function TemplatesPage() {
   const [toTrash, setToTrash] = useState<TemplateItem | null>(null)
 
   const list = useQuery({
-    queryKey: templateKeys.list,
-    queryFn: listTemplates,
+    ...templateListRead(),
     refetchInterval: 30_000,
   })
   useEffect(() => {

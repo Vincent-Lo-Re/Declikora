@@ -6,10 +6,10 @@ import {
   accessLevelsKey,
   createAccessLevel,
   deleteAccessLevel,
-  listAccessLevels,
   renameAccessLevel,
   reorderAccessLevels,
 } from "@/lib/access-levels"
+import { accessLevelsRead } from "@/lib/reads"
 import { accessLevelNameSchema } from "@/lib/schemas"
 import { texts } from "@/texts"
 
@@ -22,10 +22,7 @@ const labels = texts.settings.accessLevels
  */
 export function AccessLevelsCard() {
   const queryClient = useQueryClient()
-  const levels = useQuery({
-    queryKey: accessLevelsKey,
-    queryFn: listAccessLevels,
-  })
+  const levels = useQuery(accessLevelsRead())
 
   return (
     <OrderedNames

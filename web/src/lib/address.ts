@@ -123,6 +123,17 @@ export function mediaFiltersFromAddress(params: URLSearchParams): MediaFilters {
   }
 }
 
+// « /mediatheque?fichier=<id> » ouvre la fiche de ce fichier (lien depuis l'éditeur : la
+// transcription d'un audio, le texte alternatif d'une image de présentation).
+export const FILE_PARAM = "fichier"
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Le fichier dont l'adresse demande la fiche (null : aucun, ou un id qui n'en est pas un). */
+export function askedFileFromAddress(params: URLSearchParams): string | null {
+  const asked = params.get(FILE_PARAM)
+  return asked && UUID.test(asked) ? asked : null
+}
+
 /** Écrit la recherche et les filtres de la Médiathèque dans l'adresse. */
 export function writeMediaFilters(
   params: URLSearchParams,

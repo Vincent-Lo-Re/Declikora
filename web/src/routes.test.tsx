@@ -1,5 +1,9 @@
 import { fireEvent, screen, within } from "@testing-library/react"
+import type { RouteObject } from "react-router"
 import { afterEach, describe, expect, it } from "vitest"
+
+import type { PageHandle } from "@/lib/preparation"
+import { routes } from "@/routes"
 
 import { fakeAuth, renderApp } from "@/test/render"
 import { texts } from "@/texts"
@@ -13,8 +17,8 @@ afterEach(() => {
 })
 
 describe("menu", () => {
-  it("range les sections par groupes, avec l'équipe et le compte en bas", () => {
-    renderAt("/")
+  it("range les sections par groupes, avec l'équipe et le compte en bas", async () => {
+    await renderAt("/")
 
     const main = screen.getByRole("navigation", { name: texts.nav.label })
     expect(within(main).getByText(texts.nav.groups.contents)).toBeVisible()
@@ -45,8 +49,8 @@ describe("menu", () => {
     ).toEqual(["Équipe", "Paramètres"])
   })
 
-  it("mène aux adresses en français", () => {
-    renderAt("/")
+  it("mène aux adresses en français", async () => {
+    await renderAt("/")
 
     expect(screen.getByRole("link", { name: "Médiathèque" })).toHaveAttribute(
       "href",
@@ -54,8 +58,8 @@ describe("menu", () => {
     )
   })
 
-  it("ouvre la section demandée et marque son lien comme actif", () => {
-    renderAt("/blog")
+  it("ouvre la section demandée et marque son lien comme actif", async () => {
+    await renderAt("/blog")
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Le Fil"
@@ -71,8 +75,8 @@ describe("menu", () => {
 })
 
 describe("pages", () => {
-  it("affiche « Page introuvable » pour une adresse inconnue", () => {
-    renderAt("/nimporte-quoi")
+  it("affiche « Page introuvable » pour une adresse inconnue", async () => {
+    await renderAt("/nimporte-quoi")
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       texts.notFound.title
@@ -81,8 +85,8 @@ describe("pages", () => {
 })
 
 describe("thème", () => {
-  it("passe en sombre et garde le choix", () => {
-    renderAt("/mon-compte")
+  it("passe en sombre et garde le choix", async () => {
+    await renderAt("/mon-compte")
 
     fireEvent.click(screen.getByRole("button", { name: texts.theme.dark }))
 
@@ -92,8 +96,8 @@ describe("thème", () => {
 })
 
 describe("accès", () => {
-  it("envoie vers la connexion sans session, en gardant la page demandée", () => {
-    const { router } = renderApp("/blog?page=2", fakeAuth("signed-out"))
+  it("envoie vers la connexion sans session, en gardant la page demandée", async () => {
+    const { router } = await renderApp("/blog?page=2", fakeAuth("signed-out"))
 
     expect(router.state.location.pathname).toBe("/connexion")
     expect(router.state.location.state).toEqual({ from: "/blog?page=2" })
@@ -106,8 +110,11 @@ describe("accès", () => {
     ).not.toBeInTheDocument()
   })
 
-  it("demande le code de l'app après le code reçu par e-mail", () => {
-    const { router } = renderApp("/mon-compte", fakeAuth({ level: "aal1" }))
+  it("demande le code de l'app après le code reçu par e-mail", async () => {
+    const { router } = await renderApp(
+      "/mon-compte",
+      fakeAuth({ level: "aal1" })
+    )
 
     expect(router.state.location.pathname).toBe("/double-verification")
     expect(router.state.location.state).toEqual({ from: "/mon-compte" })
@@ -116,22 +123,22 @@ describe("accès", () => {
     )
   })
 
-  it("ramène à la page demandée quand la double vérification est faite", () => {
-    const { router } = renderApp("/double-verification")
+  it("ramène à la page demandée quand la double vérification est faite", async () => {
+    const { router } = await renderApp("/double-verification")
 
     expect(router.state.location.pathname).toBe("/")
   })
 
-  it("ne rouvre pas la connexion quand on est déjà connecté", () => {
-    const { router } = renderApp("/connexion")
+  it("ne rouvre pas la connexion quand on est déjà connecté", async () => {
+    const { router } = await renderApp("/connexion")
 
     expect(router.state.location.pathname).toBe("/")
   })
 })
 
 describe("déconnexion", () => {
-  it("ouvre la connexion sans garder la page d'où l'on vient", () => {
-    const { router } = renderApp("/deconnexion", fakeAuth("signed-out"))
+  it("ouvre la connexion sans garder la page d'où l'on vient", async () => {
+    const { router } = await renderApp("/deconnexion", fakeAuth("signed-out"))
 
     expect(router.state.location.pathname).toBe("/connexion")
     expect(router.state.location.state).toBeNull()
@@ -139,8 +146,8 @@ describe("déconnexion", () => {
 })
 
 describe("rôles", () => {
-  it("cache Équipe et Paramètres dans le menu d'un éditeur", () => {
-    renderApp("/", fakeAuth({ role: "editor" }))
+  it("cache Équipe et Paramètres dans le menu d'un éditeur", async () => {
+    await renderApp("/", fakeAuth({ role: "editor" }))
 
     // Plus rien en bas du menu : le bloc disparaît.
     expect(
@@ -151,8 +158,8 @@ describe("rôles", () => {
 
   it.each(["/equipe", "/parametres"])(
     "affiche « Réservé aux admins » à un éditeur sur %s",
-    (path) => {
-      renderApp(path, fakeAuth({ role: "editor" }))
+    async (path) => {
+      await renderApp(path, fakeAuth({ role: "editor" }))
 
       expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
         texts.adminOnly.title
@@ -160,8 +167,8 @@ describe("rôles", () => {
     }
   )
 
-  it("ouvre les Paramètres à un admin", () => {
-    renderApp("/parametres")
+  it("ouvre les Paramètres à un admin", async () => {
+    await renderApp("/parametres")
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       texts.sections.settings.title
@@ -185,5 +192,31 @@ describe("éditeurs", () => {
     expect(contentEditorPath("inconnu", "x")).toBeNull()
     expect(categoriesPath("podcasts")).toBe("/podcasts/categories")
     expect(mediaFilePath("f")).toBe("/mediatheque?fichier=f")
+  })
+})
+
+describe("pages chargées à part et préparées (ADMIN § 7)", () => {
+  /** Toutes les routes qui ont une adresse, avec la page de connexion ou non. */
+  function pages(list: RouteObject[], auth = false): [RouteObject, boolean][] {
+    return list.flatMap((route) => [
+      ...(route.path ? [[route, auth] as [RouteObject, boolean]] : []),
+      ...pages(
+        route.children ?? [],
+        auth || route.children?.some((child) => child.path === "/connexion")
+      ),
+    ])
+  }
+
+  it("chaque page est chargée à part et dit ce qu'elle prépare : une nouvelle page aussi", () => {
+    const found = pages(routes)
+    expect(found.length).toBeGreaterThan(20)
+    for (const [route, auth] of found) {
+      const handle = route.handle as PageHandle | undefined
+      expect(route.lazy, route.path).toBeTypeOf("function")
+      expect(handle?.code, route.path).toBeTypeOf("function")
+      // Ce qu'elle lit en arrivant (null : rien), préparé par son loader.
+      expect(handle && "prepare" in handle, route.path).toBe(true)
+      if (!auth) expect(route.loader, route.path).toBeTypeOf("function")
+    }
   })
 })

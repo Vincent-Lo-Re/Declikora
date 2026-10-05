@@ -2,13 +2,14 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { useCallback, useMemo, useState } from "react"
 
 import type { LinkedTemplateState } from "@/blocks/components/context"
-import { linkedTemplateIds, singleBlock } from "@/blocks/templates"
-import type { Block, Draft } from "@/blocks/types"
 import {
-  getTemplatesByIds,
-  templateKeys,
-  type LinkedTemplate,
-} from "@/lib/contents/templates"
+  linkedTemplateBlocks,
+  linkedTemplateIds,
+  singleBlock,
+} from "@/blocks/templates"
+import type { Block, Draft } from "@/blocks/types"
+import type { LinkedTemplate } from "@/lib/contents/templates"
+import { linkedTemplatesRead } from "@/lib/reads"
 
 /**
  * Les blocs partagés d'un brouillon (blocs liés) : leurs modèles, relus toutes les 30 secondes
@@ -19,8 +20,7 @@ export function useLinkedTemplates(draft: Draft) {
   const linkedIds = useMemo(() => linkedTemplateIds(draft), [draft])
   const [picked, setPicked] = useState<Record<string, LinkedTemplate>>({})
   const query = useQuery({
-    queryKey: templateKeys.byIds(linkedIds),
-    queryFn: () => getTemplatesByIds(linkedIds),
+    ...linkedTemplatesRead(linkedIds),
     enabled: linkedIds.length > 0,
     placeholderData: keepPreviousData,
     refetchInterval: 30_000,
@@ -79,13 +79,7 @@ export function useLinkedTemplates(draft: Draft) {
 
   // Les blocs des modèles cités (et ceux de leurs sections), pour leurs images.
   const linkedBlocks = useMemo(
-    () =>
-      linkedIds.flatMap((id): Block[] => {
-        const template = templatesById.get(id)
-        const block = template ? singleBlock(template.draft) : null
-        if (!block) return []
-        return block.type === "box" ? [block, ...block.blocks] : [block]
-      }),
+    () => linkedTemplateBlocks(linkedIds, (id) => templatesById.get(id)?.draft),
     [linkedIds, templatesById]
   )
 

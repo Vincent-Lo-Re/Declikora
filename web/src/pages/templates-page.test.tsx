@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Draft } from "@/blocks/types"
+import * as levelsApi from "@/lib/access-levels"
 import * as api from "@/lib/contents/api"
 import * as publicationApi from "@/lib/contents/publication"
 import * as templatesApi from "@/lib/contents/templates"
@@ -51,6 +52,12 @@ vi.mock("@/lib/contents/templates", async (importOriginal) => {
     createTemplate: vi.fn(),
     detachTemplateEverywhere: vi.fn(),
   }
+})
+
+// Les formules, lues par l'éditeur d'un modèle ou d'une page.
+vi.mock("@/lib/access-levels", async (importOriginal) => {
+  const actual = await importOriginal<typeof levelsApi>()
+  return { ...actual, listAccessLevels: vi.fn(async () => []) }
 })
 
 vi.mock("@/lib/media/api", async (importOriginal) => {
@@ -137,7 +144,7 @@ const labels = texts.templates.list
 describe("section Modèles", () => {
   it("montre tous les modèles avec leur type, puis un onglet par sorte", async () => {
     const sorts = texts.templates.sorts
-    renderApp("/modeles")
+    await renderApp("/modeles")
 
     // « Tous les blocs » : chaque modèle, avec sa sorte, et la date seule.
     expect(
@@ -170,7 +177,7 @@ describe("section Modèles", () => {
 
   it("l'onglet est dans l'adresse (QCM du 05/10/2026)", async () => {
     const sorts = texts.templates.sorts
-    const { router } = renderApp("/modeles?onglet=points-de-depart")
+    const { router } = await renderApp("/modeles?onglet=points-de-depart")
     expect(
       await screen.findByRole("tab", {
         name: sorts.starter.tab,
@@ -185,7 +192,7 @@ describe("section Modèles", () => {
 
   it("« Nouveau modèle » : nom et sorte, puis l'éditeur du modèle s'ouvre", async () => {
     vi.mocked(templatesApi.createTemplate).mockResolvedValue(created)
-    const { router } = renderApp("/modeles")
+    const { router } = await renderApp("/modeles")
     fireEvent.click(await screen.findByRole("button", { name: labels.create }))
     const dialog = await screen.findByRole("dialog", {
       name: texts.templates.create.title,
@@ -224,7 +231,7 @@ describe("section Modèles", () => {
       template_sort: "starter",
       template_for: "page",
     })
-    renderApp("/modeles")
+    await renderApp("/modeles")
     fireEvent.click(await screen.findByRole("button", { name: labels.create }))
     const dialog = await screen.findByRole("dialog", {
       name: texts.templates.create.title,
@@ -281,7 +288,7 @@ describe("section Modèles", () => {
       trashed: 1,
       needsFileSync: false,
     })
-    renderApp("/modeles")
+    await renderApp("/modeles")
     fireEvent.click(
       await screen.findByRole("button", { name: labels.actions("Contact") })
     )
@@ -334,7 +341,7 @@ describe("section Modèles", () => {
       restored: 1,
       addressRemoved: false,
     })
-    renderApp("/modeles")
+    await renderApp("/modeles")
     fireEvent.click(
       await screen.findByRole("button", { name: labels.actions("À retenir") })
     )
@@ -374,7 +381,7 @@ describe("section Modèles", () => {
       restored: 1,
       addressRemoved: false,
     })
-    renderApp("/modeles")
+    await renderApp("/modeles")
 
     fireEvent.click(
       await screen.findByRole("checkbox", { name: texts.selection.selectAll })
@@ -421,7 +428,7 @@ describe("« Nouvelle page » et les points de départ ([D42])", () => {
       kind: "page",
       template_sort: null,
     })
-    const { router } = renderApp("/pages")
+    const { router } = await renderApp("/pages")
     // Les points de départ lus, la fenêtre de « Nouvelle page » propose « Page vide » ou l'un
     // d'eux.
     await waitFor(() =>

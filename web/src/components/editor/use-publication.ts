@@ -11,7 +11,6 @@ import {
   type ContentSettings,
 } from "@/lib/contents/api"
 import {
-  getPublication,
   publicationStatus,
   publishContent,
   scheduleContent,
@@ -24,6 +23,7 @@ import type { PreviewRow } from "@/lib/contents/outline"
 import { templateKeys } from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
 import { kickFiles, mediaKeys } from "@/lib/media/api"
+import { publicationRead, REREAD_MS } from "@/lib/reads"
 import { texts } from "@/texts"
 
 const labels = texts.publication
@@ -111,12 +111,11 @@ export function usePublication(bridge: PublicationBridge) {
   const [dialog, setDialog] = useState<DialogState>(null)
 
   const query = useQuery({
-    queryKey: contentKeys.publication(contentId),
-    queryFn: () => getPublication(contentId),
+    ...publicationRead(contentId),
     // La tâche planifiée publie (ou échoue) sans prévenir : l'état est relu régulièrement, et à
     // chaque ouverture de l'éditeur (sinon, rouvert depuis l'Accueil, il montrerait encore une
-    // programmation qui a échoué entre-temps).
-    staleTime: 0,
+    // programmation qui a échoué entre-temps ; c'est la préparation de l'éditeur qui le relit).
+    staleTime: REREAD_MS,
     refetchInterval: 30_000,
     enabled: bridge.enabled ?? true,
   })

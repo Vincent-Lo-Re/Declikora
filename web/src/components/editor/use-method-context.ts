@@ -2,13 +2,6 @@ import { useQuery } from "@tanstack/react-query"
 import { useMemo } from "react"
 
 import type { MethodPublication } from "@/components/editor/use-publication"
-import { contentKeys } from "@/lib/contents/api"
-import {
-  getElementContext,
-  getMethodPreview,
-  getMethodTree,
-  methodKeys,
-} from "@/lib/contents/methods"
 import {
   elementState,
   findInTree,
@@ -18,10 +11,16 @@ import {
   previewByElement,
 } from "@/lib/contents/outline"
 import {
-  getPublication,
   publicationStatus,
   type ScheduleState,
 } from "@/lib/contents/publication"
+import {
+  elementContextRead,
+  methodPreviewRead,
+  methodTreeRead,
+  publicationRead,
+  REREAD_MS,
+} from "@/lib/reads"
 
 /**
  * Les méthodes, vues depuis l'éditeur ([D29], [D31]). Une méthode : ce qui changera dans l'app si
@@ -46,8 +45,7 @@ export function useMethodContext({
 }) {
   const isElement = role === "element"
   const elementContext = useQuery({
-    queryKey: methodKeys.context(contentId),
-    queryFn: () => getElementContext(contentId),
+    ...elementContextRead(contentId),
     enabled: isElement,
   })
   const methodId =
@@ -57,23 +55,20 @@ export function useMethodContext({
   // l'ouverture de « Publier », et à chaque ouverture d'un éditeur (on revient souvent d'une
   // leçon modifiée).
   const preview = useQuery({
-    queryKey: methodKeys.preview(methodId ?? ""),
-    queryFn: () => getMethodPreview(methodId ?? ""),
+    ...methodPreviewRead(methodId ?? ""),
     enabled: methodId !== null && !methodInTrash,
-    staleTime: 0,
+    staleTime: REREAD_MS,
     refetchInterval: 30_000,
   })
   // Un élément : la publication de sa méthode (plan en ligne, programmation) et son plan (le
   // chapitre d'une leçon est-il montré ?).
   const methodPublication = useQuery({
-    queryKey: contentKeys.publication(methodId ?? ""),
-    queryFn: () => getPublication(methodId ?? ""),
+    ...publicationRead(methodId ?? ""),
     enabled: isElement && methodId !== null,
     refetchInterval: 30_000,
   })
   const methodTree = useQuery({
-    queryKey: methodKeys.tree(methodId ?? ""),
-    queryFn: () => getMethodTree(methodId ?? ""),
+    ...methodTreeRead(methodId ?? ""),
     enabled: isElement && methodId !== null,
   })
 
