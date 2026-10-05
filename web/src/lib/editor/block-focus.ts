@@ -24,6 +24,47 @@ export function blockAnchor(id: string): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[data-outline-id="${id}"]`)
 }
 
+/** Le plus long qu'on attende la fin d'un défilement doux avant de poser le curseur. */
+export const SCROLL_WAIT_MS = 1000
+
+/** Le premier ancêtre qui défile (l'écran du téléphone). */
+function scrollParent(element: HTMLElement): HTMLElement | null {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const { overflowY } = getComputedStyle(node)
+    if (overflowY === "auto" || overflowY === "scroll") return node
+  }
+  return null
+}
+
+/**
+ * Appelle `then` quand le défilement qui commence dans `scroller` s'arrête : tout de suite s'il
+ * ne bouge pas, au plus tard après SCROLL_WAIT_MS.
+ */
+function afterScroll(scroller: HTMLElement | null, then: () => void) {
+  if (!scroller) {
+    then()
+    return
+  }
+  const start = scroller.scrollTop
+  let timer = 0
+  let done = false
+  const finish = () => {
+    if (done) return
+    done = true
+    scroller.removeEventListener("scrollend", finish)
+    window.clearTimeout(timer)
+    then()
+  }
+  scroller.addEventListener("scrollend", finish)
+  timer = window.setTimeout(finish, SCROLL_WAIT_MS)
+  // Le bloc est déjà à sa place : rien n'a bougé après deux images, pas d'attente.
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      if (scroller.scrollTop === start) finish()
+    })
+  )
+}
+
 /**
  * Met le curseur dans un bloc qui vient d'apparaître (l'éditeur Tiptap se crée juste après).
  * `top` : le bloc monte en haut de l'écran du téléphone (choisi dans le plan du Fil) ; sinon,
@@ -41,6 +82,21 @@ export function focusBlockSoon(id: string, attempts = 20, top = false) {
       block: top ? "start" : "nearest",
       behavior: "smooth",
     })
+  if (editable && element && top) {
+    // D'abord le défilement, puis le curseur une fois arrivé : au premier focus, l'éditeur replace
+    // sa sélection un instant après, et le navigateur ramène alors l'écran au curseur, ce qui
+    // couperait le défilement. Si le focus est allé ailleurs entre-temps, il y reste.
+    const before = document.activeElement
+    afterScroll(scrollParent(element), () => {
+      const now = document.activeElement
+      if (!editable.isConnected || (now !== before && now !== document.body)) {
+        return
+      }
+      editable.focus({ preventScroll: true })
+    })
+    scroll()
+    return
+  }
   if (editable) {
     // D'abord le curseur, puis le défilement : le navigateur ramène l'écran au curseur quand il
     // le pose, ce qui interromprait un défilement déjà commencé.
