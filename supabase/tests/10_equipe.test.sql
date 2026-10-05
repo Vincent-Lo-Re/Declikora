@@ -42,19 +42,19 @@ select function_privs_are(
   'authenticated : peut appeler is_admin'
 );
 select function_privs_are(
-  'public', 'handle_new_user', array[]::text[], 'authenticated', array[]::text[],
+  'private', 'handle_new_user', array[]::text[], 'authenticated', array[]::text[],
   'authenticated : ne peut pas appeler handle_new_user'
 );
 select function_privs_are(
-  'public', 'protect_last_admin', array[]::text[], 'authenticated', array[]::text[],
+  'private', 'protect_last_admin', array[]::text[], 'authenticated', array[]::text[],
   'authenticated : ne peut pas appeler protect_last_admin'
 );
 select function_privs_are(
-  'public', 'initial_role', array['jsonb'], 'authenticated', array[]::text[],
+  'private', 'initial_role', array['jsonb'], 'authenticated', array[]::text[],
   'authenticated : ne peut pas appeler initial_role'
 );
 select function_privs_are(
-  'public', 'session_is_open', array[]::text[], 'authenticated', array[]::text[],
+  'private', 'session_is_open', array[]::text[], 'authenticated', array[]::text[],
   'authenticated : ne peut pas appeler session_is_open'
 );
 select function_privs_are(
@@ -151,7 +151,7 @@ select is(
   'équipe déjà amorcée : un compte sans rôle n''a pas de fiche'
 );
 select is(
-  public.initial_role('{"provider":"email"}'),
+  private.initial_role('{"provider":"email"}'),
   null,
   'sans rôle dans app_metadata : aucun rôle, quelle que soit l''adresse'
 );

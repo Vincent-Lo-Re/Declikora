@@ -536,7 +536,6 @@
       "properties": {
         "v": { "const": 1 },
         "title": { "type": "string", "maxLength": 200 },
-        "summary": { "type": ["string", "null"], "maxLength": 1000 },
         "cover": { "$ref": "#/definitions/mediaRef" },
         "audio": { "$ref": "#/definitions/mediaRef" },
         "blocks": {
@@ -554,7 +553,6 @@
       "properties": {
         "v": { "const": 1 },
         "title": { "type": "string", "maxLength": 200 },
-        "summary": { "type": ["string", "null"], "maxLength": 1000 },
         "cover": { "$ref": "#/definitions/mediaRef" },
         "audio": { "$ref": "#/definitions/mediaRef" },
         "blocks": {
@@ -572,7 +570,6 @@
       "properties": {
         "v": { "const": 1 },
         "title": { "type": "string", "maxLength": 200 },
-        "summary": { "type": ["string", "null"], "maxLength": 1000 },
         "cover": { "$ref": "#/definitions/mediaRef" },
         "audio": { "$ref": "#/definitions/mediaRef" },
         "blocks": {

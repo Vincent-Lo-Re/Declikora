@@ -43,588 +43,6 @@ var require_ucs2length = __commonJS({
 
 // validators.raw.mjs
 var validateDraft = validate10
-var schema11 = {
-  $schema: "http://json-schema.org/draft-07/schema#",
-  $id: "https://declikora.app/blocks/draft.schema.json",
-  $comment:
-    "G\xE9n\xE9r\xE9 par web/scripts/blocks-generate.mjs (npm run blocks:generate) depuis blocks/. Ne pas modifier. Variante \xAB draft \xBB. Variante \xAB draft \xBB : le brouillon d'un contenu (article, \xE9pisode, m\xE9thode, chapitre, le\xE7on, page).",
-  type: "object",
-  additionalProperties: false,
-  required: ["v", "title", "blocks"],
-  properties: {
-    v: { const: 1 },
-    title: { type: "string", maxLength: 200 },
-    summary: { type: ["string", "null"], maxLength: 1e3 },
-    cover: { $ref: "#/definitions/mediaRef" },
-    audio: { $ref: "#/definitions/mediaRef" },
-    blocks: { type: "array", items: { $ref: "#/definitions/topBlock" } },
-  },
-  definitions: {
-    uuid: {
-      $comment: "UUID en minuscules, comme crypto.randomUUID() et uuid::text.",
-      type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-    },
-    nullableUuid: {
-      type: ["string", "null"],
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-    },
-    mediaRef: {
-      $comment:
-        "R\xE9f\xE9rence \xE0 un fichier de la m\xE9diath\xE8que (image de pr\xE9sentation, son d'un \xE9pisode), ou null. Toute r\xE9f\xE9rence de fichier s'appelle mediaId ([D9]).",
-      type: ["object", "null"],
-      additionalProperties: false,
-      required: ["mediaId"],
-      properties: { mediaId: { $ref: "#/definitions/uuid" } },
-    },
-    href: {
-      $comment:
-        "Liens https:// et mailto: seulement ([D10]), sensible \xE0 la casse, sans espace.",
-      type: "string",
-      maxLength: 2048,
-      pattern: "^(https://|mailto:)[^\\s]+$",
-    },
-    basicMark: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type"],
-      properties: { type: { enum: ["bold", "italic"] } },
-    },
-    linkMark: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "attrs"],
-      properties: {
-        type: { const: "link" },
-        attrs: {
-          type: "object",
-          additionalProperties: false,
-          required: ["href"],
-          properties: { href: { $ref: "#/definitions/href" } },
-        },
-      },
-    },
-    mark: {
-      tsType: "BasicMark | LinkMark",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "link" } },
-      },
-      then: { $ref: "#/definitions/linkMark" },
-      else: { $ref: "#/definitions/basicMark" },
-    },
-    marks: { type: "array", items: { $ref: "#/definitions/mark" } },
-    textNode: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "text"],
-      properties: {
-        type: { const: "text" },
-        text: { type: "string", minLength: 1 },
-        marks: { $ref: "#/definitions/marks" },
-      },
-    },
-    hardBreak: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type"],
-      properties: {
-        type: { const: "hardBreak" },
-        marks: { $ref: "#/definitions/marks" },
-      },
-    },
-    inlineNode: {
-      tsType: "TextNode | HardBreak",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textNode" },
-      else: { $ref: "#/definitions/hardBreak" },
-    },
-    inline: { type: "array", items: { $ref: "#/definitions/inlineNode" } },
-    paragraph: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type"],
-      properties: {
-        type: { const: "paragraph" },
-        content: { $ref: "#/definitions/inline" },
-      },
-    },
-    heading: {
-      $comment:
-        "Niveaux 2 et 3 seulement : le titre du contenu fait office de niveau 1.",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "attrs"],
-      properties: {
-        type: { const: "heading" },
-        attrs: {
-          type: "object",
-          additionalProperties: false,
-          required: ["level"],
-          properties: { level: { enum: [2, 3] } },
-        },
-        content: { $ref: "#/definitions/inline" },
-      },
-    },
-    bulletList: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "bulletList" },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: { $ref: "#/definitions/listItem" },
-        },
-      },
-    },
-    orderedList: {
-      $comment:
-        "Seul l'attribut start est gard\xE9 (le type \xAB a \xBB, \xAB i \xBB\u2026 est un choix d'affichage).",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "orderedList" },
-        attrs: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            start: { type: "integer", minimum: 1, maximum: 99999 },
-          },
-        },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: { $ref: "#/definitions/listItem" },
-        },
-      },
-    },
-    listItem: {
-      $comment:
-        "Premier enfant : un paragraphe ; ensuite des paragraphes ou des listes (pas de titre).",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "listItem" },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: [{ $ref: "#/definitions/paragraph" }],
-          additionalItems: { $ref: "#/definitions/listChild" },
-        },
-      },
-    },
-    listChild: {
-      tsType: "Paragraph | BulletList | OrderedList",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "paragraph" } },
-      },
-      then: { $ref: "#/definitions/paragraph" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "bulletList" } },
-        },
-        then: { $ref: "#/definitions/bulletList" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "orderedList" } },
-          },
-          then: { $ref: "#/definitions/orderedList" },
-          else: {
-            type: "object",
-            required: ["type"],
-            properties: {
-              type: { enum: ["paragraph", "bulletList", "orderedList"] },
-            },
-          },
-        },
-      },
-    },
-    docChild: {
-      tsType: "Paragraph | Heading | BulletList | OrderedList",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "paragraph" } },
-      },
-      then: { $ref: "#/definitions/paragraph" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "heading" } },
-        },
-        then: { $ref: "#/definitions/heading" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "bulletList" } },
-          },
-          then: { $ref: "#/definitions/bulletList" },
-          else: {
-            if: {
-              type: "object",
-              required: ["type"],
-              properties: { type: { const: "orderedList" } },
-            },
-            then: { $ref: "#/definitions/orderedList" },
-            else: {
-              type: "object",
-              required: ["type"],
-              properties: {
-                type: {
-                  enum: ["paragraph", "heading", "bulletList", "orderedList"],
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    doc: {
-      $comment: "JSON ProseMirror (format Tiptap) restreint.",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "doc" },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: { $ref: "#/definitions/docChild" },
-        },
-      },
-    },
-    textBlock: {
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "doc"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "text" },
-        doc: { $ref: "#/definitions/doc" },
-      },
-    },
-    imageBlock: {
-      $comment:
-        "mediaId null : image pas encore choisie. alt null : reprendre le texte alternatif de la m\xE9diath\xE8que. L\xE9gende : texte simple, 300 caract\xE8res au plus ([D34]), compt\xE9s en points de code.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "mediaId", "caption", "alt"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "image" },
-        mediaId: { $ref: "#/definitions/nullableUuid" },
-        caption: { type: ["string", "null"], maxLength: 300 },
-        alt: { type: ["string", "null"], maxLength: 1e3 },
-      },
-    },
-    boxBlock: {
-      $comment:
-        "Encadr\xE9 : un seul niveau, Texte et Image seulement (ni encadr\xE9, ni bloc li\xE9).",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "look", "blocks"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "box" },
-        look: { enum: ["fill", "border"] },
-        blocks: { type: "array", items: { $ref: "#/definitions/boxChild" } },
-      },
-    },
-    boxChild: {
-      tsType: "TextBlock | ImageBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/imageBlock" },
-        else: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { enum: ["text", "image"] } },
-        },
-      },
-    },
-    linkedBlock: {
-      $comment:
-        "Bloc partag\xE9 (mod\xE8le \xAB shared \xBB) : au premier niveau d'un brouillon de contenu seulement.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "templateId"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "linked" },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    topBlock: {
-      $comment: "Un bloc au premier niveau d'un brouillon de contenu.",
-      tsType: "TextBlock | ImageBlock | BoxBlock | LinkedBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/imageBlock" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "box" } },
-          },
-          then: { $ref: "#/definitions/boxBlock" },
-          else: {
-            if: {
-              type: "object",
-              required: ["type"],
-              properties: { type: { const: "linked" } },
-            },
-            then: { $ref: "#/definitions/linkedBlock" },
-            else: {
-              type: "object",
-              required: ["type"],
-              properties: {
-                type: { enum: ["text", "image", "box", "linked"] },
-              },
-            },
-          },
-        },
-      },
-    },
-    templateBlock: {
-      $comment:
-        "Un bloc au premier niveau d'un mod\xE8le : pas de bloc li\xE9 (ni cha\xEEne ni boucle).",
-      tsType: "TextBlock | ImageBlock | BoxBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/imageBlock" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "box" } },
-          },
-          then: { $ref: "#/definitions/boxBlock" },
-          else: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { enum: ["text", "image", "box"] } },
-          },
-        },
-      },
-    },
-    publishedImageBlock: {
-      $comment:
-        "Image d'une version publi\xE9e (dans un encadr\xE9) : fichier obligatoire, texte alternatif r\xE9solu (\xA7 2.4). altFromLibrary : ce texte vient de la m\xE9diath\xE8que (alt null dans le brouillon) ; \xAB Revenir \xE0 cette version \xBB remet alt \xE0 null. L'app l'ignore.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "mediaId", "caption", "alt"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "image" },
-        mediaId: { $ref: "#/definitions/uuid" },
-        caption: { type: ["string", "null"], maxLength: 300 },
-        alt: { type: "string", maxLength: 1e3 },
-        altFromLibrary: { const: true },
-      },
-    },
-    publishedBoxChild: {
-      tsType: "TextBlock | PublishedImageBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/publishedImageBlock" },
-        else: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { enum: ["text", "image"] } },
-        },
-      },
-    },
-    publishedTextBlock: {
-      $comment:
-        "Texte au premier niveau d'une version publi\xE9e. templateId : copie d'un bloc partag\xE9 (mod\xE8le \xAB shared \xBB), r\xE9solue \xE0 la publication (\xA7 2.4).",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "doc"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "text" },
-        doc: { $ref: "#/definitions/doc" },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    publishedTopImageBlock: {
-      $comment:
-        "Image au premier niveau d'une version publi\xE9e (comme publishedImageBlock), avec le marqueur templateId d'une copie de mod\xE8le.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "mediaId", "caption", "alt"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "image" },
-        mediaId: { $ref: "#/definitions/uuid" },
-        caption: { type: ["string", "null"], maxLength: 300 },
-        alt: { type: "string", maxLength: 1e3 },
-        altFromLibrary: { const: true },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    publishedBoxBlock: {
-      $comment:
-        "Encadr\xE9 d'une version publi\xE9e : Texte et Image (fichier obligatoire) seulement, avec le marqueur templateId d'une copie de mod\xE8le.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "look", "blocks"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "box" },
-        look: { enum: ["fill", "border"] },
-        blocks: {
-          type: "array",
-          items: { $ref: "#/definitions/publishedBoxChild" },
-        },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    publishedTopBlock: {
-      $comment:
-        "Un bloc au premier niveau d'une version publi\xE9e : jamais de bloc li\xE9 (il est r\xE9solu en copie).",
-      tsType: "PublishedTextBlock | PublishedTopImageBlock | PublishedBoxBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/publishedTextBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/publishedTopImageBlock" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "box" } },
-          },
-          then: { $ref: "#/definitions/publishedBoxBlock" },
-          else: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { enum: ["text", "image", "box"] } },
-          },
-        },
-      },
-    },
-    draft: {
-      title: "Draft",
-      $comment:
-        "Variante \xAB draft \xBB : le brouillon d'un contenu (article, \xE9pisode, m\xE9thode, chapitre, le\xE7on, page).",
-      type: "object",
-      additionalProperties: false,
-      required: ["v", "title", "blocks"],
-      properties: {
-        v: { const: 1 },
-        title: { type: "string", maxLength: 200 },
-        summary: { type: ["string", "null"], maxLength: 1e3 },
-        cover: { $ref: "#/definitions/mediaRef" },
-        audio: { $ref: "#/definitions/mediaRef" },
-        blocks: { type: "array", items: { $ref: "#/definitions/topBlock" } },
-      },
-    },
-    template: {
-      title: "TemplateDraft",
-      $comment:
-        "Variante \xAB template \xBB : le brouillon d'un mod\xE8le de blocs (pas de bloc li\xE9).",
-      type: "object",
-      additionalProperties: false,
-      required: ["v", "title", "blocks"],
-      properties: {
-        v: { const: 1 },
-        title: { type: "string", maxLength: 200 },
-        summary: { type: ["string", "null"], maxLength: 1e3 },
-        cover: { $ref: "#/definitions/mediaRef" },
-        audio: { $ref: "#/definitions/mediaRef" },
-        blocks: {
-          type: "array",
-          items: { $ref: "#/definitions/templateBlock" },
-        },
-      },
-    },
-    published: {
-      title: "PublishedBody",
-      $comment:
-        "Variante \xAB published \xBB : le corps fig\xE9 d'une version publi\xE9e (\xA7 2.4), ce que lit l'app. Blocs li\xE9s r\xE9solus en copies, fichier obligatoire dans chaque image, texte alternatif r\xE9solu.",
-      type: "object",
-      additionalProperties: false,
-      required: ["v", "title", "blocks"],
-      properties: {
-        v: { const: 1 },
-        title: { type: "string", maxLength: 200 },
-        summary: { type: ["string", "null"], maxLength: 1e3 },
-        cover: { $ref: "#/definitions/mediaRef" },
-        audio: { $ref: "#/definitions/mediaRef" },
-        blocks: {
-          type: "array",
-          items: { $ref: "#/definitions/publishedTopBlock" },
-        },
-      },
-    },
-  },
-}
 var func2 = require_ucs2length().default
 var schema12 = {
   $comment:
@@ -4806,7 +4224,6 @@ function validate10(
           if (!(
             key0 === "v" ||
             key0 === "title" ||
-            key0 === "summary" ||
             key0 === "cover" ||
             key0 === "audio" ||
             key0 === "blocks"
@@ -4879,49 +4296,34 @@ function validate10(
               var valid0 = true
             }
             if (valid0) {
-              if (data.summary !== void 0) {
-                let data2 = data.summary
+              if (data.cover !== void 0) {
                 const _errs6 = errors
-                if (typeof data2 !== "string" && data2 !== null) {
-                  validate10.errors = [
-                    {
-                      instancePath: instancePath + "/summary",
-                      schemaPath: "#/properties/summary/type",
-                      keyword: "type",
-                      params: { type: schema11.properties.summary.type },
-                      message: "must be string,null",
-                    },
-                  ]
-                  return false
-                }
-                if (errors === _errs6) {
-                  if (typeof data2 === "string") {
-                    if (func2(data2) > 1e3) {
-                      validate10.errors = [
-                        {
-                          instancePath: instancePath + "/summary",
-                          schemaPath: "#/properties/summary/maxLength",
-                          keyword: "maxLength",
-                          params: { limit: 1e3 },
-                          message: "must NOT have more than 1000 characters",
-                        },
-                      ]
-                      return false
-                    }
-                  }
+                if (
+                  !validate11(data.cover, {
+                    instancePath: instancePath + "/cover",
+                    parentData: data,
+                    parentDataProperty: "cover",
+                    rootData,
+                  })
+                ) {
+                  vErrors =
+                    vErrors === null
+                      ? validate11.errors
+                      : vErrors.concat(validate11.errors)
+                  errors = vErrors.length
                 }
                 var valid0 = _errs6 === errors
               } else {
                 var valid0 = true
               }
               if (valid0) {
-                if (data.cover !== void 0) {
-                  const _errs8 = errors
+                if (data.audio !== void 0) {
+                  const _errs7 = errors
                   if (
-                    !validate11(data.cover, {
-                      instancePath: instancePath + "/cover",
+                    !validate11(data.audio, {
+                      instancePath: instancePath + "/audio",
                       parentData: data,
-                      parentDataProperty: "cover",
+                      parentDataProperty: "audio",
                       rootData,
                     })
                   ) {
@@ -4931,77 +4333,55 @@ function validate10(
                         : vErrors.concat(validate11.errors)
                     errors = vErrors.length
                   }
-                  var valid0 = _errs8 === errors
+                  var valid0 = _errs7 === errors
                 } else {
                   var valid0 = true
                 }
                 if (valid0) {
-                  if (data.audio !== void 0) {
-                    const _errs9 = errors
-                    if (
-                      !validate11(data.audio, {
-                        instancePath: instancePath + "/audio",
-                        parentData: data,
-                        parentDataProperty: "audio",
-                        rootData,
-                      })
-                    ) {
-                      vErrors =
-                        vErrors === null
-                          ? validate11.errors
-                          : vErrors.concat(validate11.errors)
-                      errors = vErrors.length
+                  if (data.blocks !== void 0) {
+                    let data4 = data.blocks
+                    const _errs8 = errors
+                    if (errors === _errs8) {
+                      if (Array.isArray(data4)) {
+                        var valid1 = true
+                        const len0 = data4.length
+                        for (let i0 = 0; i0 < len0; i0++) {
+                          const _errs10 = errors
+                          if (
+                            !validate14(data4[i0], {
+                              instancePath: instancePath + "/blocks/" + i0,
+                              parentData: data4,
+                              parentDataProperty: i0,
+                              rootData,
+                            })
+                          ) {
+                            vErrors =
+                              vErrors === null
+                                ? validate14.errors
+                                : vErrors.concat(validate14.errors)
+                            errors = vErrors.length
+                          }
+                          var valid1 = _errs10 === errors
+                          if (!valid1) {
+                            break
+                          }
+                        }
+                      } else {
+                        validate10.errors = [
+                          {
+                            instancePath: instancePath + "/blocks",
+                            schemaPath: "#/properties/blocks/type",
+                            keyword: "type",
+                            params: { type: "array" },
+                            message: "must be array",
+                          },
+                        ]
+                        return false
+                      }
                     }
-                    var valid0 = _errs9 === errors
+                    var valid0 = _errs8 === errors
                   } else {
                     var valid0 = true
-                  }
-                  if (valid0) {
-                    if (data.blocks !== void 0) {
-                      let data5 = data.blocks
-                      const _errs10 = errors
-                      if (errors === _errs10) {
-                        if (Array.isArray(data5)) {
-                          var valid1 = true
-                          const len0 = data5.length
-                          for (let i0 = 0; i0 < len0; i0++) {
-                            const _errs12 = errors
-                            if (
-                              !validate14(data5[i0], {
-                                instancePath: instancePath + "/blocks/" + i0,
-                                parentData: data5,
-                                parentDataProperty: i0,
-                                rootData,
-                              })
-                            ) {
-                              vErrors =
-                                vErrors === null
-                                  ? validate14.errors
-                                  : vErrors.concat(validate14.errors)
-                              errors = vErrors.length
-                            }
-                            var valid1 = _errs12 === errors
-                            if (!valid1) {
-                              break
-                            }
-                          }
-                        } else {
-                          validate10.errors = [
-                            {
-                              instancePath: instancePath + "/blocks",
-                              schemaPath: "#/properties/blocks/type",
-                              keyword: "type",
-                              params: { type: "array" },
-                              message: "must be array",
-                            },
-                          ]
-                          return false
-                        }
-                      }
-                      var valid0 = _errs10 === errors
-                    } else {
-                      var valid0 = true
-                    }
                   }
                 }
               }
@@ -5026,588 +4406,6 @@ function validate10(
   return errors === 0
 }
 var validateTemplate = validate63
-var schema43 = {
-  $schema: "http://json-schema.org/draft-07/schema#",
-  $id: "https://declikora.app/blocks/template.schema.json",
-  $comment:
-    "G\xE9n\xE9r\xE9 par web/scripts/blocks-generate.mjs (npm run blocks:generate) depuis blocks/. Ne pas modifier. Variante \xAB template \xBB. Variante \xAB template \xBB : le brouillon d'un mod\xE8le de blocs (pas de bloc li\xE9).",
-  type: "object",
-  additionalProperties: false,
-  required: ["v", "title", "blocks"],
-  properties: {
-    v: { const: 1 },
-    title: { type: "string", maxLength: 200 },
-    summary: { type: ["string", "null"], maxLength: 1e3 },
-    cover: { $ref: "#/definitions/mediaRef" },
-    audio: { $ref: "#/definitions/mediaRef" },
-    blocks: { type: "array", items: { $ref: "#/definitions/templateBlock" } },
-  },
-  definitions: {
-    uuid: {
-      $comment: "UUID en minuscules, comme crypto.randomUUID() et uuid::text.",
-      type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-    },
-    nullableUuid: {
-      type: ["string", "null"],
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-    },
-    mediaRef: {
-      $comment:
-        "R\xE9f\xE9rence \xE0 un fichier de la m\xE9diath\xE8que (image de pr\xE9sentation, son d'un \xE9pisode), ou null. Toute r\xE9f\xE9rence de fichier s'appelle mediaId ([D9]).",
-      type: ["object", "null"],
-      additionalProperties: false,
-      required: ["mediaId"],
-      properties: { mediaId: { $ref: "#/definitions/uuid" } },
-    },
-    href: {
-      $comment:
-        "Liens https:// et mailto: seulement ([D10]), sensible \xE0 la casse, sans espace.",
-      type: "string",
-      maxLength: 2048,
-      pattern: "^(https://|mailto:)[^\\s]+$",
-    },
-    basicMark: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type"],
-      properties: { type: { enum: ["bold", "italic"] } },
-    },
-    linkMark: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "attrs"],
-      properties: {
-        type: { const: "link" },
-        attrs: {
-          type: "object",
-          additionalProperties: false,
-          required: ["href"],
-          properties: { href: { $ref: "#/definitions/href" } },
-        },
-      },
-    },
-    mark: {
-      tsType: "BasicMark | LinkMark",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "link" } },
-      },
-      then: { $ref: "#/definitions/linkMark" },
-      else: { $ref: "#/definitions/basicMark" },
-    },
-    marks: { type: "array", items: { $ref: "#/definitions/mark" } },
-    textNode: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "text"],
-      properties: {
-        type: { const: "text" },
-        text: { type: "string", minLength: 1 },
-        marks: { $ref: "#/definitions/marks" },
-      },
-    },
-    hardBreak: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type"],
-      properties: {
-        type: { const: "hardBreak" },
-        marks: { $ref: "#/definitions/marks" },
-      },
-    },
-    inlineNode: {
-      tsType: "TextNode | HardBreak",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textNode" },
-      else: { $ref: "#/definitions/hardBreak" },
-    },
-    inline: { type: "array", items: { $ref: "#/definitions/inlineNode" } },
-    paragraph: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type"],
-      properties: {
-        type: { const: "paragraph" },
-        content: { $ref: "#/definitions/inline" },
-      },
-    },
-    heading: {
-      $comment:
-        "Niveaux 2 et 3 seulement : le titre du contenu fait office de niveau 1.",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "attrs"],
-      properties: {
-        type: { const: "heading" },
-        attrs: {
-          type: "object",
-          additionalProperties: false,
-          required: ["level"],
-          properties: { level: { enum: [2, 3] } },
-        },
-        content: { $ref: "#/definitions/inline" },
-      },
-    },
-    bulletList: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "bulletList" },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: { $ref: "#/definitions/listItem" },
-        },
-      },
-    },
-    orderedList: {
-      $comment:
-        "Seul l'attribut start est gard\xE9 (le type \xAB a \xBB, \xAB i \xBB\u2026 est un choix d'affichage).",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "orderedList" },
-        attrs: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            start: { type: "integer", minimum: 1, maximum: 99999 },
-          },
-        },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: { $ref: "#/definitions/listItem" },
-        },
-      },
-    },
-    listItem: {
-      $comment:
-        "Premier enfant : un paragraphe ; ensuite des paragraphes ou des listes (pas de titre).",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "listItem" },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: [{ $ref: "#/definitions/paragraph" }],
-          additionalItems: { $ref: "#/definitions/listChild" },
-        },
-      },
-    },
-    listChild: {
-      tsType: "Paragraph | BulletList | OrderedList",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "paragraph" } },
-      },
-      then: { $ref: "#/definitions/paragraph" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "bulletList" } },
-        },
-        then: { $ref: "#/definitions/bulletList" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "orderedList" } },
-          },
-          then: { $ref: "#/definitions/orderedList" },
-          else: {
-            type: "object",
-            required: ["type"],
-            properties: {
-              type: { enum: ["paragraph", "bulletList", "orderedList"] },
-            },
-          },
-        },
-      },
-    },
-    docChild: {
-      tsType: "Paragraph | Heading | BulletList | OrderedList",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "paragraph" } },
-      },
-      then: { $ref: "#/definitions/paragraph" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "heading" } },
-        },
-        then: { $ref: "#/definitions/heading" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "bulletList" } },
-          },
-          then: { $ref: "#/definitions/bulletList" },
-          else: {
-            if: {
-              type: "object",
-              required: ["type"],
-              properties: { type: { const: "orderedList" } },
-            },
-            then: { $ref: "#/definitions/orderedList" },
-            else: {
-              type: "object",
-              required: ["type"],
-              properties: {
-                type: {
-                  enum: ["paragraph", "heading", "bulletList", "orderedList"],
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    doc: {
-      $comment: "JSON ProseMirror (format Tiptap) restreint.",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "doc" },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: { $ref: "#/definitions/docChild" },
-        },
-      },
-    },
-    textBlock: {
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "doc"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "text" },
-        doc: { $ref: "#/definitions/doc" },
-      },
-    },
-    imageBlock: {
-      $comment:
-        "mediaId null : image pas encore choisie. alt null : reprendre le texte alternatif de la m\xE9diath\xE8que. L\xE9gende : texte simple, 300 caract\xE8res au plus ([D34]), compt\xE9s en points de code.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "mediaId", "caption", "alt"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "image" },
-        mediaId: { $ref: "#/definitions/nullableUuid" },
-        caption: { type: ["string", "null"], maxLength: 300 },
-        alt: { type: ["string", "null"], maxLength: 1e3 },
-      },
-    },
-    boxBlock: {
-      $comment:
-        "Encadr\xE9 : un seul niveau, Texte et Image seulement (ni encadr\xE9, ni bloc li\xE9).",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "look", "blocks"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "box" },
-        look: { enum: ["fill", "border"] },
-        blocks: { type: "array", items: { $ref: "#/definitions/boxChild" } },
-      },
-    },
-    boxChild: {
-      tsType: "TextBlock | ImageBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/imageBlock" },
-        else: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { enum: ["text", "image"] } },
-        },
-      },
-    },
-    linkedBlock: {
-      $comment:
-        "Bloc partag\xE9 (mod\xE8le \xAB shared \xBB) : au premier niveau d'un brouillon de contenu seulement.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "templateId"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "linked" },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    topBlock: {
-      $comment: "Un bloc au premier niveau d'un brouillon de contenu.",
-      tsType: "TextBlock | ImageBlock | BoxBlock | LinkedBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/imageBlock" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "box" } },
-          },
-          then: { $ref: "#/definitions/boxBlock" },
-          else: {
-            if: {
-              type: "object",
-              required: ["type"],
-              properties: { type: { const: "linked" } },
-            },
-            then: { $ref: "#/definitions/linkedBlock" },
-            else: {
-              type: "object",
-              required: ["type"],
-              properties: {
-                type: { enum: ["text", "image", "box", "linked"] },
-              },
-            },
-          },
-        },
-      },
-    },
-    templateBlock: {
-      $comment:
-        "Un bloc au premier niveau d'un mod\xE8le : pas de bloc li\xE9 (ni cha\xEEne ni boucle).",
-      tsType: "TextBlock | ImageBlock | BoxBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/imageBlock" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "box" } },
-          },
-          then: { $ref: "#/definitions/boxBlock" },
-          else: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { enum: ["text", "image", "box"] } },
-          },
-        },
-      },
-    },
-    publishedImageBlock: {
-      $comment:
-        "Image d'une version publi\xE9e (dans un encadr\xE9) : fichier obligatoire, texte alternatif r\xE9solu (\xA7 2.4). altFromLibrary : ce texte vient de la m\xE9diath\xE8que (alt null dans le brouillon) ; \xAB Revenir \xE0 cette version \xBB remet alt \xE0 null. L'app l'ignore.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "mediaId", "caption", "alt"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "image" },
-        mediaId: { $ref: "#/definitions/uuid" },
-        caption: { type: ["string", "null"], maxLength: 300 },
-        alt: { type: "string", maxLength: 1e3 },
-        altFromLibrary: { const: true },
-      },
-    },
-    publishedBoxChild: {
-      tsType: "TextBlock | PublishedImageBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/publishedImageBlock" },
-        else: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { enum: ["text", "image"] } },
-        },
-      },
-    },
-    publishedTextBlock: {
-      $comment:
-        "Texte au premier niveau d'une version publi\xE9e. templateId : copie d'un bloc partag\xE9 (mod\xE8le \xAB shared \xBB), r\xE9solue \xE0 la publication (\xA7 2.4).",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "doc"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "text" },
-        doc: { $ref: "#/definitions/doc" },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    publishedTopImageBlock: {
-      $comment:
-        "Image au premier niveau d'une version publi\xE9e (comme publishedImageBlock), avec le marqueur templateId d'une copie de mod\xE8le.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "mediaId", "caption", "alt"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "image" },
-        mediaId: { $ref: "#/definitions/uuid" },
-        caption: { type: ["string", "null"], maxLength: 300 },
-        alt: { type: "string", maxLength: 1e3 },
-        altFromLibrary: { const: true },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    publishedBoxBlock: {
-      $comment:
-        "Encadr\xE9 d'une version publi\xE9e : Texte et Image (fichier obligatoire) seulement, avec le marqueur templateId d'une copie de mod\xE8le.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "look", "blocks"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "box" },
-        look: { enum: ["fill", "border"] },
-        blocks: {
-          type: "array",
-          items: { $ref: "#/definitions/publishedBoxChild" },
-        },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    publishedTopBlock: {
-      $comment:
-        "Un bloc au premier niveau d'une version publi\xE9e : jamais de bloc li\xE9 (il est r\xE9solu en copie).",
-      tsType: "PublishedTextBlock | PublishedTopImageBlock | PublishedBoxBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/publishedTextBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/publishedTopImageBlock" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "box" } },
-          },
-          then: { $ref: "#/definitions/publishedBoxBlock" },
-          else: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { enum: ["text", "image", "box"] } },
-          },
-        },
-      },
-    },
-    draft: {
-      title: "Draft",
-      $comment:
-        "Variante \xAB draft \xBB : le brouillon d'un contenu (article, \xE9pisode, m\xE9thode, chapitre, le\xE7on, page).",
-      type: "object",
-      additionalProperties: false,
-      required: ["v", "title", "blocks"],
-      properties: {
-        v: { const: 1 },
-        title: { type: "string", maxLength: 200 },
-        summary: { type: ["string", "null"], maxLength: 1e3 },
-        cover: { $ref: "#/definitions/mediaRef" },
-        audio: { $ref: "#/definitions/mediaRef" },
-        blocks: { type: "array", items: { $ref: "#/definitions/topBlock" } },
-      },
-    },
-    template: {
-      title: "TemplateDraft",
-      $comment:
-        "Variante \xAB template \xBB : le brouillon d'un mod\xE8le de blocs (pas de bloc li\xE9).",
-      type: "object",
-      additionalProperties: false,
-      required: ["v", "title", "blocks"],
-      properties: {
-        v: { const: 1 },
-        title: { type: "string", maxLength: 200 },
-        summary: { type: ["string", "null"], maxLength: 1e3 },
-        cover: { $ref: "#/definitions/mediaRef" },
-        audio: { $ref: "#/definitions/mediaRef" },
-        blocks: {
-          type: "array",
-          items: { $ref: "#/definitions/templateBlock" },
-        },
-      },
-    },
-    published: {
-      title: "PublishedBody",
-      $comment:
-        "Variante \xAB published \xBB : le corps fig\xE9 d'une version publi\xE9e (\xA7 2.4), ce que lit l'app. Blocs li\xE9s r\xE9solus en copies, fichier obligatoire dans chaque image, texte alternatif r\xE9solu.",
-      type: "object",
-      additionalProperties: false,
-      required: ["v", "title", "blocks"],
-      properties: {
-        v: { const: 1 },
-        title: { type: "string", maxLength: 200 },
-        summary: { type: ["string", "null"], maxLength: 1e3 },
-        cover: { $ref: "#/definitions/mediaRef" },
-        audio: { $ref: "#/definitions/mediaRef" },
-        blocks: {
-          type: "array",
-          items: { $ref: "#/definitions/publishedTopBlock" },
-        },
-      },
-    },
-  },
-}
 function validate64(
   data,
   { instancePath = "", parentData, parentDataProperty, rootData = data } = {}
@@ -9367,7 +8165,6 @@ function validate63(
           if (!(
             key0 === "v" ||
             key0 === "title" ||
-            key0 === "summary" ||
             key0 === "cover" ||
             key0 === "audio" ||
             key0 === "blocks"
@@ -9440,49 +8237,34 @@ function validate63(
               var valid0 = true
             }
             if (valid0) {
-              if (data.summary !== void 0) {
-                let data2 = data.summary
+              if (data.cover !== void 0) {
                 const _errs6 = errors
-                if (typeof data2 !== "string" && data2 !== null) {
-                  validate63.errors = [
-                    {
-                      instancePath: instancePath + "/summary",
-                      schemaPath: "#/properties/summary/type",
-                      keyword: "type",
-                      params: { type: schema43.properties.summary.type },
-                      message: "must be string,null",
-                    },
-                  ]
-                  return false
-                }
-                if (errors === _errs6) {
-                  if (typeof data2 === "string") {
-                    if (func2(data2) > 1e3) {
-                      validate63.errors = [
-                        {
-                          instancePath: instancePath + "/summary",
-                          schemaPath: "#/properties/summary/maxLength",
-                          keyword: "maxLength",
-                          params: { limit: 1e3 },
-                          message: "must NOT have more than 1000 characters",
-                        },
-                      ]
-                      return false
-                    }
-                  }
+                if (
+                  !validate64(data.cover, {
+                    instancePath: instancePath + "/cover",
+                    parentData: data,
+                    parentDataProperty: "cover",
+                    rootData,
+                  })
+                ) {
+                  vErrors =
+                    vErrors === null
+                      ? validate64.errors
+                      : vErrors.concat(validate64.errors)
+                  errors = vErrors.length
                 }
                 var valid0 = _errs6 === errors
               } else {
                 var valid0 = true
               }
               if (valid0) {
-                if (data.cover !== void 0) {
-                  const _errs8 = errors
+                if (data.audio !== void 0) {
+                  const _errs7 = errors
                   if (
-                    !validate64(data.cover, {
-                      instancePath: instancePath + "/cover",
+                    !validate64(data.audio, {
+                      instancePath: instancePath + "/audio",
                       parentData: data,
-                      parentDataProperty: "cover",
+                      parentDataProperty: "audio",
                       rootData,
                     })
                   ) {
@@ -9492,77 +8274,55 @@ function validate63(
                         : vErrors.concat(validate64.errors)
                     errors = vErrors.length
                   }
-                  var valid0 = _errs8 === errors
+                  var valid0 = _errs7 === errors
                 } else {
                   var valid0 = true
                 }
                 if (valid0) {
-                  if (data.audio !== void 0) {
-                    const _errs9 = errors
-                    if (
-                      !validate64(data.audio, {
-                        instancePath: instancePath + "/audio",
-                        parentData: data,
-                        parentDataProperty: "audio",
-                        rootData,
-                      })
-                    ) {
-                      vErrors =
-                        vErrors === null
-                          ? validate64.errors
-                          : vErrors.concat(validate64.errors)
-                      errors = vErrors.length
+                  if (data.blocks !== void 0) {
+                    let data4 = data.blocks
+                    const _errs8 = errors
+                    if (errors === _errs8) {
+                      if (Array.isArray(data4)) {
+                        var valid1 = true
+                        const len0 = data4.length
+                        for (let i0 = 0; i0 < len0; i0++) {
+                          const _errs10 = errors
+                          if (
+                            !validate67(data4[i0], {
+                              instancePath: instancePath + "/blocks/" + i0,
+                              parentData: data4,
+                              parentDataProperty: i0,
+                              rootData,
+                            })
+                          ) {
+                            vErrors =
+                              vErrors === null
+                                ? validate67.errors
+                                : vErrors.concat(validate67.errors)
+                            errors = vErrors.length
+                          }
+                          var valid1 = _errs10 === errors
+                          if (!valid1) {
+                            break
+                          }
+                        }
+                      } else {
+                        validate63.errors = [
+                          {
+                            instancePath: instancePath + "/blocks",
+                            schemaPath: "#/properties/blocks/type",
+                            keyword: "type",
+                            params: { type: "array" },
+                            message: "must be array",
+                          },
+                        ]
+                        return false
+                      }
                     }
-                    var valid0 = _errs9 === errors
+                    var valid0 = _errs8 === errors
                   } else {
                     var valid0 = true
-                  }
-                  if (valid0) {
-                    if (data.blocks !== void 0) {
-                      let data5 = data.blocks
-                      const _errs10 = errors
-                      if (errors === _errs10) {
-                        if (Array.isArray(data5)) {
-                          var valid1 = true
-                          const len0 = data5.length
-                          for (let i0 = 0; i0 < len0; i0++) {
-                            const _errs12 = errors
-                            if (
-                              !validate67(data5[i0], {
-                                instancePath: instancePath + "/blocks/" + i0,
-                                parentData: data5,
-                                parentDataProperty: i0,
-                                rootData,
-                              })
-                            ) {
-                              vErrors =
-                                vErrors === null
-                                  ? validate67.errors
-                                  : vErrors.concat(validate67.errors)
-                              errors = vErrors.length
-                            }
-                            var valid1 = _errs12 === errors
-                            if (!valid1) {
-                              break
-                            }
-                          }
-                        } else {
-                          validate63.errors = [
-                            {
-                              instancePath: instancePath + "/blocks",
-                              schemaPath: "#/properties/blocks/type",
-                              keyword: "type",
-                              params: { type: "array" },
-                              message: "must be array",
-                            },
-                          ]
-                          return false
-                        }
-                      }
-                      var valid0 = _errs10 === errors
-                    } else {
-                      var valid0 = true
-                    }
                   }
                 }
               }
@@ -10004,591 +8764,6 @@ function validate114(
   return errors === 0
 }
 var validatePublished = validate119
-var schema73 = {
-  $schema: "http://json-schema.org/draft-07/schema#",
-  $id: "https://declikora.app/blocks/published.schema.json",
-  $comment:
-    "G\xE9n\xE9r\xE9 par web/scripts/blocks-generate.mjs (npm run blocks:generate) depuis blocks/. Ne pas modifier. Variante \xAB published \xBB. Variante \xAB published \xBB : le corps fig\xE9 d'une version publi\xE9e (\xA7 2.4), ce que lit l'app. Blocs li\xE9s r\xE9solus en copies, fichier obligatoire dans chaque image, texte alternatif r\xE9solu.",
-  type: "object",
-  additionalProperties: false,
-  required: ["v", "title", "blocks"],
-  properties: {
-    v: { const: 1 },
-    title: { type: "string", maxLength: 200 },
-    summary: { type: ["string", "null"], maxLength: 1e3 },
-    cover: { $ref: "#/definitions/mediaRef" },
-    audio: { $ref: "#/definitions/mediaRef" },
-    blocks: {
-      type: "array",
-      items: { $ref: "#/definitions/publishedTopBlock" },
-    },
-  },
-  definitions: {
-    uuid: {
-      $comment: "UUID en minuscules, comme crypto.randomUUID() et uuid::text.",
-      type: "string",
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-    },
-    nullableUuid: {
-      type: ["string", "null"],
-      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-    },
-    mediaRef: {
-      $comment:
-        "R\xE9f\xE9rence \xE0 un fichier de la m\xE9diath\xE8que (image de pr\xE9sentation, son d'un \xE9pisode), ou null. Toute r\xE9f\xE9rence de fichier s'appelle mediaId ([D9]).",
-      type: ["object", "null"],
-      additionalProperties: false,
-      required: ["mediaId"],
-      properties: { mediaId: { $ref: "#/definitions/uuid" } },
-    },
-    href: {
-      $comment:
-        "Liens https:// et mailto: seulement ([D10]), sensible \xE0 la casse, sans espace.",
-      type: "string",
-      maxLength: 2048,
-      pattern: "^(https://|mailto:)[^\\s]+$",
-    },
-    basicMark: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type"],
-      properties: { type: { enum: ["bold", "italic"] } },
-    },
-    linkMark: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "attrs"],
-      properties: {
-        type: { const: "link" },
-        attrs: {
-          type: "object",
-          additionalProperties: false,
-          required: ["href"],
-          properties: { href: { $ref: "#/definitions/href" } },
-        },
-      },
-    },
-    mark: {
-      tsType: "BasicMark | LinkMark",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "link" } },
-      },
-      then: { $ref: "#/definitions/linkMark" },
-      else: { $ref: "#/definitions/basicMark" },
-    },
-    marks: { type: "array", items: { $ref: "#/definitions/mark" } },
-    textNode: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "text"],
-      properties: {
-        type: { const: "text" },
-        text: { type: "string", minLength: 1 },
-        marks: { $ref: "#/definitions/marks" },
-      },
-    },
-    hardBreak: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type"],
-      properties: {
-        type: { const: "hardBreak" },
-        marks: { $ref: "#/definitions/marks" },
-      },
-    },
-    inlineNode: {
-      tsType: "TextNode | HardBreak",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textNode" },
-      else: { $ref: "#/definitions/hardBreak" },
-    },
-    inline: { type: "array", items: { $ref: "#/definitions/inlineNode" } },
-    paragraph: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type"],
-      properties: {
-        type: { const: "paragraph" },
-        content: { $ref: "#/definitions/inline" },
-      },
-    },
-    heading: {
-      $comment:
-        "Niveaux 2 et 3 seulement : le titre du contenu fait office de niveau 1.",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "attrs"],
-      properties: {
-        type: { const: "heading" },
-        attrs: {
-          type: "object",
-          additionalProperties: false,
-          required: ["level"],
-          properties: { level: { enum: [2, 3] } },
-        },
-        content: { $ref: "#/definitions/inline" },
-      },
-    },
-    bulletList: {
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "bulletList" },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: { $ref: "#/definitions/listItem" },
-        },
-      },
-    },
-    orderedList: {
-      $comment:
-        "Seul l'attribut start est gard\xE9 (le type \xAB a \xBB, \xAB i \xBB\u2026 est un choix d'affichage).",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "orderedList" },
-        attrs: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            start: { type: "integer", minimum: 1, maximum: 99999 },
-          },
-        },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: { $ref: "#/definitions/listItem" },
-        },
-      },
-    },
-    listItem: {
-      $comment:
-        "Premier enfant : un paragraphe ; ensuite des paragraphes ou des listes (pas de titre).",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "listItem" },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: [{ $ref: "#/definitions/paragraph" }],
-          additionalItems: { $ref: "#/definitions/listChild" },
-        },
-      },
-    },
-    listChild: {
-      tsType: "Paragraph | BulletList | OrderedList",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "paragraph" } },
-      },
-      then: { $ref: "#/definitions/paragraph" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "bulletList" } },
-        },
-        then: { $ref: "#/definitions/bulletList" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "orderedList" } },
-          },
-          then: { $ref: "#/definitions/orderedList" },
-          else: {
-            type: "object",
-            required: ["type"],
-            properties: {
-              type: { enum: ["paragraph", "bulletList", "orderedList"] },
-            },
-          },
-        },
-      },
-    },
-    docChild: {
-      tsType: "Paragraph | Heading | BulletList | OrderedList",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "paragraph" } },
-      },
-      then: { $ref: "#/definitions/paragraph" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "heading" } },
-        },
-        then: { $ref: "#/definitions/heading" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "bulletList" } },
-          },
-          then: { $ref: "#/definitions/bulletList" },
-          else: {
-            if: {
-              type: "object",
-              required: ["type"],
-              properties: { type: { const: "orderedList" } },
-            },
-            then: { $ref: "#/definitions/orderedList" },
-            else: {
-              type: "object",
-              required: ["type"],
-              properties: {
-                type: {
-                  enum: ["paragraph", "heading", "bulletList", "orderedList"],
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    doc: {
-      $comment: "JSON ProseMirror (format Tiptap) restreint.",
-      type: "object",
-      additionalProperties: false,
-      required: ["type", "content"],
-      properties: {
-        type: { const: "doc" },
-        content: {
-          type: "array",
-          minItems: 1,
-          items: { $ref: "#/definitions/docChild" },
-        },
-      },
-    },
-    textBlock: {
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "doc"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "text" },
-        doc: { $ref: "#/definitions/doc" },
-      },
-    },
-    imageBlock: {
-      $comment:
-        "mediaId null : image pas encore choisie. alt null : reprendre le texte alternatif de la m\xE9diath\xE8que. L\xE9gende : texte simple, 300 caract\xE8res au plus ([D34]), compt\xE9s en points de code.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "mediaId", "caption", "alt"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "image" },
-        mediaId: { $ref: "#/definitions/nullableUuid" },
-        caption: { type: ["string", "null"], maxLength: 300 },
-        alt: { type: ["string", "null"], maxLength: 1e3 },
-      },
-    },
-    boxBlock: {
-      $comment:
-        "Encadr\xE9 : un seul niveau, Texte et Image seulement (ni encadr\xE9, ni bloc li\xE9).",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "look", "blocks"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "box" },
-        look: { enum: ["fill", "border"] },
-        blocks: { type: "array", items: { $ref: "#/definitions/boxChild" } },
-      },
-    },
-    boxChild: {
-      tsType: "TextBlock | ImageBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/imageBlock" },
-        else: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { enum: ["text", "image"] } },
-        },
-      },
-    },
-    linkedBlock: {
-      $comment:
-        "Bloc partag\xE9 (mod\xE8le \xAB shared \xBB) : au premier niveau d'un brouillon de contenu seulement.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "templateId"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "linked" },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    topBlock: {
-      $comment: "Un bloc au premier niveau d'un brouillon de contenu.",
-      tsType: "TextBlock | ImageBlock | BoxBlock | LinkedBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/imageBlock" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "box" } },
-          },
-          then: { $ref: "#/definitions/boxBlock" },
-          else: {
-            if: {
-              type: "object",
-              required: ["type"],
-              properties: { type: { const: "linked" } },
-            },
-            then: { $ref: "#/definitions/linkedBlock" },
-            else: {
-              type: "object",
-              required: ["type"],
-              properties: {
-                type: { enum: ["text", "image", "box", "linked"] },
-              },
-            },
-          },
-        },
-      },
-    },
-    templateBlock: {
-      $comment:
-        "Un bloc au premier niveau d'un mod\xE8le : pas de bloc li\xE9 (ni cha\xEEne ni boucle).",
-      tsType: "TextBlock | ImageBlock | BoxBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/imageBlock" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "box" } },
-          },
-          then: { $ref: "#/definitions/boxBlock" },
-          else: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { enum: ["text", "image", "box"] } },
-          },
-        },
-      },
-    },
-    publishedImageBlock: {
-      $comment:
-        "Image d'une version publi\xE9e (dans un encadr\xE9) : fichier obligatoire, texte alternatif r\xE9solu (\xA7 2.4). altFromLibrary : ce texte vient de la m\xE9diath\xE8que (alt null dans le brouillon) ; \xAB Revenir \xE0 cette version \xBB remet alt \xE0 null. L'app l'ignore.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "mediaId", "caption", "alt"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "image" },
-        mediaId: { $ref: "#/definitions/uuid" },
-        caption: { type: ["string", "null"], maxLength: 300 },
-        alt: { type: "string", maxLength: 1e3 },
-        altFromLibrary: { const: true },
-      },
-    },
-    publishedBoxChild: {
-      tsType: "TextBlock | PublishedImageBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/textBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/publishedImageBlock" },
-        else: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { enum: ["text", "image"] } },
-        },
-      },
-    },
-    publishedTextBlock: {
-      $comment:
-        "Texte au premier niveau d'une version publi\xE9e. templateId : copie d'un bloc partag\xE9 (mod\xE8le \xAB shared \xBB), r\xE9solue \xE0 la publication (\xA7 2.4).",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "doc"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "text" },
-        doc: { $ref: "#/definitions/doc" },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    publishedTopImageBlock: {
-      $comment:
-        "Image au premier niveau d'une version publi\xE9e (comme publishedImageBlock), avec le marqueur templateId d'une copie de mod\xE8le.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "mediaId", "caption", "alt"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "image" },
-        mediaId: { $ref: "#/definitions/uuid" },
-        caption: { type: ["string", "null"], maxLength: 300 },
-        alt: { type: "string", maxLength: 1e3 },
-        altFromLibrary: { const: true },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    publishedBoxBlock: {
-      $comment:
-        "Encadr\xE9 d'une version publi\xE9e : Texte et Image (fichier obligatoire) seulement, avec le marqueur templateId d'une copie de mod\xE8le.",
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "type", "look", "blocks"],
-      properties: {
-        id: { $ref: "#/definitions/uuid" },
-        type: { const: "box" },
-        look: { enum: ["fill", "border"] },
-        blocks: {
-          type: "array",
-          items: { $ref: "#/definitions/publishedBoxChild" },
-        },
-        templateId: { $ref: "#/definitions/uuid" },
-      },
-    },
-    publishedTopBlock: {
-      $comment:
-        "Un bloc au premier niveau d'une version publi\xE9e : jamais de bloc li\xE9 (il est r\xE9solu en copie).",
-      tsType: "PublishedTextBlock | PublishedTopImageBlock | PublishedBoxBlock",
-      if: {
-        type: "object",
-        required: ["type"],
-        properties: { type: { const: "text" } },
-      },
-      then: { $ref: "#/definitions/publishedTextBlock" },
-      else: {
-        if: {
-          type: "object",
-          required: ["type"],
-          properties: { type: { const: "image" } },
-        },
-        then: { $ref: "#/definitions/publishedTopImageBlock" },
-        else: {
-          if: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { const: "box" } },
-          },
-          then: { $ref: "#/definitions/publishedBoxBlock" },
-          else: {
-            type: "object",
-            required: ["type"],
-            properties: { type: { enum: ["text", "image", "box"] } },
-          },
-        },
-      },
-    },
-    draft: {
-      title: "Draft",
-      $comment:
-        "Variante \xAB draft \xBB : le brouillon d'un contenu (article, \xE9pisode, m\xE9thode, chapitre, le\xE7on, page).",
-      type: "object",
-      additionalProperties: false,
-      required: ["v", "title", "blocks"],
-      properties: {
-        v: { const: 1 },
-        title: { type: "string", maxLength: 200 },
-        summary: { type: ["string", "null"], maxLength: 1e3 },
-        cover: { $ref: "#/definitions/mediaRef" },
-        audio: { $ref: "#/definitions/mediaRef" },
-        blocks: { type: "array", items: { $ref: "#/definitions/topBlock" } },
-      },
-    },
-    template: {
-      title: "TemplateDraft",
-      $comment:
-        "Variante \xAB template \xBB : le brouillon d'un mod\xE8le de blocs (pas de bloc li\xE9).",
-      type: "object",
-      additionalProperties: false,
-      required: ["v", "title", "blocks"],
-      properties: {
-        v: { const: 1 },
-        title: { type: "string", maxLength: 200 },
-        summary: { type: ["string", "null"], maxLength: 1e3 },
-        cover: { $ref: "#/definitions/mediaRef" },
-        audio: { $ref: "#/definitions/mediaRef" },
-        blocks: {
-          type: "array",
-          items: { $ref: "#/definitions/templateBlock" },
-        },
-      },
-    },
-    published: {
-      title: "PublishedBody",
-      $comment:
-        "Variante \xAB published \xBB : le corps fig\xE9 d'une version publi\xE9e (\xA7 2.4), ce que lit l'app. Blocs li\xE9s r\xE9solus en copies, fichier obligatoire dans chaque image, texte alternatif r\xE9solu.",
-      type: "object",
-      additionalProperties: false,
-      required: ["v", "title", "blocks"],
-      properties: {
-        v: { const: 1 },
-        title: { type: "string", maxLength: 200 },
-        summary: { type: ["string", "null"], maxLength: 1e3 },
-        cover: { $ref: "#/definitions/mediaRef" },
-        audio: { $ref: "#/definitions/mediaRef" },
-        blocks: {
-          type: "array",
-          items: { $ref: "#/definitions/publishedTopBlock" },
-        },
-      },
-    },
-  },
-}
 function validate120(
   data,
   { instancePath = "", parentData, parentDataProperty, rootData = data } = {}
@@ -14985,7 +13160,6 @@ function validate119(
           if (!(
             key0 === "v" ||
             key0 === "title" ||
-            key0 === "summary" ||
             key0 === "cover" ||
             key0 === "audio" ||
             key0 === "blocks"
@@ -15058,49 +13232,34 @@ function validate119(
               var valid0 = true
             }
             if (valid0) {
-              if (data.summary !== void 0) {
-                let data2 = data.summary
+              if (data.cover !== void 0) {
                 const _errs6 = errors
-                if (typeof data2 !== "string" && data2 !== null) {
-                  validate119.errors = [
-                    {
-                      instancePath: instancePath + "/summary",
-                      schemaPath: "#/properties/summary/type",
-                      keyword: "type",
-                      params: { type: schema73.properties.summary.type },
-                      message: "must be string,null",
-                    },
-                  ]
-                  return false
-                }
-                if (errors === _errs6) {
-                  if (typeof data2 === "string") {
-                    if (func2(data2) > 1e3) {
-                      validate119.errors = [
-                        {
-                          instancePath: instancePath + "/summary",
-                          schemaPath: "#/properties/summary/maxLength",
-                          keyword: "maxLength",
-                          params: { limit: 1e3 },
-                          message: "must NOT have more than 1000 characters",
-                        },
-                      ]
-                      return false
-                    }
-                  }
+                if (
+                  !validate120(data.cover, {
+                    instancePath: instancePath + "/cover",
+                    parentData: data,
+                    parentDataProperty: "cover",
+                    rootData,
+                  })
+                ) {
+                  vErrors =
+                    vErrors === null
+                      ? validate120.errors
+                      : vErrors.concat(validate120.errors)
+                  errors = vErrors.length
                 }
                 var valid0 = _errs6 === errors
               } else {
                 var valid0 = true
               }
               if (valid0) {
-                if (data.cover !== void 0) {
-                  const _errs8 = errors
+                if (data.audio !== void 0) {
+                  const _errs7 = errors
                   if (
-                    !validate120(data.cover, {
-                      instancePath: instancePath + "/cover",
+                    !validate120(data.audio, {
+                      instancePath: instancePath + "/audio",
                       parentData: data,
-                      parentDataProperty: "cover",
+                      parentDataProperty: "audio",
                       rootData,
                     })
                   ) {
@@ -15110,77 +13269,55 @@ function validate119(
                         : vErrors.concat(validate120.errors)
                     errors = vErrors.length
                   }
-                  var valid0 = _errs8 === errors
+                  var valid0 = _errs7 === errors
                 } else {
                   var valid0 = true
                 }
                 if (valid0) {
-                  if (data.audio !== void 0) {
-                    const _errs9 = errors
-                    if (
-                      !validate120(data.audio, {
-                        instancePath: instancePath + "/audio",
-                        parentData: data,
-                        parentDataProperty: "audio",
-                        rootData,
-                      })
-                    ) {
-                      vErrors =
-                        vErrors === null
-                          ? validate120.errors
-                          : vErrors.concat(validate120.errors)
-                      errors = vErrors.length
+                  if (data.blocks !== void 0) {
+                    let data4 = data.blocks
+                    const _errs8 = errors
+                    if (errors === _errs8) {
+                      if (Array.isArray(data4)) {
+                        var valid1 = true
+                        const len0 = data4.length
+                        for (let i0 = 0; i0 < len0; i0++) {
+                          const _errs10 = errors
+                          if (
+                            !validate123(data4[i0], {
+                              instancePath: instancePath + "/blocks/" + i0,
+                              parentData: data4,
+                              parentDataProperty: i0,
+                              rootData,
+                            })
+                          ) {
+                            vErrors =
+                              vErrors === null
+                                ? validate123.errors
+                                : vErrors.concat(validate123.errors)
+                            errors = vErrors.length
+                          }
+                          var valid1 = _errs10 === errors
+                          if (!valid1) {
+                            break
+                          }
+                        }
+                      } else {
+                        validate119.errors = [
+                          {
+                            instancePath: instancePath + "/blocks",
+                            schemaPath: "#/properties/blocks/type",
+                            keyword: "type",
+                            params: { type: "array" },
+                            message: "must be array",
+                          },
+                        ]
+                        return false
+                      }
                     }
-                    var valid0 = _errs9 === errors
+                    var valid0 = _errs8 === errors
                   } else {
                     var valid0 = true
-                  }
-                  if (valid0) {
-                    if (data.blocks !== void 0) {
-                      let data5 = data.blocks
-                      const _errs10 = errors
-                      if (errors === _errs10) {
-                        if (Array.isArray(data5)) {
-                          var valid1 = true
-                          const len0 = data5.length
-                          for (let i0 = 0; i0 < len0; i0++) {
-                            const _errs12 = errors
-                            if (
-                              !validate123(data5[i0], {
-                                instancePath: instancePath + "/blocks/" + i0,
-                                parentData: data5,
-                                parentDataProperty: i0,
-                                rootData,
-                              })
-                            ) {
-                              vErrors =
-                                vErrors === null
-                                  ? validate123.errors
-                                  : vErrors.concat(validate123.errors)
-                              errors = vErrors.length
-                            }
-                            var valid1 = _errs12 === errors
-                            if (!valid1) {
-                              break
-                            }
-                          }
-                        } else {
-                          validate119.errors = [
-                            {
-                              instancePath: instancePath + "/blocks",
-                              schemaPath: "#/properties/blocks/type",
-                              keyword: "type",
-                              params: { type: "array" },
-                              message: "must be array",
-                            },
-                          ]
-                          return false
-                        }
-                      }
-                      var valid0 = _errs10 === errors
-                    } else {
-                      var valid0 = true
-                    }
                   }
                 }
               }

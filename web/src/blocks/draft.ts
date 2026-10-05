@@ -269,12 +269,11 @@ type PreparedDraft =
 
 /**
  * Prépare le brouillon à l'enregistrement : textes nettoyés (cleanTextDoc), puis vérifiés par
- * le validateur généré depuis le schéma (le même que celui de la base). L'admin n'écrit plus de
- * résumé (03/10/2026, ADMIN § 4) : celui d'un ancien brouillon est retiré. Le schéma garde le
- * champ, la forme des blocs ne faisant que s'élargir.
+ * le validateur généré depuis le schéma (le même que celui de la base). Plus de résumé (ADMIN § 4,
+ * retiré de la forme des blocs le 04/10/2026) : celui d'un brouillon plus ancien est retiré.
  */
 export function prepareDraft(source: Draft): PreparedDraft {
-  const draft = { ...source }
+  const draft: Draft & { summary?: unknown } = { ...source }
   delete draft.summary
   const cleanBlock = <T extends Block>(block: T): T =>
     block.type === "text"

@@ -161,9 +161,9 @@ select lives_ok(
         ))
       ),
       'Café',
-      jsonb_build_object('summary', 'Un résumé', 'cover', jsonb_build_object('mediaId', pg_temp.mid('photo')))
+      jsonb_build_object('cover', jsonb_build_object('mediaId', pg_temp.mid('photo')))
     ))$$,
-  'l''article reçoit ses blocs, son résumé et son image de présentation'
+  'l''article reçoit ses blocs et son image de présentation'
 );
 select throws_ok(
   $$select public.publish(pg_temp.cid('article'), null)$$, 'P0001', 'demande_invalide',
@@ -522,7 +522,7 @@ select lives_ok(
     pg_temp.text_block('00000000-0000-4000-8000-000000000061', 'Secret'),
     pg_temp.image_block('00000000-0000-4000-8000-000000000062', pg_temp.mid('fond'))),
     'Réservé',
-    jsonb_build_object('summary', 'Pour les abonnés', 'cover', jsonb_build_object('mediaId', pg_temp.mid('photo')))),
+    jsonb_build_object('cover', jsonb_build_object('mediaId', pg_temp.mid('photo')))),
     jsonb_build_object('access_level_id', pg_temp.lid('complet'),
       'category_ids', jsonb_build_array(pg_temp.catid('sommeil'), pg_temp.catid('cuisine'))))$$,
   'formule Complet, deux catégories'
@@ -534,7 +534,7 @@ select is(
   public.app_content(pg_temp.cid('reserve')) - 'publishedAt' - 'firstPublishedAt',
   jsonb_build_object(
     'id', pg_temp.cid('reserve'), 'versionId', (pg_temp.live('reserve')).id, 'kind', 'article',
-    'title', 'Réservé', 'summary', 'Pour les abonnés',
+    'title', 'Réservé',
     'cover', jsonb_build_object('mediaId', pg_temp.mid('photo')), 'slug', null,
     'level', jsonb_build_object('id', pg_temp.lid('complet'), 'name', 'Complet', 'rank', 2),
     'locked', true, 'blockTypes', jsonb_build_array('image', 'text'),
@@ -542,7 +542,7 @@ select is(
     'files', jsonb_build_object(pg_temp.mid('photo')::text,
       (pg_temp.live('reserve')).files -> pg_temp.mid('photo')::text),
     'categoryIds', jsonb_build_array(pg_temp.catid('sommeil'), pg_temp.catid('cuisine')),
-    'methodId', null, 'isFree', false
+    'methodId', null, 'lessonId', null, 'exercises', null, 'isFree', false
   ),
   'anonyme : contenu réservé verrouillé, sans blocs ni son ; seule l''image de présentation dans files'
 );

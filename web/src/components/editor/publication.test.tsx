@@ -60,7 +60,6 @@ const labels = texts.publication
 const draft: Draft = {
   v: 1,
   title: "Aide",
-  summary: null,
   cover: null,
   audio: null,
   blocks: [],

@@ -91,7 +91,6 @@ export interface BlocksVariants {
 export interface Draft {
   v: 1
   title: string
-  summary?: string | null
   cover?: MediaRef
   audio?: MediaRef
   blocks: TopBlock[]
@@ -103,7 +102,6 @@ export interface Draft {
 export interface TemplateDraft {
   v: 1
   title: string
-  summary?: string | null
   cover?: MediaRef
   audio?: MediaRef
   blocks: TemplateBlock[]
@@ -115,7 +113,6 @@ export interface TemplateDraft {
 export interface PublishedBody {
   v: 1
   title: string
-  summary?: string | null
   cover?: MediaRef
   audio?: MediaRef
   blocks: PublishedTopBlock[]

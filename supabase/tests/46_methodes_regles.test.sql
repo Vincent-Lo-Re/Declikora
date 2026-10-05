@@ -302,7 +302,7 @@ select is(
   public.app_method(pg_temp.cid('m')) - 'chapters' - 'files' - 'publishedAt' - 'firstPublishedAt',
   jsonb_build_object(
     'id', pg_temp.cid('m'), 'versionId', (pg_temp.live('m')).id, 'kind', 'method', 'title', 'Respirer',
-    'summary', null, 'cover', jsonb_build_object('mediaId', pg_temp.mid('couverture')),
+    'cover', jsonb_build_object('mediaId', pg_temp.mid('couverture')),
     'level', jsonb_build_object('id', pg_temp.lid('complet'), 'name', 'Complet', 'rank', 2), 'locked', true
   ),
   'app_method : la fiche, son niveau, verrouillée pour un anonyme'

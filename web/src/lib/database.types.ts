@@ -567,7 +567,6 @@ export type Database = {
         Row: {
           batch_root: boolean | null
           deleted_at: string | null
-          deleted_by: string | null
           deleted_by_name: string | null
           id: string | null
           item_type: string | null
@@ -750,10 +749,6 @@ export type Database = {
       has_other_active_admin: {
         Args: { excluded_user_id: string }
         Returns: boolean
-      }
-      initial_role: {
-        Args: { app_metadata: Json }
-        Returns: Database["public"]["Enums"]["team_role"]
       }
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
       is_staff: { Args: Record<PropertyKey, never>; Returns: boolean }
@@ -1013,6 +1008,8 @@ export type Database = {
           draft_saved_by_name: string
           element_id: string
           kind: string
+          lesson_id: string
+          lesson_title: string
           problem: string
           problem_detail: string
           title: string
@@ -1047,7 +1044,6 @@ export type Database = {
         }[]
       }
       schedule: { Args: { at: string; content_id: string }; Returns: string }
-      session_is_open: { Args: Record<PropertyKey, never>; Returns: boolean }
       team_members: {
         Args: Record<PropertyKey, never>
         Returns: {

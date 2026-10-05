@@ -60,7 +60,6 @@ function draftWith(blocks: Draft["blocks"]): Draft {
   return {
     v: 1,
     title: "Page",
-    summary: null,
     cover: null,
     audio: null,
     blocks,
@@ -107,10 +106,8 @@ describe("prepareDraft", () => {
   })
 
   it("retire le résumé d'un ancien brouillon (l'admin n'en écrit plus)", () => {
-    const prepared = prepareDraft({
-      ...draftWith([]),
-      summary: "Ancien résumé",
-    })
+    const old = { ...draftWith([]), summary: "Ancien résumé" }
+    const prepared = prepareDraft(old)
     expect(prepared.ok).toBe(true)
     if (!prepared.ok) return
     expect(prepared.draft).not.toHaveProperty("summary")
