@@ -12,7 +12,7 @@ import type { TemplateSort } from "@/lib/contents/templates"
 
 export type ContentProfile = {
   // Ce que montre son éditeur, dans la mise en page du Fil : des blocs, ou le plan d'une méthode
-  // (ses chapitres et ses leçons, sans blocs, [D4]).
+  // (ses chapitres, ses leçons et leurs exercices, sans blocs, [D4]).
   layout: "feed" | "method"
   // Qui la publie : elle-même, sa méthode (un chapitre, une leçon, un exercice, [D29]), ou
   // personne (un modèle de bloc).

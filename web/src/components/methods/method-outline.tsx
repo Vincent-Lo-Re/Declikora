@@ -1262,13 +1262,16 @@ function LessonItem({
           )
         }
         fold={
-          hasExercises && (
+          hasExercises ? (
             <FoldButton
               open={open}
               controls={listId}
               label={open ? labels.fold(label) : labels.unfold(label)}
               onClick={() => toggleFold(lesson)}
             />
+          ) : (
+            // La place de la flèche : les numéros des leçons restent alignés.
+            <span aria-hidden className="size-6 shrink-0" />
           )
         }
         isFirst={isFirst}
@@ -1281,14 +1284,15 @@ function LessonItem({
           items={lesson.exercises.map((exercise) => exercise.id)}
           strategy={verticalListSortingStrategy}
         >
-          {/* Comme les leçons sous leur chapitre : un trait, décalé d'un cran. Sans exercice, la
-              liste n'est que la zone où en déposer un, visible pendant le déplacement. */}
+          {/* Comme les leçons sous leur chapitre : un trait, sous le numéro de la leçon (après sa
+              flèche). Sans exercice, la liste n'est que la zone où en déposer un, visible pendant
+              le déplacement. */}
           <ol
             ref={setZoneRef}
             id={listId}
             aria-label={labels.exercisesOf(label)}
             className={cn(
-              "ml-5 grid gap-0.5 rounded-md border-l pl-1.5",
+              "ml-11 grid gap-0.5 rounded-md border-l pl-1.5",
               !hasExercises && dragging !== "exercise" && "hidden",
               overZone && "bg-accent"
             )}
@@ -1345,13 +1349,11 @@ function ExerciseItem({
       droppable: dragging !== null && dragging !== "exercise",
     },
   })
-  // Le premier et le dernier exercice de tout le plan ne vont pas plus loin.
+  // Il passe d'une leçon à la voisine, même vide : seuls le premier exercice de la première leçon
+  // et le dernier de la dernière ne vont pas plus loin.
   const tree = useContext(TreeContext)
-  const all = tree
-    ? tree.flatMap((chapter) =>
-        chapter.lessons.flatMap((item) => item.exercises)
-      )
-    : []
+  const lessons = tree ? tree.flatMap((chapter) => chapter.lessons) : []
+  const lessonIndex = lessons.findIndex((item) => item.id === lesson.id)
   const label = labels.exerciseLabel(position, titleOf(exercise))
   return (
     <li
@@ -1383,8 +1385,11 @@ function ExerciseItem({
             />
           )
         }
-        isFirst={all[0]?.id === exercise.id}
-        isLast={all.at(-1)?.id === exercise.id}
+        isFirst={position === 1 && lessonIndex === 0}
+        isLast={
+          position === lesson.exercises.length &&
+          lessonIndex === lessons.length - 1
+        }
         canGoFurther
       />
     </li>
@@ -1415,7 +1420,8 @@ function FoldButton({
             aria-controls={controls}
             aria-label={label}
             onClick={onClick}
-            className="shrink-0 text-muted-foreground"
+            // Dépliée n'est pas « enfoncée » (style d'un menu ouvert) : seulement le survol.
+            className="shrink-0 text-muted-foreground aria-expanded:bg-transparent aria-expanded:text-muted-foreground aria-expanded:hover:bg-muted"
           />
         }
       >

@@ -1621,6 +1621,17 @@ describe("les exercices d'une leçon (04/10/2026)", () => {
     expect(stateOf(RETENIR)).toBe("hidden")
     // Coché, mais son chapitre est caché : il ne part pas.
     expect(stateOf(SOUFFLER)).toBe("blocked")
+    // Le dernier exercice de la dernière leçon ne descend plus.
+    fireEvent.click(
+      within(plan).getByRole("button", {
+        name: outline.actions(outline.exerciseLabel(1, "Souffler")),
+      })
+    )
+    expect(
+      await screen.findByRole("menuitem", { name: outline.moveDown })
+    ).toHaveAttribute("aria-disabled", "true")
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" })
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
     // Une leçon sans exercice n'a pas de flèche.
     expect(
       within(row(CARREE)).queryByRole("button", {
@@ -1723,6 +1734,24 @@ describe("les exercices d'une leçon (04/10/2026)", () => {
         )
       )
     ).toBeInTheDocument()
+  })
+
+  it("le dernier exercice du plan descend encore dans une leçon vide qui le suit, pas plus loin", async () => {
+    // Seule « Le souffle » a des exercices ; « Respiration carrée » et « Expirer lentement »,
+    // après elle, n'en ont pas.
+    vi.mocked(methodsApi.getMethodTree).mockResolvedValue([
+      chapterOf(tree[0], [withExercises[0].lessons[0], tree[0].lessons[1]]),
+      tree[1],
+    ])
+    await openMethod()
+    fireEvent.click(
+      within(await planColumn()).getByRole("button", {
+        name: outline.actions(outline.exerciseLabel(2, "Retenir")),
+      })
+    )
+    expect(
+      await screen.findByRole("menuitem", { name: outline.moveDown })
+    ).not.toHaveAttribute("aria-disabled", "true")
   })
 
   it("le téléphone de la méthode donne le nombre d'exercices montrés d'une leçon, pas leur liste", async () => {

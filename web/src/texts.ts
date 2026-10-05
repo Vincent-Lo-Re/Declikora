@@ -66,7 +66,8 @@ export const texts = {
     },
     methods: {
       title: "Méthodes",
-      description: "Les méthodes, leurs chapitres et leurs leçons.",
+      description:
+        "Les méthodes, leurs chapitres, leurs leçons et leurs exercices.",
     },
     pages: {
       title: "Pages",
@@ -892,14 +893,14 @@ export const texts = {
         blank: "Méthode vide",
         confirmTrashTitle: "Mettre cette méthode à la corbeille ?",
         confirmTrash: (title: string) =>
-          `« ${title} » va dans la corbeille, avec ses chapitres et ses leçons. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
+          `« ${title} » va dans la corbeille, avec ses chapitres, ses leçons et leurs exercices. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
         restored: (title: string) =>
-          `« ${title} » est restaurée, en brouillon, avec ses chapitres et ses leçons.`,
+          `« ${title} » est restaurée, en brouillon, avec ses chapitres, ses leçons et leurs exercices.`,
         // Sélection en masse.
         confirmTrashManyTitle: (count: number) =>
           `Mettre ${count} méthodes à la corbeille ?`,
         confirmTrashMany:
-          "Elles vont dans la corbeille, avec leurs chapitres et leurs leçons. Celles qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
+          "Elles vont dans la corbeille, avec leurs chapitres, leurs leçons et leurs exercices. Celles qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
         trashedMany: (count: number) =>
           count === 1
             ? "1 méthode mise à la corbeille."
@@ -916,7 +917,7 @@ export const texts = {
             : "Elles restent sélectionnées.",
         emptyTitle: "Aucune méthode pour l'instant",
         emptyDescription:
-          "Crée une méthode : elle s'ouvre aussitôt, avec sa fiche et son plan. Ajoute-lui ensuite ses chapitres et ses leçons.",
+          "Crée une méthode : elle s'ouvre aussitôt, avec sa fiche et son plan. Ajoute-lui ensuite ses chapitres, ses leçons et leurs exercices.",
         search: "Rechercher une méthode",
         noResults:
           "Aucune méthode ne correspond à ta recherche ou à tes filtres.",
@@ -2404,7 +2405,7 @@ export const texts = {
         "Les lecteurs ne verront plus ce contenu. Le brouillon et l'historique sont gardés, et tu pourras le publier de nouveau. Une publication programmée est annulée.",
       confirm: "Retirer de l'app",
       done: "Retiré de l'app.",
-      // Une méthode : ses chapitres et ses leçons partent avec elle.
+      // Une méthode : ses chapitres, ses leçons et leurs exercices partent avec elle.
       methodDescription:
         "Les lecteurs ne verront plus la méthode, ni ses chapitres ni ses leçons. Les brouillons et l'historique sont gardés, et tu pourras la publier de nouveau. Une publication programmée est annulée.",
     },

@@ -505,6 +505,11 @@
   color: var(--blocks-color-link);
 }
 
+/* En bas d'une leçon, ses exercices : séparés de son contenu comme deux blocs. */
+.blocks-lesson-exercises {
+  margin-top: calc(var(--blocks-space-block-gap) * 2);
+}
+
 /* Le nombre d'exercices d'une leçon, à droite de sa ligne : le plan ne les liste pas. */
 .blocks-plan-count {
   font-size: calc(

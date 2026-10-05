@@ -113,7 +113,10 @@ export function LessonExercises({
     ) : null
   }
   return (
-    <section aria-label={labels.lessonExercises} className="blocks-plan">
+    <section
+      aria-label={labels.lessonExercises}
+      className="blocks-plan blocks-lesson-exercises"
+    >
       <h2 className="blocks-plan-chapter">{labels.lessonExercises}</h2>
       <ul className="blocks-plan-lessons">
         {shown.map((exercise) => (
