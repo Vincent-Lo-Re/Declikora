@@ -16,9 +16,9 @@ var __commonJS = (cb, mod) =>
     }
   }
 
-// ../../Declikora/web/node_modules/ajv/dist/runtime/ucs2length.js
+// node_modules/ajv/dist/runtime/ucs2length.js
 var require_ucs2length = __commonJS({
-  "../../Declikora/web/node_modules/ajv/dist/runtime/ucs2length.js"(exports) {
+  "node_modules/ajv/dist/runtime/ucs2length.js"(exports) {
     "use strict"
     Object.defineProperty(exports, "__esModule", { value: true })
     function ucs2length(str) {
