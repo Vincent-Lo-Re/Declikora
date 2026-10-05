@@ -10,6 +10,8 @@
 // 4. Une image de la médiathèque insérée (seule, puis dans une section) : elle apparaît dans
 //    « Utilisé dans » et ne peut plus aller à la corbeille, jusqu'à ce qu'on la retire.
 // 5. Une image envoyée depuis le bloc Image : réduite, envoyée, puis choisie d'elle-même.
+// 6. Un bloc choisi dans le plan monte en haut de l'écran du téléphone, puis le curseur s'y pose,
+//    dès le premier clic.
 
 import type { Browser, Page } from "@playwright/test"
 
@@ -473,4 +475,55 @@ test("une image envoyée depuis le bloc Image est choisie dès qu'elle est prêt
   // Recharger : l'image est bien celle du brouillon.
   await page.reload()
   await expect(page.locator('[data-block-type="image"] img')).toBeVisible()
+})
+
+/**
+ * Le haut du n-ième bloc dans l'écran du téléphone, moins sa marge de défilement : 0 quand il est
+ * en haut. Une expression : les tests de parcours n'ont pas les types du navigateur.
+ */
+function blockTop(page: Page, index: number): Promise<number> {
+  return page.evaluate<number>(`(() => {
+    const block = document.querySelectorAll("[data-block-id]")[${index}]
+    const screen = block.closest(".blocks-screen-scroll")
+    const margin = parseFloat(getComputedStyle(block).scrollMarginTop)
+    const top = block.getBoundingClientRect().top - screen.getBoundingClientRect().top
+    return Math.round(top - margin)
+  })()`)
+}
+
+test("un bloc choisi dans le plan monte en haut de l'écran, puis le curseur s'y pose, dès le premier clic", async ({
+  page,
+  team,
+}) => {
+  const admin = await team.createAdmin("Basile Défile")
+  await createPage(page, admin)
+
+  // Assez de texte pour que l'écran du téléphone défile.
+  const sentence =
+    "Trois minutes suffisent pour relâcher la pression et repartir plus clair. "
+  for (let index = 0; index < 5; index += 1) {
+    await addBlock(page, "text")
+    await expect(textBlock(page, index)).toBeFocused()
+    await page.keyboard.insertText(`Bloc ${index + 1}. ${sentence.repeat(6)}`)
+  }
+  await saved(page)
+  await library(page)
+    .getByRole("button", { name: labels.library.close })
+    .click()
+  // Rien de choisi (un clic sur le fond), et l'écran en bas.
+  await page
+    .locator("[data-backdrop]")
+    .first()
+    .click({ position: { x: 10, y: 10 } })
+  await page.evaluate(
+    'document.querySelector(".blocks-screen-scroll").scrollTop = 1e6'
+  )
+  await expect.poll(() => blockTop(page, 0)).toBeLessThan(-100)
+
+  // Au premier clic dans le plan, le défilement va jusqu'au bout (le curseur posé trop tôt
+  // l'arrêtait en chemin), puis le curseur est dans le bloc.
+  const outline = page.getByRole("navigation", { name: labels.outline.title })
+  await outline.locator("[data-outline-id]").first().click()
+  await expect(textBlock(page, 0)).toBeFocused()
+  expect(Math.abs(await blockTop(page, 0))).toBeLessThanOrEqual(1)
 })
