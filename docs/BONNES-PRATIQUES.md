@@ -53,7 +53,7 @@
 - **Chaque table a ses règles d'accès (RLS) et son test pgTAP.** La base fait la loi : l'interface ne fait que cacher ce qu'on n'a pas le droit de faire.
 - **Les écritures sensibles passent par des fonctions de la base** (RPC). Elles vérifient le rôle, la double vérification et la révision, et renvoient des erreurs au code stable (`P0001` et un message court), traduites dans `texts.ts`.
 - **Fonctions `security definer`** avec un `search_path` vide, et sans `EXECUTE` pour `public` ni `anon`. Le schéma `private` n'est jamais exécutable par `anon` ni `authenticated` (sauf `reader_can_open`). `anon` n'exécute qu'une liste fermée (`ping` et les `app_*`), vérifiée par `supabase/tests/05_prive.test.sql`.
-- **Forme des blocs** : décrite une seule fois dans `blocks/`, puis `cd web && npm run blocks:generate`. On ne fait qu'ajouter ; ni `oneOf`, ni `anyOf`, ni `format`.
+- **Forme des blocs** : décrite une seule fois dans `blocks/`, puis `cd web && npm run blocks:generate`. On ne fait qu'ajouter ; ni `oneOf`, ni `anyOf`, ni `format`. Seule exception, acceptée par QCM le 04/10/2026 : le résumé, retiré quand aucun contenu n'existait ni en local ni en ligne.
 - **Aucun secret rangé dans la base**, tâches planifiées comprises.
 
 ## 5. Fonctions serveur et fichiers
