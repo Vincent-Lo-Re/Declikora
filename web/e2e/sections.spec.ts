@@ -224,7 +224,7 @@ async function chooseInPicker(
   await expect(picker).toHaveCount(0)
 }
 
-test("Le Fil : un article neuf arrive en tête ; rangé au clavier, l'ordre tient", async ({
+test("Le Fil : un article neuf arrive en tête ; rangé au clavier, l'ordre tient ; la recherche gardée au retour", async ({
   page,
   team,
 }) => {
@@ -274,6 +274,22 @@ test("Le Fil : un article neuf arrive en tête ; rangé au clavier, l'ordre tien
   await expect(
     page.getByRole("button", { name: list.order.handle(first) })
   ).toBeDisabled()
+
+  // La recherche est dans l'adresse : ouvrir un article puis revenir la garde, et la ligne de
+  // l'article s'allume un instant (QCM du 05/10/2026).
+  await expect(page).toHaveURL(new RegExp(`/blog\\?recherche=${id}$`))
+  await page.getByRole("link", { name: first }).click()
+  await expect(page.getByLabel(editor.title.label)).toBeEditable()
+  await page
+    .getByRole("link", { name: editor.back(texts.sections.blog.title) })
+    .click()
+  await expect(page).toHaveURL(new RegExp(`/blog\\?recherche=${id}$`))
+  await expect(
+    page.getByRole("searchbox", { name: list.kinds.article.search })
+  ).toHaveValue(id)
+  await expect(
+    page.locator("[data-content-row]").filter({ hasText: first })
+  ).toHaveAttribute("data-returned", "")
 })
 
 test("Éditeur du Fil : « Ajouter un bloc » ouvre les Blocs, bloc glissé, plan (intertitre, Dupliquer), Concentration", async ({

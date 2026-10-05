@@ -53,7 +53,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useAddressState } from "@/hooks/use-address-state"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { mediaFiltersFromAddress, writeMediaFilters } from "@/lib/address"
 import {
   selectionOf,
   toggleAll,
@@ -127,9 +129,16 @@ export function MediaPage() {
   const checkAccess = useAccessCheck()
   // Les envois se suivent dans la fenêtre des envois (UploadWindow, dans AppLayout).
   const queue = getUploadQueue()
-  const [kind, setKind] = useState<MediaFilters["kind"]>("all")
-  const [unused, setUnused] = useState(false)
-  const [search, setSearch] = useState("")
+  // La recherche et les filtres, gardés dans l'adresse (on retrouve la liste en y revenant).
+  const [address, setAddress] = useAddressState(
+    mediaFiltersFromAddress,
+    writeMediaFilters
+  )
+  const { kind, unused, search } = address
+  const setKind = (next: MediaFilters["kind"]) =>
+    setAddress({ ...address, kind: next })
+  const setUnused = (next: boolean) => setAddress({ ...address, unused: next })
+  const setSearch = (next: string) => setAddress({ ...address, search: next })
   const debouncedSearch = useDebouncedValue(search, 250)
   const [view, setView] = useState<View>(readView)
   // Fiche ouverte : relue dans la liste à chaque mise à jour, gardée si elle en sort.

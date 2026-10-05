@@ -41,3 +41,11 @@ if (!Element.prototype.getClientRects) {
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {}
 }
+
+// jsdom ne fait pas défiler la fenêtre (window.scrollTo n'y est qu'annoncé) : la position demandée
+// est retenue dans scrollY, pour vérifier qu'une liste retrouve sa place (useScrollMemory).
+window.scrollTo = ((first?: number | ScrollToOptions, second?: number) => {
+  const top =
+    typeof first === "number" ? (second ?? 0) : (first?.top ?? window.scrollY)
+  Object.defineProperty(window, "scrollY", { value: top, configurable: true })
+}) as typeof window.scrollTo

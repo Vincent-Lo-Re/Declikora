@@ -66,6 +66,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAddressState } from "@/hooks/use-address-state"
+import { templateTabFromAddress, writeTemplateTab } from "@/lib/address"
 import { ContentError, contentKeys } from "@/lib/contents/api"
 import { restoreContent, trashContent } from "@/lib/contents/publication"
 import {
@@ -135,7 +137,11 @@ export function TemplatesPage() {
   })
 
   // L'onglet ouvert : « Tous les blocs », ou une sorte de modèle.
-  const [tab, setTab] = useState<TemplateTab>(ALL)
+  // Gardé dans l'adresse : on retrouve l'onglet en revenant d'un modèle.
+  const [tab, setTab] = useAddressState(
+    templateTabFromAddress,
+    writeTemplateTab
+  )
   const shown = useMemo(
     () => (list.data ?? []).filter((item) => tab === ALL || item.sort === tab),
     [list.data, tab]
@@ -340,6 +346,7 @@ function TemplateTable({
         {items.map((item) => (
           <TableRow
             key={item.id}
+            data-content-row={item.id}
             data-template={item.id}
             data-state={selected.has(item.id) ? "selected" : undefined}
           >

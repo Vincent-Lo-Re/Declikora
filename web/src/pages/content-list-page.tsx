@@ -78,11 +78,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useAddressState } from "@/hooks/use-address-state"
 import {
   accessLevelsKey,
   listAccessLevels,
   type AccessLevel,
 } from "@/lib/access-levels"
+import { listFiltersFromAddress, writeListFilters } from "@/lib/address"
 import { categoryNames, type Category } from "@/lib/categories"
 import {
   ContentError,
@@ -172,7 +174,11 @@ export function ContentListPage({
         )
       : list.data
   const [toTrash, setToTrash] = useState<ContentListItem | null>(null)
-  const [filters, setFilters] = useState<ListFilters>(noFilters)
+  // La recherche et les filtres, gardés dans l'adresse (on retrouve la liste en y revenant).
+  const [filters, setFilters] = useAddressState(
+    listFiltersFromAddress,
+    writeListFilters
+  )
   const search = useDebouncedValue(filters.search, 150)
 
   const known = useMemo(
@@ -728,11 +734,16 @@ function ContentTable({
               name={name}
               disabled={order.disabled}
               data-state={state}
+              data-content-row={item.id}
             >
               {cells}
             </SortableRow>
           ) : (
-            <TableRow key={item.id} data-state={state}>
+            <TableRow
+              key={item.id}
+              data-state={state}
+              data-content-row={item.id}
+            >
               {cells}
             </TableRow>
           )

@@ -275,3 +275,29 @@
     animation-name: highlight-hold;
   }
 }
+
+/* En revenant à une liste, la ligne du contenu qu'on venait d'ouvrir s'allume un instant
+   (lib/scroll-memory.ts, data-returned) : son fond prend la teinte du survol, puis s'efface. */
+@keyframes returned-row {
+  from {
+    background-color: var(--accent);
+  }
+}
+
+/* Moins d'animations demandées : la teinte reste le même temps, sans s'effacer peu à peu. */
+@keyframes returned-row-hold {
+  from,
+  to {
+    background-color: var(--accent);
+  }
+}
+
+[data-returned] {
+  animation: returned-row 1.6s ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-returned] {
+    animation-name: returned-row-hold;
+  }
+}

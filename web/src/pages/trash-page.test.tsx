@@ -80,6 +80,18 @@ describe("Corbeille", () => {
     expect(screen.getByText(photoName)).toBeVisible()
   })
 
+  it("le filtre est dans l'adresse (QCM du 05/10/2026)", async () => {
+    const { router } = renderApp("/corbeille?type=fichier")
+    await screen.findByText(photoName)
+    expect(
+      screen.getByRole("button", { name: texts.trash.filters.file })
+    ).toHaveAttribute("aria-pressed", "true")
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.trash.filters.all })
+    )
+    await waitFor(() => expect(router.state.location.search).toBe(""))
+  })
+
   it("restaure un fichier", async () => {
     vi.mocked(api.restoreTrashItem).mockResolvedValue({
       addressRemoved: false,

@@ -19,6 +19,7 @@ import {
 } from "@/lib/categories"
 import { contentKeys } from "@/lib/contents/api"
 import { categoryNameSchema } from "@/lib/schemas"
+import { RETURN_STATE, returnAddress } from "@/lib/scroll-memory"
 import { sections } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -45,7 +46,8 @@ export function CategoriesPage({ section }: { section: CategorySection }) {
     <>
       <div className="mb-2">
         <Link
-          to={sections[section].path}
+          to={returnAddress(sections[section].path)}
+          state={RETURN_STATE}
           aria-label={labels.back(sectionTitle)}
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
