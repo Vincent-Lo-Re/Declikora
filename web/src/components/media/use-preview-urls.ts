@@ -1,18 +1,9 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { useCallback } from "react"
 
-import {
-  getPreviewUrls,
-  mediaKeys,
-  PREVIEW_REFRESH_MS,
-  previewKey,
-} from "@/lib/media/api"
+import { PREVIEW_REFRESH_MS, previewKey } from "@/lib/media/api"
 import type { Media } from "@/lib/media/constants"
-
-/** Vrai si le fichier a un objet dans le stockage qu'on peut montrer. */
-function hasPreview(media: Media): boolean {
-  return media.status === "ready" || media.status === "checking"
-}
+import { hasPreview, previewKeys, previewUrlsRead } from "@/lib/reads"
 
 /**
  * Adresses d'aperçu des fichiers donnés (liens temporaires d'une heure pour les fichiers
@@ -21,14 +12,10 @@ function hasPreview(media: Media): boolean {
  * cours, n'a pas pu être lu : à montrer comme un échec, pas comme un chargement.
  */
 export function usePreviewUrlsState(items: Media[] | undefined) {
-  const keys = (items ?? []).filter(hasPreview).map(previewKey).sort()
+  const keys = previewKeys(items)
   const query = useQuery({
-    queryKey: mediaKeys.urls(keys),
-    queryFn: () => getPreviewUrls(keys),
+    ...previewUrlsRead(keys),
     enabled: keys.length > 0,
-    // Les liens valent une heure : relus toutes les 30 minutes (seuls ceux qui expirent avant
-    // la relecture suivante sont redemandés, voir getPreviewUrls).
-    staleTime: PREVIEW_REFRESH_MS,
     refetchInterval: PREVIEW_REFRESH_MS,
     placeholderData: keepPreviousData,
   })

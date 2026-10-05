@@ -12,12 +12,12 @@ import {
   categoryKeys,
   createCategory,
   deleteCategory,
-  listCategories,
   renameCategory,
   reorderCategories,
   type CategorySection,
 } from "@/lib/categories"
 import { contentKeys } from "@/lib/contents/api"
+import { categoriesRead, REREAD_MS } from "@/lib/reads"
 import { categoryNameSchema } from "@/lib/schemas"
 import { RETURN_STATE, returnAddress } from "@/lib/scroll-memory"
 import { sections } from "@/navigation"
@@ -37,9 +37,9 @@ export function CategoriesPage({ section }: { section: CategorySection }) {
   // Relue à chaque ouverture : le nombre de brouillons de chaque catégorie change dans l'éditeur,
   // sans que cette liste le sache.
   const categories = useQuery({
-    queryKey: key,
-    queryFn: () => listCategories(section),
-    staleTime: 0,
+    ...categoriesRead(section),
+    // La préparation de la page vient de la relire.
+    staleTime: REREAD_MS,
   })
 
   return (

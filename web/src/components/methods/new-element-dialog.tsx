@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
-import { listStarters, templateKeys } from "@/lib/contents/templates"
+import { startersRead } from "@/lib/reads"
 import { outlineElementSchema, type OutlineElementValues } from "@/lib/schemas"
 import { texts } from "@/texts"
 
@@ -90,8 +90,7 @@ export function NewElementDialog({
     defaultValues: emptyForm,
   })
   const starters = useQuery({
-    queryKey: templateKeys.starters(kind),
-    queryFn: () => listStarters(kind),
+    ...startersRead(kind),
     enabled: target !== null,
   })
 

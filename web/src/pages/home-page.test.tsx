@@ -88,7 +88,7 @@ function card(title: string): HTMLElement {
 
 describe("Accueil", () => {
   it("montre les trois listes", async () => {
-    renderApp("/")
+    await renderApp("/")
     expect(
       screen.getByRole("heading", { level: 1, name: texts.sections.home.title })
     ).toBeVisible()
@@ -98,7 +98,7 @@ describe("Accueil", () => {
   })
 
   it("mes brouillons récents : un lien vers l'éditeur de chacun, et son état", async () => {
-    renderApp("/")
+    await renderApp("/")
     await screen.findByRole("list", { name: labels.drafts.title })
     const drafts = card(labels.drafts.title)
     expect(
@@ -127,7 +127,7 @@ describe("Accueil", () => {
   })
 
   it("publications programmées, dans l'ordre, dont celles en attente ([D31])", async () => {
-    renderApp("/")
+    await renderApp("/")
     const scheduled = await screen.findByRole("list", {
       name: labels.scheduled.title,
     })
@@ -149,7 +149,7 @@ describe("Accueil", () => {
   })
 
   it("programmations échouées : la raison et qui avait programmé", async () => {
-    renderApp("/")
+    await renderApp("/")
     const failed = await screen.findByRole("list", {
       name: labels.failed.title,
     })
@@ -166,7 +166,7 @@ describe("Accueil", () => {
     vi.mocked(homeApi.listMyRecentDrafts).mockResolvedValue([])
     vi.mocked(homeApi.listScheduled).mockResolvedValue([])
     vi.mocked(homeApi.listFailedSchedules).mockResolvedValue([])
-    renderApp("/")
+    await renderApp("/")
     expect(await screen.findByText(labels.drafts.empty)).toBeVisible()
     expect(await screen.findByText(labels.scheduled.empty)).toBeVisible()
     expect(await screen.findByText(labels.failed.empty)).toBeVisible()

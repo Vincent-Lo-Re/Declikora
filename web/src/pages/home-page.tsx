@@ -17,13 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  homeKeys,
-  listFailedSchedules,
-  listMyRecentDrafts,
-  listScheduled,
-  type HomeItem,
-} from "@/lib/contents/home"
+import type { HomeItem } from "@/lib/contents/home"
 import {
   publicationStatus,
   scheduleErrorText,
@@ -31,6 +25,7 @@ import {
 } from "@/lib/contents/publication"
 import { formatDateTime } from "@/lib/dates"
 import { isElementKind } from "@/lib/editor/profile"
+import { homeDraftsRead, homeFailedRead, homeScheduledRead } from "@/lib/reads"
 import { contentEditorPath, sections } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -77,19 +72,16 @@ export function HomePage() {
   const checkAccess = useAccessCheck()
 
   const drafts = useQuery({
-    queryKey: homeKeys.drafts(userId),
-    queryFn: () => listMyRecentDrafts(userId),
+    ...homeDraftsRead(userId),
     enabled: userId !== "",
     refetchInterval: REFRESH_MS,
   })
   const scheduled = useQuery({
-    queryKey: homeKeys.scheduled,
-    queryFn: listScheduled,
+    ...homeScheduledRead(),
     refetchInterval: REFRESH_MS,
   })
   const failed = useQuery({
-    queryKey: homeKeys.failed,
-    queryFn: listFailedSchedules,
+    ...homeFailedRead(),
     refetchInterval: REFRESH_MS,
   })
   const error = drafts.error ?? scheduled.error ?? failed.error

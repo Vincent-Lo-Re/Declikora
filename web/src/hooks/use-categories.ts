@@ -1,10 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 
-import {
-  categoryKeys,
-  listCategories,
-  type CategorySection,
-} from "@/lib/categories"
+import type { CategorySection } from "@/lib/categories"
+import { categoriesRead } from "@/lib/reads"
 
 /**
  * Les catégories d'une section (Blog ou Podcasts), dans l'ordre de l'équipe. null : pas de
@@ -12,8 +9,7 @@ import {
  */
 export function useCategories(section: CategorySection | null) {
   return useQuery({
-    queryKey: categoryKeys.list(section ?? "blog"),
-    queryFn: () => listCategories(section ?? "blog"),
+    ...categoriesRead(section ?? "blog"),
     enabled: section !== null,
   })
 }

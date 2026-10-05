@@ -12,8 +12,8 @@ afterEach(() => {
   sessionStorage.clear()
 })
 
-function askCode(email: string) {
-  renderApp("/connexion", fakeAuth("signed-out"))
+async function askCode(email: string) {
+  await renderApp("/connexion", fakeAuth("signed-out"))
   fireEvent.change(screen.getByLabelText(texts.signIn.email), {
     target: { value: email },
   })
@@ -26,7 +26,7 @@ describe("connexion", () => {
   it("vérifie l'adresse avant de l'envoyer", async () => {
     const signIn = vi.spyOn(supabase.auth, "signInWithOtp")
 
-    askCode("pas-une-adresse")
+    await askCode("pas-une-adresse")
 
     expect(await screen.findByText(texts.signIn.invalidEmail)).toBeVisible()
     expect(signIn).not.toHaveBeenCalled()
@@ -37,7 +37,7 @@ describe("connexion", () => {
       .spyOn(supabase.auth, "signInWithOtp")
       .mockResolvedValue({ data: noSession, error: null })
 
-    askCode("  Anne@Exemple.test ")
+    await askCode("  Anne@Exemple.test ")
 
     expect(
       await screen.findByText(texts.signIn.codeSent("anne@exemple.test"))
@@ -58,7 +58,7 @@ describe("connexion", () => {
       ),
     })
 
-    askCode("inconnu@exemple.test")
+    await askCode("inconnu@exemple.test")
 
     expect(
       await screen.findByText(texts.signIn.codeSent("inconnu@exemple.test"))
@@ -71,7 +71,7 @@ describe("connexion", () => {
       error: new AuthApiError("Too many", 429, "over_email_send_rate_limit"),
     })
 
-    askCode("anne@exemple.test")
+    await askCode("anne@exemple.test")
 
     expect(
       await screen.findByText(texts.signIn.codeAlreadySent("anne@exemple.test"))
@@ -79,11 +79,11 @@ describe("connexion", () => {
     expect(screen.getByLabelText(texts.signIn.code)).toBeVisible()
   })
 
-  it("reprend à l'étape du code après un rechargement", () => {
+  it("reprend à l'étape du code après un rechargement", async () => {
     const signIn = vi.spyOn(supabase.auth, "signInWithOtp")
     savePendingSignIn("anne@exemple.test")
 
-    renderApp("/connexion", fakeAuth("signed-out"))
+    await renderApp("/connexion", fakeAuth("signed-out"))
 
     expect(
       screen.getByText(texts.signIn.codeStillValid("anne@exemple.test"))
@@ -99,10 +99,10 @@ describe("connexion", () => {
     expect(sessionStorage.length).toBe(0)
   })
 
-  it("oublie une demande de plus de 10 minutes", () => {
+  it("oublie une demande de plus de 10 minutes", async () => {
     savePendingSignIn("anne@exemple.test", Date.now() - 11 * 60 * 1000)
 
-    renderApp("/connexion", fakeAuth("signed-out"))
+    await renderApp("/connexion", fakeAuth("signed-out"))
 
     expect(screen.getByLabelText(texts.signIn.email)).toBeVisible()
   })
@@ -117,7 +117,7 @@ describe("connexion", () => {
       ),
     })
 
-    askCode("invitee@exemple.test")
+    await askCode("invitee@exemple.test")
 
     expect(await screen.findByText(texts.signIn.invitedHint)).toBeVisible()
   })
@@ -135,7 +135,7 @@ describe("connexion", () => {
         "otp_expired"
       ),
     })
-    askCode("anne@exemple.test")
+    await askCode("anne@exemple.test")
 
     const code = await screen.findByLabelText(texts.signIn.code)
     fireEvent.change(code, { target: { value: "123456" } })
@@ -157,7 +157,7 @@ describe("connexion", () => {
       error: null,
     })
     const verify = vi.spyOn(supabase.auth, "verifyOtp")
-    askCode("anne@exemple.test")
+    await askCode("anne@exemple.test")
 
     const code = await screen.findByLabelText(texts.signIn.code)
     fireEvent.change(code, { target: { value: "123" } })
@@ -178,7 +178,7 @@ describe("invitation", () => {
       data: { user: null, session: null },
       error: null,
     })
-    const { router } = renderApp(
+    const { router } = await renderApp(
       "/invitation?token_hash=abc&type=invite",
       fakeAuth("signed-out")
     )
@@ -203,7 +203,10 @@ describe("invitation", () => {
         "otp_expired"
       ),
     })
-    renderApp("/invitation?token_hash=abc&type=invite", fakeAuth("signed-out"))
+    await renderApp(
+      "/invitation?token_hash=abc&type=invite",
+      fakeAuth("signed-out")
+    )
 
     fireEvent.click(
       screen.getByRole("button", { name: texts.invitation.accept })
@@ -212,8 +215,8 @@ describe("invitation", () => {
     expect(await screen.findByText(texts.invitation.expired)).toBeVisible()
   })
 
-  it("signale un lien incomplet", () => {
-    renderApp("/invitation", fakeAuth("signed-out"))
+  it("signale un lien incomplet", async () => {
+    await renderApp("/invitation", fakeAuth("signed-out"))
 
     expect(screen.getByText(texts.invitation.incomplete)).toBeVisible()
   })

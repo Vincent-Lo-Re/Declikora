@@ -48,6 +48,8 @@ export const texts = {
       contents: "Contenus",
       tools: "Outils",
     },
+    // La barre du haut, pendant que la page suivante se prépare.
+    pageLoading: "Chargement de la page",
   },
 
   // Titre et présentation de chaque section, dans le menu et en tête de page.

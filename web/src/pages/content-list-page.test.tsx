@@ -186,7 +186,7 @@ async function pick(filter: string, option: string) {
 describe("Blog", () => {
   it("liste les articles avec leurs catégories, dans l'ordre de la section", async () => {
     vi.mocked(api.listContents).mockResolvedValue(articles)
-    renderApp("/blog")
+    await renderApp("/blog")
 
     const link = await screen.findByRole("link", { name: "Bien dormir en été" })
     expect(link).toHaveAttribute("href", `/blog/${ARTICLE}`)
@@ -230,7 +230,7 @@ describe("Blog", () => {
         path: `${PLAGE}/plage.webp`,
       } as unknown as Media,
     ])
-    renderApp("/blog")
+    await renderApp("/blog")
 
     const withCover = (
       await screen.findByRole("link", { name: "Bien dormir en été" })
@@ -251,7 +251,7 @@ describe("Blog", () => {
 
   it("cherche et filtre par état et par catégorie", async () => {
     vi.mocked(api.listContents).mockResolvedValue(articles)
-    renderApp("/blog")
+    await renderApp("/blog")
     await screen.findByRole("link", { name: "Bien dormir en été" })
 
     fireEvent.change(
@@ -288,7 +288,7 @@ describe("Blog", () => {
 
   it("la recherche et les filtres sont dans l'adresse ; les changer ne fait pas d'étape au retour (QCM du 05/10/2026)", async () => {
     vi.mocked(api.listContents).mockResolvedValue(articles)
-    const { router } = renderApp("/blog?recherche=travail&etat=brouillon")
+    const { router } = await renderApp("/blog?recherche=travail&etat=brouillon")
     await waitFor(() => expect(shownTitles()).toEqual(["Le stress au travail"]))
     expect(
       screen.getByRole("searchbox", { name: labels.kinds.article.search })
@@ -311,7 +311,7 @@ describe("Blog", () => {
     vi.mocked(api.getContent).mockResolvedValue(newArticle)
     vi.mocked(api.lockTake).mockResolvedValue(lockRow({ mine: true }))
     vi.mocked(api.lockStatus).mockResolvedValue(lockRow({ mine: true }))
-    renderApp("/blog?etat=en-ligne")
+    await renderApp("/blog?etat=en-ligne")
     const link = await screen.findByRole("link", { name: "Bien dormir en été" })
     window.scrollTo(0, 420)
     fireEvent.scroll(window)
@@ -340,7 +340,7 @@ describe("Blog", () => {
 
   it("une liste ouverte depuis le menu commence en haut", async () => {
     vi.mocked(api.listContents).mockResolvedValue(articles)
-    renderApp("/blog")
+    await renderApp("/blog")
     await screen.findByRole("link", { name: "Bien dormir en été" })
     window.scrollTo(0, 300)
     fireEvent.scroll(window)
@@ -350,6 +350,65 @@ describe("Blog", () => {
     await waitFor(() => expect(window.scrollY).toBe(0))
   })
 
+  it("la liste reste à l'écran pendant que l'éditeur se prépare ; au bout de 2 s, il s'affiche avec ses lignes grises", async () => {
+    vi.mocked(api.listContents).mockResolvedValue(articles)
+    // Un brouillon qui n'arrive pas.
+    vi.mocked(api.getContent).mockReturnValue(new Promise(() => {}))
+    const { router } = await renderApp("/blog")
+    fireEvent.click(
+      await screen.findByRole("link", { name: "Bien dormir en été" })
+    )
+
+    // La liste reste nette ; la barre du haut n'apparaît qu'après un instant.
+    expect(
+      screen.queryByRole("progressbar", { name: texts.nav.pageLoading })
+    ).toBeNull()
+    expect(
+      await screen.findByRole("progressbar", { name: texts.nav.pageLoading })
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe("/blog")
+    expect(shownTitles()).toHaveLength(3)
+
+    // Au bout de 2 secondes, l'éditeur quand même, avec des lignes grises à la place du brouillon.
+    expect(
+      await screen.findByLabelText(texts.editor.loading, undefined, {
+        timeout: 3000,
+      })
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe(`/blog/${ARTICLE}`)
+    expect(
+      screen.queryByRole("progressbar", { name: texts.nav.pageLoading })
+    ).toBeNull()
+  })
+
+  it("un article survolé est lu à l'avance ; ouvert, l'éditeur arrive avec son brouillon, sans lignes grises", async () => {
+    vi.mocked(api.listContents).mockResolvedValue(articles)
+    vi.mocked(api.getContent).mockResolvedValue(newArticle)
+    vi.mocked(api.lockTake).mockResolvedValue(lockRow({ mine: true }))
+    vi.mocked(api.lockStatus).mockResolvedValue(lockRow({ mine: true }))
+    await renderApp("/blog")
+    const link = await screen.findByRole("link", { name: "Bien dormir en été" })
+
+    // Survolé un instant (pas seulement traversé) : son brouillon est lu.
+    fireEvent.pointerOver(link)
+    await vi.waitFor(() => expect(api.getContent).toHaveBeenCalledWith(ARTICLE))
+
+    // Les lignes grises de l'éditeur ne s'affichent jamais.
+    let sawLoading = false
+    const watch = new MutationObserver(() => {
+      if (screen.queryByLabelText(texts.editor.loading)) sawLoading = true
+    })
+    watch.observe(document.body, { childList: true, subtree: true })
+    fireEvent.click(link)
+    expect(await screen.findByLabelText(texts.editor.title.label)).toHaveValue(
+      "Bien respirer"
+    )
+    watch.disconnect()
+    expect(sawLoading).toBe(false)
+    // Lu une seule fois : au survol.
+    expect(api.getContent).toHaveBeenCalledTimes(1)
+  })
+
   it("« Nouvel article » : une fenêtre (titre, point de départ, catégories), puis l'éditeur", async () => {
     vi.mocked(api.listContents).mockResolvedValue([])
     vi.mocked(templatesApi.listStarters).mockResolvedValue([
@@ -357,7 +416,7 @@ describe("Blog", () => {
     ])
     vi.mocked(api.createContent).mockResolvedValue(newArticle)
     vi.mocked(api.lockTake).mockResolvedValue(lockRow({ mine: true }))
-    const { router } = renderApp("/blog")
+    const { router } = await renderApp("/blog")
 
     expect(
       await screen.findByText(labels.kinds.article.emptyTitle)
@@ -434,7 +493,7 @@ describe("Blog", () => {
       ])
       return created
     })
-    renderApp("/blog")
+    await renderApp("/blog")
     fireEvent.click(
       await screen.findByRole("button", { name: labels.kinds.article.create })
     )
@@ -468,7 +527,7 @@ describe("Blog", () => {
       draft: { v: 1, title: "Sans rangement", blocks: [] },
       draft_rev: 3,
     })
-    renderApp("/blog")
+    await renderApp("/blog")
 
     fireEvent.click(
       await screen.findByRole("button", {
@@ -519,7 +578,7 @@ describe("Blog", () => {
         is_active: true,
       })
     )
-    renderApp("/blog")
+    await renderApp("/blog")
 
     fireEvent.click(
       await screen.findByRole("button", {
@@ -554,7 +613,7 @@ describe("Blog", () => {
       restored: 1,
       addressRemoved: false,
     })
-    renderApp("/blog")
+    await renderApp("/blog")
     fireEvent.click(
       await screen.findByRole("button", {
         name: labels.actions("Sans rangement"),
@@ -594,7 +653,7 @@ describe("Blog", () => {
       restored: 1,
       addressRemoved: false,
     })
-    renderApp("/blog")
+    await renderApp("/blog")
 
     // Une case par article, puis « Tout sélectionner ».
     fireEvent.click(
@@ -652,7 +711,7 @@ describe("Podcasts", () => {
     vi.mocked(api.listContents).mockResolvedValue([
       row("00000000-0000-4000-8000-0000000000e1", "Entretien avec Claire"),
     ])
-    renderApp("/podcasts")
+    await renderApp("/podcasts")
     expect(
       await screen.findByRole("link", { name: "Entretien avec Claire" })
     ).toHaveAttribute("href", "/podcasts/00000000-0000-4000-8000-0000000000e1")
@@ -677,7 +736,7 @@ describe("Pages", () => {
       draft: { v: 1, title: "Été serein", blocks: [] },
     })
     vi.mocked(api.lockTake).mockResolvedValue(lockRow({ mine: true }))
-    renderApp("/pages")
+    await renderApp("/pages")
     fireEvent.click(
       await screen.findByRole("button", { name: labels.kinds.page.create })
     )
@@ -726,7 +785,7 @@ describe("Pages", () => {
       }),
       row("00000000-0000-4000-8000-0000000000b2", "Aide"),
     ])
-    renderApp("/pages")
+    await renderApp("/pages")
     await screen.findByRole("link", { name: "Mentions légales" })
     expect(screen.queryByText("mentions-legales")).toBeNull()
     expect(

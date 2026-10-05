@@ -6,7 +6,7 @@ import { texts } from "@/texts"
 
 describe("menu", () => {
   it("les icônes Lucide ont un trait d'un pixel, qui ne change pas avec leur taille", async () => {
-    renderApp("/mon-compte", fakeAuth({ role: "editor" }))
+    await renderApp("/mon-compte", fakeAuth({ role: "editor" }))
 
     const blog = await screen.findByRole("link", {
       name: texts.sections.blog.title,
@@ -20,7 +20,7 @@ describe("menu", () => {
   })
 
   it("l'avatar est en bas du menu : sous Équipe et Paramètres, après un trait", async () => {
-    renderApp("/mon-compte", fakeAuth({ role: "admin" }))
+    await renderApp("/mon-compte", fakeAuth({ role: "admin" }))
 
     const avatar = await screen.findByRole("button", {
       name: new RegExp(`${texts.accountMenu.open}$`),
@@ -38,7 +38,7 @@ describe("menu", () => {
   })
 
   it("sans Équipe ni Paramètres (éditeur), l'avatar est seul en bas du menu, sans trait", async () => {
-    renderApp("/mon-compte", fakeAuth({ role: "editor" }))
+    await renderApp("/mon-compte", fakeAuth({ role: "editor" }))
 
     const avatar = await screen.findByRole("button", {
       name: new RegExp(`${texts.accountMenu.open}$`),
@@ -52,7 +52,7 @@ describe("menu", () => {
   })
 
   it("toujours ouvert : ni barre du haut, ni bouton, ni raccourci pour le replier", async () => {
-    renderApp("/mon-compte", fakeAuth({ role: "editor" }))
+    await renderApp("/mon-compte", fakeAuth({ role: "editor" }))
     const link = await screen.findByRole("link", {
       name: texts.sections.blog.title,
     })

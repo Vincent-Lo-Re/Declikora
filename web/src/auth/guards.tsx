@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router"
 import { useAuth } from "@/auth/auth-context"
 import type { RedirectState } from "@/auth/session"
 import { LoadingScreen } from "@/components/loading-screen"
+import { MemberPreparation } from "@/components/member-preparation"
 import { authPaths } from "@/navigation"
 import { AdminOnlyPage } from "@/pages/admin-only-page"
 
@@ -26,7 +27,13 @@ export function RequireTeamMember() {
   // Sans fiche, la déconnexion est en cours (voir AuthProvider).
   if (!profile) return <LoadingScreen />
 
-  return <Outlet />
+  // Le membre prépare les pages avant de les montrer (lib/preparation.ts).
+  return (
+    <>
+      <MemberPreparation member={profile} />
+      <Outlet />
+    </>
+  )
 }
 
 /** Sections réservées aux admins (Équipe, Paramètres). */

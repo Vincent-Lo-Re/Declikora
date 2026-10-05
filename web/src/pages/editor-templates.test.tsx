@@ -203,7 +203,7 @@ describe("bloc lié dans un contenu", () => {
     vi.mocked(templatesApi.getTemplatesByIds).mockResolvedValue([
       contactTemplate,
     ])
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await editable()
 
     const linked = await screen.findByText("Écris-nous à contact@exemple.fr")
@@ -252,7 +252,7 @@ describe("bloc lié dans un contenu", () => {
     vi.mocked(templatesApi.getTemplatesByIds).mockResolvedValue([
       contactTemplate,
     ])
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await editable()
 
     // Choisi, « Détacher » est dans la barre de ses réglages.
@@ -293,7 +293,7 @@ describe("bloc lié dans un contenu", () => {
     vi.mocked(templatesApi.getTemplatesByIds).mockResolvedValue([
       { ...contactTemplate, inTrash: true },
     ])
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await editable()
     expect(
       await screen.findByText(texts.templates.linked.missing)
@@ -333,7 +333,7 @@ describe("bloc lié dans un contenu", () => {
         outline: null,
       },
     })
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await editable()
     await screen.findByText(texts.publication.status.live)
     expect(
@@ -379,7 +379,7 @@ describe("insérer un modèle depuis « Mes blocs »", () => {
     vi.mocked(templatesApi.getTemplatesByIds).mockResolvedValue([
       contactTemplate,
     ])
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await editable()
 
     const mine = await openMine()
@@ -445,7 +445,7 @@ describe("« Enregistrer comme modèle »", () => {
       title: "Deux textes",
       template_sort: "style",
     })
-    const { router } = renderApp(`/pages/${PAGE_ID}`)
+    const { router } = await renderApp(`/pages/${PAGE_ID}`)
     await editable()
     const saveAs = texts.templates.saveAs
 
@@ -525,7 +525,7 @@ describe("« Enregistrer comme modèle »", () => {
     vi.mocked(templatesApi.getTemplatesByIds).mockResolvedValue([
       contactTemplate,
     ])
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await editable()
 
     // Le bloc choisi dans l'aperçu : « Enregistrer comme modèle… » dans ses réglages.
@@ -631,7 +631,7 @@ describe("éditeur d'un modèle", () => {
       },
     ])
     vi.mocked(templatesApi.pushTemplate).mockResolvedValue(1)
-    renderApp(`/modeles/${TEMPLATE_ID}`)
+    await renderApp(`/modeles/${TEMPLATE_ID}`)
     await editable()
 
     // « ← Modèles de bloc » en bas à gauche ; pas de barre du haut.
@@ -764,7 +764,7 @@ describe("éditeur d'un modèle", () => {
     vi.mocked(api.getContent).mockResolvedValue(
       template("shared", [contactBox])
     )
-    renderApp(`/modeles/${TEMPLATE_ID}`)
+    await renderApp(`/modeles/${TEMPLATE_ID}`)
     await editable()
     const plan = screen.getByRole("navigation", {
       name: texts.editor.outline.title,
@@ -812,7 +812,7 @@ describe("éditeur d'un modèle", () => {
   it("bloc partagé vide : « Ajouter un bloc » ouvre les Blocs, sans « Mes blocs » ; la règle est dite", async () => {
     vi.mocked(api.getContent).mockResolvedValue(template("shared", []))
     vi.mocked(templatesApi.listTemplateUses).mockResolvedValue([])
-    renderApp(`/modeles/${TEMPLATE_ID}`)
+    await renderApp(`/modeles/${TEMPLATE_ID}`)
     await editable()
     const left = screen.getByRole("complementary", { name: columns.left })
     expect(
@@ -846,7 +846,7 @@ describe("éditeur d'un modèle", () => {
     vi.mocked(api.getContent).mockResolvedValue(
       template("starter", [textBlock(TEXT_ID, "Question")])
     )
-    renderApp(`/modeles/${TEMPLATE_ID}`)
+    await renderApp(`/modeles/${TEMPLATE_ID}`)
     await editable()
     const card = screen.getByRole("region", { name: sorts.starter.title })
     expect(card).toHaveTextContent(

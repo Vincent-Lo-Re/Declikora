@@ -85,6 +85,22 @@ export function linkedTemplateIds(draft: Draft): string[] {
 }
 
 /**
+ * Les blocs des modèles cités (et ceux de leurs sections), pour leurs images. templateOf : le
+ * modèle d'un id, s'il est connu.
+ */
+export function linkedTemplateBlocks(
+  linkedIds: readonly string[],
+  templateOf: (id: string) => Pick<Draft, "blocks"> | undefined
+): Block[] {
+  return linkedIds.flatMap((id): Block[] => {
+    const template = templateOf(id)
+    const block = template ? singleBlock(template) : null
+    if (!block) return []
+    return block.type === "box" ? [block, ...block.blocks] : [block]
+  })
+}
+
+/**
  * Où insérer un modèle : toujours au premier niveau (un bloc lié ou une section ne va pas dans une
  * section), juste après le bloc choisi, ou après la section qui le contient ; sinon à la fin.
  */

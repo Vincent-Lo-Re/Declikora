@@ -7,17 +7,14 @@ import {
   ProgressLabel,
   ProgressValue,
 } from "@/components/ui/progress"
-import { getStorageUsed, mediaKeys } from "@/lib/media/api"
 import { STORAGE_ALERT_BYTES, STORAGE_QUOTA_BYTES } from "@/lib/media/constants"
 import { formatBytes } from "@/lib/media/format"
+import { storageRead } from "@/lib/reads"
 import { texts } from "@/texts"
 
 /** Place occupée par les fichiers (1 Go dans l'offre gratuite), avec une alerte à 800 Mo. */
 export function StorageUsage() {
-  const storage = useQuery({
-    queryKey: mediaKeys.storage,
-    queryFn: getStorageUsed,
-  })
+  const storage = useQuery(storageRead())
   if (storage.data === undefined) return null
   const used = storage.data
   const usedText = formatBytes(used)

@@ -116,7 +116,7 @@ const mineRow: api.LockRow = {
   draft_rev: 4,
 }
 
-function open(
+async function open(
   changes: Partial<api.Content> = {},
   pub: Partial<publicationApi.Publication> = {}
 ) {
@@ -125,7 +125,7 @@ function open(
     ...publication,
     ...pub,
   })
-  return renderApp(`/pages/${PAGE_ID}`)
+  return await renderApp(`/pages/${PAGE_ID}`)
 }
 
 /** L'éditeur a la main (le titre devient modifiable). */
@@ -172,7 +172,7 @@ afterEach(() => vi.clearAllMocks())
 
 describe("barre de publication", () => {
   it("brouillon jamais publié : « Brouillon », Publier possible", async () => {
-    open()
+    await open()
     await ready()
     expect(
       await screen.findByText(labels.status.draft, { selector: "span" })
@@ -181,14 +181,17 @@ describe("barre de publication", () => {
   })
 
   it("en ligne tel quel : « En ligne », Publier grisé ; modifié : Publier possible", async () => {
-    open({}, { live: liveVersion, first_published_at: "2026-09-27T12:30:00Z" })
+    await open(
+      {},
+      { live: liveVersion, first_published_at: "2026-09-27T12:30:00Z" }
+    )
     await ready()
     expect(await screen.findByText(labels.status.live)).toBeVisible()
     expect(publishButton()).toBeDisabled()
   })
 
   it("modifié depuis la publication", async () => {
-    open(
+    await open(
       { draft_rev: 6 },
       {
         draft_rev: 6,
@@ -217,7 +220,7 @@ describe("barre de publication", () => {
       publishedAt: "2026-09-27T12:31:00Z",
       needsFileSync: true,
     })
-    open({ access_chosen: false })
+    await open({ access_chosen: false })
     await ready()
     await waitFor(() => expect(publishButton()).toBeEnabled())
 
@@ -266,7 +269,7 @@ describe("barre de publication", () => {
     vi.mocked(levelsApi.listAccessLevels).mockRejectedValueOnce(
       new Error("réseau")
     )
-    open({ access_chosen: false })
+    await open({ access_chosen: false })
     await ready()
     await waitFor(() => expect(publishButton()).toBeEnabled())
     fireEvent.click(publishButton())
@@ -297,7 +300,7 @@ describe("barre de publication", () => {
     vi.mocked(levelsApi.listAccessLevels).mockRejectedValueOnce(
       new Error("réseau")
     )
-    open({ access_level_id: PREMIUM })
+    await open({ access_level_id: PREMIUM })
     await ready()
     await waitFor(() => expect(publishButton()).toBeEnabled())
     fireEvent.click(publishButton())
@@ -326,7 +329,7 @@ describe("barre de publication", () => {
 
   it("une page sans adresse : « Publier » allume la carte de l'adresse au lieu de publier", async () => {
     Element.prototype.scrollIntoView = vi.fn()
-    open({ slug: null })
+    await open({ slug: null })
     await ready()
     await waitFor(() => expect(publishButton()).toBeEnabled())
     expect(
@@ -349,7 +352,7 @@ describe("barre de publication", () => {
     vi.mocked(publicationApi.publishContent).mockRejectedValue(
       new api.ContentError("verrou_tenu", { hint: "Claire Martin" })
     )
-    open()
+    await open()
     await ready()
     await waitFor(() => expect(publishButton()).toBeEnabled())
 
@@ -375,7 +378,7 @@ describe("barre de publication", () => {
   })
 
   it("programmé : le bandeau prévient que ce qu'on écrit partira à cette heure", async () => {
-    open({}, { scheduled_at: "2099-10-03T06:00:00Z" })
+    await open({}, { scheduled_at: "2099-10-03T06:00:00Z" })
     await ready()
     expect(
       await screen.findByText(labels.banner.scheduled("3 oct. 2099 à 08h00"))
@@ -383,7 +386,7 @@ describe("barre de publication", () => {
   })
 
   it("programmation en attente : c'est moi qui écris, le bandeau me dit de quitter l'éditeur ([D31])", async () => {
-    open({}, { scheduled_at: "2020-01-01T08:00:00Z" })
+    await open({}, { scheduled_at: "2020-01-01T08:00:00Z" })
     await ready()
     const banner = (
       await screen.findByText(labels.banner.waitingMine("1 janv. 2020 à 09h00"))
@@ -404,7 +407,7 @@ describe("barre de publication", () => {
     }
     vi.mocked(api.lockTake).mockResolvedValue(claire)
     vi.mocked(api.lockStatus).mockResolvedValue(claire)
-    open({}, { scheduled_at: "2020-01-01T08:00:00Z" })
+    await open({}, { scheduled_at: "2020-01-01T08:00:00Z" })
     expect(
       await screen.findByText(labels.banner.waiting("1 janv. 2020 à 09h00"))
     ).toBeVisible()
@@ -423,7 +426,7 @@ describe("barre de publication", () => {
     vi.mocked(api.lockStatus).mockResolvedValue(claire)
     const at = new Date(Date.now() - 20_000)
     at.setSeconds(0, 0)
-    open({}, { scheduled_at: at.toISOString() })
+    await open({}, { scheduled_at: at.toISOString() })
     expect(
       await screen.findByText(labels.banner.due(formatDateTime(at)))
     ).toBeVisible()
@@ -434,7 +437,7 @@ describe("barre de publication", () => {
 
   it("programmation échouée : la raison et la personne qui l'avait programmée", async () => {
     vi.mocked(publicationApi.unscheduleContent).mockResolvedValue(true)
-    open(
+    await open(
       {},
       {
         schedule_error: "brouillon_en_cours_d_ecriture",
@@ -464,7 +467,10 @@ describe("barre de publication", () => {
 
 describe("retirer de l'app", () => {
   async function unpublish() {
-    open({}, { live: liveVersion, first_published_at: "2026-09-27T12:30:00Z" })
+    await open(
+      {},
+      { live: liveVersion, first_published_at: "2026-09-27T12:30:00Z" }
+    )
     await ready()
     await screen.findByText(labels.status.live)
     fireEvent.click(screen.getByRole("button", { name: labels.actions.more }))
@@ -500,7 +506,7 @@ describe("retirer de l'app", () => {
 
 describe("programmer (heure de Paris)", () => {
   async function openScheduleDialog() {
-    open()
+    await open()
     await ready()
     await waitFor(() => expect(publishButton()).toBeEnabled())
     // Le menu « Autres actions de publication ».
@@ -608,7 +614,7 @@ describe("réglages du contenu", () => {
       rev: 5,
       savedAt: "2026-09-27T12:31:00Z",
     })
-    open({ access_chosen: false })
+    await open({ access_chosen: false })
     await ready()
     expect(
       screen.getByText(labels.settings.access.notChosenShort)
@@ -626,7 +632,7 @@ describe("réglages du contenu", () => {
     vi.mocked(api.saveDraft)
       .mockRejectedValueOnce(new api.ContentError(null, { retryable: true }))
       .mockResolvedValue({ rev: 5, savedAt: "2026-09-27T12:31:00Z" })
-    open({ access_chosen: false })
+    await open({ access_chosen: false })
     await ready()
     await pickLevel(/Premium/)
     await waitFor(() => expect(api.saveDraft).toHaveBeenCalledTimes(2), {
@@ -643,7 +649,7 @@ describe("réglages du contenu", () => {
     vi.mocked(api.saveDraft)
       .mockRejectedValueOnce(new api.ContentError(null, { retryable: true }))
       .mockResolvedValue({ rev: 5, savedAt: "2026-09-27T12:31:00Z" })
-    open({ slug: null })
+    await open({ slug: null })
     await ready()
     const address = addressField()
     fireEvent.change(address, { target: { value: "aide" } })
@@ -662,7 +668,7 @@ describe("réglages du contenu", () => {
       .mockRejectedValueOnce(new api.ContentError("adresse_prise"))
       .mockResolvedValueOnce({ rev: 5, savedAt: "2026-09-27T12:31:00Z" })
       .mockResolvedValue({ rev: 6, savedAt: "2026-09-27T12:32:00Z" })
-    open({ slug: null })
+    await open({ slug: null })
     await ready()
     const address = addressField()
     fireEvent.change(address, { target: { value: "contact" } })
@@ -703,7 +709,7 @@ describe("réglages du contenu", () => {
       rev: 5,
       savedAt: "2026-09-27T12:31:00Z",
     })
-    open({ slug: null })
+    await open({ slug: null })
     await ready()
     const address = addressField()
     // Vérifiée en tapant : la forme tout de suite.

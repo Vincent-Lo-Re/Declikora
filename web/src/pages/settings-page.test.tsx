@@ -45,7 +45,7 @@ afterEach(() => vi.clearAllMocks())
 
 describe("Paramètres : formules d'abonnement", () => {
   it("liste les formules de la moins complète à la plus complète", async () => {
-    renderApp("/parametres")
+    await renderApp("/parametres")
     const list = await screen.findByRole("list", { name: labels.listLabel })
     expect(
       within(list)
@@ -63,7 +63,7 @@ describe("Paramètres : formules d'abonnement", () => {
     vi.mocked(levelsApi.createAccessLevel)
       .mockRejectedValueOnce(new levelsApi.AccessLevelError("nom_en_double"))
       .mockResolvedValue({ id: "n", name: "Intégral", rank: 3 })
-    renderApp("/parametres")
+    await renderApp("/parametres")
     await screen.findByRole("list", { name: labels.listLabel })
     const name = screen.getByLabelText(labels.name)
     const add = screen.getByRole("button", { name: labels.add })
@@ -91,7 +91,7 @@ describe("Paramètres : formules d'abonnement", () => {
       ...premium,
       name: "Premium+",
     })
-    renderApp("/parametres")
+    await renderApp("/parametres")
     await chooseAction("Premium", labels.rename)
     const input = screen.getByLabelText(labels.renameLabel("Premium"))
     fireEvent.change(input, { target: { value: "Premium+" } })
@@ -110,7 +110,7 @@ describe("Paramètres : formules d'abonnement", () => {
       ...premium,
       name: "Premium+",
     })
-    renderApp("/parametres")
+    await renderApp("/parametres")
     await chooseAction("Premium", labels.rename)
     const input = screen.getByLabelText(labels.renameLabel("Premium"))
     fireEvent.keyDown(input, { key: "Escape" })
@@ -138,7 +138,7 @@ describe("Paramètres : formules d'abonnement", () => {
 
   it("après une suppression, le focus va à la formule suivante, puis au champ du nom", async () => {
     vi.mocked(levelsApi.deleteAccessLevel).mockResolvedValue(undefined)
-    renderApp("/parametres")
+    await renderApp("/parametres")
     await chooseAction("Essentiel", labels.remove)
     vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([premium])
     fireEvent.click(
@@ -171,7 +171,7 @@ describe("Paramètres : formules d'abonnement", () => {
     vi.mocked(levelsApi.deleteAccessLevel).mockRejectedValue(
       new levelsApi.AccessLevelError("formule_utilisee")
     )
-    renderApp("/parametres")
+    await renderApp("/parametres")
     await chooseAction("Essentiel", labels.remove)
     const dialog = await screen.findByRole("alertdialog")
     expect(dialog).toHaveTextContent(
@@ -189,7 +189,7 @@ describe("Paramètres : formules d'abonnement", () => {
   })
 
   it("reste réservé aux admins", async () => {
-    renderApp("/parametres", fakeAuth({ role: "editor" }))
+    await renderApp("/parametres", fakeAuth({ role: "editor" }))
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       texts.adminOnly.title
     )

@@ -11,8 +11,8 @@ afterEach(() => {
 })
 
 describe("Mon compte", () => {
-  it("montre le profil et la date de la double vérification", () => {
-    renderApp("/mon-compte", fakeAuth({ role: "editor" }))
+  it("montre le profil et la date de la double vérification", async () => {
+    await renderApp("/mon-compte", fakeAuth({ role: "editor" }))
 
     expect(screen.getByLabelText(texts.account.profile.name)).toHaveValue(
       testProfile.full_name
@@ -28,7 +28,7 @@ describe("Mon compte", () => {
 
   it("refuse un nom trop long sans rien envoyer", async () => {
     const from = vi.spyOn(supabase, "from")
-    renderApp("/mon-compte")
+    await renderApp("/mon-compte")
 
     fireEvent.change(screen.getByLabelText(texts.account.profile.name), {
       target: { value: "a".repeat(101) },
@@ -45,11 +45,14 @@ describe("Mon compte", () => {
     const signOut = vi
       .spyOn(supabase.auth, "signOut")
       .mockResolvedValue({ error: null })
-    const { router } = renderApp("/mon-compte")
+    const { router } = await renderApp("/mon-compte")
 
     fireEvent.click(screen.getByRole("link", { name: texts.common.signOut }))
 
-    expect(router.state.location.pathname).toBe("/deconnexion")
+    // La page de déconnexion est chargée à part : un instant.
+    await vi.waitFor(() =>
+      expect(router.state.location.pathname).toBe("/deconnexion")
+    )
     await vi.waitFor(() =>
       expect(signOut).toHaveBeenCalledWith({ scope: "local" })
     )

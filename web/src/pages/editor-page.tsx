@@ -139,17 +139,15 @@ import {
 import { useCategories } from "@/hooks/use-categories"
 import { useEditorLink } from "@/hooks/use-editor-link"
 import { useLockDialog } from "@/hooks/use-lock-dialog"
-import { accessLevelsKey, listAccessLevels } from "@/lib/access-levels"
 import { categoryNames } from "@/lib/categories"
 import {
   ContentError,
   contentKeys,
   contentProblemText,
-  getContent,
   type Content,
   type ContentKind,
 } from "@/lib/contents/api"
-import { getMethodTree, methodKeys, screenAbove } from "@/lib/contents/methods"
+import { methodKeys, screenAbove } from "@/lib/contents/methods"
 import {
   appPlan,
   elementAccess,
@@ -190,13 +188,14 @@ import {
 import { lockSituation } from "@/lib/editor/lock-view"
 import { CONTENT_TITLE_ID, showReadySetting } from "@/lib/editor/ready-targets"
 import { blockWarning, duplicateBlock } from "@/lib/editor/outline"
-import { type LibraryDrag } from "@/lib/editor/library-drag"
+import type { LibraryDrag } from "@/lib/editor/library-drag"
 import { liveBoxTarget } from "@/lib/editor/library-target"
 import { errorMessage } from "@/lib/errors"
 import { focusSoon, highlightSoon } from "@/lib/focus"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
 import { formatDuration } from "@/lib/media/format"
+import { accessLevelsRead, contentRead, methodTreeRead } from "@/lib/reads"
 import {
   rememberOpened,
   RETURN_STATE,
@@ -256,10 +255,7 @@ function EditorLoader({
       false
   )
   const content = useQuery({
-    queryKey: contentKeys.detail(contentId),
-    queryFn: () => getContent(contentId),
-    // L'éditeur relit le brouillon lui-même quand il change (verrou et Realtime).
-    staleTime: Infinity,
+    ...contentRead(contentId),
     refetchOnWindowFocus: false,
   })
   useEffect(() => {
@@ -985,10 +981,7 @@ function ContentEditor({
 
   // --- Réglages du contenu, publication, historique -----------------------------------------
 
-  const levels = useQuery({
-    queryKey: accessLevelsKey,
-    queryFn: listAccessLevels,
-  })
+  const levels = useQuery(accessLevelsRead())
   const [historyOpen, setHistoryOpen] = useState(false)
 
   /** « Revenir à cette version » : recopiée dans le brouillon par la base, puis relue. */
@@ -1196,8 +1189,7 @@ function ContentEditor({
   // Une méthode : son plan (le même que celui de la colonne de gauche, relu avec lui), montré
   // dans le téléphone tel que l'app le montrera, et sa taille en bas de la colonne de droite.
   const methodTree = useQuery({
-    queryKey: methodKeys.tree(contentId),
-    queryFn: () => getMethodTree(contentId),
+    ...methodTreeRead(contentId),
     enabled: isMethod,
   })
   const shownPlan = methodTree.data ? appPlan(methodTree.data) : undefined

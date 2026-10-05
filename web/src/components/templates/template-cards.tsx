@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { ContentError, contentKeys } from "@/lib/contents/api"
 import {
-  getTemplateOutdated,
   pushTemplate,
   templateKeys,
   type TemplateFor,
@@ -30,6 +29,7 @@ import {
 } from "@/lib/contents/templates"
 import { formatDateTime } from "@/lib/dates"
 import { kickFiles, mediaKeys } from "@/lib/media/api"
+import { templateOutdatedRead } from "@/lib/reads"
 import { contentEditorPath, contentSection, sections } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -92,8 +92,7 @@ export function TemplateUsesCard({ templateId }: { templateId: string }) {
   const [confirming, setConfirming] = useState(false)
   const uses = useTemplateUses(templateId, true)
   const outdated = useQuery({
-    queryKey: templateKeys.outdated(templateId),
-    queryFn: () => getTemplateOutdated(templateId),
+    ...templateOutdatedRead(templateId),
     refetchInterval: 30_000,
   })
   const push = useMutation({

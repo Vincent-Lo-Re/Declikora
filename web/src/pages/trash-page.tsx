@@ -58,13 +58,13 @@ import { formatDateTime } from "@/lib/dates"
 import {
   emptyTrash,
   kickFiles,
-  listTrash,
   mediaKeys,
   restoreTrashItem,
   trashKey,
   type TrashItem,
 } from "@/lib/media/api"
 import { isMediaKind } from "@/lib/media/constants"
+import { trashRead } from "@/lib/reads"
 import { contentEditorPath, sections } from "@/navigation"
 import {
   filterTrash,
@@ -102,7 +102,7 @@ export function TrashPage() {
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
 
-  const trash = useQuery({ queryKey: trashKey, queryFn: listTrash })
+  const trash = useQuery(trashRead())
   useEffect(() => {
     if (trash.error) checkAccess(trash.error)
   }, [trash.error, checkAccess])

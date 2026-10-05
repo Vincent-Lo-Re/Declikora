@@ -236,7 +236,7 @@ describe("liste des pages", () => {
       },
     ])
     vi.mocked(api.createContent).mockResolvedValue(content)
-    const { router } = renderApp("/pages")
+    const { router } = await renderApp("/pages")
 
     const link = await screen.findByRole("link", { name: "Mentions légales" })
     expect(link).toHaveAttribute("href", `/pages/${PAGE_ID}`)
@@ -300,7 +300,7 @@ describe("liste des pages : publication et corbeille", () => {
       }),
       row({ id: "p4", title: "Échouée", schedule_error: "auteur_parti" }),
     ])
-    renderApp("/pages")
+    await renderApp("/pages")
     const cells = async (title: string) =>
       (await screen.findByRole("link", { name: title })).closest("tr")!
     const labels = texts.publication.status
@@ -323,7 +323,7 @@ describe("liste des pages : publication et corbeille", () => {
       restored: 1,
       addressRemoved: false,
     })
-    renderApp("/pages")
+    await renderApp("/pages")
     fireEvent.click(
       await screen.findByRole("button", {
         name: texts.contentList.actions("Mentions légales"),
@@ -366,7 +366,7 @@ describe("liste des pages : publication et corbeille", () => {
       trashed: 1,
       needsFileSync: true,
     })
-    renderApp("/pages")
+    await renderApp("/pages")
     fireEvent.click(
       await screen.findByRole("button", {
         name: texts.contentList.actions("Mentions légales"),
@@ -393,7 +393,7 @@ describe("liste des pages : publication et corbeille", () => {
         detail: "Claire Martin écrit ce brouillon.",
       })
     )
-    renderApp("/pages")
+    await renderApp("/pages")
     fireEvent.click(
       await screen.findByRole("button", {
         name: texts.contentList.actions("Mentions légales"),
@@ -420,7 +420,7 @@ describe("éditeur", () => {
       rev: 5,
       savedAt: "2026-09-27T12:31:00Z",
     })
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
 
     const title = await screen.findByLabelText(texts.editor.title.label)
     await waitFor(() => expect(title).not.toHaveAttribute("readonly"))
@@ -449,7 +449,7 @@ describe("éditeur", () => {
 
   it("montre le brouillon en lecture seule quand un autre membre écrit : le cadenas, rien de modifiable", async () => {
     vi.mocked(api.lockTake).mockResolvedValue(claireRow)
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
 
     expect(
       await screen.findByRole("button", { name: texts.editor.lock.button })
@@ -469,7 +469,7 @@ describe("éditeur", () => {
     vi.mocked(api.saveDraft).mockImplementation(
       () => new Promise((resolve) => (answer = resolve))
     )
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     const title = await screen.findByLabelText(texts.editor.title.label)
     await waitFor(() => expect(title).not.toHaveAttribute("readonly"))
 
@@ -491,7 +491,7 @@ describe("éditeur", () => {
       .mockResolvedValueOnce(content)
       .mockRejectedValueOnce(new api.ContentError(null, { retryable: true }))
       .mockResolvedValue(withDraft({ title: "Titre de Claire" }, 5))
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await screen.findByRole("button", { name: texts.editor.lock.button })
 
     act(() => emitLock(lockChange(CLAIRE, 5)))
@@ -513,7 +513,7 @@ describe("éditeur", () => {
     vi.mocked(api.getContent)
       .mockResolvedValueOnce(content)
       .mockImplementation(() => new Promise((resolve) => reads.push(resolve)))
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await screen.findByRole("button", { name: texts.editor.lock.button })
 
     act(() => emitLock(lockChange(CLAIRE, 5)))
@@ -533,7 +533,7 @@ describe("éditeur", () => {
       .mockResolvedValueOnce(content)
       .mockResolvedValueOnce(withDraft({ title: "Révision 5" }, 5))
       .mockResolvedValue(withDraft({ title: "Révision 6" }, 6))
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await screen.findByRole("button", { name: texts.editor.lock.button })
 
     act(() => emitLock(lockChange(CLAIRE, 6)))
@@ -549,7 +549,7 @@ describe("éditeur", () => {
     const otherTab = { ...mineRow, mine: false }
     vi.mocked(api.lockTake).mockResolvedValue(otherTab)
     vi.mocked(api.lockStatus).mockResolvedValue(otherTab)
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     fireEvent.click(
       await screen.findByRole("button", { name: texts.editor.lock.button })
     )
@@ -565,7 +565,7 @@ describe("éditeur", () => {
 
   it("n'ouvre pas un contenu d'une autre sorte", async () => {
     vi.mocked(api.getContent).mockResolvedValue({ ...content, kind: "article" })
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     expect(
       await screen.findByText(texts.editor.notFound.title)
     ).toBeInTheDocument()
@@ -595,7 +595,7 @@ describe("éditeur d'une page (éditeur du Fil)", () => {
       rev: 5,
       savedAt: "2026-09-27T12:31:00Z",
     })
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await editable()
     expect(screen.queryByRole("banner")).toBeNull()
     const back = within(
@@ -660,7 +660,7 @@ describe("éditeur d'une page (éditeur du Fil)", () => {
       rev: 5,
       savedAt: "2026-09-27T12:31:00Z",
     })
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await editable()
 
     fireEvent.change(addressField(), { target: { value: "Contact !" } })
@@ -693,7 +693,7 @@ describe("éditeur d'une page (éditeur du Fil)", () => {
       rev: 5,
       savedAt: "2026-09-27T12:31:00Z",
     })
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await editable()
 
     fireEvent.change(addressField(), { target: { value: "accueil" } })
@@ -716,7 +716,7 @@ describe("éditeur d'une page (éditeur du Fil)", () => {
 
   it("« Adresse de la page » dans « Prêt à publier ? » allume la carte et met le curseur dans le champ", async () => {
     Element.prototype.scrollIntoView = vi.fn()
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await editable()
     fireEvent.click(
       screen.getByRole("button", { name: ready.todo(ready.items.address) })
@@ -726,7 +726,7 @@ describe("éditeur d'une page (éditeur du Fil)", () => {
   })
 
   it("en Lecture : le titre, puis les blocs, sans image ni ligne sous le titre", async () => {
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await editable()
     const preview = texts.editor.preview
     fireEvent.click(
@@ -758,7 +758,7 @@ describe("éditeur : images", () => {
     vi.mocked(api.getMediaByIds)
       .mockRejectedValueOnce(new api.ContentError(null, { retryable: true }))
       .mockResolvedValue([media(MEDIA_A)])
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
 
     expect(
       await screen.findByText(texts.editor.image.loadFailed)
@@ -792,7 +792,7 @@ describe("éditeur : images", () => {
     vi.mocked(api.getMediaByIds)
       .mockResolvedValueOnce([media(MEDIA_A)])
       .mockImplementation(() => new Promise((resolve) => (answer = resolve)))
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     await screen.findByText(texts.editor.image.notReady)
 
     act(() => emitLock(lockChange(CLAIRE, 5)))
@@ -825,7 +825,7 @@ describe("éditeur : clavier", () => {
     vi.mocked(api.getContent).mockResolvedValue(
       withDraft({ blocks: [textBlock(ONE, "Un"), textBlock(TWO, "Deux")] })
     )
-    renderApp(`/pages/${PAGE_ID}`)
+    await renderApp(`/pages/${PAGE_ID}`)
     const labels = texts.editor.settings
     const title = await screen.findByLabelText(texts.editor.title.label)
     await waitFor(() => expect(title).not.toHaveAttribute("readonly"))

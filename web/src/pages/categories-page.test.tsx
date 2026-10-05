@@ -41,7 +41,7 @@ afterEach(() => vi.clearAllMocks())
 
 describe("Catégories du Blog", () => {
   it("les liste dans l'ordre de l'app, avec le nombre de brouillons qui les citent", async () => {
-    renderApp("/blog/categories")
+    await renderApp("/blog/categories")
     const list = await screen.findByRole("list", {
       name: labels.listLabel(texts.sections.blog.title),
     })
@@ -81,7 +81,7 @@ describe("Catégories du Blog", () => {
         position: 2,
         uses: 0,
       })
-    renderApp("/blog/categories")
+    await renderApp("/blog/categories")
     const input = await screen.findByLabelText(labels.name)
 
     fireEvent.change(input, { target: { value: "   " } })
@@ -109,7 +109,7 @@ describe("Catégories du Blog", () => {
       ...stress,
       name: "Anxiété",
     })
-    renderApp("/blog/categories")
+    await renderApp("/blog/categories")
     await chooseAction("Stress", labels.rename)
     const field = screen.getByLabelText(labels.renameLabel("Stress"))
     fireEvent.change(field, { target: { value: "Anxiété" } })
@@ -122,7 +122,7 @@ describe("Catégories du Blog", () => {
 
   it("supprime après une confirmation qui dit que c'est définitif ([D28])", async () => {
     vi.mocked(categoriesApi.deleteCategory).mockResolvedValue()
-    renderApp("/blog/categories")
+    await renderApp("/blog/categories")
     await chooseAction("Sommeil", labels.remove)
     const dialog = await screen.findByRole("alertdialog")
     expect(dialog).toHaveTextContent(
@@ -150,7 +150,7 @@ describe("Catégories du Blog", () => {
       .mockImplementationOnce(
         () => new Promise((resolve) => (release = resolve))
       )
-    renderApp("/blog/categories")
+    await renderApp("/blog/categories")
     await chooseAction("Sommeil", labels.remove)
     const dialog = await screen.findByRole("alertdialog")
     const confirm = within(dialog).getByRole("button", {
@@ -169,7 +169,7 @@ describe("Catégories du Blog", () => {
 describe("Catégories des Podcasts", () => {
   it("lit les catégories de la section Podcasts", async () => {
     vi.mocked(categoriesApi.listCategories).mockResolvedValue([])
-    renderApp("/podcasts/categories")
+    await renderApp("/podcasts/categories")
     expect(await screen.findByText(labels.empty)).toBeVisible()
     expect(categoriesApi.listCategories).toHaveBeenCalledWith("podcasts")
     expect(screen.getByText(labels.description.podcasts)).toBeVisible()

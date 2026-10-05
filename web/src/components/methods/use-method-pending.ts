@@ -1,6 +1,6 @@
 import { useQueries } from "@tanstack/react-query"
 
-import { getMethodPreview, methodKeys } from "@/lib/contents/methods"
+import { liveMethodIds, methodPreviewRead } from "@/lib/reads"
 
 /**
  * Pour chaque méthode en ligne de la liste : vrai si publier changerait quelque chose dans l'app
@@ -14,21 +14,17 @@ export function useMethodPending(
   // Sans kind (liste d'une seule sorte) : toutes les lignes sont des méthodes.
   allMethods = false
 ): Map<string, boolean> {
-  const live = (items ?? []).filter(
-    (item) =>
-      (allMethods || item.kind === "method") && item.live_draft_rev !== null
-  )
+  const ids = liveMethodIds(items, allMethods)
   const previews = useQueries({
-    queries: live.map((item) => ({
-      queryKey: methodKeys.preview(item.id),
-      queryFn: () => getMethodPreview(item.id),
+    queries: ids.map((id) => ({
+      ...methodPreviewRead(id),
       refetchInterval: 60_000,
     })),
   })
   return new Map(
-    live.flatMap((item, index) => {
+    ids.flatMap((id, index) => {
       const rows = previews[index]?.data
-      return rows ? [[item.id, rows.length > 0] as const] : []
+      return rows ? [[id, rows.length > 0] as const] : []
     })
   )
 }

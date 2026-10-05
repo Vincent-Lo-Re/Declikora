@@ -8,7 +8,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { formatDateTime } from "@/lib/dates"
-import { callFiles, getLatestAudit, mediaKeys } from "@/lib/media/api"
+import { callFiles, mediaKeys } from "@/lib/media/api"
+import { auditRead } from "@/lib/reads"
 import { texts } from "@/texts"
 
 // Nombre de chemins montrés dans la liste dépliée.
@@ -23,7 +24,7 @@ export function OrphansNotice() {
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
   const [expanded, setExpanded] = useState(false)
-  const audit = useQuery({ queryKey: mediaKeys.audit, queryFn: getLatestAudit })
+  const audit = useQuery(auditRead())
 
   const clean = useMutation({
     mutationFn: () => callFiles("clean"),

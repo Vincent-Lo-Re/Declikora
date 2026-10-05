@@ -79,18 +79,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useAddressState } from "@/hooks/use-address-state"
-import {
-  accessLevelsKey,
-  listAccessLevels,
-  type AccessLevel,
-} from "@/lib/access-levels"
+import type { AccessLevel } from "@/lib/access-levels"
 import { listFiltersFromAddress, writeListFilters } from "@/lib/address"
 import { categoryNames, type Category } from "@/lib/categories"
 import {
   ContentError,
   contentKeys,
   isOrderedKind,
-  listContents,
   reorderContents,
   type ContentListItem,
 } from "@/lib/contents/api"
@@ -107,11 +102,11 @@ import {
 import { restoreContent, trashContent } from "@/lib/contents/publication"
 import { createWithSettings } from "@/lib/contents/settings"
 import { contentProfile } from "@/lib/editor/profile"
-import { listStarters, templateKeys } from "@/lib/contents/templates"
 import { useCategories } from "@/hooks/use-categories"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { errorMessage } from "@/lib/errors"
 import { kickFiles } from "@/lib/media/api"
+import { accessLevelsRead, contentListRead, startersRead } from "@/lib/reads"
 import { refreshAfterContentTrash } from "@/lib/refresh"
 import {
   categoriesPath,
@@ -149,8 +144,7 @@ export function ContentListPage({
   const checkAccess = useAccessCheck()
 
   const list = useQuery({
-    queryKey: contentKeys.list(kind),
-    queryFn: () => listContents(kind),
+    ...contentListRead(kind),
     // Les publications programmées : relu toutes les 30 secondes.
     refetchInterval: 30_000,
   })
@@ -160,11 +154,13 @@ export function ContentListPage({
   // celles qui sont en ligne, s'il y a quelque chose à publier (la fiche ne suffit pas : une
   // leçon modifiée ne change pas la fiche, [D29]).
   // Les formules : colonne des méthodes et réglages d'une ligne.
-  const levels = useQuery({
-    queryKey: accessLevelsKey,
-    queryFn: listAccessLevels,
-  })
+  const levels = useQuery(accessLevelsRead())
   const pendingById = useMethodPending(isMethod ? list.data : undefined, true)
+  // Le Fil, Radio Éclaircies, Méthodes : l'image de présentation de chacun, en vignette (celles
+  // de toute la liste : une recherche ou un filtre ne les relit pas).
+  const coverFor = useCovers(
+    contentProfile(kind).cover === "required" ? (list.data ?? []) : []
+  )
   const items =
     isMethod && list.data
       ? list.data.map((item) =>
@@ -268,8 +264,7 @@ export function ContentListPage({
   // Les points de départ de cette sorte ([D42]) : « Nouvel article » propose « Article vide »
   // ou l'un d'eux. Sans point de départ (ou si la liste ne se lit pas), un contenu vide.
   const starters = useQuery({
-    queryKey: templateKeys.starters(kind),
-    queryFn: () => listStarters(kind),
+    ...startersRead(kind),
     // Il n'y a pas de point de départ pour une méthode ([D42] : chapitres et leçons seulement).
     enabled: !isMethod,
   })
@@ -433,6 +428,7 @@ export function ContentListPage({
                     trashing={trash.isPending || bulk.pending}
                     onTrash={setToTrash}
                     onSettings={setSettingsFor}
+                    coverFor={coverFor}
                     order={
                       isOrderedKind(kind)
                         ? {
@@ -629,6 +625,7 @@ function ContentTable({
   onTrash,
   onSettings,
   order,
+  coverFor,
 }: {
   kind: ListKind
   section: SectionKey
@@ -647,13 +644,14 @@ function ContentTable({
   // Le Fil, Radio Éclaircies, Méthodes : le glisser-déposer ([D47]) ; disabled pendant une
   // recherche, un filtre ou un enregistrement (on ne range que la liste complète).
   order?: { disabled: boolean; onReorder: (ids: string[]) => void }
+  // L'image de présentation de chacun (celles de toute la liste, lues en une fois).
+  coverFor: ReturnType<typeof useCovers>
 }) {
   const profile = contentProfile(kind)
   const withCategories = profile.categories !== null
   const isMethod = kind === "method"
   // Le Fil, Radio Éclaircies, Méthodes : l'image de présentation de chacun, en vignette.
   const withCover = profile.cover === "required"
-  const coverFor = useCovers(withCover ? items : [])
   const table = (
     <Table>
       <TableHeader>
