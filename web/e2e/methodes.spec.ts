@@ -19,8 +19,11 @@
 //    exercices (à montrer en bas), le plan leur nombre, et chacun a l'accès de sa leçon. Un
 //    exercice qui change de leçon prend l'accès de sa nouvelle leçon ; un exercice mis à la
 //    corbeille quitte l'app (nouvelle version de la méthode).
+// 6. La Lecture, comme dans l'app (QCM du 04/10/2026) : gardée dans l'adresse, elle se parcourt
+//    par le téléphone (une leçon, ses exercices, la flèche de retour, « Suivant »), tient après un
+//    rechargement, et ne prend pas la main : un autre membre écrit la leçon qu'on lit.
 
-import type { Page } from "@playwright/test"
+import type { Browser, Page } from "@playwright/test"
 
 import { texts } from "../src/texts.ts"
 import type { Account } from "./support/accounts.ts"
@@ -774,4 +777,113 @@ test("Méthodes : les exercices d'une leçon, publiés avec la méthode, à l'ac
   } finally {
     await deleteAccessLevels(id)
   }
+})
+
+/** Un second navigateur, avec les mêmes réglages que le premier. */
+async function secondBrowser(
+  browser: Browser,
+  options: { baseURL?: string; locale?: string; timezoneId?: string }
+) {
+  const context = await browser.newContext(options)
+  return { context, page: await context.newPage() }
+}
+
+test("Méthodes : la Lecture se parcourt comme l'app, sans prendre la main", async ({
+  page,
+  team,
+  browser,
+  baseURL,
+  locale,
+  timezoneId,
+}) => {
+  test.setTimeout(180_000)
+  const preview = editor.preview
+  const id = uniqueId()
+  const title = `Lecture ${id}`
+  const chapter = `Respirer ${id}`
+  const admin = await team.createAdmin("Léa Lecture")
+  const oscar = await team.createAdmin("Oscar Écrit")
+
+  // --- Une méthode, un chapitre, deux leçons et un exercice, tous montrés -------------------
+  await open(page, "/methodes", admin)
+  const methodId = await createMethod(page, title, id)
+  await createElement(page, "chapter", chapter, outline.newChapter)
+  const chapterLabel = outline.chapterLabel(1, chapter)
+  for (const lesson of ["Le souffle", "Expirer"]) {
+    await createElement(
+      page,
+      "lesson",
+      lesson,
+      outline.newLessonIn(chapterLabel)
+    )
+  }
+  const souffleLabel = outline.lessonLabel(1, "Le souffle")
+  const expirerLabel = outline.lessonLabel(2, "Expirer")
+  await createExercise(page, souffleLabel, "Inspirer")
+  const souffleId = await elementId(page, "lesson", "Le souffle")
+  for (const label of [
+    chapterLabel,
+    souffleLabel,
+    expirerLabel,
+    outline.exerciseLabel(1, "Inspirer"),
+  ]) {
+    await check(page, label, outline.inAppFor(label))
+  }
+
+  // --- En Lecture, le téléphone ouvre une leçon, toujours en Lecture --------------------------
+  const tools = page.getByRole("toolbar", { name: preview.tools })
+  const phone = page.getByRole("region", { name: preview.screen.ios })
+  await tools.getByRole("button", { name: preview.mode.read }).click()
+  await expect(page).toHaveURL(
+    new RegExp(`/methodes/${methodId}\\?mode=lecture$`)
+  )
+  await phone.getByRole("link", { name: /Le souffle/ }).click()
+  await expect(page).toHaveURL(
+    new RegExp(`/methodes/lecons/${souffleId}\\?mode=lecture$`)
+  )
+  await expect(
+    phone.getByRole("heading", { level: 1, name: "Le souffle" })
+  ).toBeVisible()
+  await expect(page.getByLabel(editor.title.label)).toHaveCount(0)
+
+  // Oscar ouvre la leçon qu'on lit : personne ne la tient, il l'écrit.
+  const second = await secondBrowser(browser, { baseURL, locale, timezoneId })
+  try {
+    await second.page.goto(`/methodes/lecons/${souffleId}`)
+    await signIn(second.page, oscar)
+    await expect(second.page.getByLabel(editor.title.label)).toBeEditable()
+  } finally {
+    await second.context.close()
+  }
+
+  // Un exercice de la leçon, puis la flèche du téléphone : retour à la leçon.
+  await phone.getByRole("link", { name: /Inspirer/ }).click()
+  await expect(page).toHaveURL(/\/methodes\/exercices\/[^?]+\?mode=lecture$/)
+  await phone.getByRole("link", { name: preview.back("Le souffle") }).click()
+  await expect(page).toHaveURL(
+    new RegExp(`/methodes/lecons/${souffleId}\\?mode=lecture$`)
+  )
+
+  // « Suivant » : la leçon d'après ; rechargée, elle reste en Lecture.
+  await phone
+    .getByRole("navigation", { name: texts.methods.preview.next })
+    .getByRole("link")
+    .click()
+  await expect(
+    phone.getByRole("heading", { level: 1, name: "Expirer" })
+  ).toBeVisible()
+  await page.reload()
+  await expect(
+    phone.getByRole("heading", { level: 1, name: "Expirer" })
+  ).toBeVisible()
+  await expect(page.getByLabel(editor.title.label)).toHaveCount(0)
+
+  // La flèche : la méthode, en Lecture ; « Édition » y reprend la main.
+  await phone.getByRole("link", { name: preview.back(title) }).click()
+  await expect(page).toHaveURL(
+    new RegExp(`/methodes/${methodId}\\?mode=lecture$`)
+  )
+  await tools.getByRole("button", { name: preview.mode.edit }).click()
+  await expect(page.getByLabel(editor.title.label)).toBeEditable()
+  await expect(page).toHaveURL(new RegExp(`/methodes/${methodId}$`))
 })

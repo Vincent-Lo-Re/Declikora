@@ -518,4 +518,119 @@ describe("EditLockController", () => {
     await lock.finishThenStop()
     expect(api.release).not.toHaveBeenCalled()
   })
+
+  describe("en Lecture, on ne prend pas la main (QCM du 04/10/2026)", () => {
+    it("suit le verrou sans le prendre, puis le prend en passant en Édition", async () => {
+      const { api, channel } = fakeApi(row({}))
+      api.take.mockResolvedValue(mineRow)
+      const lock = new EditLockController({
+        api,
+        myId: ME,
+        session: SESSION,
+        writing: false,
+      })
+      lock.start()
+      channel("SUBSCRIBED")
+      await vi.advanceTimersByTimeAsync(0)
+      expect(api.take).not.toHaveBeenCalled()
+      expect(api.status).toHaveBeenCalled()
+      expect(lock.state.phase).toBe("free")
+      // Ni signe de vie ni relâche : on ne tient rien.
+      await vi.advanceTimersByTimeAsync(20_000)
+      expect(api.heartbeat).not.toHaveBeenCalled()
+
+      lock.setWriting(true)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(api.take).toHaveBeenCalledWith(false)
+      expect(lock.state.phase).toBe("mine")
+    })
+
+    it("quelqu'un écrit déjà : on le suit, et l'Édition reste en lecture seule", async () => {
+      const { api } = fakeApi(claireRow)
+      const lock = new EditLockController({
+        api,
+        myId: ME,
+        session: SESSION,
+        writing: false,
+      })
+      lock.start()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(lock.state).toMatchObject({
+        phase: "readonly",
+        holderName: "Claire",
+        lost: false,
+      })
+      lock.setWriting(true)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(api.take).toHaveBeenCalledWith(false)
+      expect(lock.state).toMatchObject({ phase: "readonly", lost: false })
+    })
+
+    it("repasser en Lecture rend la main après l'enregistrement, sans la croire perdue", async () => {
+      const { api, emit } = fakeApi()
+      const saved = vi.fn(async () => {})
+      const lock = new EditLockController({
+        api,
+        myId: ME,
+        session: SESSION,
+        beforeRelease: saved,
+      })
+      lock.start()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(lock.state.phase).toBe("mine")
+
+      lock.setWriting(false)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(saved).toHaveBeenCalled()
+      expect(api.release).toHaveBeenCalledTimes(1)
+      // La relâche, vue par Realtime : ce n'est pas une main perdue.
+      emit(change(null))
+      expect(lock.state).toMatchObject({ phase: "free", lost: false })
+      await vi.advanceTimersByTimeAsync(20_000)
+      expect(api.heartbeat).not.toHaveBeenCalled()
+      // Fermer l'éditeur ne relâche pas une seconde fois.
+      await lock.finishThenStop()
+      expect(api.release).toHaveBeenCalledTimes(1)
+    })
+
+    it("revenu en Édition pendant la relâche : reprend la main une fois celle-ci finie", async () => {
+      const { api } = fakeApi()
+      let released: (value: boolean) => void = () => {}
+      api.release.mockImplementationOnce(
+        () => new Promise<boolean>((resolve) => (released = resolve))
+      )
+      const lock = new EditLockController({ api, myId: ME, session: SESSION })
+      lock.start()
+      await vi.advanceTimersByTimeAsync(0)
+      lock.setWriting(false)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(api.release).toHaveBeenCalledTimes(1)
+      lock.setWriting(true)
+      await vi.advanceTimersByTimeAsync(0)
+      // Pas de prise tant que la relâche n'est pas finie : elle l'effacerait.
+      expect(api.take).toHaveBeenCalledTimes(1)
+      released(true)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(api.take).toHaveBeenCalledTimes(2)
+      expect(lock.state.phase).toBe("mine")
+    })
+
+    it("un onglet caché en Lecture ne reprend pas la main à son retour", async () => {
+      const { api } = fakeApi(row({}))
+      const lock = new EditLockController({
+        api,
+        myId: ME,
+        session: SESSION,
+        writing: false,
+      })
+      lock.start()
+      await vi.advanceTimersByTimeAsync(0)
+      lock.setHidden(true)
+      await vi.advanceTimersByTimeAsync(31 * 60 * 1000)
+      lock.setHidden(false)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(api.take).not.toHaveBeenCalled()
+      expect(api.release).not.toHaveBeenCalled()
+    })
+  })
 })

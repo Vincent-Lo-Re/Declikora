@@ -40,6 +40,7 @@ import {
 } from "@/lib/contents/publication"
 import { formatDateTime } from "@/lib/dates"
 import type { ElementKind } from "@/lib/editor/profile"
+import { useEditorLink } from "@/hooks/use-editor-link"
 import { editorPath, sections } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -58,6 +59,7 @@ export function ElementPanel({
   kind,
   draft,
   editable,
+  reading,
   settings,
   onSettingsChange,
   context,
@@ -75,6 +77,8 @@ export function ElementPanel({
   kind: ElementKind
   draft: Draft
   editable: boolean
+  // En Lecture : rien ne se modifie, on ne prend pas la main (QCM du 04/10/2026).
+  reading: boolean
   settings: ContentSettings
   onSettingsChange: (next: ContentSettings) => void
   // Sa méthode, son chapitre et sa leçon (undefined tant qu'ils ne sont pas lus).
@@ -111,7 +115,9 @@ export function ElementPanel({
       />
       {!editable && (
         <p className="text-sm text-muted-foreground">
-          {texts.editor.settings.readOnly}
+          {reading
+            ? texts.editor.preview.reading
+            : texts.editor.settings.readOnly}
         </p>
       )}
       <AccessCard
@@ -446,6 +452,7 @@ export function MethodButton({
   holding: boolean
   onHistory: () => void
 }) {
+  const editorLink = useEditorLink()
   const label =
     schedule.kind === "waiting" && holding
       ? labels.schedule.leave
@@ -460,7 +467,7 @@ export function MethodButton({
     <div className="flex items-center">
       {method && !method.deleted ? (
         <Link
-          to={editorPath("methods", method.id)}
+          to={editorLink(editorPath("methods", method.id))}
           className={cn(
             buttonVariants({ variant: "outline", size: "sm" }),
             "rounded-r-none"

@@ -72,10 +72,36 @@ function StaticText({ doc }: { doc: Doc }) {
 
 /**
  * Un bloc affiché tel quel, non modifiable sur place : le bloc d'un modèle identique partout,
- * dans un contenu. Pas d'identifiant de bloc dans la page (le même modèle peut y être deux fois),
- * pas de glisser-déposer. Les images lisent l'éditeur (fichier, aperçu), en lecture seule.
+ * dans un contenu, et les blocs de la Lecture. Pas d'identifiant de bloc dans la page (le même
+ * modèle peut y être deux fois), pas de glisser-déposer. Les images lisent l'éditeur (fichier,
+ * aperçu), en lecture seule. anchor : en Lecture, l'identifiant que le plan vise pour y faire
+ * défiler le téléphone (data-read-block) ; anchorChildren : ceux des blocs d'une section aussi
+ * (pas ceux d'un modèle, que le plan ne liste pas).
  */
-export function StaticBlock({ block: shown }: { block: Block }) {
+export function StaticBlock({
+  block: shown,
+  anchor,
+  anchorChildren = false,
+}: {
+  block: Block
+  anchor?: string
+  anchorChildren?: boolean
+}) {
+  const body = <StaticBody block={shown} anchorChildren={anchorChildren} />
+  // Une section vide ou un bloc lié ne s'affichent pas : pas d'ancre vide qui prendrait sa place.
+  const empty =
+    shown.type === "linked" ||
+    (shown.type === "box" && shown.blocks.length === 0)
+  return anchor && !empty ? <div data-read-block={anchor}>{body}</div> : body
+}
+
+function StaticBody({
+  block: shown,
+  anchorChildren,
+}: {
+  block: Block
+  anchorChildren: boolean
+}) {
   switch (shown.type) {
     case "text":
       return <StaticText doc={shown.doc} />
@@ -88,7 +114,11 @@ export function StaticBlock({ block: shown }: { block: Block }) {
         <div className="blocks-box" data-look={shown.look}>
           <div className="blocks-box-list">
             {shown.blocks.map((child) => (
-              <StaticBlock key={child.id} block={child} />
+              <StaticBlock
+                key={child.id}
+                block={child}
+                anchor={anchorChildren ? child.id : undefined}
+              />
             ))}
           </div>
         </div>

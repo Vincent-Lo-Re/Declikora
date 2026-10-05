@@ -29,7 +29,7 @@ export type PreviewSettings = {
   fit: PreviewFit
 }
 
-// À chaque ouverture de l'éditeur : l'iPhone, en Édition, en clair, comme un abonné.
+// À l'ouverture de l'éditeur depuis une liste : l'iPhone, en Édition, en clair, comme un abonné.
 export const defaultPreview: PreviewSettings = {
   device: "ios",
   mode: "edit",
@@ -37,6 +37,78 @@ export const defaultPreview: PreviewSettings = {
   largeText: false,
   reader: "subscriber",
   fit: "adjust",
+}
+
+// Les réglages gardés dans l'adresse de l'éditeur, d'un écran à l'autre (QCM du 04/10/2026) :
+// seulement ceux qui diffèrent de defaultPreview, en mots français comme les adresses de
+// navigation.ts (« ?mode=lecture&telephone=android&theme=sombre »).
+type ChoiceKey = Exclude<keyof PreviewSettings, "largeText">
+const searchWords: {
+  [K in ChoiceKey]: { name: string; values: Record<PreviewSettings[K], string> }
+} = {
+  mode: { name: "mode", values: { edit: "edition", read: "lecture" } },
+  device: { name: "telephone", values: { ios: "iphone", android: "android" } },
+  theme: { name: "theme", values: { light: "clair", dark: "sombre" } },
+  reader: {
+    name: "lecteur",
+    values: { subscriber: "abonne", visitor: "sans-formule" },
+  },
+  fit: { name: "ecran", values: { adjust: "ajuste", full: "entier" } },
+}
+const choiceKeys = Object.keys(searchWords) as ChoiceKey[]
+const largeTextWord = { name: "texte", value: "grand" }
+
+/** Les réglages du téléphone lus dans l'adresse ; un mot inconnu vaut le réglage de départ. */
+export function previewFromSearch(
+  search: string | URLSearchParams
+): PreviewSettings {
+  const params = new URLSearchParams(search)
+  const pick = <K extends ChoiceKey>(key: K): PreviewSettings[K] => {
+    const { name, values } = searchWords[key]
+    const word = params.get(name)
+    const keys = Object.keys(values) as PreviewSettings[K][]
+    return keys.find((value) => values[value] === word) ?? defaultPreview[key]
+  }
+  return {
+    device: pick("device"),
+    mode: pick("mode"),
+    theme: pick("theme"),
+    largeText: params.get(largeTextWord.name) === largeTextWord.value,
+    reader: pick("reader"),
+    fit: pick("fit"),
+  }
+}
+
+/**
+ * L'adresse avec ces réglages du téléphone, les autres paramètres gardés ; seuls les réglages
+ * qui diffèrent de defaultPreview y sont écrits.
+ */
+export function withPreview(
+  search: string | URLSearchParams,
+  preview: PreviewSettings
+): URLSearchParams {
+  const params = new URLSearchParams(search)
+  const word = <K extends ChoiceKey>(key: K): string | null =>
+    preview[key] === defaultPreview[key]
+      ? null
+      : searchWords[key].values[preview[key]]
+  for (const key of choiceKeys) {
+    const value = word(key)
+    if (value === null) params.delete(searchWords[key].name)
+    else params.set(searchWords[key].name, value)
+  }
+  if (preview.largeText) params.set(largeTextWord.name, largeTextWord.value)
+  else params.delete(largeTextWord.name)
+  return params
+}
+
+/**
+ * Une adresse de l'éditeur qui garde les réglages du téléphone de l'adresse affichée : passer de
+ * la méthode à une leçon reste en Lecture, sur le même téléphone.
+ */
+export function keepPreview(path: string, search: string): string {
+  const kept = withPreview("", previewFromSearch(search)).toString()
+  return kept ? `${path}?${kept}` : path
 }
 
 // La hauteur du téléphone entier : --blocks-screen-height et deux fois --blocks-device-padding

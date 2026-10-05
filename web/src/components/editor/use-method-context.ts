@@ -131,6 +131,8 @@ export function useMethodContext({
 
   return {
     element: elementContext.data,
+    // Un élément : le plan de sa méthode (« Suivant », en bas de son écran).
+    tree: methodTree.data,
     place,
     preview: preview.data,
     ownState,

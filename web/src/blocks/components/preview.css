@@ -182,8 +182,10 @@
   line-height: var(--blocks-font-caption-line-height);
 }
 
-/* Un bloc amené en haut de l'écran du téléphone (choisi dans le plan) garde un peu d'air au-dessus. */
-.blocks-screen-scroll [data-block-id] {
+/* Un bloc amené en haut de l'écran du téléphone (choisi dans le plan, en Édition comme en
+   Lecture) garde un peu d'air au-dessus. */
+.blocks-screen-scroll [data-block-id],
+.blocks-screen-scroll [data-read-block] {
   scroll-margin-top: var(--blocks-space-page-padding);
 }
 
@@ -454,6 +456,24 @@
   height: 20px;
 }
 
+/* En Lecture, la flèche qui mène à l'écran du dessus (QCM du 04/10/2026). */
+.blocks-appbar-back {
+  display: flex;
+  margin: -4px;
+  padding: 4px;
+  color: inherit;
+  border-radius: 4px;
+}
+
+.blocks-appbar-back:hover {
+  background: var(--blocks-color-box-fill);
+}
+
+.blocks-appbar-back:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent);
+  outline-offset: 2px;
+}
+
 .blocks-read .blocks-cover,
 .blocks-read .blocks-audio {
   cursor: default;
@@ -505,9 +525,15 @@
   color: var(--blocks-color-link);
 }
 
-/* En bas d'une leçon, ses exercices : séparés de son contenu comme deux blocs. */
-.blocks-lesson-exercises {
+/* Sous le contenu d'un écran (les leçons d'un chapitre, les exercices d'une leçon, « Suivant ») :
+   séparé de lui comme deux blocs. */
+.blocks-plan-below {
   margin-top: calc(var(--blocks-space-block-gap) * 2);
+}
+
+/* « Suivant » : son mot au-dessus du titre de l'écran d'après, la flèche au bout. */
+.blocks-plan-next .blocks-plan-count {
+  display: block;
 }
 
 /* Le nombre d'exercices d'une leçon, à droite de sa ligne : le plan ne les liste pas. */

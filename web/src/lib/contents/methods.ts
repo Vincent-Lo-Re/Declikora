@@ -227,6 +227,24 @@ export type ElementContext = {
   lesson: { id: string; title: string; isFree: boolean } | null
 }
 
+/**
+ * En Lecture, l'écran du dessus, comme la flèche de retour de l'app (QCM du 04/10/2026) : la
+ * leçon d'un exercice, la méthode d'un chapitre ou d'une leçon.
+ */
+export function screenAbove(
+  kind: "chapter" | "lesson" | "exercise",
+  context: ElementContext
+): { kind: "method" | "lesson"; id: string; title: string } {
+  if (kind === "exercise" && context.lesson) {
+    return {
+      kind: "lesson",
+      id: context.lesson.id,
+      title: context.lesson.title,
+    }
+  }
+  return { kind: "method", id: context.method.id, title: context.method.title }
+}
+
 type ParentRow = {
   id: string
   kind: string

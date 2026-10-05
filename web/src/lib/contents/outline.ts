@@ -745,3 +745,56 @@ export function elementAccess(
   if (element.kind !== "chapter") return element.isFree ? FREE : method
   return lessons.some((lesson) => lesson.inApp && lesson.isFree) ? FREE : method
 }
+
+// ---------------------------------------------------------------------------------------------
+// Lecture, comme dans l'app (QCM du 04/10/2026) : la suite d'un écran, et ce qui n'y est pas.
+// ---------------------------------------------------------------------------------------------
+
+/** Un écran de la méthode dans l'ordre du plan : l'introduction d'un chapitre, ou une leçon. */
+export type PlanScreen =
+  | { kind: "chapter"; element: OutlineChapter; number: number }
+  | { kind: "lesson"; element: OutlineLesson }
+
+/**
+ * « Suivant », en bas d'un chapitre ou d'une leçon : l'écran d'après dans le plan tel que l'app
+ * le montrera (la première leçon d'un chapitre, la leçon d'après, ou l'introduction du chapitre
+ * suivant). Les exercices n'y sont pas ; null pour le dernier écran, pour un exercice, et pour
+ * un élément qui n'est pas dans l'app.
+ */
+export function nextScreen(tree: MethodTree, id: string): PlanScreen | null {
+  const screens: PlanScreen[] = appPlan(tree).flatMap((chapter, index) => [
+    { kind: "chapter" as const, element: chapter, number: index + 1 },
+    ...chapter.lessons.map((lesson) => ({
+      kind: "lesson" as const,
+      element: lesson,
+    })),
+  ])
+  const index = screens.findIndex((screen) => screen.element.id === id)
+  return index >= 0 ? (screens[index + 1] ?? null) : null
+}
+
+/**
+ * Un écran réservé à qui n'a pas la formule, dans une méthode réservée : une leçon qui n'est pas
+ * gratuite, ou l'introduction d'un chapitre dont aucune leçon montrée ne l'est ([D43]).
+ */
+export function screenReserved(screen: PlanScreen, reserved: boolean): boolean {
+  if (!reserved) return false
+  if (screen.kind === "lesson") return !screen.element.isFree
+  return !screen.element.lessons.some((lesson) => lesson.inApp && lesson.isFree)
+}
+
+/**
+ * Pourquoi un élément ne sera pas dans l'app à la prochaine publication : sa case « Montrer dans
+ * l'app » (inApp, telle qu'elle est à l'écran), ou celle de son chapitre ou de sa leçon ; null
+ * s'il y sera.
+ */
+export function notInAppReason(
+  place: TreePlace,
+  inApp: boolean
+): "self" | "chapter" | "lesson" | null {
+  if (!inApp) return "self"
+  const parents = parentsInApp(place)
+  if (!parents.chapter) return "chapter"
+  if (!parents.lesson) return "lesson"
+  return null
+}

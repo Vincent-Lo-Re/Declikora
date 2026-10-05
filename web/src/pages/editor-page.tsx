@@ -4,6 +4,7 @@ import { cn } from "cn"
 import {
   ArrowLeft,
   Blocks,
+  EyeOff,
   FileQuestion,
   Focus,
   Info,
@@ -18,7 +19,7 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from "react"
-import { Link, useBlocker, useParams } from "react-router"
+import { Link, useBlocker, useParams, useSearchParams } from "react-router"
 import { toast } from "sonner"
 
 import "@/blocks/components/preview.css"
@@ -96,8 +97,10 @@ import { usePublication } from "@/components/editor/use-publication"
 import { ElementPanel, MethodButton } from "@/components/methods/element-panel"
 import { MethodChangesCard } from "@/components/methods/method-changes"
 import {
+  ChapterLessons,
   LessonExercises,
   MethodAppPlan,
+  NextScreen,
 } from "@/components/methods/method-preview"
 import { ElementStateBadge } from "@/components/methods/element-state-badge"
 import { MethodOutline } from "@/components/methods/method-outline"
@@ -134,6 +137,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useCategories } from "@/hooks/use-categories"
+import { useEditorLink } from "@/hooks/use-editor-link"
 import { useLockDialog } from "@/hooks/use-lock-dialog"
 import { accessLevelsKey, listAccessLevels } from "@/lib/access-levels"
 import { categoryNames } from "@/lib/categories"
@@ -145,13 +149,16 @@ import {
   type Content,
   type ContentKind,
 } from "@/lib/contents/api"
-import { getMethodTree, methodKeys } from "@/lib/contents/methods"
+import { getMethodTree, methodKeys, screenAbove } from "@/lib/contents/methods"
 import {
   appPlan,
   elementAccess,
   exerciseCount,
   lessonCount,
+  nextScreen,
+  notInAppReason,
   parseLiveOutline,
+  screenReserved,
 } from "@/lib/contents/outline"
 import { revertToVersion, type VersionItem } from "@/lib/contents/publication"
 import { publishChecks, readyItems } from "@/lib/contents/requirements"
@@ -162,14 +169,16 @@ import {
   type TemplateItem,
 } from "@/lib/contents/templates"
 import {
-  defaultPreview,
+  previewFromSearch,
   previewLocked,
+  withPreview,
   type PreviewSettings,
 } from "@/lib/editor/preview"
 import {
   blockAnchor,
   focusBlockSoon,
   focusOnceShown,
+  scrollToReadBlock,
 } from "@/lib/editor/block-focus"
 import { isApple, isFocusShortcut } from "@/lib/editor/focus-mode"
 import {
@@ -188,7 +197,12 @@ import { focusSoon, highlightSoon } from "@/lib/focus"
 import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
 import { formatDuration } from "@/lib/media/format"
-import { editorPath, sections, type SectionKey } from "@/navigation"
+import {
+  contentEditorPath,
+  editorPath,
+  sections,
+  type SectionKey,
+} from "@/navigation"
 import { texts } from "@/texts"
 
 // Le choix d'un fichier pour la présentation (et non pour un bloc Image, dont l'id est un uuid).
@@ -334,10 +348,14 @@ function BackLink({
   // de la section (ou de la méthode) dans l'infobulle.
   compact?: boolean
 }) {
+  const editorLink = useEditorLink()
   const title = method
     ? method.title.trim() || texts.common.untitled
     : texts.sections[section].title
-  const to = method ? editorPath("methods", method.id) : sections[section].path
+  // Vers la méthode, les réglages du téléphone restent (Lecture comprise) ; pas vers une liste.
+  const to = method
+    ? editorLink(editorPath("methods", method.id))
+    : sections[section].path
   const label = method
     ? texts.methods.element.back(title)
     : texts.editor.back(title)
@@ -429,8 +447,25 @@ function ContentEditor({
     blockId: string
     editor: Editor
   } | null>(null)
-  // Éditeur du Fil : le téléphone montré, Édition ou Lecture, thème, taille du texte, lecteur.
-  const [phoneView, setPhoneView] = useState<PreviewSettings>(defaultPreview)
+  // Éditeur du Fil : le téléphone montré, Édition ou Lecture, thème, taille du texte, lecteur ;
+  // gardé dans l'adresse, d'un écran à l'autre et après un rechargement (QCM du 04/10/2026).
+  const [searchParams, setSearchParams] = useSearchParams()
+  const phoneView = useMemo(
+    () => previewFromSearch(searchParams),
+    [searchParams]
+  )
+  const setPhoneView = useCallback(
+    (change: (current: PreviewSettings) => PreviewSettings) =>
+      setSearchParams(
+        (params) => withPreview(params, change(previewFromSearch(params))),
+        { replace: true }
+      ),
+    [setSearchParams]
+  )
+  // En Lecture, rien ne se modifie : on ne prend pas la main (QCM du 04/10/2026).
+  const reading = phoneView.mode === "read"
+  // Les liens vers un autre écran de la méthode gardent ces réglages.
+  const editorLink = useEditorLink()
   // Éditeur du Fil : le panneau « Mes blocs », par-dessus les Blocs.
   const [savedOpen, setSavedOpen] = useState(false)
   // Éditeur du Fil : le bloc survolé, dans le plan ou dans l'aperçu (montré dans les deux).
@@ -513,6 +548,7 @@ function ContentEditor({
     dismissStash,
   } = useDraftSync({
     initial,
+    writing: !reading,
     afterSave: () => {
       // « Utilisé dans » de la médiathèque et liste des pages.
       void queryClient.invalidateQueries({ queryKey: mediaKeys.allUses })
@@ -543,8 +579,9 @@ function ContentEditor({
   const phase = lock.state.phase
   const serverRev = lock.state.draftRev
   const holderIsMe = lock.state.holderId === lock.myId
-  // La lecture seule passe par le cadenas et sa fenêtre (ADMIN § 4).
-  const lockView = lockSituation(lock.state, holderIsMe)
+  // La lecture seule passe par le cadenas et sa fenêtre (ADMIN § 4) ; pas en Lecture, où l'on
+  // ne prend pas la main.
+  const lockView = reading ? null : lockSituation(lock.state, holderIsMe)
   const lockDialog = useLockDialog(lockView)
   // Éditeur du Fil : la section où les Blocs ajouteront, tant qu'elle est le bloc choisi.
   const targetBox = liveBoxTarget(draft, boxTarget, selectedId)
@@ -620,18 +657,22 @@ function ContentEditor({
     if (type === "image") setPickerFor(block.id)
   }
 
-  // En Lecture, rien ne se choisit : on repasse en Édition pour montrer un bloc ou en ajouter un.
+  // En Lecture, rien ne se choisit : on repasse en Édition pour ajouter un bloc.
   const toEdit = () =>
     setPhoneView((current) =>
       current.mode === "edit" ? current : { ...current, mode: "edit" }
     )
   const onPreviewChange = (next: PreviewSettings) => {
     if (next.mode === "read") setSelectedId(null)
-    setPhoneView(next)
+    setPhoneView(() => next)
   }
 
+  // Un bloc choisi dans le plan : en Lecture, le téléphone défile seulement jusqu'à lui.
   const selectAndShow = (id: string) => {
-    toEdit()
+    if (reading) {
+      scrollToReadBlock(id)
+      return
+    }
     setSelectedId(id)
     requestAnimationFrame(() => focusBlockSoon(id, 0, true))
   }
@@ -989,6 +1030,7 @@ function ContentEditor({
 
   const {
     element: elementContext,
+    tree: elementTree,
     place: elementPlace,
     preview: methodPreview,
     ownState,
@@ -1190,9 +1232,64 @@ function ContentEditor({
           elementPlace?.kind === "chapter" ? elementPlace.element.lessons : []
         )
       : settings
-  // Une leçon : ses exercices, montrés en bas comme dans l'app.
+  // Une leçon : ses exercices, montrés en bas comme dans l'app ; un chapitre : ses leçons, sous
+  // son introduction ; un chapitre ou une leçon : « Suivant » (QCM du 04/10/2026).
   const lessonExercises =
     elementPlace?.kind === "lesson" ? elementPlace.element.exercises : null
+  const chapterLessons =
+    elementPlace?.kind === "chapter" ? elementPlace.element.lessons : null
+  const next =
+    elementTree && elementKind !== null && elementKind !== "exercise"
+      ? nextScreen(elementTree, contentId)
+      : null
+  const methodReserved =
+    methodAccess !== undefined &&
+    methodAccess.accessChosen &&
+    methodAccess.accessLevelId !== null
+  const ownReserved = ownAccess.accessChosen && ownAccess.accessLevelId !== null
+  // Sous le contenu d'un élément, comme dans l'app : en Édition (inEdit), les listes vides le
+  // disent, et ce qui est réservé l'est comme pour une personne sans la formule (comme le plan
+  // de la méthode) ; en Lecture, selon le lecteur choisi.
+  const belowContent = (inEdit: boolean) => {
+    const visitor = inEdit || phoneView.reader === "visitor"
+    return (
+      <>
+        {chapterLessons && (
+          <ChapterLessons
+            lessons={chapterLessons}
+            reserved={methodReserved}
+            editable={inEdit}
+            subscriber={!visitor}
+          />
+        )}
+        {lessonExercises && (
+          <LessonExercises
+            exercises={lessonExercises}
+            locked={visitor && ownReserved}
+            editable={inEdit}
+          />
+        )}
+        {next && (
+          <NextScreen
+            screen={next}
+            locked={visitor && screenReserved(next, methodReserved)}
+          />
+        )}
+      </>
+    )
+  }
+  // En Lecture, la flèche de la barre de l'app : l'écran du dessus (la leçon d'un exercice, la
+  // méthode d'un chapitre ou d'une leçon) ; rien pour les autres sortes.
+  const above =
+    elementKind !== null && elementContext
+      ? screenAbove(elementKind, elementContext)
+      : null
+  const abovePath = above ? contentEditorPath(above.kind, above.id) : null
+  // En Lecture, un élément qui ne sera pas dans l'app se lit quand même, avec un bandeau.
+  const hiddenReason =
+    reading && elementPlace
+      ? notInAppReason(elementPlace, settings.inApp)
+      : null
   const problemText = ownProblem?.problem
     ? contentProblemText(ownProblem.problem, ownProblem.problemDetail)
     : null
@@ -1209,6 +1306,7 @@ function ContentEditor({
         kind={feedKind}
         draft={draft}
         editable={editable}
+        reading={reading}
         settings={settings}
         onSettingsChange={onSettingsChange}
         context={elementContext}
@@ -1227,7 +1325,9 @@ function ContentEditor({
       <div className="space-y-3">
         {!editable && (
           <p className="text-sm text-muted-foreground">
-            {texts.editor.settings.readOnly}
+            {reading
+              ? texts.editor.preview.reading
+              : texts.editor.settings.readOnly}
           </p>
         )}
         {templateSort && (
@@ -1246,6 +1346,7 @@ function ContentEditor({
         contentId={contentId}
         draft={draft}
         editable={editable}
+        reading={reading}
         settings={settings}
         onSettingsChange={onSettingsChange}
         refusedSlug={refusedSlug}
@@ -1454,11 +1555,9 @@ function ContentEditor({
           onClick={() => openLibrary()}
         />
       )}
-      {/* Une leçon : ses exercices en bas, comme dans l'app (ils se gèrent dans le plan de la
-          méthode). */}
-      {lessonExercises && (
-        <LessonExercises exercises={lessonExercises} locked={false} editable />
-      )}
+      {/* Un chapitre : ses leçons ; une leçon : ses exercices, comme dans l'app (ils se gèrent
+          dans le plan de la méthode) ; puis « Suivant ». */}
+      {belowContent(true)}
     </div>
   )
 
@@ -1539,6 +1638,7 @@ function ContentEditor({
             <MethodOutline
               methodId={contentId}
               editable={editable}
+              reading={reading}
               session={editorSession}
               myId={lock.myId ?? ""}
               live={parseLiveOutline(pub.publication?.live?.outline)}
@@ -1612,12 +1712,15 @@ function ContentEditor({
                   sur toute la largeur (le retour est en haut, dans l'en-tête du plan). */}
               <div className="flex h-feed-footer shrink-0 items-stretch border-t">
                 <div className="flex min-w-0 flex-1 items-center px-4">
-                  {/* Le même bouton que dans le téléphone. */}
+                  {/* Le même bouton que dans le téléphone ; en Lecture, il repasse en Édition. */}
                   <AddBlockButton
                     id={LEFT_ADD_ID}
                     label={texts.editor.add.label}
-                    disabled={!editable || !canAddRoot}
-                    onClick={() => openLibrary()}
+                    disabled={(!editable && !reading) || !canAddRoot}
+                    onClick={() => {
+                      if (reading) toEdit()
+                      openLibrary()
+                    }}
                   />
                 </div>
               </div>
@@ -1661,14 +1764,31 @@ function ContentEditor({
                 {lockBanner}
                 {profile.publication === "own" && scheduleBanner}
                 {notices}
+                {hiddenReason && (
+                  <p
+                    role="status"
+                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <EyeOff aria-hidden className="size-4 shrink-0" />
+                    {texts.editor.preview.notInApp[hiddenReason]}
+                  </p>
+                )}
               </>
             }
             appBar={
-              phoneView.mode === "read" ? (
+              reading ? (
                 <ReadAppBar
                   section={
-                    // Un chapitre ou une leçon : sa méthode, comme dans l'app.
+                    // Un chapitre, une leçon ou un exercice : sa méthode, comme dans l'app.
                     elementContext?.method.title.trim() || sectionTitle
+                  }
+                  back={
+                    above && abovePath
+                      ? {
+                          to: editorLink(abovePath),
+                          title: above.title.trim() || untitled,
+                        }
+                      : null
                   }
                 />
               ) : undefined
@@ -1705,15 +1825,7 @@ function ContentEditor({
                       : false
                   }
                   resolve={resolveLinked}
-                  after={
-                    lessonExercises && (
-                      <LessonExercises
-                        exercises={lessonExercises}
-                        locked={previewLocked(phoneView, ownAccess)}
-                        editable={false}
-                      />
-                    )
-                  }
+                  after={belowContent(false)}
                 >
                   {methodTree.data && (
                     <MethodAppPlan
