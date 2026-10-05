@@ -24,6 +24,7 @@ function trashTypeOf(item: TrashItem): TrashType {
   switch (item.kind) {
     case "chapter":
     case "lesson":
+    case "exercise":
     case "method":
       return "method"
     case "page":

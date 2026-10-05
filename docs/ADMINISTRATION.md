@@ -17,7 +17,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Blog** : les articles et leurs catégories.
 - [x] **Podcasts** : les épisodes (le son fait partie de l'épisode) et leurs catégories.
 - [x] **Méthodes** : une méthode contient des chapitres, et chaque chapitre contient des leçons. Le chapitre a sa propre introduction en blocs, affichée avant ses leçons. Chaque leçon a son contenu en blocs.
-  - [ ] **Exercices** (04/10/2026, QCM ; d'abord pensés comme un bloc « Étape » dans la leçon, puis décidés comme un troisième niveau) : Chapitre → Leçon → **Exercice**, les noms les plus courants. Un exercice est géré comme une leçon :
+  - [x] **Exercices** (04/10/2026, QCM ; d'abord pensés comme un bloc « Étape » dans la leçon, puis décidés comme un troisième niveau ; faits le même jour) : Chapitre → Leçon → **Exercice**, les noms les plus courants. Un exercice est géré comme une leçon :
     - **dans l'app**, il a **son propre écran**, ouvert depuis sa leçon : la leçon montre ses exercices **en bas**, et le plan de la méthode n'en donne que **le nombre** (« 2 exercices ») pour rester court ;
     - **son accès suit sa leçon** : l'exercice d'une leçon gratuite est gratuit, sinon il demande le niveau de la méthode ; il n'a pas de case « Gratuit » ;
     - **sa case « Montrer dans l'app »**, décochée à la création : il part à la publication de la méthode une fois coché, et seulement si sa leçon et son chapitre sont montrés ;
@@ -26,6 +26,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
     - **numéroté dans sa leçon** : « Exercice 1 », « Exercice 2 »… repartent à 1 dans chaque leçon ;
     - **ses points de départ** : une section « Exercice » dans les Modèles de bloc ;
     - pas de suivi de progression dans l'app.
+    - **dans l'admin** : l'éditeur d'un exercice est celui d'une leçon (`/methodes/exercices/<id>`) ; sa carte « Dans la méthode » donne sa place jusqu'à sa leçon (« … › Leçon 1 « Le souffle » › Exercice 2 »), et son niveau d'accès est celui de sa leçon, en lecture (« Comme sa leçon : gratuit »). Le téléphone d'une leçon montre ses exercices en bas, comme l'app ; celui de la méthode donne leur nombre sous chaque leçon. La liste des changements nomme la leçon et le chapitre d'un exercice. Un exercice coché dans une leçon décochée ne part pas (« Pas dans l'app, comme sa leçon »).
 - [x] **Pages** : les pages simples de l'app (aide, mentions légales…).
 - [x] **Modèles** : les modèles de blocs (voir § 5).
 - [x] **Médiathèque** : tous les fichiers (voir § 6).

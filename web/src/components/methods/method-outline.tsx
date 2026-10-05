@@ -27,6 +27,8 @@ import { cn } from "cn"
 import {
   ArrowDown,
   ArrowUp,
+  ChevronDown,
+  ChevronRight,
   CircleOff,
   Ellipsis,
   Eye,
@@ -34,6 +36,7 @@ import {
   ListTree,
   LockOpen,
   PenLine,
+  Plus,
   SquarePen,
   Trash2,
   TriangleAlert,
@@ -103,6 +106,8 @@ import {
 import {
   canDropOutline,
   elementState,
+  exerciseCount,
+  exerciseZoneId,
   findInTree,
   lessonCount,
   lessonZoneId,
@@ -117,6 +122,8 @@ import {
   type OutlineChapter,
   type OutlineDropData,
   type OutlineElement,
+  type OutlineLesson,
+  type ParentsInApp,
   type PreviewRow,
 } from "@/lib/contents/outline"
 import {
@@ -146,27 +153,49 @@ function titleOf(element: OutlineElement): string {
   return element.title.trim() || texts.common.untitled
 }
 
-/** « chapitre 2 « Respirer » », « leçon 3 « Le souffle » » : la place dans l'arbre et le titre. */
+/**
+ * « chapitre 2 « Respirer » », « leçon 3 « Le souffle » », « exercice 1 « Inspirer » » : la place
+ * dans son parent et le titre.
+ */
 function labelIn(tree: MethodTree, id: UniqueIdentifier): string {
   const place = findInTree(tree, String(id))
   if (!place) return ""
-  return place.kind === "chapter"
-    ? labels.chapterLabel(place.chapterIndex + 1, titleOf(place.element))
-    : labels.lessonLabel(place.lessonIndex + 1, titleOf(place.element))
+  switch (place.kind) {
+    case "chapter":
+      return labels.chapterLabel(place.chapterIndex + 1, titleOf(place.element))
+    case "lesson":
+      return labels.lessonLabel(place.lessonIndex + 1, titleOf(place.element))
+    case "exercise":
+      return labels.exerciseLabel(
+        place.exerciseIndex + 1,
+        titleOf(place.element)
+      )
+  }
 }
 
-/** La place d'un élément après un déplacement (« leçon 2 sur 3, dans le chapitre 1 « … » »). */
+/**
+ * La place d'un élément après un déplacement (« leçon 2 sur 3, dans le chapitre 1 « … » »,
+ * « exercice 1 sur 2, dans la leçon 3 « … » »).
+ */
 function placeIn(tree: MethodTree, id: string): string {
   const place = findInTree(tree, id)
   if (!place) return ""
-  if (place.kind === "chapter") {
-    return labels.chapterPlace(place.chapterIndex + 1, tree.length)
+  switch (place.kind) {
+    case "chapter":
+      return labels.chapterPlace(place.chapterIndex + 1, tree.length)
+    case "lesson":
+      return labels.lessonPlace(
+        place.lessonIndex + 1,
+        place.chapter.lessons.length,
+        labels.chapterLabel(place.chapterIndex + 1, titleOf(place.chapter))
+      )
+    case "exercise":
+      return labels.exercisePlace(
+        place.exerciseIndex + 1,
+        place.lesson.exercises.length,
+        labels.lessonLabel(place.lessonIndex + 1, titleOf(place.lesson))
+      )
   }
-  return labels.lessonPlace(
-    place.lessonIndex + 1,
-    place.chapter.lessons.length,
-    labels.chapterLabel(place.chapterIndex + 1, titleOf(place.chapter))
-  )
 }
 
 /** Annonces en français pour les lecteurs d'écran. */
@@ -192,6 +221,11 @@ function makeAnnouncements(tree: MethodTree): Announcements {
             )
           : dnd.outside(label)
       }
+      if (data?.type === "exerciseZone") {
+        return findInTree(tree, data.lessonId)?.kind === "lesson"
+          ? dnd.overLesson(label, labelIn(tree, data.lessonId))
+          : dnd.outside(label)
+      }
       return dnd.over(label, labelIn(tree, over.id))
     },
     onDragEnd: ({ active, over }) => {
@@ -211,19 +245,32 @@ function makeAnnouncements(tree: MethodTree): Announcements {
 // Détection des cibles
 // ---------------------------------------------------------------------------------------------
 
+// Les cibles de chaque sorte d'élément déplacé : l'élément visé d'abord, puis la zone d'un
+// parent vide.
+const TARGETS: Record<
+  OutlineElement["kind"],
+  readonly [OutlineDropData["type"], OutlineDropData["type"] | null]
+> = {
+  chapter: ["chapter", null],
+  lesson: ["lesson", "zone"],
+  exercise: ["exercise", "exerciseZone"],
+}
+
 /**
  * Un chapitre ne vise que les chapitres ; une leçon vise les leçons (de n'importe quel chapitre)
- * et la zone d'un chapitre vide. Au pointeur, la leçon survolée gagne, puis la zone.
+ * et la zone d'un chapitre vide ; un exercice, les exercices (de n'importe quelle leçon) et la
+ * zone d'une leçon vide. Au pointeur, l'élément survolé gagne, puis la zone.
  */
 const outlineCollision: CollisionDetection = (args) => {
   const activeType = (args.active.data.current as OutlineDropData | undefined)
     ?.type
+  const [item, zone] =
+    activeType === "chapter" || activeType === "exercise"
+      ? TARGETS[activeType]
+      : TARGETS.lesson
   const allowed = args.droppableContainers.filter((container) => {
     const data = container.data.current as OutlineDropData | undefined
-    if (!data) return false
-    return activeType === "chapter"
-      ? data.type === "chapter"
-      : data.type === "lesson" || data.type === "zone"
+    return data?.type === item || (zone !== null && data?.type === zone)
   })
   if (args.pointerCoordinates) {
     const within = pointerWithin({ ...args, droppableContainers: allowed })
@@ -232,17 +279,17 @@ const outlineCollision: CollisionDetection = (args) => {
         allowed.find((container) => container.id === id)?.data.current as
           OutlineDropData | undefined
       )?.type
-    if (activeType === "chapter") return within
-    const lesson = within.find((collision) => typeOf(collision.id) === "lesson")
-    if (lesson) return [lesson]
-    const zone = within.find((collision) => typeOf(collision.id) === "zone")
-    return zone ? [zone] : within
+    if (zone === null) return within
+    const element = within.find((collision) => typeOf(collision.id) === item)
+    if (element) return [element]
+    const empty = within.find((collision) => typeOf(collision.id) === zone)
+    return empty ? [empty] : within
   }
   return closestCenter({ ...args, droppableContainers: allowed })
 }
 
 // Ce qui est déplacé en ce moment : les cibles d'une autre sorte se désactivent.
-const DraggingContext = createContext<"chapter" | "lesson" | null>(null)
+const DraggingContext = createContext<OutlineElement["kind"] | null>(null)
 
 // ---------------------------------------------------------------------------------------------
 // Le plan
@@ -266,6 +313,10 @@ type RowActions = {
   shift: (element: OutlineElement, offset: -1 | 1) => void
   confirm: (confirmation: Confirmation) => void
   newLesson: (chapter: OutlineChapter, label: string) => void
+  newExercise: (lesson: OutlineLesson, label: string) => void
+  // Les leçons dont les exercices sont repliés.
+  folded: ReadonlySet<string>
+  toggleFold: (lesson: OutlineLesson) => void
 }
 
 const RowContext = createContext<RowActions | null>(null)
@@ -277,13 +328,14 @@ function useRow(): RowActions {
 }
 
 /**
- * Le plan d'une méthode, dans la colonne de gauche de son écran (ADMIN § 4) : les chapitres et
- * leurs leçons, rangés par glisser-déposer (souris et clavier, annonces en français) ou par
- * « Monter » / « Descendre », l'état de chacun dans l'app en pastille ; dans le menu ⋯ de chaque
- * ligne, « Montrer dans l'app », « Leçon gratuite », « Retirer de l'app » et « Mettre à la
- * corbeille » ; « Nouvelle leçon » dans chaque chapitre et « Nouveau chapitre » en bas. Ranger et
- * créer demandent de tenir la main sur la méthode (outline_reorder) ; les cases sont des réglages
- * de chaque élément, enregistrés sous son propre verrou.
+ * Le plan d'une méthode, dans la colonne de gauche de son écran (ADMIN § 4) : les chapitres, leurs
+ * leçons et les exercices de chaque leçon (une flèche les replie), rangés par glisser-déposer
+ * (souris et clavier, annonces en français) ou par « Monter » / « Descendre », l'état de chacun
+ * dans l'app en pastille ; dans le menu ⋯ de chaque ligne, « Montrer dans l'app », « Leçon
+ * gratuite », « Nouvel exercice » (une leçon), « Retirer de l'app » et « Mettre à la corbeille » ;
+ * « Nouvelle leçon » dans chaque chapitre et « Nouveau chapitre » en bas. Ranger et créer
+ * demandent de tenir la main sur la méthode (outline_reorder) ; les cases sont des réglages de
+ * chaque élément, enregistrés sous son propre verrou.
  */
 export function MethodOutline({
   methodId,
@@ -341,6 +393,7 @@ export function MethodOutline({
   const [pendingFlags, setPendingFlags] = useState<
     ReadonlyMap<string, ElementFlags>
   >(() => new Map())
+  const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set())
 
   const liveSet = useMemo(() => liveIds(live), [live])
   const previewMap = useMemo(
@@ -370,17 +423,24 @@ export function MethodOutline({
   )
 
   /**
-   * « Retirer de l'app », « Supprimer », « Annuler » et les cases changent l'élément (et, pour un
-   * chapitre, ses leçons) sans toujours changer son brouillon : leur lecture en mémoire est
-   * marquée périmée, pour que leur éditeur, rouvert, relise les cases enregistrées.
+   * « Retirer de l'app », « Supprimer », « Annuler » et les cases changent l'élément (et ce qu'il
+   * contient) sans toujours changer son brouillon : leur lecture en mémoire est marquée périmée,
+   * pour que leur éditeur, rouvert, relise les cases enregistrées.
    */
   const forgetDetails = useCallback(
     (element: OutlineElement) => {
+      const lessons =
+        element.kind === "chapter"
+          ? (element as OutlineChapter).lessons
+          : element.kind === "lesson"
+            ? [element as OutlineLesson]
+            : []
       const ids = [
         element.id,
-        ...("lessons" in element
-          ? (element as OutlineChapter).lessons.map((lesson) => lesson.id)
-          : []),
+        ...lessons.flatMap((lesson) => [
+          lesson.id,
+          ...lesson.exercises.map((exercise) => exercise.id),
+        ]),
       ]
       for (const id of ids) {
         void queryClient.invalidateQueries({
@@ -572,12 +632,15 @@ export function MethodOutline({
       values: OutlineElementValues
       open: boolean
     }) => {
-      const kind = target.kind
       const created = await createContent(
-        kind,
+        target.kind,
         values.title.trim(),
         values.starter || null,
-        kind === "chapter" ? methodId : target.chapterId
+        target.kind === "chapter"
+          ? methodId
+          : target.kind === "lesson"
+            ? target.chapterId
+            : target.lessonId
       )
       // On reste sur le plan : le verrou que content_create donne à son auteur est rendu.
       if (!open) await lockReleaseCreated(created.id).catch(() => false)
@@ -705,9 +768,26 @@ export function MethodOutline({
         chapterId: chapter.id,
         chapterLabel: label,
       }),
+    newExercise: (lesson, label) => {
+      // Ses exercices se déplient : le nouveau y sera visible.
+      setFolded((current) => {
+        const next = new Set(current)
+        next.delete(lesson.id)
+        return next
+      })
+      openNew({ kind: "exercise", lessonId: lesson.id, lessonLabel: label })
+    },
+    folded,
+    toggleFold: (lesson) =>
+      setFolded((current) => {
+        const next = new Set(current)
+        if (!next.delete(lesson.id)) next.add(lesson.id)
+        return next
+      }),
   }
 
   const lessons = shown ? lessonCount(shown) : 0
+  const exercises = shown ? exerciseCount(shown) : 0
   return (
     <div className="flex h-full flex-col">
       <section
@@ -729,7 +809,7 @@ export function MethodOutline({
           </ColumnHeader>
           {shown && shown.length > 0 && (
             <p className="px-2 pb-2 text-xs text-muted-foreground">
-              {labels.count(shown.length, lessons)}
+              {labels.count(shown.length, lessons, exercises)}
             </p>
           )}
           {!editable && (
@@ -912,20 +992,34 @@ function titleLinkOf(id: string): HTMLElement | null {
 function movedActionsButton(tree: MethodTree, id: string): HTMLElement | null {
   const place = findInTree(tree, id)
   if (!place) return null
-  const rows =
+  const [rows, index] =
     place.kind === "chapter"
-      ? document.querySelectorAll<HTMLElement>('[data-outline-kind="chapter"]')
-      : document.querySelectorAll<HTMLElement>(
-          `[data-outline-id="${place.chapter.id}"] [data-outline-kind="lesson"]`
-        )
-  const index =
-    place.kind === "chapter" ? place.chapterIndex : place.lessonIndex
+      ? [
+          document.querySelectorAll<HTMLElement>(
+            '[data-outline-kind="chapter"]'
+          ),
+          place.chapterIndex,
+        ]
+      : place.kind === "lesson"
+        ? [
+            document.querySelectorAll<HTMLElement>(
+              `[data-outline-id="${place.chapter.id}"] [data-outline-kind="lesson"]`
+            ),
+            place.lessonIndex,
+          ]
+        : [
+            document.querySelectorAll<HTMLElement>(
+              `[data-outline-id="${place.lesson.id}"] [data-outline-kind="exercise"]`
+            ),
+            place.exerciseIndex,
+          ]
   return rows[index]?.dataset.outlineId === id ? actionsButtonOf(id) : null
 }
 
 /**
  * Où va le focus quand un élément quitte le plan : l'élément suivant, sinon le précédent ; sinon
- * « Nouvelle leçon » de son chapitre (ou le chapitre), ou « Nouveau chapitre ».
+ * « Nouvelle leçon » de son chapitre (ou le chapitre), sa leçon pour un exercice, ou « Nouveau
+ * chapitre ».
  */
 function focusTargetAfterRemove(
   tree: MethodTree,
@@ -940,6 +1034,13 @@ function focusTargetAfterRemove(
       neighbour
         ? actionsButtonOf(neighbour.id)
         : document.querySelector<HTMLElement>("[data-new-chapter]")
+  }
+  if (place.kind === "exercise") {
+    const siblings = place.lesson.exercises
+    const neighbour =
+      siblings[place.exerciseIndex + 1] ?? siblings[place.exerciseIndex - 1]
+    const lessonId = place.lesson.id
+    return () => actionsButtonOf(neighbour?.id ?? lessonId)
   }
   const lessons = place.chapter.lessons
   const neighbour =
@@ -985,7 +1086,10 @@ function ChapterItem({
     id: chapter.id,
     data,
     attributes: { roleDescription: dnd.roleDescription },
-    disabled: { draggable: !editable, droppable: dragging === "lesson" },
+    disabled: {
+      draggable: !editable,
+      droppable: dragging !== null && dragging !== "chapter",
+    },
   })
   const { setNodeRef: setZoneRef, isOver: overZone } = useDroppable({
     id: lessonZoneId(chapter.id),
@@ -1009,7 +1113,7 @@ function ChapterItem({
         element={chapter}
         number={labels.chapterNumber(position)}
         label={label}
-        chapterInApp
+        parents={{ chapter: true, lesson: true }}
         handle={
           editable && (
             <OutlineHandle
@@ -1076,11 +1180,11 @@ function LessonItem({
   chapter,
   position,
 }: {
-  lesson: OutlineElement
+  lesson: OutlineLesson
   chapter: OutlineChapter
   position: number
 }) {
-  const { editable, pendingFlags } = useRow()
+  const { editable, pendingFlags, folded, toggleFold } = useRow()
   const dragging = useContext(DraggingContext)
   const data: OutlineDropData = { type: "lesson", chapterId: chapter.id }
   const {
@@ -1095,7 +1199,18 @@ function LessonItem({
     id: lesson.id,
     data,
     attributes: { roleDescription: dnd.roleDescription },
-    disabled: { draggable: !editable, droppable: dragging === "chapter" },
+    disabled: {
+      draggable: !editable,
+      droppable: dragging !== null && dragging !== "lesson",
+    },
+  })
+  const { setNodeRef: setZoneRef, isOver: overZone } = useDroppable({
+    id: exerciseZoneId(lesson.id),
+    data: {
+      type: "exerciseZone",
+      lessonId: lesson.id,
+    } satisfies OutlineDropData,
+    disabled: lesson.exercises.length > 0 || dragging !== "exercise",
   })
   const tree = useContext(TreeContext)
   const place = tree ? findInTree(tree, lesson.id) : null
@@ -1109,7 +1224,13 @@ function LessonItem({
     place.chapterIndex === tree.length - 1 &&
     place.lessonIndex === place.chapter.lessons.length - 1
   const chapterInApp = pendingFlags.get(chapter.id)?.in_app ?? chapter.inApp
+  const lessonInApp = pendingFlags.get(lesson.id)?.in_app ?? lesson.inApp
   const label = labels.lessonLabel(position, titleOf(lesson))
+  // Ses exercices, sauf repliés ; tous se déplient pendant qu'un exercice est déplacé (il peut
+  // changer de leçon).
+  const hasExercises = lesson.exercises.length > 0
+  const open = !folded.has(lesson.id) || dragging === "exercise"
+  const listId = `exercices-${lesson.id}`
   return (
     <li
       ref={setNodeRef}
@@ -1120,13 +1241,13 @@ function LessonItem({
         transform: CSS.Translate.toString(transform),
         transition,
       }}
-      className={cn(isDragging && "opacity-40")}
+      className={cn("grid gap-0.5", isDragging && "opacity-40")}
     >
       <ElementRow
         element={lesson}
         number={labels.lessonNumber(position)}
         label={label}
-        chapterInApp={chapterInApp}
+        parents={{ chapter: chapterInApp, lesson: true }}
         handle={
           editable && (
             <OutlineHandle
@@ -1140,15 +1261,178 @@ function LessonItem({
             />
           )
         }
+        fold={
+          hasExercises ? (
+            <FoldButton
+              open={open}
+              controls={listId}
+              label={open ? labels.fold(label) : labels.unfold(label)}
+              onClick={() => toggleFold(lesson)}
+            />
+          ) : (
+            // La place de la flèche : les numéros des leçons restent alignés.
+            <span aria-hidden className="size-6 shrink-0" />
+          )
+        }
         isFirst={isFirst}
         isLast={isLast}
+        canGoFurther
+      />
+      {(open || !hasExercises) && (
+        <SortableContext
+          id={lesson.id}
+          items={lesson.exercises.map((exercise) => exercise.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {/* Comme les leçons sous leur chapitre : un trait, sous le numéro de la leçon (après sa
+              flèche). Sans exercice, la liste n'est que la zone où en déposer un, visible pendant
+              le déplacement. */}
+          <ol
+            ref={setZoneRef}
+            id={listId}
+            aria-label={labels.exercisesOf(label)}
+            className={cn(
+              "ml-11 grid gap-0.5 rounded-md border-l pl-1.5",
+              !hasExercises && dragging !== "exercise" && "hidden",
+              overZone && "bg-accent"
+            )}
+          >
+            {!hasExercises && (
+              <li className="px-2 py-1.5 text-xs text-muted-foreground">
+                {labels.noExercises}
+              </li>
+            )}
+            {lesson.exercises.map((exercise, index) => (
+              <ExerciseItem
+                key={exercise.id}
+                exercise={exercise}
+                lesson={lesson}
+                parents={{ chapter: chapterInApp, lesson: lessonInApp }}
+                position={index + 1}
+              />
+            ))}
+          </ol>
+        </SortableContext>
+      )}
+    </li>
+  )
+}
+
+function ExerciseItem({
+  exercise,
+  lesson,
+  parents,
+  position,
+}: {
+  exercise: OutlineElement
+  lesson: OutlineLesson
+  parents: ParentsInApp
+  position: number
+}) {
+  const { editable } = useRow()
+  const dragging = useContext(DraggingContext)
+  const data: OutlineDropData = { type: "exercise", lessonId: lesson.id }
+  const {
+    setNodeRef,
+    setActivatorNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: exercise.id,
+    data,
+    attributes: { roleDescription: dnd.roleDescription },
+    disabled: {
+      draggable: !editable,
+      droppable: dragging !== null && dragging !== "exercise",
+    },
+  })
+  // Il passe d'une leçon à la voisine, même vide : seuls le premier exercice de la première leçon
+  // et le dernier de la dernière ne vont pas plus loin.
+  const tree = useContext(TreeContext)
+  const lessons = tree ? tree.flatMap((chapter) => chapter.lessons) : []
+  const lessonIndex = lessons.findIndex((item) => item.id === lesson.id)
+  const label = labels.exerciseLabel(position, titleOf(exercise))
+  return (
+    <li
+      ref={setNodeRef}
+      data-outline-id={exercise.id}
+      data-outline-kind="exercise"
+      // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer (dnd-kit)
+      style={{
+        transform: CSS.Translate.toString(transform),
+        transition,
+      }}
+      className={cn(isDragging && "opacity-40")}
+    >
+      <ElementRow
+        element={exercise}
+        number={labels.exerciseNumber(position)}
+        label={label}
+        parents={parents}
+        handle={
+          editable && (
+            <OutlineHandle
+              label={label}
+              sortable={{
+                setActivatorNodeRef,
+                attributes,
+                listeners,
+                isDragging,
+              }}
+            />
+          )
+        }
+        isFirst={position === 1 && lessonIndex === 0}
+        isLast={
+          position === lesson.exercises.length &&
+          lessonIndex === lessons.length - 1
+        }
         canGoFurther
       />
     </li>
   )
 }
 
-/** La poignée d'un chapitre ou d'une leçon, au début de sa ligne : à la souris ou au clavier. */
+/** La flèche d'une leçon qui a des exercices : les replie ou les déplie. */
+function FoldButton({
+  open,
+  controls,
+  label,
+  onClick,
+}: {
+  open: boolean
+  controls: string
+  label: string
+  onClick: () => void
+}) {
+  const Icon = open ? ChevronDown : ChevronRight
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-expanded={open}
+            aria-controls={controls}
+            aria-label={label}
+            onClick={onClick}
+            // Dépliée n'est pas « enfoncée » (style d'un menu ouvert) : seulement le survol.
+            className="shrink-0 text-muted-foreground aria-expanded:bg-transparent aria-expanded:text-muted-foreground aria-expanded:hover:bg-muted"
+          />
+        }
+      >
+        <Icon aria-hidden />
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+/** La poignée d'un élément du plan, au début de sa ligne : à la souris ou au clavier. */
 function OutlineHandle({
   label,
   sortable: { setActivatorNodeRef, attributes, listeners, isDragging },
@@ -1182,20 +1466,23 @@ function OutlineHandle({
   )
 }
 
-// L'arbre affiché, pour « Monter » et « Descendre » d'une leçon (qui peut changer de chapitre).
+// L'arbre affiché, pour « Monter » et « Descendre » d'une leçon (qui peut changer de chapitre) ou
+// d'un exercice (de leçon).
 const TreeContext = createContext<MethodTree | null>(null)
 
 /**
- * Une ligne du plan : la poignée, le numéro et le titre (un clic ouvre son éditeur), puis en
- * petites icônes ce qu'il faut savoir (gratuite, quelqu'un l'écrit, à corriger) et son état dans
- * l'app en pastille ; le menu ⋯ porte « Montrer dans l'app », « Leçon gratuite » et les gestes.
+ * Une ligne du plan : la poignée, la flèche d'une leçon qui a des exercices, le numéro et le titre
+ * (un clic ouvre son éditeur), puis en petites icônes ce qu'il faut savoir (gratuite, quelqu'un
+ * l'écrit, à corriger) et son état dans l'app en pastille ; le menu ⋯ porte « Montrer dans
+ * l'app », « Leçon gratuite », « Nouvel exercice » et les gestes.
  */
 function ElementRow({
   element,
   number,
   label,
-  chapterInApp,
+  parents,
   handle,
+  fold,
   isFirst,
   isLast,
   canGoFurther,
@@ -1203,9 +1490,12 @@ function ElementRow({
   element: OutlineElement
   number: string
   label: string
-  chapterInApp: boolean
+  // « Montrer dans l'app » de son chapitre et de sa leçon.
+  parents: ParentsInApp
   // La poignée du glisser-déposer (rien en lecture seule).
   handle: ReactNode
+  // Une leçon qui a des exercices : la flèche qui les replie.
+  fold?: ReactNode
   isFirst: boolean
   isLast: boolean
   canGoFurther: boolean
@@ -1219,11 +1509,12 @@ function ElementRow({
     setFlags,
     shift,
     confirm,
+    newExercise,
   } = useRow()
   const pending = pendingFlags.get(element.id)
   const inApp = pending?.in_app ?? element.inApp
   const isFree = pending?.is_free ?? element.isFree
-  const state = elementState({ ...element, inApp }, chapterInApp, live, preview)
+  const state = elementState({ ...element, inApp }, parents, live, preview)
   const row = preview?.get(element.id)
   const path = contentEditorPath(element.kind, element.id)
   const editing =
@@ -1242,6 +1533,7 @@ function ElementRow({
       )}
     >
       {handle}
+      {fold}
       {path ? (
         <Link to={path} data-outline-title className={rowLink}>
           <RowText number={number} title={title} kind={element.kind} />
@@ -1281,6 +1573,11 @@ function ElementRow({
         onFlags={(flags) => setFlags(element, flags)}
         onShift={(offset) => shift(element, offset)}
         onConfirm={(action) => confirm({ action, element, label })}
+        onNewExercise={
+          editable && element.kind === "lesson"
+            ? () => newExercise(element as OutlineLesson, label)
+            : undefined
+        }
       />
     </div>
   )
@@ -1366,6 +1663,7 @@ function ElementMenu({
   onFlags,
   onShift,
   onConfirm,
+  onNewExercise,
 }: {
   element: OutlineElement
   label: string
@@ -1379,6 +1677,8 @@ function ElementMenu({
   onFlags: (flags: ElementFlags) => void
   onShift: (offset: -1 | 1) => void
   onConfirm: (action: "unpublish" | "trash") => void
+  // Une leçon, quand on tient la main sur la méthode : « Nouvel exercice ».
+  onNewExercise?: () => void
 }): ReactNode {
   const navigate = useNavigate()
   return (
@@ -1424,6 +1724,15 @@ function ElementMenu({
             <LockOpen />
             {labels.isFree}
           </DropdownMenuCheckboxItem>
+        )}
+        {onNewExercise && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onNewExercise} data-new-exercise>
+              <Plus />
+              {labels.newExercise}
+            </DropdownMenuItem>
+          </>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={!canMoveUp} onClick={() => onShift(-1)}>

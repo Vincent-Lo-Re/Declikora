@@ -17,6 +17,8 @@ type AppLesson = {
   isFree: boolean
   level: { name: string } | null
   locked: boolean
+  // Le nombre de ses exercices en ligne (le plan ne les liste pas).
+  exerciseCount: number
 }
 
 /** Une méthode en ligne, telle que l'app la reçoit (null si elle ne l'est pas). */

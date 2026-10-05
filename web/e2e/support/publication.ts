@@ -29,8 +29,12 @@ type AppContent = {
   id: string
   versionId: string
   kind: string
-  // La méthode d'un chapitre ou d'une leçon en ligne (étape 7b), sinon null.
+  // La méthode d'un chapitre, d'une leçon ou d'un exercice en ligne (étape 7b), sinon null.
   methodId?: string | null
+  // La leçon d'un exercice en ligne, sinon null.
+  lessonId?: string | null
+  // Une leçon : ses exercices en ligne, dans l'ordre (null pour les autres sortes).
+  exercises?: { id: string; title: string; locked: boolean }[] | null
   isFree?: boolean
   title: string
   slug: string | null

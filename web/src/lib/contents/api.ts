@@ -138,7 +138,14 @@ export const contentKeys = {
 // ---------------------------------------------------------------------------------------------
 
 export type ContentKind =
-  "article" | "episode" | "method" | "chapter" | "lesson" | "page" | "template"
+  | "article"
+  | "episode"
+  | "method"
+  | "chapter"
+  | "lesson"
+  | "exercise"
+  | "page"
+  | "template"
 
 export type ContentListItem = {
   id: string

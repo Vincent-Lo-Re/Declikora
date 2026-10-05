@@ -16,7 +16,8 @@ import { supabase } from "@/lib/supabase"
 export type TemplateSort = "style" | "shared" | "starter"
 
 /** La section d'un point de départ : la sorte de contenu qu'il sert à créer ([D42]). */
-export type TemplateFor = "article" | "episode" | "chapter" | "lesson" | "page"
+export type TemplateFor =
+  "article" | "episode" | "chapter" | "lesson" | "exercise" | "page"
 
 /** Dans l'ordre de la page Modèles et du choix de la sorte. */
 export const templateSorts: readonly TemplateSort[] = [
@@ -31,6 +32,7 @@ export const templateSections: readonly TemplateFor[] = [
   "episode",
   "chapter",
   "lesson",
+  "exercise",
   "page",
 ]
 

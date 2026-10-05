@@ -12,10 +12,10 @@ import type { TemplateSort } from "@/lib/contents/templates"
 
 export type ContentProfile = {
   // Ce que montre son éditeur, dans la mise en page du Fil : des blocs, ou le plan d'une méthode
-  // (ses chapitres et ses leçons, sans blocs, [D4]).
+  // (ses chapitres, ses leçons et leurs exercices, sans blocs, [D4]).
   layout: "feed" | "method"
-  // Qui la publie : elle-même, sa méthode (un chapitre, une leçon, [D29]), ou personne (un
-  // modèle de bloc).
+  // Qui la publie : elle-même, sa méthode (un chapitre, une leçon, un exercice, [D29]), ou
+  // personne (un modèle de bloc).
   publication: "own" | "method" | null
   // Le titre est exigé pour publier ([D49]).
   titleRequired: boolean
@@ -64,8 +64,11 @@ export type PublishedKind = Extract<
   "article" | "episode" | "page" | "method"
 >
 
-/** Un chapitre ou une leçon : publié avec sa méthode ([D29]), au niveau d'accès de la méthode. */
-export type ElementKind = Extract<FeedKind, "chapter" | "lesson">
+/**
+ * Un chapitre, une leçon ou un exercice : publié avec sa méthode ([D29]), au niveau d'accès de la
+ * méthode (un exercice : celui de sa leçon).
+ */
+export type ElementKind = Extract<FeedKind, "chapter" | "lesson" | "exercise">
 
 /**
  * Celles qui ont un niveau d'accès (le leur, ou celui de leur méthode) : la Lecture peut les
@@ -78,7 +81,7 @@ export function isListedKind(kind: ContentKind): kind is ListedKind {
   return contentProfile(kind).cover === "required"
 }
 
-/** Vrai pour un chapitre ou une leçon. */
+/** Vrai pour un chapitre, une leçon ou un exercice. */
 export function isElementKind(kind: ContentKind): kind is ElementKind {
   return contentProfile(kind).publication === "method"
 }
@@ -121,6 +124,7 @@ export function contentProfile(
       }
     case "chapter":
     case "lesson":
+    case "exercise":
       return {
         ...base,
         publication: "method",
