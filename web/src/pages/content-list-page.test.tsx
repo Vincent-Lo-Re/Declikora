@@ -286,6 +286,70 @@ describe("Blog", () => {
     ).toBeVisible()
   })
 
+  it("la recherche et les filtres sont dans l'adresse ; les changer ne fait pas d'étape au retour (QCM du 05/10/2026)", async () => {
+    vi.mocked(api.listContents).mockResolvedValue(articles)
+    const { router } = renderApp("/blog?recherche=travail&etat=brouillon")
+    await waitFor(() => expect(shownTitles()).toEqual(["Le stress au travail"]))
+    expect(
+      screen.getByRole("searchbox", { name: labels.kinds.article.search })
+    ).toHaveValue("travail")
+    expect(
+      screen.getByRole("combobox", { name: labels.filters.state })
+    ).toHaveTextContent(labels.filters.states.draft)
+
+    await pick(labels.filters.category, "Stress")
+    expect(router.state.historyAction).toBe("REPLACE")
+    expect(
+      new URLSearchParams(router.state.location.search).get("categorie")
+    ).toBe(STRESS)
+    fireEvent.click(screen.getByRole("button", { name: labels.filters.reset }))
+    await waitFor(() => expect(router.state.location.search).toBe(""))
+  })
+
+  it("en revenant d'un éditeur, la liste retrouve sa place et la ligne de l'article s'allume", async () => {
+    vi.mocked(api.listContents).mockResolvedValue(articles)
+    vi.mocked(api.getContent).mockResolvedValue(newArticle)
+    vi.mocked(api.lockTake).mockResolvedValue(lockRow({ mine: true }))
+    vi.mocked(api.lockStatus).mockResolvedValue(lockRow({ mine: true }))
+    renderApp("/blog?etat=en-ligne")
+    const link = await screen.findByRole("link", { name: "Bien dormir en été" })
+    window.scrollTo(0, 420)
+    fireEvent.scroll(window)
+
+    fireEvent.click(link)
+    // Un éditeur ouvert en avançant commence en haut.
+    expect(
+      await screen.findByLabelText(texts.editor.title.label)
+    ).toBeInTheDocument()
+    expect(window.scrollY).toBe(0)
+
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: texts.editor.back(texts.sections.blog.title),
+      })
+    )
+    await waitFor(() => expect(shownTitles()).toEqual(["Bien dormir en été"]))
+    // Le filtre est gardé, la place retrouvée, et la ligne s'allume.
+    expect(window.scrollY).toBe(420)
+    await waitFor(() =>
+      expect(
+        document.querySelector(`[data-content-row="${ARTICLE}"]`)
+      ).toHaveAttribute("data-returned")
+    )
+  })
+
+  it("une liste ouverte depuis le menu commence en haut", async () => {
+    vi.mocked(api.listContents).mockResolvedValue(articles)
+    renderApp("/blog")
+    await screen.findByRole("link", { name: "Bien dormir en été" })
+    window.scrollTo(0, 300)
+    fireEvent.scroll(window)
+    fireEvent.click(
+      screen.getByRole("link", { name: texts.sections.podcasts.title })
+    )
+    await waitFor(() => expect(window.scrollY).toBe(0))
+  })
+
   it("« Nouvel article » : une fenêtre (titre, point de départ, catégories), puis l'éditeur", async () => {
     vi.mocked(api.listContents).mockResolvedValue([])
     vi.mocked(templatesApi.listStarters).mockResolvedValue([

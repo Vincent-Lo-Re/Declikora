@@ -178,6 +178,27 @@ describe("Médiathèque", () => {
     )
   })
 
+  it("le type, la recherche et « Non utilisés » sont dans l'adresse (QCM du 05/10/2026)", async () => {
+    const { router } = renderApp("/mediatheque?type=audio&recherche=pluie")
+    await waitFor(() =>
+      expect(api.listMedia).toHaveBeenLastCalledWith({
+        kind: "audio",
+        search: "pluie",
+        unused: false,
+      })
+    )
+    expect(screen.getByLabelText(texts.media.search)).toHaveValue("pluie")
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.media.filters.unused })
+    )
+    await waitFor(() =>
+      expect(router.state.location.search).toBe(
+        "?type=audio&recherche=pluie&non-utilises=oui"
+      )
+    )
+    expect(router.state.historyAction).toBe("REPLACE")
+  })
+
   it("« Non utilisés » : filtre dans la base, et pastille d'utilisation sur chaque fichier", async () => {
     vi.mocked(api.listMedia).mockResolvedValue([
       { ...photo, media_in_use: true },

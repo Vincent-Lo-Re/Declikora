@@ -198,6 +198,11 @@ import type { Media } from "@/lib/media/constants"
 import { mediaKeys } from "@/lib/media/api"
 import { formatDuration } from "@/lib/media/format"
 import {
+  rememberOpened,
+  RETURN_STATE,
+  returnAddress,
+} from "@/lib/scroll-memory"
+import {
   contentEditorPath,
   editorPath,
   sections,
@@ -355,7 +360,10 @@ function BackLink({
   // Vers la méthode, les réglages du téléphone restent (Lecture comprise) ; pas vers une liste.
   const to = method
     ? editorLink(editorPath("methods", method.id))
-    : sections[section].path
+    : returnAddress(sections[section].path)
+  // Vers la liste : elle retrouve ses réglages et sa place, et la ligne de ce contenu s'allume
+  // un instant.
+  const state = method ? undefined : RETURN_STATE
   const label = method
     ? texts.methods.element.back(title)
     : texts.editor.back(title)
@@ -366,6 +374,7 @@ function BackLink({
           render={
             <Link
               to={to}
+              state={state}
               aria-label={label}
               className="flex h-full w-12 shrink-0 items-center justify-center border-r text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset [&_svg]:size-4"
             />
@@ -380,6 +389,7 @@ function BackLink({
   return (
     <Link
       to={to}
+      state={state}
       aria-label={label}
       className={buttonVariants({ variant: "ghost", size: "sm" })}
     >
@@ -415,6 +425,8 @@ function ContentEditor({
   const contentId = initial.id
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
+  // Au retour à sa liste, la ligne de ce contenu s'allume un instant (lib/scroll-memory.ts).
+  useEffect(() => rememberOpened(contentId), [contentId])
   // Un modèle : le même éditeur, sans publication ni réglages d'accès (ADMIN § 5) ; son nom et sa
   // liste sont les siens.
   const isTemplate = kind === "template"
@@ -1589,7 +1601,8 @@ function ContentEditor({
       pub={pub}
       leave={
         <Link
-          to={sections[section].path}
+          to={returnAddress(sections[section].path)}
+          state={RETURN_STATE}
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
           {texts.publication.banner.leave}

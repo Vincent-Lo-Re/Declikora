@@ -51,6 +51,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useAddressState } from "@/hooks/use-address-state"
+import { trashFilterFromAddress, writeTrashFilter } from "@/lib/address"
 import { ContentError, contentKeys } from "@/lib/contents/api"
 import { formatDateTime } from "@/lib/dates"
 import {
@@ -71,7 +73,6 @@ import {
   trashTitle,
   trashTypeLabel,
   type TrashEntry,
-  type TrashFilter,
 } from "@/lib/trash"
 import { texts } from "@/texts"
 
@@ -93,7 +94,11 @@ export function TrashPage() {
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
   const navigate = useNavigate()
-  const [filter, setFilter] = useState<TrashFilter>("all")
+  // Gardé dans l'adresse : on retrouve le filtre en revenant à la Corbeille.
+  const [filter, setFilter] = useAddressState(
+    trashFilterFromAddress,
+    writeTrashFilter
+  )
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
 

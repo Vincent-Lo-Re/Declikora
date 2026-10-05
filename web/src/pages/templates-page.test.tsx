@@ -168,6 +168,21 @@ describe("section Modèles", () => {
     ).toBeNull()
   })
 
+  it("l'onglet est dans l'adresse (QCM du 05/10/2026)", async () => {
+    const sorts = texts.templates.sorts
+    const { router } = renderApp("/modeles?onglet=points-de-depart")
+    expect(
+      await screen.findByRole("tab", {
+        name: sorts.starter.tab,
+        selected: true,
+      })
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("tab", { name: sorts.shared.tab }))
+    await waitFor(() =>
+      expect(router.state.location.search).toBe("?onglet=partages")
+    )
+  })
+
   it("« Nouveau modèle » : nom et sorte, puis l'éditeur du modèle s'ouvre", async () => {
     vi.mocked(templatesApi.createTemplate).mockResolvedValue(created)
     const { router } = renderApp("/modeles")
