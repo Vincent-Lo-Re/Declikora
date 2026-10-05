@@ -109,3 +109,13 @@ export function focusBlockSoon(id: string, attempts = 20, top = false) {
     requestAnimationFrame(() => focusBlockSoon(id, attempts - 1, top))
   }
 }
+
+/**
+ * En Lecture, un bloc choisi dans le plan monte en haut de l'écran du téléphone, sans être choisi
+ * (QCM du 04/10/2026) ; rien s'il n'est pas montré (section vide, contenu réservé).
+ */
+export function scrollToReadBlock(id: string) {
+  document
+    .querySelector<HTMLElement>(`[data-read-block="${id}"]`)
+    ?.scrollIntoView({ block: "start", behavior: "smooth" })
+}

@@ -46,12 +46,14 @@ export async function editorsClosed(): Promise<boolean> {
  * Le verrou d'un brouillon, pendant que l'éditeur est ouvert (voir lib/editor/edit-lock.ts).
  * editorSession identifie cette ouverture de l'éditeur (la même que pour save_draft).
  * beforeRelease est appelé avant de relâcher le verrou (onglet caché 30 minutes, fermeture de
- * l'éditeur) : c'est là qu'on termine l'enregistrement en attente.
+ * l'éditeur, passage en Lecture) : c'est là qu'on termine l'enregistrement en attente.
+ * writing : faux en Lecture, où l'on suit le verrou sans le prendre (QCM du 04/10/2026).
  */
 export function useEditLock(
   contentId: string,
   editorSession: string,
   beforeRelease: () => Promise<void>,
+  writing = true,
   api?: LockApi
 ) {
   const { profile, session } = useAuth()
@@ -63,12 +65,14 @@ export function useEditLock(
         api: api ?? lockApiFor(contentId, editorSession),
         myId,
         session: editorSession,
+        writing,
       })
   )
   useEffect(() => {
     token.current = session?.access_token ?? null
     controller.setBeforeRelease(beforeRelease)
   })
+  useEffect(() => controller.setWriting(writing), [controller, writing])
   const state = useSyncExternalStore(
     controller.subscribe,
     controller.getSnapshot

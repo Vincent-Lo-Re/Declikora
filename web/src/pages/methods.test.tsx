@@ -544,8 +544,13 @@ describe("écran d'une méthode", () => {
     expect(carree).toHaveTextContent(texts.methods.preview.locked)
     const souffle = within(phone).getByText("Le souffle").parentElement!
     expect(souffle).not.toHaveTextContent(texts.methods.preview.locked)
-    // En Lecture, rien ne se clique.
-    expect(within(phone).queryByRole("link")).toBeNull()
+    // En Lecture, chaque leçon s'ouvre en Lecture, comme dans l'app (QCM du 04/10/2026).
+    expect(
+      within(phone).getByRole("link", { name: /Respiration carrée/ })
+    ).toHaveAttribute(
+      "href",
+      `/methodes/lecons/${CARREE}?mode=lecture&lecteur=sans-formule`
+    )
   })
 
   it("coche « Montrer dans l'app » et « Leçon gratuite » (menu ⋯) sous le verrou de l'élément", async () => {
@@ -1845,5 +1850,199 @@ describe("les exercices d'une leçon (04/10/2026)", () => {
       words.access.lessonFree
     )
     expect(screen.queryByLabelText(words.isFree)).toBeNull()
+  })
+})
+
+describe("la Lecture, comme dans l'app (QCM du 04/10/2026)", () => {
+  const preview = texts.editor.preview
+  const words = texts.methods.preview
+  const INSPIRER = "00000000-0000-4000-8000-0000000000e4"
+  // Personne ne tient le verrou : en Lecture, on le suit sans le prendre.
+  const free: api.LockRow = {
+    ...mine,
+    mine: false,
+    holder_id: null,
+    holder_name: null,
+    taken_at: null,
+    is_active: false,
+  }
+
+  beforeEach(() => {
+    vi.mocked(api.lockStatus).mockResolvedValue(free)
+  })
+
+  function phone(): HTMLElement {
+    return screen.getByRole("region", { name: preview.screen.ios })
+  }
+
+  it("le téléphone d'une méthode ouvre une leçon en Lecture, sans prendre la main ; sa flèche ramène à la méthode", async () => {
+    const reading = "?mode=lecture&lecteur=sans-formule"
+    const { router } = renderApp(`/methodes/${METHOD}${reading}`)
+    const souffle = await within(
+      await screen.findByRole("region", { name: preview.screen.ios })
+    ).findByRole("link", { name: /Le souffle/ })
+    expect(souffle).toHaveAttribute(
+      "href",
+      `/methodes/lecons/${SOUFFLE}${reading}`
+    )
+    // Le plan de gauche mène aussi aux éléments en Lecture.
+    expect(
+      within(await planColumn()).getByRole("link", { name: "Le souffle" })
+    ).toHaveAttribute("href", `/methodes/lecons/${SOUFFLE}${reading}`)
+
+    fireEvent.click(souffle)
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/methodes/lecons/${SOUFFLE}`)
+    )
+    expect(router.state.location.search).toBe(reading)
+    expect(
+      await within(
+        await screen.findByRole("region", { name: preview.screen.ios })
+      ).findByRole("heading", { level: 1, name: "Le souffle" })
+    ).toBeVisible()
+    expect(screen.queryByLabelText(texts.editor.title.label)).toBeNull()
+    await waitFor(() =>
+      expect(api.lockStatus).toHaveBeenCalledWith(SOUFFLE, expect.any(String))
+    )
+    expect(api.lockTake).not.toHaveBeenCalled()
+    // La flèche du téléphone : la méthode, toujours en Lecture.
+    expect(
+      await within(phone()).findByRole("link", {
+        name: preview.back("Mieux respirer"),
+      })
+    ).toHaveAttribute("href", `/methodes/${METHOD}${reading}`)
+    // « Suivant » : la leçon d'après, réservée à qui n'a pas la formule.
+    const next = within(phone()).getByRole("navigation", { name: words.next })
+    expect(within(next).getByRole("link")).toHaveAttribute(
+      "href",
+      `/methodes/lecons/${CARREE}${reading}`
+    )
+    expect(next).toHaveTextContent(`Respiration carrée${words.locked}`)
+  })
+
+  it("« Édition » prend la main, « Lecture » la rend ; l'adresse suit", async () => {
+    const { router } = renderApp(`/methodes/lecons/${SOUFFLE}?mode=lecture`)
+    const tools = await screen.findByRole("toolbar", { name: preview.tools })
+    expect(await screen.findByText(preview.reading)).toBeInTheDocument()
+    await waitFor(() => expect(api.lockStatus).toHaveBeenCalled())
+    expect(api.lockTake).not.toHaveBeenCalled()
+
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.mode.edit })
+    )
+    await editable()
+    expect(api.lockTake).toHaveBeenCalledWith(
+      SOUFFLE,
+      false,
+      expect.any(String)
+    )
+    expect(router.state.location.search).toBe("")
+
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.mode.read })
+    )
+    await waitFor(() =>
+      expect(api.lockRelease).toHaveBeenCalledWith(SOUFFLE, expect.any(String))
+    )
+    expect(router.state.location.search).toBe("?mode=lecture")
+  })
+
+  it("un chapitre montre ses leçons sous son introduction, puis « Suivant »", async () => {
+    renderApp(`/methodes/chapitres/${BASES}`)
+    await editable()
+    const list = await within(phone()).findByRole("region", {
+      name: words.chapterLessons,
+    })
+    expect(
+      within(list).getByRole("link", { name: /Le souffle/ })
+    ).toHaveAttribute("href", `/methodes/lecons/${SOUFFLE}`)
+    // En Édition, ce qui est réservé l'est comme pour une personne sans la formule.
+    expect(
+      within(list).getByRole("link", { name: /Respiration carrée/ })
+    ).toHaveTextContent(words.locked)
+    const next = within(phone()).getByRole("navigation", { name: words.next })
+    expect(within(next).getByRole("link")).toHaveAttribute(
+      "href",
+      `/methodes/lecons/${SOUFFLE}`
+    )
+    expect(next).toHaveTextContent("Le souffle")
+  })
+
+  it("un exercice : la flèche ramène à sa leçon, et pas de « Suivant »", async () => {
+    vi.mocked(methodsApi.getMethodTree).mockResolvedValue([
+      chapterOf(tree[0], [
+        lessonOf(tree[0].lessons[0], [
+          element(INSPIRER, "exercise", "Inspirer", { inApp: true }),
+        ]),
+        tree[0].lessons[1],
+      ]),
+      tree[1],
+    ])
+    vi.mocked(api.getContent).mockImplementation(async (id) =>
+      id === INSPIRER
+        ? contentOf(INSPIRER, "exercise", "Inspirer", {
+            parent_id: SOUFFLE,
+            in_app: true,
+          })
+        : null
+    )
+    vi.mocked(methodsApi.getElementContext).mockResolvedValue({
+      method: methodOfElement,
+      chapter: { id: BASES, title: "Les bases" },
+      lesson: { id: SOUFFLE, title: "Le souffle", isFree: true },
+    })
+    renderApp(`/methodes/exercices/${INSPIRER}?mode=lecture`)
+    expect(
+      await screen.findByRole("link", { name: preview.back("Le souffle") })
+    ).toHaveAttribute("href", `/methodes/lecons/${SOUFFLE}?mode=lecture`)
+    expect(
+      within(phone()).queryByRole("navigation", { name: words.next })
+    ).toBeNull()
+  })
+
+  it("un élément qui ne sera pas dans l'app se lit, avec un bandeau, et sans « Suivant »", async () => {
+    vi.mocked(api.getContent).mockImplementation(async (id) =>
+      id === EXPIRER
+        ? contentOf(EXPIRER, "lesson", "Expirer lentement", {
+            parent_id: LOIN,
+            in_app: true,
+          })
+        : null
+    )
+    vi.mocked(methodsApi.getElementContext).mockResolvedValue({
+      method: methodOfElement,
+      chapter: { id: LOIN, title: "Aller plus loin" },
+      lesson: null,
+    })
+    renderApp(`/methodes/lecons/${EXPIRER}?mode=lecture`)
+    expect(
+      await screen.findByText(preview.notInApp.chapter)
+    ).toBeInTheDocument()
+    expect(
+      within(phone()).queryByRole("navigation", { name: words.next })
+    ).toBeNull()
+  })
+
+  it("le plan de gauche d'une méthode, en Lecture : il ouvre, mais ne modifie rien", async () => {
+    renderApp(`/methodes/${METHOD}?mode=lecture`)
+    const plan = await planColumn()
+    expect(await within(plan).findByText(outline.reading)).toBeInTheDocument()
+    const souffle = outline.lessonLabel(1, "Le souffle")
+    fireEvent.click(
+      await within(plan).findByRole("button", {
+        name: outline.actions(souffle),
+      })
+    )
+    expect(
+      await screen.findByRole("menuitemcheckbox", {
+        name: outline.inAppFor(souffle),
+      })
+    ).toHaveAttribute("aria-disabled", "true")
+    expect(
+      screen.getByRole("menuitem", { name: outline.trash })
+    ).toHaveAttribute("aria-disabled", "true")
+    expect(
+      screen.getByRole("menuitem", { name: outline.open })
+    ).not.toHaveAttribute("aria-disabled")
   })
 })

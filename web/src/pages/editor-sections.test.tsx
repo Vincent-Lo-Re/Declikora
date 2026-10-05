@@ -541,7 +541,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         { access_level_id: LEVEL, category_ids: [SOMMEIL] }
       )
     )
-    renderApp(`/blog/${ARTICLE}`)
+    const { router } = renderApp(`/blog/${ARTICLE}`)
     await editable()
     const tools = screen.getByRole("toolbar", { name: preview.tools })
     expect(
@@ -586,17 +586,43 @@ describe("éditeur d'un article (Le Fil)", () => {
     expect(android).toHaveAttribute("data-blocks-theme", "dark")
     expect(android).toHaveAttribute("data-large-text")
 
-    // Un bloc choisi dans le plan ramène en Édition.
+    // Les réglages du téléphone sont gardés dans l'adresse (QCM du 04/10/2026).
+    const search = () =>
+      [...new URLSearchParams(router.state.location.search)]
+        .map(([name, value]) => `${name}=${value}`)
+        .sort()
+        .join("&")
+    expect(search()).toBe(
+      "lecteur=sans-formule&mode=lecture&telephone=android&texte=grand&theme=sombre"
+    )
+
+    // Un bloc choisi dans le plan : on reste en Lecture, le téléphone défile jusqu'à lui.
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.reader.subscriber })
+    )
+    const scroll = vi.mocked(Element.prototype.scrollIntoView)
+    scroll.mockClear()
     fireEvent.click(
       within(screen.getByRole("navigation", { name: outline.title })).getByRole(
         "button",
         { name: /^Aller à Texte/ }
       )
     )
+    expect(scroll).toHaveBeenCalledWith({ block: "start", behavior: "smooth" })
+    expect(scroll.mock.contexts[0]).toBe(
+      android.querySelector(`[data-read-block="${TEXT}"]`)
+    )
+    expect(screen.queryByLabelText(texts.editor.title.label)).toBeNull()
+
+    // « Édition » : on écrit de nouveau, l'adresse garde le reste.
+    fireEvent.click(
+      within(tools).getByRole("button", { name: preview.mode.edit })
+    )
     expect(await screen.findByLabelText(texts.editor.title.label)).toBeVisible()
     expect(
       within(tools).queryByRole("button", { name: preview.reader.visitor })
     ).toBeNull()
+    expect(search()).toBe("telephone=android&texte=grand&theme=sombre")
   })
 
   it("le plan montre le contenu : l'intertitre qui ouvre un texte (sans les suivants), le fichier d'une image, le bloc partagé", async () => {

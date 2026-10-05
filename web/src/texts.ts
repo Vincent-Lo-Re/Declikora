@@ -1035,6 +1035,8 @@ export const texts = {
         "Les chapitres, leurs leçons et leurs exercices, dans l'ordre de l'app. Range-les par leur poignée : rien ne change dans l'app avant la publication de la méthode.",
       readOnly:
         "Lecture seule : prends la main sur la méthode pour ranger le plan et y ajouter des chapitres, des leçons ou des exercices.",
+      reading:
+        "En Lecture : passe en Édition pour ranger le plan et y ajouter des chapitres, des leçons ou des exercices.",
       label: "Chapitres et leçons",
       // « 2 chapitres · 5 leçons » : en tête du plan, sous le titre dans le téléphone ; les
       // exercices s'ajoutent s'il y en a (« · 3 exercices »).
@@ -1298,6 +1300,12 @@ export const texts = {
       lessonExercises: "Exercices",
       lessonExercisesEmpty:
         "Aucun exercice montré dans l'app pour l'instant. Ajoute-en depuis le plan de la méthode (menu ⋯ de la leçon).",
+      // Sous l'introduction d'un chapitre, comme dans l'app : ses leçons montrées.
+      chapterLessons: "Leçons",
+      chapterLessonsEmpty:
+        "Aucune leçon montrée dans l'app pour l'instant. Ajoute-en depuis le plan de la méthode (menu ⋯ du chapitre).",
+      // En bas d'un chapitre ou d'une leçon : l'écran d'après dans l'ordre du plan.
+      next: "Suivant",
     },
     // Avant de publier ou de programmer une méthode : la liste de ce qui va changer ([D29]).
     changes: {
@@ -1934,6 +1942,18 @@ export const texts = {
         },
         action: "Voir les formules",
       },
+      // En Lecture, la flèche de la barre de l'app mène à l'écran du dessus (QCM du 04/10/2026).
+      back: (title: string) => `Retour à « ${title} »`,
+      // En Lecture, au-dessus du téléphone : un chapitre, une leçon ou un exercice qui ne sera pas
+      // dans l'app à la prochaine publication de la méthode.
+      notInApp: {
+        self: "Pas dans l'app : seuls les membres le voient.",
+        chapter:
+          "Son chapitre n'est pas dans l'app : seuls les membres le voient.",
+        lesson: "Sa leçon n'est pas dans l'app : seuls les membres le voient.",
+      },
+      // En Lecture, on ne prend pas la main : rien ne se modifie.
+      reading: "En Lecture : passe en Édition pour modifier.",
     },
     // Les Blocs de l'éditeur du Fil (en glissière par-dessus le Plan), et le panneau « Mes blocs ».
     library: {

@@ -18,11 +18,14 @@ import {
   moveLesson,
   moveOnDropOutline,
   moveOverOutline,
+  nextScreen,
+  notInAppReason,
   parentsInApp,
   parseLiveOutline,
   previewByElement,
   previewProblems,
   sameOrder,
+  screenReserved,
   shiftInTree,
   shownProblem,
   targetChapter,
@@ -645,5 +648,88 @@ describe("la liste « Ce qui va changer dans l'app » (QCM du 04/10/2026)", () =
     // La méthode entre dans l'app sans titre : rien à lister sous le résumé.
     const view = changesView([line("M", "method", "new", "titre_manquant")])
     expect(view.kind === "entry" && view.problems).toEqual([])
+  })
+})
+
+describe("la Lecture, comme dans l'app (QCM du 04/10/2026)", () => {
+  // Montrés : c1 (l1 gratuite avec l'exercice e1, l2 cachée avec e2, l3), c2 caché (l4), c3 (l5).
+  const shown = { inApp: true }
+  const plan: MethodTree = [
+    {
+      ...element("c1", "chapter", shown),
+      kind: "chapter",
+      lessons: [
+        {
+          ...lesson("l1", [], { inApp: true, isFree: true }),
+          exercises: [element("e1", "exercise", shown)],
+        },
+        { ...lesson("l2"), exercises: [element("e2", "exercise", shown)] },
+        lesson("l3", [], shown),
+      ],
+    },
+    {
+      ...element("c2", "chapter"),
+      kind: "chapter",
+      lessons: [lesson("l4", [], shown)],
+    },
+    {
+      ...element("c3", "chapter", shown),
+      kind: "chapter",
+      lessons: [lesson("l5", [], shown)],
+    },
+  ]
+
+  it("« Suivant » : la première leçon d'un chapitre, la leçon d'après, l'introduction du chapitre suivant", () => {
+    const next = (id: string) => {
+      const screen = nextScreen(plan, id)
+      return screen && [screen.kind, screen.element.id]
+    }
+    expect(next("c1")).toEqual(["lesson", "l1"])
+    // l2 n'est pas montrée : on passe à l3.
+    expect(next("l1")).toEqual(["lesson", "l3"])
+    // c2 n'est pas montré : on passe à c3, deuxième chapitre de l'app.
+    expect(nextScreen(plan, "l3")).toMatchObject({
+      kind: "chapter",
+      number: 2,
+      element: { id: "c3" },
+    })
+    expect(next("c3")).toEqual(["lesson", "l5"])
+    // Le dernier écran, un exercice et un élément caché n'ont pas de suite.
+    expect(next("l5")).toBeNull()
+    expect(next("e1")).toBeNull()
+    expect(next("l2")).toBeNull()
+    expect(next("l4")).toBeNull()
+  })
+
+  it("réservé dans une méthode réservée : une leçon pas gratuite, un chapitre sans leçon gratuite montrée ([D43])", () => {
+    const screen = (id: string) => {
+      const found = nextScreen(plan, id)
+      if (!found) throw new Error(id)
+      return found
+    }
+    // Après c1 : l1, gratuite.
+    expect(screenReserved(screen("c1"), true)).toBe(false)
+    expect(screenReserved(screen("l1"), true)).toBe(true)
+    // c3 n'a pas de leçon gratuite ; c1 en a une.
+    expect(screenReserved(screen("l3"), true)).toBe(true)
+    expect(
+      screenReserved({ kind: "chapter", element: plan[0], number: 1 }, true)
+    ).toBe(false)
+    // Une méthode gratuite : rien n'est réservé.
+    expect(screenReserved(screen("l1"), false)).toBe(false)
+  })
+
+  it("pas dans l'app : sa case, celle de son chapitre ou celle de sa leçon", () => {
+    const place = (id: string) => {
+      const found = findInTree(plan, id)
+      if (!found) throw new Error(id)
+      return found
+    }
+    expect(notInAppReason(place("l1"), true)).toBeNull()
+    expect(notInAppReason(place("l1"), false)).toBe("self")
+    expect(notInAppReason(place("l4"), true)).toBe("chapter")
+    expect(notInAppReason(place("c2"), false)).toBe("self")
+    // Un exercice coché d'une leçon cachée.
+    expect(notInAppReason(place("e2"), true)).toBe("lesson")
   })
 })

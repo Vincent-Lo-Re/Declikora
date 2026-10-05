@@ -1,7 +1,8 @@
 // Verrou « un seul membre à la fois sur un brouillon », sans React
 // (docs/ARCHITECTURE-CONTENUS.md, § 1.10 et § 3.3). La base tranche toujours ; ici, on suit
 // son état pour l'afficher :
-// - on prend le verrou en ouvrant l'éditeur (lock_take) ;
+// - on prend le verrou en ouvrant l'éditeur (lock_take), sauf en Lecture : on suit alors le
+//   verrou sans le prendre, et on le prend en passant en Édition (QCM du 04/10/2026) ;
 // - signe de vie toutes les 20 s, et aussitôt qu'on revient sur l'onglet ;
 // - un onglet caché plus de 30 minutes relâche le verrou ; au retour, on tente de le reprendre ;
 // - Realtime (edit_locks) montre aussitôt qui écrit et chaque enregistrement ; sans Realtime,
@@ -76,6 +77,8 @@ type LockEvent =
     }
   | { type: "lost" }
   | { type: "released" }
+  // On rend la main pour lire (Lecture) : ce n'est pas une main perdue.
+  | { type: "left" }
   | { type: "error"; error: ContentError }
 
 /** La machine d'états du verrou : ce que devient l'état après chaque événement. */
@@ -177,6 +180,14 @@ export function lockReducer(state: LockState, event: LockEvent): LockState {
       }
     case "released":
       return { ...state, phase: "released", holderId: null, holderName: null }
+    case "left":
+      return {
+        ...state,
+        phase: "free",
+        holderId: null,
+        holderName: null,
+        mineSince: null,
+      }
     case "error":
       return { ...state, phase: "error", error: event.error }
   }
@@ -199,6 +210,8 @@ type EditLockOptions = {
   myId: string
   // L'ouverture de l'éditeur (la même que celle passée à l'api).
   session: string
+  // Faux en Lecture : on suit le verrou sans le prendre (true par défaut).
+  writing?: boolean
   // Appelé avant de relâcher le verrou (onglet caché 30 minutes) : finir l'enregistrement.
   beforeRelease?: () => Promise<void>
   heartbeatMs?: number
@@ -224,6 +237,12 @@ export class EditLockController {
   private unsubscribe: (() => void) | null = null
   private channel: ChannelState | null = null
   private stopped = false
+  private running = false
+  // Édition : on veut la main ; Lecture : on la laisse aux autres.
+  private writing: boolean
+  // La main est en train d'être rendue (passage en Lecture) : revenu en Édition entre-temps, on
+  // la reprend une fois la relâche finie, pas avant (elle effacerait la nouvelle prise).
+  private leaving = false
   // Prise de main en cours, et nombre de prises lancées. Une relecture (lock_status) lancée
   // pendant une prise peut lire l'état d'AVANT la prise : elle attend la fin de la prise, et
   // sa réponse est ignorée si une prise a été lancée entre-temps (celle-ci est plus récente).
@@ -234,6 +253,7 @@ export class EditLockController {
     this.api = options.api
     this.myId = options.myId
     this.session = options.session
+    this.writing = options.writing ?? true
     this.beforeRelease = options.beforeRelease
     this.heartbeatMs = options.heartbeatMs ?? HEARTBEAT_MS
     this.pollMs = options.pollMs ?? POLL_MS
@@ -275,6 +295,7 @@ export class EditLockController {
    */
   start(after?: Promise<void>) {
     this.stopped = false
+    this.running = true
     this.unsubscribe = this.api.subscribe(
       (change) =>
         this.dispatch({
@@ -295,7 +316,63 @@ export class EditLockController {
     this.pollTimer = setInterval(() => {
       if (this.channel !== "SUBSCRIBED") void this.refresh()
     }, this.pollMs)
-    void this.take(false, after)
+    if (this.writing) void this.take(false, after)
+    else void this.watch(after)
+  }
+
+  /** Lecture : relit l'état du verrou sans le prendre (après la fermeture d'avant). */
+  private async watch(after?: Promise<void>) {
+    if (after) await after.catch(() => undefined)
+    if (!this.stopped) await this.refresh()
+  }
+
+  /**
+   * Édition (vrai) : prend la main si personne n'écrit. Lecture (faux) : rend la main une fois
+   * l'enregistrement fini, puis suit le verrou sans le prendre.
+   */
+  setWriting(writing: boolean) {
+    if (writing === this.writing) return
+    this.writing = writing
+    if (!this.running) return
+    if (!writing) {
+      void this.leave()
+    } else if (
+      this.current.phase !== "mine" &&
+      this.current.phase !== "error" &&
+      !this.taking &&
+      !this.leaving
+    ) {
+      void this.take(false)
+    }
+  }
+
+  private async leave() {
+    while (this.taking) await this.taking
+    if (this.writing || this.stopped) return
+    if (this.current.phase !== "mine") {
+      await this.refresh()
+      return
+    }
+    try {
+      await this.beforeRelease?.()
+    } catch {
+      // Ce qui n'est pas enregistré reste à l'écran.
+    }
+    if (this.writing || this.stopped || this.current.phase !== "mine") return
+    // Rendue avant la réponse : la relâche vue par Realtime n'est pas une main perdue.
+    this.dispatch({ type: "left" })
+    this.leaving = true
+    try {
+      await this.api.release()
+    } catch {
+      // Le verrou expirera de lui-même au bout de 90 s.
+    } finally {
+      this.leaving = false
+    }
+    if (this.stopped) return
+    // Revenu en Édition pendant la relâche : on reprend la main.
+    if (this.writing) void this.take(false)
+    else void this.refresh()
   }
 
   /** Prend la main ; force : « Reprendre la main » (après confirmation). */
@@ -372,7 +449,7 @@ export class EditLockController {
       clearTimeout(this.hiddenTimer)
       this.hiddenTimer = null
     }
-    if (this.current.phase === "released") {
+    if (this.current.phase === "released" && this.writing) {
       void this.take(false)
     } else if (this.current.phase === "mine") {
       void this.beat()
@@ -413,6 +490,7 @@ export class EditLockController {
   async stop(): Promise<void> {
     const wasMine = this.current.phase === "mine"
     this.stopped = true
+    this.running = false
     this.unsubscribe?.()
     this.unsubscribe = null
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)

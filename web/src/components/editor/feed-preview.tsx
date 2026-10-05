@@ -28,6 +28,7 @@ import {
   type ReactNode,
   type SVGProps,
 } from "react"
+import { Link } from "react-router"
 
 import type { BlockMedia } from "@/blocks/components/context"
 import { StaticBlock } from "@/blocks/components/static-block"
@@ -372,14 +373,44 @@ function ToolGroup<T extends string>({
   )
 }
 
-/** En Lecture : la barre du haut de l'app (provisoire), sans action. */
-export function ReadAppBar({ section }: { section: string }) {
+/**
+ * En Lecture : la barre du haut de l'app (provisoire). Sa flèche mène à l'écran du dessus, comme
+ * dans l'app (QCM du 04/10/2026) ; sans écran du dessus (méthode, article, page), elle ne fait
+ * rien. Le reste n'a pas d'action.
+ */
+export function ReadAppBar({
+  section,
+  back,
+}: {
+  section: string
+  // L'écran du dessus : son adresse et son titre.
+  back: { to: string; title: string } | null
+}) {
   return (
-    <div aria-hidden className="blocks-appbar">
-      <ChevronLeft />
-      <span className="flex-1">{section}</span>
-      <Bookmark />
-      <Share />
+    <div className="blocks-appbar">
+      {back ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Link
+                to={back.to}
+                aria-label={labels.back(back.title)}
+                className="blocks-appbar-back"
+              />
+            }
+          >
+            <ChevronLeft aria-hidden />
+          </TooltipTrigger>
+          <TooltipContent>{labels.back(back.title)}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <ChevronLeft aria-hidden />
+      )}
+      <span aria-hidden className="flex-1">
+        {section}
+      </span>
+      <Bookmark aria-hidden />
+      <Share aria-hidden />
     </div>
   )
 }
@@ -416,7 +447,8 @@ export function ReadView({
   resolve: (block: Block) => Block | null
   // À la place des blocs : le plan d'une méthode.
   children?: ReactNode
-  // Sous les blocs, même verrouillés : les exercices d'une leçon.
+  // Sous les blocs, même verrouillés : les leçons d'un chapitre, les exercices d'une leçon, puis
+  // « Suivant ».
   after?: ReactNode
 }) {
   return (
@@ -455,7 +487,15 @@ export function ReadView({
           <div className="blocks-list">
             {draft.blocks.map((block) => {
               const shown = block.type === "linked" ? resolve(block) : block
-              return shown ? <StaticBlock key={block.id} block={shown} /> : null
+              // Chaque bloc porte son identifiant : un clic dans le plan y fait défiler.
+              return shown ? (
+                <StaticBlock
+                  key={block.id}
+                  block={shown}
+                  anchor={block.id}
+                  anchorChildren={block.type !== "linked"}
+                />
+              ) : null
             })}
           </div>
         ))

@@ -136,6 +136,7 @@ import { errorMessage } from "@/lib/errors"
 import { focusSoon } from "@/lib/focus"
 import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
 import type { OutlineElementValues } from "@/lib/schemas"
+import { useEditorLink } from "@/hooks/use-editor-link"
 import { contentEditorPath } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -304,6 +305,8 @@ type Confirmation = {
 /** Ce que chaque ligne sait faire, fourni par le plan. */
 type RowActions = {
   editable: boolean
+  // En Lecture, rien ne se modifie : le menu ⋯ ne fait qu'ouvrir.
+  reading: boolean
   myId: string
   live: ReadonlySet<string>
   preview: ReadonlyMap<string, PreviewRow> | undefined
@@ -340,6 +343,7 @@ function useRow(): RowActions {
 export function MethodOutline({
   methodId,
   editable,
+  reading,
   session,
   myId,
   live,
@@ -349,6 +353,8 @@ export function MethodOutline({
   methodId: string
   // On tient la main sur la méthode (depuis cette ouverture de l'éditeur).
   editable: boolean
+  // En Lecture : on ne prend pas la main, et le plan ne se modifie pas (QCM du 04/10/2026).
+  reading: boolean
   session: string
   myId: string
   // Le plan en ligne (null : méthode pas en ligne).
@@ -361,6 +367,7 @@ export function MethodOutline({
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
   const navigate = useNavigate()
+  const editorLink = useEditorLink()
   const tree = useQuery({
     queryKey: methodKeys.tree(methodId),
     queryFn: () => getMethodTree(methodId),
@@ -651,7 +658,8 @@ export function MethodOutline({
       focusAfterCreate.current = true
       setNewTarget(null)
       queryClient.setQueryData(contentKeys.detail(created.id), created)
-      const path = contentEditorPath(target.kind, created.id)
+      const createdPath = contentEditorPath(target.kind, created.id)
+      const path = createdPath ? editorLink(createdPath) : null
       if (open && path) {
         void navigate(path)
         return
@@ -752,6 +760,7 @@ export function MethodOutline({
 
   const row: RowActions = {
     editable,
+    reading,
     myId,
     live: liveSet,
     preview: previewMap,
@@ -814,7 +823,7 @@ export function MethodOutline({
           )}
           {!editable && (
             <p className="px-2 pb-2 text-xs text-muted-foreground">
-              {labels.readOnly}
+              {reading ? labels.reading : labels.readOnly}
             </p>
           )}
         </div>
@@ -1502,6 +1511,7 @@ function ElementRow({
 }) {
   const {
     editable,
+    reading,
     myId,
     live,
     preview,
@@ -1516,7 +1526,10 @@ function ElementRow({
   const isFree = pending?.is_free ?? element.isFree
   const state = elementState({ ...element, inApp }, parents, live, preview)
   const row = preview?.get(element.id)
-  const path = contentEditorPath(element.kind, element.id)
+  // Ouvrir l'élément garde les réglages du téléphone (en Lecture, il s'ouvre en Lecture).
+  const editorLink = useEditorLink()
+  const target = contentEditorPath(element.kind, element.id)
+  const path = target ? editorLink(target) : null
   const editing =
     element.editingId === null
       ? null
@@ -1567,6 +1580,7 @@ function ElementRow({
         inApp={inApp}
         isFree={isFree}
         flagsPending={pending !== undefined}
+        reading={reading}
         inLive={live.has(element.id)}
         canMoveUp={editable && canGoFurther && !isFirst}
         canMoveDown={editable && canGoFurther && !isLast}
@@ -1657,6 +1671,7 @@ function ElementMenu({
   inApp,
   isFree,
   flagsPending,
+  reading,
   inLive,
   canMoveUp,
   canMoveDown,
@@ -1671,6 +1686,7 @@ function ElementMenu({
   inApp: boolean
   isFree: boolean
   flagsPending: boolean
+  reading: boolean
   inLive: boolean
   canMoveUp: boolean
   canMoveDown: boolean
@@ -1707,7 +1723,7 @@ function ElementMenu({
         {/* Des réglages de l'élément, enregistrés sous son propre verrou ([D29], [D43]). */}
         <DropdownMenuCheckboxItem
           checked={inApp}
-          disabled={flagsPending}
+          disabled={flagsPending || reading}
           aria-label={labels.inAppFor(label)}
           onCheckedChange={(checked) => onFlags({ in_app: checked })}
         >
@@ -1717,7 +1733,7 @@ function ElementMenu({
         {element.kind === "lesson" && (
           <DropdownMenuCheckboxItem
             checked={isFree}
-            disabled={flagsPending}
+            disabled={flagsPending || reading}
             aria-label={labels.isFreeFor(label)}
             onCheckedChange={(checked) => onFlags({ is_free: checked })}
           >
@@ -1745,13 +1761,17 @@ function ElementMenu({
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {inLive && (
-          <DropdownMenuItem onClick={() => onConfirm("unpublish")}>
+          <DropdownMenuItem
+            disabled={reading}
+            onClick={() => onConfirm("unpublish")}
+          >
             <CircleOff />
             {labels.unpublish}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem
           variant="destructive"
+          disabled={reading}
           onClick={() => onConfirm("trash")}
           data-element-kind={element.kind}
         >

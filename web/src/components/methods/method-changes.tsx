@@ -27,6 +27,7 @@ import {
   type PreviewRow,
 } from "@/lib/contents/outline"
 import { formatDateTime } from "@/lib/dates"
+import { useEditorLink } from "@/hooks/use-editor-link"
 import { contentEditorPath } from "@/navigation"
 import { texts } from "@/texts"
 
@@ -299,8 +300,11 @@ function ChangeRow({
   compact: boolean
 }) {
   const label = rowLabel(row)
-  const path =
+  // Ouvrir l'élément garde les réglages du téléphone (en Lecture, il s'ouvre en Lecture).
+  const editorLink = useEditorLink()
+  const target =
     row.kind === "method" ? null : contentEditorPath(row.kind, row.elementId)
+  const path = target ? editorLink(target) : null
   const problem = shownProblem(row)
   return (
     <li

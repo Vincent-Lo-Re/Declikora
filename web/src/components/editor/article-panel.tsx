@@ -104,6 +104,7 @@ export function ArticlePanel({
   kind,
   draft,
   editable,
+  reading = false,
   contentId,
   settings,
   onSettingsChange,
@@ -127,6 +128,8 @@ export function ArticlePanel({
   contentId: string
   draft: Draft
   editable: boolean
+  // En Lecture : rien ne se modifie, on ne prend pas la main (QCM du 04/10/2026).
+  reading?: boolean
   settings: ContentSettings
   onSettingsChange: (next: ContentSettings) => void
   // Une page : la dernière adresse refusée par l'enregistrement (prise ou invalide).
@@ -160,7 +163,9 @@ export function ArticlePanel({
       />
       {!editable && (
         <p className="text-sm text-muted-foreground">
-          {texts.editor.settings.readOnly}
+          {reading
+            ? texts.editor.preview.reading
+            : texts.editor.settings.readOnly}
         </p>
       )}
       {listed && (

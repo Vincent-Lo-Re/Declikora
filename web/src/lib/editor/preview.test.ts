@@ -5,8 +5,11 @@ import {
   defaultPreview,
   devices,
   fullScreenScale,
+  keepPreview,
+  previewFromSearch,
   previewLocked,
   showsFullScreen,
+  withPreview,
 } from "@/lib/editor/preview"
 
 const reserved = { accessChosen: true, accessLevelId: "formule" }
@@ -62,5 +65,50 @@ describe("écran entier", () => {
     // Android : 915 + 2 × 9 = 933.
     expect(fullScreenScale("android", 700)).toBe(0.75)
     expect(fullScreenScale("ios", 100)).toBe(0.4)
+  })
+})
+
+describe("les réglages du téléphone dans l'adresse (QCM du 04/10/2026)", () => {
+  const everything = {
+    device: "android",
+    mode: "read",
+    theme: "dark",
+    largeText: true,
+    reader: "visitor",
+    fit: "full",
+  } as const
+
+  it("n'écrit que ce qui diffère du départ, en mots français", () => {
+    expect(withPreview("", defaultPreview).toString()).toBe("")
+    expect(
+      withPreview("", { ...defaultPreview, mode: "read" }).toString()
+    ).toBe("mode=lecture")
+    expect(withPreview("", everything).toString()).toBe(
+      "mode=lecture&telephone=android&theme=sombre&lecteur=sans-formule&ecran=entier&texte=grand"
+    )
+  })
+
+  it("se relit tel quel ; un mot inconnu vaut le réglage de départ", () => {
+    expect(previewFromSearch(withPreview("", everything))).toEqual(everything)
+    expect(previewFromSearch("")).toEqual(defaultPreview)
+    expect(previewFromSearch("?mode=plein&theme=sombre&texte=petit")).toEqual({
+      ...defaultPreview,
+      theme: "dark",
+    })
+  })
+
+  it("garde les autres paramètres, et retire ceux qui reviennent au départ", () => {
+    const params = withPreview("?fichier=42&mode=lecture&theme=sombre", {
+      ...defaultPreview,
+      theme: "dark",
+    })
+    expect(params.toString()).toBe("fichier=42&theme=sombre")
+  })
+
+  it("un lien d'un éditeur à l'autre garde ces réglages, et eux seuls", () => {
+    expect(keepPreview("/methodes/lecons/1", "?mode=lecture&fichier=42")).toBe(
+      "/methodes/lecons/1?mode=lecture"
+    )
+    expect(keepPreview("/methodes/1", "")).toBe("/methodes/1")
   })
 })

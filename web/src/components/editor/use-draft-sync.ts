@@ -47,13 +47,16 @@ async function copyText(draft: Draft) {
  * automatique, le verrou « un seul à la fois » (lib/editor/edit-lock.ts), la relecture quand
  * quelqu'un d'autre a écrit, la reprise de la main, et « Copier mon texte » quand la main est
  * perdue. afterSave : ce que l'éditeur relit après chaque enregistrement (listes, plans…).
+ * writing : faux en Lecture, où l'on ne prend pas la main.
  */
 export function useDraftSync({
   initial,
   afterSave,
+  writing,
 }: {
   initial: Content
   afterSave: () => void
+  writing: boolean
 }) {
   const contentId = initial.id
   const queryClient = useQueryClient()
@@ -138,7 +141,12 @@ export function useDraftSync({
     }
   )
   const saving = autosave.controller
-  const lock = useEditLock(contentId, editorSession, () => saving.flush())
+  const lock = useEditLock(
+    contentId,
+    editorSession,
+    () => saving.flush(),
+    writing
+  )
   const { notifyLost } = lock
   const phase = lock.state.phase
   const serverRev = lock.state.draftRev
