@@ -9,6 +9,7 @@ import {
   authPaths,
   categoriesPath,
   methodElementSegments,
+  type MethodElementKind,
   sections,
   type SectionKey,
 } from "@/navigation"
@@ -40,7 +41,7 @@ const sectionEditor = (
   path: `${sections[section].path}/:contentId`,
 })
 
-const methodElementEditor = (kind: "chapter" | "lesson"): EditorRoute => ({
+const methodElementEditor = (kind: MethodElementKind): EditorRoute => ({
   section: "methods",
   kind,
   path: `${sections.methods.path}/${methodElementSegments[kind]}/:contentId`,
@@ -51,9 +52,10 @@ const editorRoutes: EditorRoute[] = [
   sectionEditor("podcasts", "episode"),
   // Une méthode : sa fiche et son plan (« ← Méthodes »).
   sectionEditor("methods", "method"),
-  // Un chapitre et une leçon : l'éditeur de blocs, « ← nom de la méthode ».
+  // Un chapitre, une leçon et un exercice : l'éditeur de blocs, « ← nom de la méthode ».
   methodElementEditor("chapter"),
   methodElementEditor("lesson"),
+  methodElementEditor("exercise"),
   sectionEditor("pages", "page"),
   // L'éditeur d'un modèle : le même éditeur plein écran, « ← Modèles ».
   sectionEditor("templates", "template"),

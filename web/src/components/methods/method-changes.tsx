@@ -195,7 +195,9 @@ function ChangesList({
             aria-hidden
             className="mt-0.5 size-4 shrink-0 text-muted-foreground"
           />
-          <span>{labels.entry(view.chapters, view.lessons)}</span>
+          <span>
+            {labels.entry(view.chapters, view.lessons, view.exercises)}
+          </span>
         </p>
         {view.problems.length > 0 && (
           <ChangeRows rows={view.problems} onOpen={onOpen} compact={compact} />
@@ -319,6 +321,15 @@ function ChangeRow({
             <span className="text-muted-foreground">
               {" "}
               {labels.inChapter(row.chapterTitle)}
+            </span>
+          )}
+          {row.kind === "exercise" && row.lessonTitle && (
+            <span className="text-muted-foreground">
+              {" "}
+              {labels.inLesson(
+                row.lessonTitle,
+                row.chapterTitle ?? texts.common.untitled
+              )}
             </span>
           )}
         </span>

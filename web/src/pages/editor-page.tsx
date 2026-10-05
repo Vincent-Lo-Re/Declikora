@@ -95,7 +95,10 @@ import { SaveStatus } from "@/components/editor/save-status"
 import { usePublication } from "@/components/editor/use-publication"
 import { ElementPanel, MethodButton } from "@/components/methods/element-panel"
 import { MethodChangesCard } from "@/components/methods/method-changes"
-import { MethodAppPlan } from "@/components/methods/method-preview"
+import {
+  LessonExercises,
+  MethodAppPlan,
+} from "@/components/methods/method-preview"
 import { ElementStateBadge } from "@/components/methods/element-state-badge"
 import { MethodOutline } from "@/components/methods/method-outline"
 import { useAccessCheck } from "@/components/team/use-access-check"
@@ -146,6 +149,7 @@ import { getMethodTree, methodKeys } from "@/lib/contents/methods"
 import {
   appPlan,
   elementAccess,
+  exerciseCount,
   lessonCount,
   parseLiveOutline,
 } from "@/lib/contents/outline"
@@ -1144,7 +1148,11 @@ function ContentEditor({
   })
   const shownPlan = methodTree.data ? appPlan(methodTree.data) : undefined
   const planCount = shownPlan
-    ? texts.methods.outline.count(shownPlan.length, lessonCount(shownPlan))
+    ? texts.methods.outline.count(
+        shownPlan.length,
+        lessonCount(shownPlan),
+        exerciseCount(shownPlan)
+      )
     : null
   // Une méthode réservée : ses leçons non gratuites le sont aussi ([D43]).
   const reserved = settings.accessChosen && settings.accessLevelId !== null
@@ -1165,17 +1173,26 @@ function ContentEditor({
           ...(length ? [length] : []),
         ].join(" · ")
       : null
-  // Un chapitre ou une leçon : le niveau d'accès de sa méthode, sauf leçon gratuite ou
-  // introduction d'un chapitre dont une leçon l'est ([D43]) ; la Lecture le suit.
+  // Un élément d'une méthode : le niveau d'accès de sa méthode, sauf leçon gratuite (et ses
+  // exercices) ou introduction d'un chapitre dont une leçon l'est ([D43]) ; la Lecture le suit.
   const methodAccess = elementContext?.method.access
   const ownAccess =
     elementKind && methodAccess
       ? elementAccess(
           methodAccess,
-          { kind: elementKind, isFree: settings.isFree },
+          {
+            kind: elementKind,
+            isFree:
+              elementKind === "exercise"
+                ? (elementContext?.lesson?.isFree ?? false)
+                : settings.isFree,
+          },
           elementPlace?.kind === "chapter" ? elementPlace.element.lessons : []
         )
       : settings
+  // Une leçon : ses exercices, montrés en bas comme dans l'app.
+  const lessonExercises =
+    elementPlace?.kind === "lesson" ? elementPlace.element.exercises : null
   const problemText = ownProblem?.problem
     ? contentProblemText(ownProblem.problem, ownProblem.problemDetail)
     : null
@@ -1187,7 +1204,7 @@ function ContentEditor({
   // un chapitre ou une leçon : sa place dans la méthode ; un modèle de bloc ne se publie pas : sa
   // sorte et, pour un bloc partagé, où il est utilisé.
   const articlePanel =
-    feedKind === "chapter" || feedKind === "lesson" ? (
+    feedKind && isElementKind(feedKind) ? (
       <ElementPanel
         kind={feedKind}
         draft={draft}
@@ -1437,6 +1454,11 @@ function ContentEditor({
           onClick={() => openLibrary()}
         />
       )}
+      {/* Une leçon : ses exercices en bas, comme dans l'app (ils se gèrent dans le plan de la
+          méthode). */}
+      {lessonExercises && (
+        <LessonExercises exercises={lessonExercises} locked={false} editable />
+      )}
     </div>
   )
 
@@ -1683,6 +1705,15 @@ function ContentEditor({
                       : false
                   }
                   resolve={resolveLinked}
+                  after={
+                    lessonExercises && (
+                      <LessonExercises
+                        exercises={lessonExercises}
+                        locked={previewLocked(phoneView, ownAccess)}
+                        editable={false}
+                      />
+                    )
+                  }
                 >
                   {methodTree.data && (
                     <MethodAppPlan
@@ -1748,7 +1779,8 @@ function ContentEditor({
                     tip: texts.editor.article.stats.planTip(
                       texts.methods.outline.count(
                         methodTree.data.length,
-                        lessonCount(methodTree.data)
+                        lessonCount(methodTree.data),
+                        exerciseCount(methodTree.data)
                       )
                     ),
                   }

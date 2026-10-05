@@ -66,54 +66,55 @@ function toItem(row: Row): HomeItem {
   }
 }
 
+// Les sortes qui appartiennent à une méthode.
+const METHOD_ELEMENTS = new Set(["chapter", "lesson", "exercise"])
+
 /**
- * Le titre de la méthode de chaque chapitre et de chaque leçon (l'API ne sait pas remonter
- * d'une ligne de contents à son parent : deux petites lectures, par identifiants).
+ * Le titre de la méthode de chaque chapitre, leçon et exercice (l'API ne sait pas remonter d'une
+ * ligne de contents à son parent : de petites lectures, par identifiants, un cran à la fois ; trois
+ * au plus, d'un exercice à sa méthode).
  */
 async function withMethodTitles(rows: Row[]): Promise<HomeItem[]> {
   const items = rows.map(toItem)
-  const parentIds = new Set(
+  const parents = new Map<
+    string,
+    { kind: string; title: string; parent_id: string | null }
+  >()
+  let wanted = new Set(
     rows.flatMap((row) =>
-      (row.kind === "chapter" || row.kind === "lesson") && row.parent_id
-        ? [row.parent_id]
-        : []
+      METHOD_ELEMENTS.has(row.kind) && row.parent_id ? [row.parent_id] : []
     )
   )
-  if (parentIds.size === 0) return items
-  const parents = new Map<string, { title: string; parent_id: string | null }>()
-  const read = async (ids: string[]) => {
+  while (wanted.size > 0) {
     const { data, error, status } = await supabase
       .from("contents")
-      .select("id, title, parent_id")
-      .in("id", ids)
+      .select("id, kind, title, parent_id")
+      .in("id", [...wanted])
     if (error) throw toContentError(error, status)
     for (const row of data) {
-      parents.set(row.id, { title: row.title ?? "", parent_id: row.parent_id })
+      parents.set(row.id, {
+        kind: row.kind,
+        title: row.title ?? "",
+        parent_id: row.parent_id,
+      })
     }
+    wanted = new Set(
+      data.flatMap((row) =>
+        row.kind !== "method" && row.parent_id && !parents.has(row.parent_id)
+          ? [row.parent_id]
+          : []
+      )
+    )
   }
-  await read([...parentIds])
-  // Une leçon : son parent est un chapitre, la méthode est un cran plus haut.
-  const methodIds = rows.flatMap((row) =>
-    row.kind === "lesson" && row.parent_id
-      ? [parents.get(row.parent_id)?.parent_id ?? null].filter(
-          (id): id is string => id !== null && !parents.has(id)
-        )
-      : []
-  )
-  if (methodIds.length > 0) await read([...new Set(methodIds)])
   return items.map((item, index) => {
-    const parentId = rows[index].parent_id
-    const parent = parentId ? parents.get(parentId) : undefined
-    if (item.kind === "chapter") {
-      return { ...item, method_title: parent?.title ?? null }
+    if (!METHOD_ELEMENTS.has(item.kind)) return item
+    let parentId = rows[index].parent_id
+    let parent = parentId ? parents.get(parentId) : undefined
+    while (parent && parent.kind !== "method") {
+      parentId = parent.parent_id
+      parent = parentId ? parents.get(parentId) : undefined
     }
-    if (item.kind === "lesson") {
-      const method = parent?.parent_id
-        ? parents.get(parent.parent_id)
-        : undefined
-      return { ...item, method_title: method?.title ?? null }
-    }
-    return item
+    return { ...item, method_title: parent?.title ?? null }
   })
 }
 

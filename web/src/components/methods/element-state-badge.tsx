@@ -19,6 +19,7 @@ const stateDots: Record<ElementState, string | null> = {
   withdrawn: null,
   hidden: null,
   blocked: null,
+  blockedLesson: null,
 }
 
 // Les états qui demandent un geste pour que l'élément parte dans l'app : leur explication est
@@ -27,10 +28,11 @@ const GESTURE_STATES: ReadonlySet<ElementState> = new Set([
   "withdrawn",
   "hidden",
   "blocked",
+  "blockedLesson",
 ])
 
 /**
- * L'état d'un chapitre ou d'une leçon dans l'app : « En ligne », « Modifié depuis la
+ * L'état d'un chapitre, d'une leçon ou d'un exercice dans l'app : « En ligne », « Modifié depuis la
  * publication », « Neuf », « Sera retiré de l'app », « Retiré de l'app », « Caché de l'app »…
  * L'explication est dans l'infobulle pour la souris, et dans le texte de la page pour le clavier
  * et les lecteurs d'écran : lue juste après le badge, ou écrite dessous (ElementStateHint).

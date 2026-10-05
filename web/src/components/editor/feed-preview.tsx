@@ -398,6 +398,7 @@ export function ReadView({
   locked,
   resolve,
   children,
+  after,
 }: {
   draft: Draft
   title: string
@@ -415,6 +416,8 @@ export function ReadView({
   resolve: (block: Block) => Block | null
   // À la place des blocs : le plan d'une méthode.
   children?: ReactNode
+  // Sous les blocs, même verrouillés : les exercices d'une leçon.
+  after?: ReactNode
 }) {
   return (
     <article className="blocks-phone blocks-read">
@@ -457,6 +460,7 @@ export function ReadView({
           </div>
         ))
       )}
+      {after}
     </article>
   )
 }

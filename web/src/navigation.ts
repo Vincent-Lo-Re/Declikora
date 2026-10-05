@@ -77,24 +77,29 @@ const editorSections: Partial<Record<string, SectionKey>> = {
   template: "templates",
 }
 
-// Les éditeurs d'un chapitre et d'une leçon, sous la section Méthodes : « /methodes/lecons/<id> ».
-// L'adresse ne porte pas la méthode : l'éditeur la retrouve par le parent.
+// Les éditeurs d'un chapitre, d'une leçon et d'un exercice, sous la section Méthodes :
+// « /methodes/lecons/<id> ». L'adresse ne porte pas la méthode : l'éditeur la retrouve par le
+// parent.
 export const methodElementSegments = {
   chapter: "chapitres",
   lesson: "lecons",
+  exercise: "exercices",
 } as const
 
-/** Adresse de l'éditeur d'un chapitre ou d'une leçon. */
-function methodElementPath(
-  kind: "chapter" | "lesson",
-  contentId: string
-): string {
+export type MethodElementKind = keyof typeof methodElementSegments
+
+function isMethodElementKind(kind: string): kind is MethodElementKind {
+  return kind in methodElementSegments
+}
+
+/** Adresse de l'éditeur d'un chapitre, d'une leçon ou d'un exercice. */
+function methodElementPath(kind: MethodElementKind, contentId: string): string {
   return `${sections.methods.path}/${methodElementSegments[kind]}/${contentId}`
 }
 
-/** Section d'un contenu d'après sa sorte (un chapitre ou une leçon : Méthodes), ou null. */
+/** Section d'un contenu d'après sa sorte (un élément d'une méthode : Méthodes), ou null. */
 export function contentSection(kind: string): SectionKey | null {
-  if (kind === "chapter" || kind === "lesson") return "methods"
+  if (isMethodElementKind(kind)) return "methods"
   return editorSections[kind] ?? null
 }
 
@@ -103,9 +108,7 @@ export function contentEditorPath(
   kind: string,
   contentId: string
 ): string | null {
-  if (kind === "chapter" || kind === "lesson") {
-    return methodElementPath(kind, contentId)
-  }
+  if (isMethodElementKind(kind)) return methodElementPath(kind, contentId)
   const section = contentSection(kind)
   return section ? editorPath(section, contentId) : null
 }

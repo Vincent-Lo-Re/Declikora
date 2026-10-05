@@ -81,7 +81,7 @@ export const templateSchema = z
       .max(TITLE_MAX, texts.templates.create.nameTooLong),
     sort: z.enum(["style", "shared", "starter"]),
     templateFor: z
-      .enum(["article", "episode", "chapter", "lesson", "page"])
+      .enum(["article", "episode", "chapter", "lesson", "exercise", "page"])
       .nullable(),
   })
   .refine((value) => value.sort !== "starter" || value.templateFor !== null, {

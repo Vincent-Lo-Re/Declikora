@@ -1,13 +1,15 @@
-// Appels propres aux méthodes (étape 7, partie 7b) : l'arbre des chapitres et des leçons,
-// publish_preview, outline_reorder, les cases « Montrer dans l'app » et « Leçon gratuite » cochées
-// depuis le plan, la méthode d'un chapitre ou d'une leçon, et le nombre d'éléments de chaque
-// méthode. Contrat : docs/ARCHITECTURE-CONTENUS.md, « Étape 7, partie 7b ».
+// Appels propres aux méthodes (étape 7, partie 7b, puis les exercices) : l'arbre des chapitres,
+// des leçons et de leurs exercices, publish_preview, outline_reorder, les cases « Montrer dans
+// l'app » et « Leçon gratuite » cochées depuis le plan, la méthode d'un élément, et le nombre
+// d'éléments de chaque méthode. Contrat : docs/ARCHITECTURE-CONTENUS.md, « Étape 7, partie 7b »
+// et « Exercices ».
 
 import { toContentError } from "@/lib/contents/api"
 import type {
   MethodTree,
   OutlineChapter,
   OutlineElement,
+  OutlineLesson,
   PreviewChange,
   PreviewRow,
 } from "@/lib/contents/outline"
@@ -59,7 +61,8 @@ function toElement(row: ElementRow, now: number): OutlineElement {
   const versions = row.versions as { count: number }[] | null
   return {
     id: row.id,
-    kind: row.kind === "chapter" ? "chapter" : "lesson",
+    kind:
+      row.kind === "chapter" || row.kind === "exercise" ? row.kind : "lesson",
     title: row.title ?? "",
     inApp: row.in_app,
     isFree: row.is_free,
@@ -73,7 +76,27 @@ function toElement(row: ElementRow, now: number): OutlineElement {
   }
 }
 
-/** Les chapitres d'une méthode (hors corbeille), dans l'ordre, chacun avec ses leçons. */
+/** Les éléments (hors corbeille) d'une sorte, enfants de ces parents, dans l'ordre. */
+async function childrenOf(
+  parentIds: string[],
+  kind: "lesson" | "exercise"
+): Promise<ElementRow[]> {
+  const { data, error, status } = await supabase
+    .from("contents")
+    .select(ELEMENT_COLUMNS)
+    .in("parent_id", parentIds)
+    .eq("kind", kind)
+    .is("deleted_at", null)
+    .order("position")
+    .order("id")
+  if (error) throw toContentError(error, status)
+  return data as ElementRow[]
+}
+
+/**
+ * Les chapitres d'une méthode (hors corbeille), dans l'ordre, chacun avec ses leçons et leurs
+ * exercices.
+ */
 export async function getMethodTree(methodId: string): Promise<MethodTree> {
   const chapters = await supabase
     .from("contents")
@@ -91,21 +114,21 @@ export async function getMethodTree(methodId: string): Promise<MethodTree> {
     lessons: [],
   }))
   if (tree.length === 0) return tree
-  const lessons = await supabase
-    .from("contents")
-    .select(ELEMENT_COLUMNS)
-    .in(
-      "parent_id",
-      tree.map((chapter) => chapter.id)
-    )
-    .eq("kind", "lesson")
-    .is("deleted_at", null)
-    .order("position")
-    .order("id")
-  if (lessons.error) throw toContentError(lessons.error, lessons.status)
   const byChapter = new Map(tree.map((chapter) => [chapter.id, chapter]))
-  for (const row of lessons.data as ElementRow[]) {
-    byChapter.get(row.parent_id ?? "")?.lessons.push(toElement(row, now))
+  const lessons: OutlineLesson[] = []
+  for (const row of await childrenOf([...byChapter.keys()], "lesson")) {
+    const lesson: OutlineLesson = {
+      ...toElement(row, now),
+      kind: "lesson",
+      exercises: [],
+    }
+    byChapter.get(row.parent_id ?? "")?.lessons.push(lesson)
+    lessons.push(lesson)
+  }
+  if (lessons.length === 0) return tree
+  const byLesson = new Map(lessons.map((lesson) => [lesson.id, lesson]))
+  for (const row of await childrenOf([...byLesson.keys()], "exercise")) {
+    byLesson.get(row.parent_id ?? "")?.exercises.push(toElement(row, now))
   }
   return tree
 }
@@ -130,7 +153,10 @@ export async function getMethodPreview(
   if (error) throw toContentError(error, status)
   return (data ?? []).flatMap((row): PreviewRow[] =>
     previewChanges.has(row.change) &&
-    (row.kind === "method" || row.kind === "chapter" || row.kind === "lesson")
+    (row.kind === "method" ||
+      row.kind === "chapter" ||
+      row.kind === "lesson" ||
+      row.kind === "exercise")
       ? [
           {
             elementId: row.element_id,
@@ -138,6 +164,8 @@ export async function getMethodPreview(
             title: row.title ?? "",
             chapterId: row.chapter_id ?? null,
             chapterTitle: row.chapter_title ?? null,
+            lessonId: row.lesson_id ?? null,
+            lessonTitle: row.lesson_title ?? null,
             change: row.change as PreviewChange,
             problem: row.problem ?? null,
             problemDetail: row.problem_detail ?? null,
@@ -150,8 +178,8 @@ export async function getMethodPreview(
 }
 
 /**
- * Range les chapitres et les leçons (il faut tenir le verrou de la méthode depuis cette
- * ouverture de l'éditeur). Rien ne change dans l'app avant la publication.
+ * Range les chapitres, les leçons et les exercices (il faut tenir le verrou de la méthode depuis
+ * cette ouverture de l'éditeur). Rien ne change dans l'app avant la publication.
  */
 export async function reorderOutline(
   methodId: string,
@@ -166,7 +194,7 @@ export async function reorderOutline(
   if (error) throw toContentError(error, status)
 }
 
-/** Les cases d'un chapitre ou d'une leçon, cochées depuis le plan de la méthode. */
+/** Les cases d'un élément, cochées depuis le plan de la méthode. */
 export type ElementFlags = { in_app?: boolean; is_free?: boolean }
 
 /**
@@ -184,8 +212,9 @@ export function setElementFlags(
 }
 
 /**
- * La méthode (et le chapitre) d'un chapitre ou d'une leçon. access : le niveau d'accès du
- * brouillon de la méthode, celui de l'élément à sa prochaine publication.
+ * La méthode (et le chapitre, et la leçon) d'un chapitre, d'une leçon ou d'un exercice. access :
+ * le niveau d'accès du brouillon de la méthode, celui de l'élément à sa prochaine publication
+ * (sauf leçon gratuite : lesson.isFree, pour un exercice).
  */
 export type ElementContext = {
   method: {
@@ -195,6 +224,7 @@ export type ElementContext = {
     access: { accessChosen: boolean; accessLevelId: string | null }
   }
   chapter: { id: string; title: string } | null
+  lesson: { id: string; title: string; isFree: boolean } | null
 }
 
 type ParentRow = {
@@ -203,6 +233,7 @@ type ParentRow = {
   title: string | null
   deleted_at: string | null
   parent_id: string | null
+  is_free: boolean
   access_chosen: boolean
   access_level_id: string | null
 }
@@ -211,7 +242,7 @@ async function getParent(id: string): Promise<ParentRow | null> {
   const { data, error, status } = await supabase
     .from("contents")
     .select(
-      "id, kind, title, deleted_at, parent_id, access_chosen, access_level_id"
+      "id, kind, title, deleted_at, parent_id, is_free, access_chosen, access_level_id"
     )
     .eq("id", id)
     .maybeSingle()
@@ -220,24 +251,34 @@ async function getParent(id: string): Promise<ParentRow | null> {
 }
 
 /**
- * Remonte d'un chapitre à sa méthode, d'une leçon à son chapitre puis à sa méthode (relu à
- * chaque fois : une leçon peut changer de chapitre pendant qu'on l'écrit).
+ * Remonte d'un élément à sa méthode, parent après parent (relu à chaque fois : une leçon peut
+ * changer de chapitre, un exercice de leçon, pendant qu'on l'écrit).
  */
 export async function getElementContext(
   elementId: string
 ): Promise<ElementContext | null> {
   const element = await getParent(elementId)
   if (!element?.parent_id) return null
-  const parent = await getParent(element.parent_id)
+  let parent = await getParent(element.parent_id)
+  let lesson: ElementContext["lesson"] = null
+  if (parent?.kind === "lesson") {
+    lesson = {
+      id: parent.id,
+      title: parent.title ?? "",
+      isFree: parent.is_free,
+    }
+    parent = parent.parent_id ? await getParent(parent.parent_id) : null
+  }
   if (!parent) return null
   if (parent.kind === "method") {
-    return { method: methodOf(parent), chapter: null }
+    return { method: methodOf(parent), chapter: null, lesson }
   }
   const method = parent.parent_id ? await getParent(parent.parent_id) : null
   if (!method) return null
   return {
     method: methodOf(method),
     chapter: { id: parent.id, title: parent.title ?? "" },
+    lesson,
   }
 }
 

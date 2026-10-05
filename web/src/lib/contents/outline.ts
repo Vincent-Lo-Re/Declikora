@@ -1,7 +1,7 @@
-// Le plan d'une méthode, sans React : l'arbre des chapitres et des leçons (brouillon), ses
-// déplacements (glisser-déposer et « Monter » / « Descendre »), le plan en ligne (figé dans la
-// version de la méthode) et l'état de chaque élément dans l'app. Contrat :
-// docs/ARCHITECTURE-CONTENUS.md, § 1.8 et « Étape 7, partie 7b ».
+// Le plan d'une méthode, sans React : l'arbre des chapitres, des leçons et de leurs exercices
+// (brouillon), ses déplacements (glisser-déposer et « Monter » / « Descendre »), le plan en ligne
+// (figé dans la version de la méthode) et l'état de chaque élément dans l'app. Contrat :
+// docs/ARCHITECTURE-CONTENUS.md, § 1.8, « Étape 7, partie 7b » et « Exercices ».
 
 import type { UniqueIdentifier } from "@dnd-kit/core"
 
@@ -9,10 +9,10 @@ import type { UniqueIdentifier } from "@dnd-kit/core"
 // L'arbre (brouillon)
 // ---------------------------------------------------------------------------------------------
 
-/** Un chapitre ou une leçon, tel que le plan de la méthode le montre. */
+/** Un chapitre, une leçon ou un exercice, tel que le plan de la méthode le montre. */
 export type OutlineElement = {
   id: string
-  kind: "chapter" | "lesson"
+  kind: "chapter" | "lesson" | "exercise"
   title: string
   // « Montrer dans l'app » (décoché à la création, [D29]).
   inApp: boolean
@@ -27,12 +27,17 @@ export type OutlineElement = {
   published: boolean
 }
 
-export type OutlineChapter = OutlineElement & {
-  kind: "chapter"
-  lessons: OutlineElement[]
+export type OutlineLesson = OutlineElement & {
+  kind: "lesson"
+  exercises: OutlineElement[]
 }
 
-/** Les chapitres d'une méthode, dans l'ordre, chacun avec ses leçons. */
+export type OutlineChapter = OutlineElement & {
+  kind: "chapter"
+  lessons: OutlineLesson[]
+}
+
+/** Les chapitres d'une méthode, dans l'ordre, chacun avec ses leçons et leurs exercices. */
 export type MethodTree = OutlineChapter[]
 
 /** La place d'un élément dans l'arbre. */
@@ -40,28 +45,74 @@ export type TreePlace =
   | { kind: "chapter"; element: OutlineChapter; chapterIndex: number }
   | {
       kind: "lesson"
-      element: OutlineElement
+      element: OutlineLesson
       chapter: OutlineChapter
       chapterIndex: number
       lessonIndex: number
+    }
+  | {
+      kind: "exercise"
+      element: OutlineElement
+      lesson: OutlineLesson
+      chapter: OutlineChapter
+      chapterIndex: number
+      lessonIndex: number
+      exerciseIndex: number
     }
 
 export function findInTree(tree: MethodTree, id: string): TreePlace | null {
   for (const [chapterIndex, chapter] of tree.entries()) {
     if (chapter.id === id)
       return { kind: "chapter", element: chapter, chapterIndex }
-    const lessonIndex = chapter.lessons.findIndex((lesson) => lesson.id === id)
-    if (lessonIndex >= 0) {
-      return {
-        kind: "lesson",
-        element: chapter.lessons[lessonIndex],
-        chapter,
-        chapterIndex,
-        lessonIndex,
+    for (const [lessonIndex, lesson] of chapter.lessons.entries()) {
+      if (lesson.id === id) {
+        return {
+          kind: "lesson",
+          element: lesson,
+          chapter,
+          chapterIndex,
+          lessonIndex,
+        }
+      }
+      const exerciseIndex = lesson.exercises.findIndex(
+        (exercise) => exercise.id === id
+      )
+      if (exerciseIndex >= 0) {
+        return {
+          kind: "exercise",
+          element: lesson.exercises[exerciseIndex],
+          lesson,
+          chapter,
+          chapterIndex,
+          lessonIndex,
+          exerciseIndex,
+        }
       }
     }
   }
   return null
+}
+
+/** Toutes les leçons de l'arbre, dans l'ordre du plan (d'un chapitre au suivant). */
+function allLessons(tree: MethodTree): OutlineLesson[] {
+  return tree.flatMap((chapter) => chapter.lessons)
+}
+
+/** L'arbre où chaque leçon passe par `change`. */
+function mapLessons(
+  tree: MethodTree,
+  change: (lesson: OutlineLesson) => OutlineLesson
+): MethodTree {
+  return tree.map((chapter) => ({
+    ...chapter,
+    lessons: chapter.lessons.map(change),
+  }))
+}
+
+/** Une liste où `item` est inséré à cette place (bornée à la liste). */
+function insertAt<T>(list: readonly T[], index: number, item: T): T[] {
+  const at = Math.max(0, Math.min(index, list.length))
+  return [...list.slice(0, at), item, ...list.slice(at)]
 }
 
 /** Déplace un chapitre à cette place (index dans la liste sans lui). */
@@ -92,24 +143,46 @@ export function moveLesson(
       ? { ...chapter, lessons: chapter.lessons.filter((l) => l.id !== id) }
       : chapter
   )
-  return without.map((chapter) => {
-    if (chapter.id !== toChapterId) return chapter
-    const index = Math.max(0, Math.min(toIndex, chapter.lessons.length))
-    return {
-      ...chapter,
-      lessons: [
-        ...chapter.lessons.slice(0, index),
-        place.element,
-        ...chapter.lessons.slice(index),
-      ],
-    }
-  })
+  return without.map((chapter) =>
+    chapter.id === toChapterId
+      ? {
+          ...chapter,
+          lessons: insertAt(chapter.lessons, toIndex, place.element),
+        }
+      : chapter
+  )
+}
+
+/** Déplace un exercice dans cette leçon, à cette place (index dans la liste sans lui). */
+export function moveExercise(
+  tree: MethodTree,
+  id: string,
+  toLessonId: string,
+  toIndex: number
+): MethodTree {
+  const place = findInTree(tree, id)
+  if (!place || place.kind !== "exercise") return tree
+  if (!allLessons(tree).some((lesson) => lesson.id === toLessonId)) return tree
+  const without = mapLessons(tree, (lesson) =>
+    lesson.id === place.lesson.id
+      ? { ...lesson, exercises: lesson.exercises.filter((e) => e.id !== id) }
+      : lesson
+  )
+  return mapLessons(without, (lesson) =>
+    lesson.id === toLessonId
+      ? {
+          ...lesson,
+          exercises: insertAt(lesson.exercises, toIndex, place.element),
+        }
+      : lesson
+  )
 }
 
 /**
  * « Monter » (-1) ou « Descendre » (+1). Un chapitre reste parmi les chapitres ; une leçon en
  * tête de son chapitre monte à la fin du chapitre précédent, une leçon en fin de chapitre
- * descend en tête du suivant. Null si l'élément ne peut pas aller plus loin.
+ * descend en tête du suivant ; un exercice fait de même d'une leçon à l'autre (en passant d'un
+ * chapitre au suivant). Null si l'élément ne peut pas aller plus loin.
  */
 export function shiftInTree(
   tree: MethodTree,
@@ -122,6 +195,22 @@ export function shiftInTree(
     const to = place.chapterIndex + offset
     if (to < 0 || to >= tree.length) return null
     return moveChapter(tree, id, to)
+  }
+  if (place.kind === "exercise") {
+    const to = place.exerciseIndex + offset
+    if (to >= 0 && to < place.lesson.exercises.length) {
+      return moveExercise(tree, id, place.lesson.id, to)
+    }
+    const lessons = allLessons(tree)
+    const neighbor =
+      lessons[lessons.findIndex((l) => l.id === place.lesson.id) + offset]
+    if (!neighbor) return null
+    return moveExercise(
+      tree,
+      id,
+      neighbor.id,
+      offset < 0 ? neighbor.exercises.length : 0
+    )
   }
   const { chapter, chapterIndex, lessonIndex } = place
   const to = lessonIndex + offset
@@ -138,26 +227,43 @@ export function shiftInTree(
   )
 }
 
-/** Vrai si les deux arbres ont les mêmes chapitres et les mêmes leçons, dans le même ordre. */
-export function sameOrder(a: MethodTree, b: MethodTree): boolean {
-  if (a.length !== b.length) return false
-  return a.every((chapter, index) => {
-    const other = b[index]
-    return (
-      chapter.id === other.id &&
-      chapter.lessons.length === other.lessons.length &&
-      chapter.lessons.every((lesson, i) => lesson.id === other.lessons[i].id)
+/** Les identifiants de l'arbre dans l'ordre du plan, chacun avec son parent. */
+function orderKey(tree: MethodTree): string {
+  return tree
+    .map(
+      (chapter) =>
+        `${chapter.id}(${chapter.lessons
+          .map(
+            (lesson) =>
+              `${lesson.id}[${lesson.exercises.map((e) => e.id).join(",")}]`
+          )
+          .join(",")})`
     )
-  })
+    .join(";")
 }
 
-/** Ce que outline_reorder reçoit : tous les chapitres et toutes leurs leçons, dans l'ordre. */
-export function toOutlinePayload(
-  tree: MethodTree
-): { chapterId: string; lessonIds: string[] }[] {
+/**
+ * Vrai si les deux arbres ont les mêmes chapitres, les mêmes leçons et les mêmes exercices, dans
+ * le même ordre.
+ */
+export function sameOrder(a: MethodTree, b: MethodTree): boolean {
+  return orderKey(a) === orderKey(b)
+}
+
+/**
+ * Ce que outline_reorder reçoit : tous les chapitres, toutes leurs leçons et tous leurs
+ * exercices, dans l'ordre.
+ */
+export function toOutlinePayload(tree: MethodTree): {
+  chapterId: string
+  lessons: { lessonId: string; exerciseIds: string[] }[]
+}[] {
   return tree.map((chapter) => ({
     chapterId: chapter.id,
-    lessonIds: chapter.lessons.map((lesson) => lesson.id),
+    lessons: chapter.lessons.map((lesson) => ({
+      lessonId: lesson.id,
+      exerciseIds: lesson.exercises.map((exercise) => exercise.id),
+    })),
   }))
 }
 
@@ -166,29 +272,50 @@ export function lessonCount(tree: MethodTree): number {
   return tree.reduce((count, chapter) => count + chapter.lessons.length, 0)
 }
 
+/** Le nombre d'exercices de l'arbre. */
+export function exerciseCount(tree: MethodTree): number {
+  return allLessons(tree).reduce(
+    (count, lesson) => count + lesson.exercises.length,
+    0
+  )
+}
+
 /**
  * Ce que l'app montrera du plan à la prochaine publication de la méthode : les chapitres où
- * « Montrer dans l'app » est coché, et dans chacun ses leçons cochées ([D29]).
+ * « Montrer dans l'app » est coché, dans chacun ses leçons cochées, et dans chaque leçon ses
+ * exercices cochés ([D29]).
  */
 export function appPlan(tree: MethodTree): MethodTree {
   return tree
     .filter((chapter) => chapter.inApp)
     .map((chapter) => ({
       ...chapter,
-      lessons: chapter.lessons.filter((lesson) => lesson.inApp),
+      lessons: chapter.lessons
+        .filter((lesson) => lesson.inApp)
+        .map((lesson) => ({
+          ...lesson,
+          exercises: lesson.exercises.filter((exercise) => exercise.inApp),
+        })),
     }))
 }
 
 // ---------------------------------------------------------------------------------------------
-// Glisser-déposer : un SortableContext pour les chapitres, un par chapitre pour ses leçons, et
-// une zone de dépôt pour un chapitre sans leçon.
+// Glisser-déposer : un SortableContext pour les chapitres, un par chapitre pour ses leçons, un
+// par leçon pour ses exercices, et une zone de dépôt pour un chapitre sans leçon et pour une
+// leçon sans exercice.
 // ---------------------------------------------------------------------------------------------
 
 const ZONE_PREFIX = "lecons:"
+const EXERCISE_ZONE_PREFIX = "exercices:"
 
 /** La zone de dépôt des leçons d'un chapitre (pour y déposer une leçon quand il est vide). */
 export function lessonZoneId(chapterId: string): string {
   return `${ZONE_PREFIX}${chapterId}`
+}
+
+/** La zone de dépôt des exercices d'une leçon (pour y déposer un exercice quand elle est vide). */
+export function exerciseZoneId(lessonId: string): string {
+  return `${EXERCISE_ZONE_PREFIX}${lessonId}`
 }
 
 function chapterOfZone(id: UniqueIdentifier): string | null {
@@ -196,11 +323,20 @@ function chapterOfZone(id: UniqueIdentifier): string | null {
   return value.startsWith(ZONE_PREFIX) ? value.slice(ZONE_PREFIX.length) : null
 }
 
+function lessonOfZone(id: UniqueIdentifier): string | null {
+  const value = String(id)
+  return value.startsWith(EXERCISE_ZONE_PREFIX)
+    ? value.slice(EXERCISE_ZONE_PREFIX.length)
+    : null
+}
+
 /** Ce que porte chaque cible de dépôt (data de useSortable et useDroppable). */
 export type OutlineDropData =
   | { type: "chapter" }
   | { type: "lesson"; chapterId: string }
   | { type: "zone"; chapterId: string }
+  | { type: "exercise"; lessonId: string }
+  | { type: "exerciseZone"; lessonId: string }
 
 /** Le chapitre visé par une cible, pour une leçon : celui de la leçon, ou celui de la zone. */
 export function targetChapter(
@@ -213,10 +349,23 @@ export function targetChapter(
   return place?.kind === "lesson" ? place.chapter.id : null
 }
 
+/** La leçon visée par une cible, pour un exercice : celle de l'exercice, ou celle de la zone. */
+export function targetLesson(
+  tree: MethodTree,
+  overId: UniqueIdentifier
+): string | null {
+  const zone = lessonOfZone(overId)
+  if (zone) {
+    return allLessons(tree).some((lesson) => lesson.id === zone) ? zone : null
+  }
+  const place = findInTree(tree, String(overId))
+  return place?.kind === "exercise" ? place.lesson.id : null
+}
+
 /**
  * Vrai si l'élément déplacé peut aller sur cette cible : un chapitre parmi les chapitres, une
- * leçon parmi les leçons (ou dans un chapitre vide). Un chapitre n'entre jamais dans un
- * chapitre, une leçon ne sort jamais des chapitres.
+ * leçon parmi les leçons (ou dans un chapitre vide), un exercice parmi les exercices (ou dans
+ * une leçon vide). Un élément ne change jamais de niveau.
  */
 export function canDropOutline(
   tree: MethodTree,
@@ -228,12 +377,14 @@ export function canDropOutline(
   if (active.kind === "chapter") {
     return findInTree(tree, String(overId))?.kind === "chapter"
   }
+  if (active.kind === "exercise") return targetLesson(tree, overId) !== null
   return targetChapter(tree, overId) !== null
 }
 
 /**
- * Pendant le survol : une leçon passe dans un autre chapitre, juste avant ou après la leçon
- * visée (ou à la fin d'un chapitre vide). Null si rien ne change ou si c'est refusé.
+ * Pendant le survol : une leçon passe dans un autre chapitre, un exercice dans une autre leçon,
+ * juste avant ou après l'élément visé (ou à la fin d'un parent vide). Null si rien ne change ou
+ * si c'est refusé.
  */
 export function moveOverOutline(
   tree: MethodTree,
@@ -242,6 +393,18 @@ export function moveOverOutline(
   below: boolean
 ): MethodTree | null {
   const active = findInTree(tree, String(activeId))
+  if (active?.kind === "exercise") {
+    const lessonId = targetLesson(tree, overId)
+    if (!lessonId || lessonId === active.lesson.id) return null
+    const over = findInTree(tree, String(overId))
+    const target = allLessons(tree).find((lesson) => lesson.id === lessonId)
+    if (!target) return null
+    const index =
+      over?.kind === "exercise"
+        ? over.exerciseIndex + (below ? 1 : 0)
+        : target.exercises.length
+    return moveExercise(tree, active.element.id, lessonId, index)
+  }
   if (!active || active.kind !== "lesson") return null
   const chapterId = targetChapter(tree, overId)
   if (!chapterId || chapterId === active.chapter.id) return null
@@ -277,6 +440,15 @@ export function moveOnDropOutline(
       over.lessonIndex
     )
   }
+  if (active.kind === "exercise" && over.kind === "exercise") {
+    if (active.lesson.id !== over.lesson.id) return null
+    return moveExercise(
+      tree,
+      active.element.id,
+      over.lesson.id,
+      over.exerciseIndex
+    )
+  }
   return null
 }
 
@@ -288,7 +460,12 @@ export type LiveOutline = {
   chapters: {
     chapterId: string
     versionId: string
-    lessons: { lessonId: string; versionId: string }[]
+    lessons: {
+      lessonId: string
+      versionId: string
+      // Absents d'un plan publié avant les exercices.
+      exercises: { exerciseId: string; versionId: string }[]
+    }[]
   }[]
 }
 
@@ -311,7 +488,27 @@ export function parseLiveOutline(value: unknown): LiveOutline | null {
         isRecord(lesson) &&
         typeof lesson.lessonId === "string" &&
         typeof lesson.versionId === "string"
-          ? [{ lessonId: lesson.lessonId, versionId: lesson.versionId }]
+          ? [
+              {
+                lessonId: lesson.lessonId,
+                versionId: lesson.versionId,
+                exercises: (Array.isArray(lesson.exercises)
+                  ? lesson.exercises
+                  : []
+                ).flatMap((exercise) =>
+                  isRecord(exercise) &&
+                  typeof exercise.exerciseId === "string" &&
+                  typeof exercise.versionId === "string"
+                    ? [
+                        {
+                          exerciseId: exercise.exerciseId,
+                          versionId: exercise.versionId,
+                        },
+                      ]
+                    : []
+                ),
+              },
+            ]
           : []
       ),
     })
@@ -319,12 +516,15 @@ export function parseLiveOutline(value: unknown): LiveOutline | null {
   return { chapters }
 }
 
-/** Les éléments (chapitres et leçons) cités par le plan en ligne. */
+/** Les éléments (chapitres, leçons et exercices) cités par le plan en ligne. */
 export function liveIds(outline: LiveOutline | null): Set<string> {
   const ids = new Set<string>()
   for (const chapter of outline?.chapters ?? []) {
     ids.add(chapter.chapterId)
-    for (const lesson of chapter.lessons) ids.add(lesson.lessonId)
+    for (const lesson of chapter.lessons) {
+      ids.add(lesson.lessonId)
+      for (const exercise of lesson.exercises) ids.add(exercise.exerciseId)
+    }
   }
   return ids
 }
@@ -338,11 +538,15 @@ export type PreviewChange = "new" | "modified" | "reordered" | "removed"
 /** Une ligne de publish_preview : un élément qui changera dans l'app si l'on publie. */
 export type PreviewRow = {
   elementId: string
-  kind: "method" | "chapter" | "lesson"
+  kind: "method" | "chapter" | "lesson" | "exercise"
   title: string
-  // Le chapitre d'une leçon (celui du plan à venir, ou du plan en ligne pour une leçon retirée).
+  // Le chapitre d'une leçon ou d'un exercice (celui du plan à venir, ou du plan en ligne pour un
+  // élément retiré).
   chapterId: string | null
   chapterTitle: string | null
+  // La leçon d'un exercice (de même).
+  lessonId: string | null
+  lessonTitle: string | null
   change: PreviewChange
   // Le code qui ferait refuser la publication (image sans fichier…), et sa précision.
   problem: string | null
@@ -351,7 +555,7 @@ export type PreviewRow = {
   savedByName: string | null
 }
 
-/** Les lignes d'un élément de l'arbre (chapitre ou leçon), par identifiant. */
+/** Les lignes d'un élément de l'arbre (chapitre, leçon ou exercice), par identifiant. */
 export function previewByElement(
   rows: readonly PreviewRow[]
 ): Map<string, PreviewRow> {
@@ -401,16 +605,22 @@ export type ChangeGroup = { change: PreviewChange; rows: PreviewRow[] }
 
 export type ChangesView =
   // La méthode entre dans l'app : un résumé, et seulement les lignes qui ont un problème.
-  | { kind: "entry"; chapters: number; lessons: number; problems: PreviewRow[] }
-  // Déjà dans l'app : les lignes de la fiche, puis les chapitres et les leçons par sorte de
-  // changement.
+  | {
+      kind: "entry"
+      chapters: number
+      lessons: number
+      exercises: number
+      problems: PreviewRow[]
+    }
+  // Déjà dans l'app : les lignes de la fiche, puis les chapitres, les leçons et les exercices par
+  // sorte de changement.
   | { kind: "groups"; method: PreviewRow[]; groups: ChangeGroup[] }
 
 /**
  * Ce que montre la liste des changements ([D29]). Tant que la méthode n'est pas dans l'app, tout y
- * entre : une ligne par élément répéterait le plan, un résumé suffit (ses chapitres et ses
- * leçons). Ensuite, les chapitres et les leçons se rangent par sorte de changement, chacun dans
- * l'ordre du plan, ceux qui ont un problème d'abord (ils ne se cachent pas derrière « Voir tout »).
+ * entre : une ligne par élément répéterait le plan, un résumé suffit (ses chapitres, ses leçons et
+ * ses exercices). Ensuite, les éléments se rangent par sorte de changement, chacun dans l'ordre du
+ * plan, ceux qui ont un problème d'abord (ils ne se cachent pas derrière « Voir tout »).
  */
 export function changesView(rows: readonly PreviewRow[]): ChangesView {
   const elements = rows.filter((row) => row.kind !== "method")
@@ -422,6 +632,7 @@ export function changesView(rows: readonly PreviewRow[]): ChangesView {
       kind: "entry",
       chapters: elements.filter((row) => row.kind === "chapter").length,
       lessons: elements.filter((row) => row.kind === "lesson").length,
+      exercises: elements.filter((row) => row.kind === "exercise").length,
       problems: rows.filter((row) => shownProblem(row) !== null),
     }
   }
@@ -447,25 +658,44 @@ export function changesView(rows: readonly PreviewRow[]): ChangesView {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * L'état d'un chapitre ou d'une leçon, vu de l'app :
+ * L'état d'un chapitre, d'une leçon ou d'un exercice, vu de l'app :
  * - live : en ligne, sans changement à publier ;
  * - modified : en ligne, modifié depuis la publication (partira à la prochaine) ;
  * - new : « Montrer dans l'app » coché, pas encore en ligne (partira à la prochaine) ;
- * - removing : en ligne, mais décoché (ou dans un chapitre décoché) : sortira à la prochaine ;
+ * - removing : en ligne, mais décoché (ou dans un parent décoché) : sortira à la prochaine ;
  * - withdrawn : déjà publié autrefois, retiré de l'app, décoché ;
  * - hidden : jamais publié, décoché ;
- * - blocked : leçon cochée dans un chapitre décoché : elle ne part pas.
+ * - blocked : coché, dans un chapitre décoché : il ne part pas ;
+ * - blockedLesson : exercice coché, dans une leçon décochée : il ne part pas.
  */
 export type ElementState =
-  "live" | "modified" | "new" | "removing" | "withdrawn" | "hidden" | "blocked"
+  | "live"
+  | "modified"
+  | "new"
+  | "removing"
+  | "withdrawn"
+  | "hidden"
+  | "blocked"
+  | "blockedLesson"
+
+/** « Montrer dans l'app » des parents d'un élément (vrai quand il n'a pas ce parent). */
+export type ParentsInApp = { chapter: boolean; lesson: boolean }
+
+/** Les parents d'un élément, d'après sa place dans l'arbre. */
+export function parentsInApp(place: TreePlace): ParentsInApp {
+  if (place.kind === "chapter") return { chapter: true, lesson: true }
+  if (place.kind === "lesson")
+    return { chapter: place.chapter.inApp, lesson: true }
+  return { chapter: place.chapter.inApp, lesson: place.lesson.inApp }
+}
 
 /**
  * L'état d'un élément : d'après publish_preview (preview, undefined tant qu'il n'est pas lu) et
- * le plan en ligne. chapterInApp : « Montrer dans l'app » du chapitre d'une leçon.
+ * le plan en ligne. parents : « Montrer dans l'app » de son chapitre et de sa leçon.
  */
 export function elementState(
   element: Pick<OutlineElement, "id" | "kind" | "inApp" | "published">,
-  chapterInApp: boolean,
+  parents: ParentsInApp,
   live: ReadonlySet<string>,
   preview: ReadonlyMap<string, PreviewRow> | undefined
 ): ElementState {
@@ -473,12 +703,20 @@ export function elementState(
   if (row?.change === "removed") return "removing"
   if (row?.change === "new") return "new"
   if (row?.change === "modified") return "modified"
-  const goes = element.inApp && (element.kind === "chapter" || chapterInApp)
+  const blockedBy =
+    element.kind === "chapter"
+      ? null
+      : !parents.chapter
+        ? "blocked"
+        : element.kind === "exercise" && !parents.lesson
+          ? "blockedLesson"
+          : null
+  const goes = element.inApp && blockedBy === null
   if (live.has(element.id)) {
     // Sans la liste des changements : un élément en ligne décoché sortira.
     return preview === undefined && !goes ? "removing" : "live"
   }
-  if (element.inApp && !goes) return "blocked"
+  if (element.inApp && blockedBy) return blockedBy
   if (element.inApp) return "new"
   return element.published ? "withdrawn" : "hidden"
 }
@@ -493,16 +731,17 @@ type Access = { accessChosen: boolean; accessLevelId: string | null }
 const FREE: Access = { accessChosen: true, accessLevelId: null }
 
 /**
- * Le niveau d'accès d'un chapitre ou d'une leçon à la prochaine publication de sa méthode
- * ([D43]) : celui de la méthode, sauf pour une leçon gratuite, et pour l'introduction d'un
- * chapitre dont une leçon montrée dans l'app est gratuite. lessons : celles du chapitre (pour
- * un chapitre), dans le brouillon du plan.
+ * Le niveau d'accès d'un élément à la prochaine publication de sa méthode ([D43]) : celui de la
+ * méthode, sauf pour une leçon gratuite et ses exercices, et pour l'introduction d'un chapitre
+ * dont une leçon montrée dans l'app est gratuite. isFree : « Leçon gratuite » de la leçon (la
+ * sienne, ou celle d'un exercice) ; lessons : celles du chapitre (pour un chapitre), dans le
+ * brouillon du plan.
  */
 export function elementAccess(
   method: Access,
-  element: { kind: "chapter" | "lesson"; isFree: boolean },
+  element: { kind: "chapter" | "lesson" | "exercise"; isFree: boolean },
   lessons: readonly Pick<OutlineElement, "inApp" | "isFree">[]
 ): Access {
-  if (element.kind === "lesson") return element.isFree ? FREE : method
+  if (element.kind !== "chapter") return element.isFree ? FREE : method
   return lessons.some((lesson) => lesson.inApp && lesson.isFree) ? FREE : method
 }

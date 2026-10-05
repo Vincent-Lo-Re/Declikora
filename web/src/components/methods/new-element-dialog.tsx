@@ -32,15 +32,40 @@ const labels = texts.methods.create
 
 const emptyForm: OutlineElementValues = { title: "", starter: "" }
 
-/** Ce qu'on crée : un chapitre de la méthode, ou une leçon d'un chapitre. */
+/** Ce qu'on crée : un chapitre de la méthode, une leçon d'un chapitre, un exercice d'une leçon. */
 export type NewElement =
   | { kind: "chapter" }
   | { kind: "lesson"; chapterId: string; chapterLabel: string }
+  | { kind: "exercise"; lessonId: string; lessonLabel: string }
+
+/** Le titre et l'explication de la fenêtre, selon ce qu'on crée. */
+function heading(target: NewElement | null): {
+  title: string
+  description: string
+} {
+  switch (target?.kind) {
+    case "lesson":
+      return {
+        title: labels.lessonTitle,
+        description: labels.lessonDescription(target.chapterLabel),
+      }
+    case "exercise":
+      return {
+        title: labels.exerciseTitle,
+        description: labels.exerciseDescription(target.lessonLabel),
+      }
+    default:
+      return {
+        title: labels.chapterTitle,
+        description: labels.chapterDescription,
+      }
+  }
+}
 
 /**
- * « Nouveau chapitre » et « Nouvelle leçon » : le titre, puis le point de départ (vide, ou un
- * point de départ des chapitres ou des leçons, [D42]). L'élément arrive en fin de liste, caché
- * de l'app.
+ * « Nouveau chapitre », « Nouvelle leçon » et « Nouvel exercice » : le titre, puis le point de
+ * départ (vide, ou un point de départ de cette sorte, [D42]). L'élément arrive en fin de liste,
+ * caché de l'app.
  */
 export function NewElementDialog({
   target,
@@ -80,19 +105,14 @@ export function NewElementDialog({
     form.handleSubmit((values) => onSubmit(values, openAfter))
 
   const idPrefix = `nouvel-element-${kind}`
+  const { title, description } = heading(target)
   return (
     <Dialog open={open} onOpenChange={(next) => !pending && onOpenChange(next)}>
       <DialogContent className="sm:max-w-lg" finalFocus={finalFocus}>
         <form onSubmit={submitWith(false)} noValidate className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>
-              {kind === "chapter" ? labels.chapterTitle : labels.lessonTitle}
-            </DialogTitle>
-            <DialogDescription>
-              {target?.kind === "lesson"
-                ? labels.lessonDescription(target.chapterLabel)
-                : labels.chapterDescription}
-            </DialogDescription>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
           <FieldGroup>
             <Controller

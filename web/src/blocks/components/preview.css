@@ -505,7 +505,16 @@
   color: var(--blocks-color-link);
 }
 
-/* En Édition, un chapitre ou une leçon mène à son éditeur. */
+/* Le nombre d'exercices d'une leçon, à droite de sa ligne : le plan ne les liste pas. */
+.blocks-plan-count {
+  font-size: calc(
+    var(--blocks-font-caption-size) * var(--blocks-text-scale, 1)
+  );
+  line-height: var(--blocks-font-caption-line-height);
+  color: var(--blocks-color-text-muted);
+}
+
+/* En Édition, un élément du plan mène à son éditeur. */
 .blocks-plan-link {
   color: inherit;
   text-decoration: none;

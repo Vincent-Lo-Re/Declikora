@@ -13,6 +13,7 @@ import {
   elementState,
   findInTree,
   liveIds,
+  parentsInApp,
   parseLiveOutline,
   previewByElement,
 } from "@/lib/contents/outline"
@@ -24,10 +25,10 @@ import {
 
 /**
  * Les méthodes, vues depuis l'éditeur ([D29], [D31]). Une méthode : ce qui changera dans l'app si
- * on la publie (relu régulièrement, les autres écrivent ses leçons). Un chapitre ou une leçon : sa
- * méthode et son chapitre (le retour, le niveau d'accès), sa place dans le plan, son état dans
- * l'app, la programmation de sa méthode, et ce qui ferait refuser sa publication à cause de lui.
- * Rien pour les autres sortes.
+ * on la publie (relu régulièrement, les autres écrivent ses leçons). Un chapitre, une leçon ou un
+ * exercice : sa méthode, son chapitre et sa leçon (le retour, le niveau d'accès), sa place dans le
+ * plan, son état dans l'app, la programmation de sa méthode, et ce qui ferait refuser sa
+ * publication à cause de lui. Rien pour les autres sortes.
  */
 export function useMethodContext({
   contentId,
@@ -36,7 +37,7 @@ export function useMethodContext({
   ficheSavedAt,
 }: {
   contentId: string
-  // La méthode elle-même, un de ses éléments (chapitre, leçon), ou ni l'un ni l'autre.
+  // La méthode elle-même, un de ses éléments (chapitre, leçon, exercice), ou ni l'un ni l'autre.
   role: "method" | "element" | null
   // La case « Montrer dans l'app » de cet élément, telle qu'elle est à l'écran.
   inApp: boolean
@@ -90,7 +91,7 @@ export function useMethodContext({
     if (!methodPublication.data || !place) return undefined
     return elementState(
       { ...place.element, inApp },
-      place.kind === "chapter" || place.chapter.inApp,
+      parentsInApp(place),
       liveIds(parseLiveOutline(methodPublication.data.live?.outline)),
       preview.data ? previewByElement(preview.data) : undefined
     )

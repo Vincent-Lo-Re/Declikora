@@ -47,11 +47,12 @@ const labels = texts.methods.element
 const MethodIcon = sections.methods.icon
 
 /**
- * La colonne de droite d'un chapitre ou d'une leçon, dans l'éditeur du Fil (ADMIN § 4) : « Dans
- * la méthode » (sa place, son état dans l'app, « Montrer dans l'app », ce qui ferait refuser la
- * publication de la méthode, sa programmation), le niveau d'accès de la méthode (avec « Leçon
- * gratuite »), puis son image, facultative. Tout part avec le brouillon ; l'app ne change qu'à la
- * prochaine publication de la méthode ([D29]).
+ * La colonne de droite d'un chapitre, d'une leçon ou d'un exercice, dans l'éditeur du Fil (ADMIN
+ * § 4) : « Dans la méthode » (sa place, son état dans l'app, « Montrer dans l'app », ce qui ferait
+ * refuser la publication de la méthode, sa programmation), le niveau d'accès (celui de la méthode,
+ * avec « Leçon gratuite » pour une leçon ; celui de sa leçon pour un exercice), puis son image,
+ * facultative. Tout part avec le brouillon ; l'app ne change qu'à la prochaine publication de la
+ * méthode ([D29]).
  */
 export function ElementPanel({
   kind,
@@ -76,7 +77,7 @@ export function ElementPanel({
   editable: boolean
   settings: ContentSettings
   onSettingsChange: (next: ContentSettings) => void
-  // Sa méthode et son chapitre (undefined tant qu'ils ne sont pas lus).
+  // Sa méthode, son chapitre et sa leçon (undefined tant qu'ils ne sont pas lus).
   context: ElementContext | null | undefined
   // Sa place dans le plan (undefined tant qu'il n'est pas lu).
   place: TreePlace | null | undefined
@@ -119,6 +120,7 @@ export function ElementPanel({
         settings={settings}
         onSettingsChange={onSettingsChange}
         method={context?.method}
+        lesson={context?.lesson ?? null}
         levels={levels}
         levelsFailed={levelsFailed}
         retryLevels={retryLevels}
@@ -207,9 +209,11 @@ function PlaceCard({
           {/* Ce qu'il fait est dit par son état, juste au-dessus. */}
           <div className="grid gap-0.5">
             <FieldLabel htmlFor={`${id}-dans-app`}>{labels.inApp}</FieldLabel>
-            {kind === "chapter" && (
+            {kind !== "exercise" && (
               <FieldDescription className="text-xs">
-                {labels.chapterInAppHint}
+                {kind === "chapter"
+                  ? labels.chapterInAppHint
+                  : labels.lessonInAppHint}
               </FieldDescription>
             )}
           </div>
@@ -234,7 +238,10 @@ function PlaceCard({
   )
 }
 
-/** « Respirer en conscience › Chapitre 1 « Les bases » › Leçon 2 » : la place, en dernier. */
+/**
+ * « Respirer en conscience › Chapitre 1 « Les bases » › Leçon 2 » (et « › Exercice 1 » pour un
+ * exercice) : la place, en dernier.
+ */
 function PlacePath({
   methodTitle,
   place,
@@ -255,6 +262,18 @@ function PlacePath({
         place.chapter.title.trim() || untitled
       ),
       labels.place.lesson(place.lessonIndex + 1)
+    )
+  } else if (place?.kind === "exercise") {
+    steps.push(
+      labels.place.chapterOf(
+        place.chapterIndex + 1,
+        place.chapter.title.trim() || untitled
+      ),
+      labels.place.lessonOf(
+        place.lessonIndex + 1,
+        place.lesson.title.trim() || untitled
+      ),
+      labels.place.exercise(place.exerciseIndex + 1)
     )
   }
   return (
@@ -315,7 +334,7 @@ function Note({
 /**
  * Le niveau d'accès : celui de la méthode, en lecture (il se choisit dans son écran) ; pour une
  * leçon, « Leçon gratuite » juste dessous ; pour un chapitre, quand son introduction devient
- * gratuite ([D43]).
+ * gratuite ([D43]) ; pour un exercice, celui de sa leçon.
  */
 function AccessCard({
   kind,
@@ -323,6 +342,7 @@ function AccessCard({
   settings,
   onSettingsChange,
   method,
+  lesson,
   levels,
   levelsFailed,
   retryLevels,
@@ -332,6 +352,8 @@ function AccessCard({
   settings: ContentSettings
   onSettingsChange: (next: ContentSettings) => void
   method: ElementContext["method"] | undefined
+  // La leçon d'un exercice.
+  lesson: ElementContext["lesson"]
   levels: AccessLevel[] | undefined
   levelsFailed: boolean
   retryLevels: () => void
@@ -339,18 +361,24 @@ function AccessCard({
   const id = useId()
   const access = method?.access
   const needsLevels = access?.accessChosen && access.accessLevelId !== null
+  // Un exercice : « Comme sa leçon : … » ; sinon « Celui de la méthode : … ».
+  const ofLesson = kind === "exercise"
+  const levelName = (name: string) =>
+    ofLesson ? labels.access.lesson(name) : labels.access.method(name)
   const levelText = !access
     ? null
-    : !access.accessChosen
-      ? labels.access.notChosen
-      : access.accessLevelId === null
-        ? labels.access.method(texts.publication.settings.access.free)
-        : levels
-          ? labels.access.method(
-              levels.find((level) => level.id === access.accessLevelId)?.name ??
-                texts.publication.settings.access.deleted
-            )
-          : null
+    : ofLesson && lesson?.isFree
+      ? labels.access.lessonFree
+      : !access.accessChosen
+        ? labels.access.notChosen
+        : access.accessLevelId === null
+          ? levelName(texts.publication.settings.access.free)
+          : levels
+            ? levelName(
+                levels.find((level) => level.id === access.accessLevelId)
+                  ?.name ?? texts.publication.settings.access.deleted
+              )
+            : null
   return (
     <PanelCard
       id={`${id}-titre`}
@@ -392,7 +420,9 @@ function AccessCard({
         </Field>
       ) : (
         <p className="mt-1.5 text-xs text-muted-foreground">
-          {labels.access.chapterHint}
+          {kind === "chapter"
+            ? labels.access.chapterHint
+            : labels.access.exerciseHint}
         </p>
       )}
     </PanelCard>

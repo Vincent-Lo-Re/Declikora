@@ -14,6 +14,11 @@
 //    fois, une nouvelle version de la méthode (origin « outline »). Le chapitre restauré depuis la
 //    Corbeille revient en fin de liste, « Montrer dans l'app » décoché, sans rien republier.
 // 4. Un lien de l'Accueil ouvre l'éditeur d'une leçon.
+// 5. Les exercices (04/10/2026) : créés depuis le menu ⋯ d'une leçon, cachés de l'app à la
+//    création ; ceux qui sont cochés partent avec la méthode. Dans l'app, une leçon donne ses
+//    exercices (à montrer en bas), le plan leur nombre, et chacun a l'accès de sa leçon. Un
+//    exercice qui change de leçon prend l'accès de sa nouvelle leçon ; un exercice mis à la
+//    corbeille quitte l'app (nouvelle version de la méthode).
 
 import type { Page } from "@playwright/test"
 
@@ -57,8 +62,10 @@ async function saved(page: Page) {
   })
 }
 
-/** La ligne d'une leçon ou d'un chapitre du plan, par son titre. */
-function outlineRow(page: Page, kind: "chapter" | "lesson", title: string) {
+type ElementKind = "chapter" | "lesson" | "exercise"
+
+/** La ligne d'un élément du plan, par son titre. */
+function outlineRow(page: Page, kind: ElementKind, title: string) {
   return page
     .locator(`[data-outline-kind="${kind}"]`)
     .filter({ has: page.getByRole("link", { name: title, exact: true }) })
@@ -67,7 +74,7 @@ function outlineRow(page: Page, kind: "chapter" | "lesson", title: string) {
 /** L'identifiant d'un élément du plan, par son titre. */
 async function elementId(
   page: Page,
-  kind: "chapter" | "lesson",
+  kind: ElementKind,
   title: string
 ): Promise<string> {
   const id = await outlineRow(page, kind, title).getAttribute("data-outline-id")
@@ -154,8 +161,8 @@ async function addText(page: Page, text: string) {
   await saved(page)
 }
 
-/** La carte « Dans la méthode » d'un chapitre ou d'une leçon, en tête de la colonne de droite. */
-function elementCard(page: Page, kind: "chapter" | "lesson") {
+/** La carte « Dans la méthode » d'un élément, en tête de la colonne de droite. */
+function elementCard(page: Page, kind: ElementKind) {
   return page.locator(`[data-element-card="${kind}"]`)
 }
 
@@ -209,6 +216,39 @@ async function publish(
   await expect(dialog).toHaveCount(0)
 }
 
+/**
+ * « Nouvelle méthode » depuis la liste : sa fiche (titre, image de présentation envoyée depuis
+ * l'aperçu), puis son écran, avec la main. Donne son identifiant.
+ */
+async function createMethod(
+  page: Page,
+  title: string,
+  id: string
+): Promise<string> {
+  await createFromDialog(page, "method", title)
+  await expect(
+    page.getByRole("complementary", { name: outline.title })
+  ).toBeVisible()
+  const methodId = contentIdFromUrl(page.url())
+  await expect(page.getByLabel(editor.title.label)).toBeEditable()
+  await page.getByLabel(editor.title.label).fill(title)
+  await page
+    .locator('[data-presentation="cover"]')
+    .getByRole("button", { name: editor.presentation.cover.choose })
+    .click()
+  const picker = page.getByRole("dialog", { name: editor.picker.title })
+  await picker.getByLabel(editor.picker.uploadInput).setInputFiles([
+    {
+      name: `respirer-${id}.png`,
+      mimeType: "image/png",
+      buffer: photoPng(640, 400),
+    },
+  ])
+  await expect(picker).toHaveCount(0, { timeout: 60_000 })
+  await saved(page)
+  return methodId
+}
+
 /** Ouvre le menu d'un élément du plan et choisit une action (avec sa confirmation). */
 async function elementAction(
   page: Page,
@@ -244,27 +284,7 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
 
     // --- La fiche -----------------------------------------------------------------------
     await open(page, "/methodes", admin)
-    await createFromDialog(page, "method", title)
-    await expect(
-      page.getByRole("complementary", { name: outline.title })
-    ).toBeVisible()
-    const methodId = contentIdFromUrl(page.url())
-    await expect(page.getByLabel(editor.title.label)).toBeEditable()
-    await page.getByLabel(editor.title.label).fill(title)
-    await page
-      .locator('[data-presentation="cover"]')
-      .getByRole("button", { name: editor.presentation.cover.choose })
-      .click()
-    const picker = page.getByRole("dialog", { name: editor.picker.title })
-    await picker.getByLabel(editor.picker.uploadInput).setInputFiles([
-      {
-        name: `respirer-${id}.png`,
-        mimeType: "image/png",
-        buffer: photoPng(640, 400),
-      },
-    ])
-    await expect(picker).toHaveCount(0, { timeout: 60_000 })
-    await saved(page)
+    const methodId = await createMethod(page, title, id)
 
     // --- Le plan : deux chapitres, trois leçons, cachés de l'app à la création ------------
     await createElement(page, "chapter", breathe, outline.newChapter)
@@ -599,6 +619,158 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     await expect(page).toHaveURL(new RegExp(`/methodes/lecons/${ids.expirer}$`))
     await expect(elementCard(page, "lesson")).toBeVisible()
     await expect(page.getByLabel(editor.title.label)).toHaveValue("Expirer")
+  } finally {
+    await deleteAccessLevels(id)
+  }
+})
+
+/** Crée un exercice depuis le menu ⋯ d'une leçon (on reste sur le plan). */
+async function createExercise(page: Page, lessonLabel: string, title: string) {
+  await elementAction(page, lessonLabel, outline.newExercise)
+  const dialog = page.getByRole("dialog", { name: create.exerciseTitle })
+  await expect(dialog).toContainText(create.exerciseDescription(lessonLabel))
+  await dialog.getByLabel(create.name).fill(title)
+  await dialog.getByRole("button", { name: create.submit, exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(outlineRow(page, "exercise", title)).toBeVisible()
+}
+
+/** Les exercices d'une leçon dans l'app : « Titre » ou « Titre (réservé) », dans l'ordre. */
+async function appExercises(lessonId: string): Promise<string[]> {
+  const lesson = await appContent(lessonId)
+  return (lesson?.exercises ?? []).map(
+    (exercise) => `${exercise.title}${exercise.locked ? " (réservé)" : ""}`
+  )
+}
+
+test("Méthodes : les exercices d'une leçon, publiés avec la méthode, à l'accès de leur leçon", async ({
+  page,
+  team,
+}) => {
+  test.setTimeout(180_000)
+  const id = uniqueId()
+  const level = `Essentiel ${id}`
+  const title = `Exercices ${id}`
+  const chapter = `Respirer ${id}`
+  const admin = await team.createAdmin("Étienne Exercice")
+  await createAccessLevel(level)
+  try {
+    // --- Une méthode, un chapitre, deux leçons, trois exercices --------------------------
+    await open(page, "/methodes", admin)
+    const methodId = await createMethod(page, title, id)
+    await createElement(page, "chapter", chapter, outline.newChapter)
+    const chapterLabel = outline.chapterLabel(1, chapter)
+    for (const lesson of ["Le souffle", "Expirer"]) {
+      await createElement(
+        page,
+        "lesson",
+        lesson,
+        outline.newLessonIn(chapterLabel)
+      )
+    }
+    const souffleLabel = outline.lessonLabel(1, "Le souffle")
+    const expirerLabel = outline.lessonLabel(2, "Expirer")
+    await createExercise(page, souffleLabel, "Inspirer")
+    await createExercise(page, souffleLabel, "Compter")
+    await createExercise(page, expirerLabel, "Souffler")
+    const ids = {
+      souffle: await elementId(page, "lesson", "Le souffle"),
+      expirer: await elementId(page, "lesson", "Expirer"),
+      inspirer: await elementId(page, "exercise", "Inspirer"),
+      compter: await elementId(page, "exercise", "Compter"),
+      souffler: await elementId(page, "exercise", "Souffler"),
+    }
+    await expect(
+      outlineRow(page, "exercise", "Inspirer").locator("[data-element-state]")
+    ).toHaveAttribute("data-element-state", "hidden")
+
+    // Tout est montré, sauf « Compter » ; « Le souffle » est gratuite.
+    const inspirerLabel = outline.exerciseLabel(1, "Inspirer")
+    const soufflerLabel = outline.exerciseLabel(1, "Souffler")
+    await check(page, chapterLabel, outline.inAppFor(chapterLabel))
+    await check(page, souffleLabel, outline.inAppFor(souffleLabel))
+    await check(page, souffleLabel, outline.isFreeFor(souffleLabel))
+    await check(page, expirerLabel, outline.inAppFor(expirerLabel))
+    await check(page, inspirerLabel, outline.inAppFor(inspirerLabel))
+    await check(page, soufflerLabel, outline.inAppFor(soufflerLabel))
+
+    // --- L'éditeur d'un exercice : sa place, l'accès de sa leçon -------------------------
+    await plan(page)
+      .getByRole("link", { name: "Inspirer", exact: true })
+      .click()
+    await expect(page).toHaveURL(/\/methodes\/exercices\//)
+    await expect(elementCard(page, "exercise")).toContainText(
+      texts.methods.element.place.exercise(1)
+    )
+    await expect(page.locator("[data-element-access]")).toHaveText(
+      texts.methods.element.access.lessonFree
+    )
+    await addText(page, "Inspire en comptant jusqu'à quatre.")
+    await backToMethod(page, title)
+
+    // --- Publication : la méthode entre dans l'app avec ses exercices cochés -------------
+    await publish(page, changes.entry(1, 2, 2), level)
+    await expect(page.getByText(publication.published(1))).toBeVisible()
+    await expect
+      .poll(async () =>
+        (await appMethod(methodId))?.chapters[0]?.lessons.map(
+          (lesson) => `${lesson.title} : ${lesson.exerciseCount}`
+        )
+      )
+      .toEqual(["Le souffle : 1", "Expirer : 1"])
+    expect(await appExercises(ids.souffle)).toEqual(["Inspirer"])
+    // La leçon « Expirer » est réservée : son exercice aussi, même listé.
+    expect(await appExercises(ids.expirer)).toEqual(["Souffler (réservé)"])
+    const inspirer = await appContent(ids.inspirer)
+    expect(inspirer).toMatchObject({
+      kind: "exercise",
+      methodId,
+      lessonId: ids.souffle,
+      locked: false,
+      level: null,
+    })
+    expect(JSON.stringify(inspirer?.blocks)).toContain(
+      "Inspire en comptant jusqu'à quatre."
+    )
+    expect(await appContent(ids.souffler)).toMatchObject({
+      lessonId: ids.expirer,
+      locked: true,
+      blocks: null,
+    })
+    expect(await appContent(ids.compter)).toBeNull()
+
+    // --- « Souffler » monte dans « Le souffle » : il en prend l'accès à la publication -----
+    await elementAction(page, soufflerLabel, outline.moveUp)
+    await expect(
+      page
+        .locator(`[data-outline-id="${ids.souffle}"]`)
+        .locator('[data-outline-kind="exercise"]')
+    ).toHaveCount(3)
+    await publish(page, [
+      { id: methodId, change: "reordered", text: changes.method.reordered },
+    ])
+    await expect
+      .poll(() => appExercises(ids.souffle))
+      .toEqual(["Inspirer", "Souffler"])
+    expect(await appExercises(ids.expirer)).toEqual([])
+    expect(await appContent(ids.souffler)).toMatchObject({
+      lessonId: ids.souffle,
+      locked: false,
+    })
+
+    // --- « Inspirer » à la corbeille : il quitte l'app aussitôt ([D36]) ---------------------
+    const before = (await methodVersions(methodId)).length
+    await elementAction(
+      page,
+      outline.exerciseLabel(1, "Inspirer"),
+      outline.trash,
+      outline.confirmTrash.confirm
+    )
+    await expect.poll(() => appExercises(ids.souffle)).toEqual(["Souffler"])
+    const versions = await methodVersions(methodId)
+    expect(versions).toHaveLength(before + 1)
+    expect(versions.at(-1)?.origin).toBe("outline")
+    expect(await appContent(ids.inspirer)).toBeNull()
   } finally {
     await deleteAccessLevels(id)
   }

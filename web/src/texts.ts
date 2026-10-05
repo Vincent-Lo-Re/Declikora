@@ -707,6 +707,7 @@ export const texts = {
       method: "Méthode",
       chapter: "Chapitre",
       lesson: "Leçon",
+      exercise: "Exercice",
       page: "Page",
       template: "Modèle de bloc",
     },
@@ -1030,13 +1031,14 @@ export const texts = {
     outline: {
       title: "Plan de la méthode",
       description:
-        "Les chapitres et leurs leçons, dans l'ordre de l'app. Range-les par leur poignée : rien ne change dans l'app avant la publication de la méthode.",
+        "Les chapitres, leurs leçons et leurs exercices, dans l'ordre de l'app. Range-les par leur poignée : rien ne change dans l'app avant la publication de la méthode.",
       readOnly:
-        "Lecture seule : prends la main sur la méthode pour ranger le plan et y ajouter des chapitres ou des leçons.",
+        "Lecture seule : prends la main sur la méthode pour ranger le plan et y ajouter des chapitres, des leçons ou des exercices.",
       label: "Chapitres et leçons",
-      // « 2 chapitres · 5 leçons » : en tête du plan, sous le titre dans le téléphone.
-      count: (chapters: number, lessons: number) =>
-        `${chapters === 1 ? "1 chapitre" : `${chapters} chapitres`} · ${lessons === 1 ? "1 leçon" : `${lessons} leçons`}`,
+      // « 2 chapitres · 5 leçons » : en tête du plan, sous le titre dans le téléphone ; les
+      // exercices s'ajoutent s'il y en a (« · 3 exercices »).
+      count: (chapters: number, lessons: number, exercises = 0) =>
+        `${chapters === 1 ? "1 chapitre" : `${chapters} chapitres`} · ${lessons === 1 ? "1 leçon" : `${lessons} leçons`}${exercises === 0 ? "" : exercises === 1 ? " · 1 exercice" : ` · ${exercises} exercices`}`,
       empty:
         "Aucun chapitre pour l'instant : commence par « Nouveau chapitre », en bas. Chaque chapitre a sa propre introduction en blocs, affichée avant ses leçons.",
       newChapter: "Nouveau chapitre",
@@ -1044,14 +1046,23 @@ export const texts = {
       newLessonIn: (chapter: string) => `Nouvelle leçon dans ${chapter}`,
       noLessons:
         "Aucune leçon dans ce chapitre. Dépose une leçon ici, ou crée-la.",
+      newExercise: "Nouvel exercice",
+      noExercises: "Aucun exercice. Dépose un exercice ici.",
+      // La flèche d'une leçon qui a des exercices : « Replier les exercices de la leçon 2 « … » ».
+      fold: (label: string) => `Replier les exercices de ${label}`,
+      unfold: (label: string) => `Déplier les exercices de ${label}`,
+      exercisesOf: (label: string) => `Exercices de ${label}`,
       // Le numéro devant le titre, dans le plan : « 1 · Les bases », « 2 Respirer ».
       chapterNumber: (position: number) => `${position} ·`,
       lessonNumber: (position: number) => `${position}`,
+      exerciseNumber: (position: number) => `${position}`,
       // Nom complet d'un élément (boutons, annonces, cases à cocher).
       chapterLabel: (position: number, title: string) =>
         `le chapitre ${position} « ${title} »`,
       lessonLabel: (position: number, title: string) =>
         `la leçon ${position} « ${title} »`,
+      exerciseLabel: (position: number, title: string) =>
+        `l'exercice ${position} « ${title} »`,
       handle: (label: string) => `Déplacer : ${label}`,
       inApp: "Montrer dans l'app",
       inAppFor: (label: string) => `Montrer dans l'app : ${label}`,
@@ -1074,6 +1085,7 @@ export const texts = {
         withdrawn: "Plus dans l'app",
         hidden: "Pas dans l'app",
         blocked: "Pas dans l'app, comme son chapitre",
+        blockedLesson: "Pas dans l'app, comme sa leçon",
       },
       stateHints: {
         live: "Dans l'app, tel quel.",
@@ -1087,7 +1099,9 @@ export const texts = {
         hidden:
           "Coche « Montrer dans l'app » quand c'est prêt : ce sera dans l'app à la prochaine publication de la méthode.",
         blocked:
-          "Son chapitre n'est pas montré dans l'app : cette leçon ne part pas avec la méthode.",
+          "Son chapitre n'est pas montré dans l'app : rien de ce qu'il contient ne part avec la méthode.",
+        blockedLesson:
+          "Sa leçon n'est pas montrée dans l'app : cet exercice ne part pas avec la méthode.",
       },
       problem: "À corriger avant de publier",
       // Cases cochées depuis le plan : le réglage appartient à l'élément, sous son verrou.
@@ -1106,12 +1120,16 @@ export const texts = {
         `chapitre ${position} sur ${total}`,
       lessonPlace: (position: number, total: number, chapter: string) =>
         `leçon ${position} sur ${total}, dans ${chapter}`,
+      exercisePlace: (position: number, total: number, lesson: string) =>
+        `exercice ${position} sur ${total}, dans ${lesson}`,
       confirmUnpublish: {
         title: (label: string) => `Retirer ${label} de l'app ?`,
         chapter:
           "Le chapitre et ses leçons disparaissent de l'app tout de suite (une nouvelle version de la méthode est écrite). « Montrer dans l'app » est décoché : coche-le, puis publie la méthode, pour le remettre.",
         lesson:
-          "La leçon disparaît de l'app tout de suite (une nouvelle version de la méthode est écrite). « Montrer dans l'app » est décoché : coche-le, puis publie la méthode, pour la remettre.",
+          "La leçon et ses exercices disparaissent de l'app tout de suite (une nouvelle version de la méthode est écrite). « Montrer dans l'app » est décoché : coche-le, puis publie la méthode, pour la remettre.",
+        exercise:
+          "L'exercice disparaît de l'app tout de suite (une nouvelle version de la méthode est écrite). « Montrer dans l'app » est décoché : coche-le, puis publie la méthode, pour le remettre.",
         confirm: "Retirer de l'app",
       },
       unpublished: (label: string) => `Retiré de l'app : ${label}.`,
@@ -1120,7 +1138,9 @@ export const texts = {
         chapter:
           "Le chapitre et ses leçons vont dans la corbeille. S'ils sont en ligne, ils disparaissent aussi de l'app. Tu pourras les restaurer pendant 30 jours.",
         lesson:
-          "La leçon va dans la corbeille. Si elle est en ligne, elle disparaît aussi de l'app. Tu pourras la restaurer pendant 30 jours.",
+          "La leçon et ses exercices vont dans la corbeille. S'ils sont en ligne, ils disparaissent aussi de l'app. Tu pourras les restaurer pendant 30 jours.",
+        exercise:
+          "L'exercice va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app. Tu pourras le restaurer pendant 30 jours.",
         confirm: "Mettre à la corbeille",
       },
       trashed: (label: string) => `${upperFirst(label)} est dans la corbeille.`,
@@ -1135,12 +1155,15 @@ export const texts = {
     dnd: {
       roleDescription: "élément déplaçable",
       instructions:
-        "Pour déplacer un chapitre ou une leçon, appuie sur Espace ou Entrée sur sa poignée. Déplace-le avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour le déposer, ou sur Échap pour annuler. Une leçon peut changer de chapitre.",
+        "Pour déplacer un chapitre, une leçon ou un exercice, appuie sur Espace ou Entrée sur sa poignée. Déplace-le avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour le déposer, ou sur Échap pour annuler. Une leçon peut changer de chapitre, un exercice de leçon.",
       start: (label: string) => `Tu as pris ${label}.`,
       over: (label: string, target: string) =>
         `${upperFirst(label)} est sur ${target}.`,
       overChapter: (label: string, chapter: string) =>
         `${upperFirst(label)} est dans ${chapter}.`,
+      // Un exercice au-dessus d'une leçon sans exercice.
+      overLesson: (label: string, lesson: string) =>
+        `${upperFirst(label)} est dans ${lesson}.`,
       outside: (label: string) =>
         `${upperFirst(label)} n'est sur aucun emplacement.`,
       end: (label: string, place: string) => `Déposé : ${label}, ${place}.`,
@@ -1152,10 +1175,13 @@ export const texts = {
     create: {
       chapterTitle: "Nouveau chapitre",
       lessonTitle: "Nouvelle leçon",
+      exerciseTitle: "Nouvel exercice",
       chapterDescription:
         "Il arrive en fin de plan, caché de l'app : coche « Montrer dans l'app » quand il est prêt.",
       lessonDescription: (chapter: string) =>
         `Elle arrive en fin de liste, dans ${chapter}, cachée de l'app : coche « Montrer dans l'app » quand elle est prête.`,
+      exerciseDescription: (lesson: string) =>
+        `Il arrive en fin de liste, dans ${lesson}, caché de l'app : coche « Montrer dans l'app » quand il est prêt.`,
       name: "Titre",
       nameRequired: "Donne-lui un titre.",
       nameTooLong: "Le titre ne doit pas dépasser 200 caractères.",
@@ -1163,12 +1189,14 @@ export const texts = {
       blank: {
         chapter: "Chapitre vide",
         lesson: "Leçon vide",
+        exercise: "Exercice vide",
       },
       submit: "Créer",
       openAfter: "Créer et ouvrir",
       created: {
         chapter: (title: string) => `Chapitre « ${title} » créé.`,
         lesson: (title: string) => `Leçon « ${title} » créée.`,
+        exercise: (title: string) => `Exercice « ${title} » créé.`,
       },
       open: "Ouvrir",
       failed: "L'élément n'a pas pu être créé.",
@@ -1185,7 +1213,9 @@ export const texts = {
         chapter:
           "Ce chapitre part dans l'app avec sa méthode : publie la méthode depuis son écran. Son introduction est affichée avant ses leçons.",
         lesson:
-          "Cette leçon part dans l'app avec sa méthode : publie la méthode depuis son écran.",
+          "Cette leçon part dans l'app avec sa méthode : publie la méthode depuis son écran. Ses exercices sont montrés en bas, dans l'ordre du plan.",
+        exercise:
+          "Cet exercice part dans l'app avec sa méthode : publie la méthode depuis son écran. Il a son propre écran, ouvert depuis le bas de sa leçon.",
       },
       // Sa place : « Respirer en conscience › Chapitre 1 « Les bases » › Leçon 2 ».
       place: {
@@ -1194,11 +1224,16 @@ export const texts = {
         chapterOf: (position: number, title: string) =>
           `Chapitre ${position} « ${title} »`,
         lesson: (position: number) => `Leçon ${position}`,
+        lessonOf: (position: number, title: string) =>
+          `Leçon ${position} « ${title} »`,
+        exercise: (position: number) => `Exercice ${position}`,
       },
       // « Montrer dans l'app » et « Leçon gratuite » ([D29], [D43]) : partent avec le brouillon.
       inApp: "Montrer dans l'app",
       chapterInAppHint:
         "Ses leçons ne partent que si leur chapitre est montré.",
+      lessonInAppHint:
+        "Ses exercices ne partent que si leur leçon est montrée.",
       isFree: "Leçon gratuite",
       isFreeHint:
         "Lisible par tout le monde, même si la méthode est réservée. L'introduction de son chapitre devient gratuite elle aussi.",
@@ -1208,6 +1243,11 @@ export const texts = {
         notChosen: "Celui de la méthode, pas encore choisi",
         chapterHint:
           "Son introduction devient gratuite dès qu'une de ses leçons montrées dans l'app l'est.",
+        // Un exercice : l'accès de sa leçon.
+        lessonFree: "Comme sa leçon : gratuit",
+        lesson: (level: string) => `Comme sa leçon : ${level}`,
+        exerciseHint:
+          "Un exercice suit sa leçon : gratuit si elle est gratuite, sinon le niveau de la méthode. « Leçon gratuite » se règle dans la leçon.",
         change: "Le niveau d'accès se choisit dans l'écran de la méthode.",
       },
       openMethod: "Ouvrir la méthode",
@@ -1249,6 +1289,14 @@ export const texts = {
       chapter: (position: number, title: string) => `${position} · ${title}`,
       free: "Gratuite",
       locked: "Réservée",
+      lockedExercise: "Réservé",
+      // Le plan ne liste pas les exercices : il en donne le nombre (QCM du 04/10/2026).
+      exercises: (count: number) =>
+        count === 1 ? "1 exercice" : `${count} exercices`,
+      // En bas d'une leçon, comme dans l'app : ses exercices montrés.
+      lessonExercises: "Exercices",
+      lessonExercisesEmpty:
+        "Aucun exercice montré dans l'app pour l'instant. Ajoute-en depuis le plan de la méthode (menu ⋯ de la leçon).",
     },
     // Avant de publier ou de programmer une méthode : la liste de ce qui va changer ([D29]).
     changes: {
@@ -1267,20 +1315,24 @@ export const texts = {
       kinds: {
         chapter: "Chapitre",
         lesson: "Leçon",
+        exercise: "Exercice",
       },
       // « Leçon « Respirer » » : la sorte, puis le titre.
       row: (kind: string, title: string) => `${kind} « ${title} »`,
       // Tant que la méthode n'est pas dans l'app : un résumé au lieu d'une ligne par élément.
-      entry: (chapters: number, lessons: number) => {
+      entry: (chapters: number, lessons: number, exercises = 0) => {
         const counted = {
           chapters: chapters === 1 ? "1 chapitre" : `${chapters} chapitres`,
           lessons: lessons === 1 ? "1 leçon" : `${lessons} leçons`,
+          exercises: exercises === 1 ? "1 exercice" : `${exercises} exercices`,
         }
         if (chapters === 0)
           return "La méthode entre dans l'app, sans chapitre pour l'instant."
         if (lessons === 0)
           return `La méthode entre dans l'app avec ${counted.chapters}, sans leçon pour l'instant.`
-        return `La méthode entre dans l'app avec ${counted.chapters} et ${counted.lessons}.`
+        if (exercises === 0)
+          return `La méthode entre dans l'app avec ${counted.chapters} et ${counted.lessons}.`
+        return `La méthode entre dans l'app avec ${counted.chapters}, ${counted.lessons} et ${counted.exercises}.`
       },
       // Ensuite, les chapitres et les leçons par sorte de changement : « Modifications (12) ».
       groups: {
@@ -1293,6 +1345,8 @@ export const texts = {
       showAll: (count: number) => `Voir tout (${count})`,
       showLess: "Voir moins",
       inChapter: (title: string) => `dans « ${title} »`,
+      inLesson: (lesson: string, chapter: string) =>
+        `dans « ${lesson} », « ${chapter} »`,
       savedAt: (date: string) => `modifié le ${date}`,
       open: (label: string) => `Ouvrir ${label}`,
       blocked:
@@ -1411,6 +1465,7 @@ export const texts = {
       episode: "Radio Éclaircies (épisode)",
       chapter: "Méthodes (chapitre)",
       lesson: "Méthodes (leçon)",
+      exercise: "Méthodes (exercice)",
       page: "Pages",
     },
     list: {
@@ -1792,6 +1847,7 @@ export const texts = {
         method: "Méthode",
         chapter: "Chapitre et réglages du bloc",
         lesson: "Leçon et réglages du bloc",
+        exercise: "Exercice et réglages du bloc",
         template: "Modèle et réglages du bloc",
       },
       blocks: "Blocs",
@@ -1802,6 +1858,7 @@ export const texts = {
         method: "Méthode",
         chapter: "Chapitre",
         lesson: "Leçon",
+        exercise: "Exercice",
         template: "Modèle",
       },
     },
@@ -1863,6 +1920,8 @@ export const texts = {
             `Avec la formule ${level}, tu lis tout le chapitre.`,
           lesson: (level: string) =>
             `Avec la formule ${level}, tu lis toute la leçon.`,
+          exercise: (level: string) =>
+            `Avec la formule ${level}, tu fais tout l'exercice.`,
         },
         textUnknown: {
           article: "Avec la bonne formule, tu lis tout l'article.",
@@ -1870,6 +1929,7 @@ export const texts = {
           page: "Avec la bonne formule, tu lis toute la page.",
           chapter: "Avec la bonne formule, tu lis tout le chapitre.",
           lesson: "Avec la bonne formule, tu lis toute la leçon.",
+          exercise: "Avec la bonne formule, tu fais tout l'exercice.",
         },
         action: "Voir les formules",
       },
@@ -1945,6 +2005,7 @@ export const texts = {
           method: "Dans la liste des Méthodes",
           chapter: "Dans le plan de la méthode",
           lesson: "Dans le plan de la méthode",
+          exercise: "En bas de sa leçon",
         },
         choose: "Choisir",
         chooseLabel: "Choisir l'image de présentation",
@@ -1961,6 +2022,8 @@ export const texts = {
             "Image facultative : la vignette du chapitre dans le plan de la méthode, dans l'app, et en tête du chapitre. Elle reste publique.",
           lesson:
             "Image facultative : la vignette de la leçon dans le plan de la méthode, dans l'app, et en tête de la leçon. Elle reste publique.",
+          exercise:
+            "Image facultative : la vignette de l'exercice en bas de sa leçon, dans l'app, et en tête de l'exercice. Elle reste publique.",
         },
       },
       categories: {
@@ -2399,11 +2462,13 @@ export const texts = {
               ? "L'introduction du chapitre sera remplacée par cette version. Rien ne change dans l'app avant la prochaine publication de la méthode."
               : kind === "lesson"
                 ? "La leçon sera remplacée par cette version : son texte et « Leçon gratuite ». Rien ne change dans l'app avant la prochaine publication de la méthode."
-                : kind === "page"
-                  ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et son adresse. Rien ne change dans l'app avant la prochaine publication."
-                  : kind === "article" || kind === "episode"
-                    ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et ses catégories (une catégorie supprimée depuis ne revient pas). Rien ne change dans l'app avant la prochaine publication."
-                    : "Le brouillon sera remplacé par cette version : son texte et son niveau d'accès. Rien ne change dans l'app avant la prochaine publication.",
+                : kind === "exercise"
+                  ? "L'exercice sera remplacé par cette version : son texte. Rien ne change dans l'app avant la prochaine publication de la méthode."
+                  : kind === "page"
+                    ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et son adresse. Rien ne change dans l'app avant la prochaine publication."
+                    : kind === "article" || kind === "episode"
+                      ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et ses catégories (une catégorie supprimée depuis ne revient pas). Rien ne change dans l'app avant la prochaine publication."
+                      : "Le brouillon sera remplacé par cette version : son texte et son niveau d'accès. Rien ne change dans l'app avant la prochaine publication.",
         confirm: "Revenir à cette version",
       },
       needsLock:

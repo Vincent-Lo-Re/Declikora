@@ -9,6 +9,7 @@ import type {
   MethodTree,
   OutlineChapter,
   OutlineElement,
+  OutlineLesson,
   PreviewRow,
 } from "@/lib/contents/outline"
 import * as publicationApi from "@/lib/contents/publication"
@@ -161,7 +162,7 @@ function contentOf(
 
 function element(
   id: string,
-  kind: "chapter" | "lesson",
+  kind: OutlineElement["kind"],
   title: string,
   changes: Partial<OutlineElement> = {}
 ): OutlineElement {
@@ -180,11 +181,24 @@ function element(
   }
 }
 
+function lessonOf(
+  base: OutlineElement,
+  exercises: OutlineElement[] = []
+): OutlineLesson {
+  return { ...base, kind: "lesson", exercises }
+}
+
 function chapterOf(
   base: OutlineElement,
   lessons: OutlineElement[]
 ): OutlineChapter {
-  return { ...base, kind: "chapter", lessons }
+  return {
+    ...base,
+    kind: "chapter",
+    lessons: lessons.map((lesson) =>
+      "exercises" in lesson ? (lesson as OutlineLesson) : lessonOf(lesson)
+    ),
+  }
 }
 
 // « Les bases » (en ligne) : « Le souffle » (en ligne, gratuite), « Respiration carrée »
@@ -227,6 +241,8 @@ function previewRow(
     title,
     chapterId: null,
     chapterTitle: null,
+    lessonId: null,
+    lessonTitle: null,
     change,
     problem: null,
     problemDetail: null,
@@ -315,6 +331,7 @@ beforeEach(() => {
   vi.mocked(methodsApi.getElementContext).mockResolvedValue({
     method: methodOfElement,
     chapter: { id: BASES, title: "Les bases" },
+    lesson: null,
   })
   vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([
     { id: LEVEL, name: "Essentiel", rank: 1 },
@@ -1306,6 +1323,7 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
     vi.mocked(methodsApi.getElementContext).mockResolvedValue({
       method: methodOfElement,
       chapter: null,
+      lesson: null,
     })
     vi.mocked(api.getContent).mockImplementation(async (id) =>
       id === LOIN
@@ -1554,5 +1572,249 @@ describe("éditeur d'une leçon ou d'un chapitre (éditeur du Fil)", () => {
   it("une leçon ne s'ouvre pas à l'adresse d'un chapitre", async () => {
     renderApp(`/methodes/chapitres/${SOUFFLE}`)
     expect(await screen.findByText(texts.editor.notFound.title)).toBeVisible()
+  })
+})
+
+describe("les exercices d'une leçon (04/10/2026)", () => {
+  const INSPIRER = "00000000-0000-4000-8000-0000000000e4"
+  const RETENIR = "00000000-0000-4000-8000-0000000000e5"
+  const SOUFFLER = "00000000-0000-4000-8000-0000000000e6"
+  const words = texts.methods.element
+
+  // « Le souffle » : « Inspirer » (coché) et « Retenir » (décoché) ; « Expirer lentement » :
+  // « Souffler » (coché, mais son chapitre est caché).
+  const withExercises: MethodTree = [
+    chapterOf(tree[0], [
+      lessonOf(tree[0].lessons[0], [
+        element_(INSPIRER, "Inspirer", { inApp: true }),
+        element_(RETENIR, "Retenir"),
+      ]),
+      tree[0].lessons[1],
+    ]),
+    chapterOf(tree[1], [
+      lessonOf(tree[1].lessons[0], [
+        element_(SOUFFLER, "Souffler", { inApp: true }),
+      ]),
+    ]),
+  ]
+
+  function element_(
+    id: string,
+    title: string,
+    changes: Partial<OutlineElement> = {}
+  ): OutlineElement {
+    return element(id, "exercise", title, changes)
+  }
+
+  beforeEach(() => {
+    vi.mocked(methodsApi.getMethodTree).mockResolvedValue(withExercises)
+  })
+
+  it("le plan montre les exercices sous leur leçon ; une flèche les replie", async () => {
+    await openMethod()
+    const plan = await planColumn()
+    expect(plan).toHaveTextContent(outline.count(2, 3, 3))
+    expect(
+      within(plan).getByRole("link", { name: "Inspirer" })
+    ).toHaveAttribute("href", `/methodes/exercices/${INSPIRER}`)
+    expect(stateOf(INSPIRER)).toBe("new")
+    expect(stateOf(RETENIR)).toBe("hidden")
+    // Coché, mais son chapitre est caché : il ne part pas.
+    expect(stateOf(SOUFFLER)).toBe("blocked")
+    // Une leçon sans exercice n'a pas de flèche.
+    expect(
+      within(row(CARREE)).queryByRole("button", {
+        name: outline.fold(outline.lessonLabel(2, "Respiration carrée")),
+      })
+    ).toBeNull()
+
+    const lesson = outline.lessonLabel(1, "Le souffle")
+    const fold = within(plan).getByRole("button", {
+      name: outline.fold(lesson),
+    })
+    expect(fold).toHaveAttribute("aria-expanded", "true")
+    fireEvent.click(fold)
+    expect(within(plan).queryByRole("link", { name: "Inspirer" })).toBeNull()
+    const unfold = within(plan).getByRole("button", {
+      name: outline.unfold(lesson),
+    })
+    expect(unfold).toHaveAttribute("aria-expanded", "false")
+    fireEvent.click(unfold)
+    expect(
+      within(plan).getByRole("link", { name: "Inspirer" })
+    ).toBeInTheDocument()
+  })
+
+  it("« Nouvel exercice », dans le menu ⋯ d'une leçon, le crée dans cette leçon", async () => {
+    vi.mocked(templatesApi.listStarters).mockResolvedValue([])
+    vi.mocked(api.createContent).mockResolvedValue(
+      contentOf(NEW_ID, "exercise", "Compter", { parent_id: SOUFFLE })
+    )
+    await openMethod()
+    const lesson = outline.lessonLabel(1, "Le souffle")
+    fireEvent.click(
+      within(await planColumn()).getByRole("button", {
+        name: outline.actions(lesson),
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: outline.newExercise })
+    )
+    const dialog = await screen.findByRole("dialog", {
+      name: texts.methods.create.exerciseTitle,
+    })
+    expect(dialog).toHaveTextContent(
+      texts.methods.create.exerciseDescription(lesson)
+    )
+    fireEvent.change(within(dialog).getByLabelText(texts.methods.create.name), {
+      target: { value: "Compter" },
+    })
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: texts.methods.create.submit })
+    )
+    await waitFor(() =>
+      expect(api.createContent).toHaveBeenCalledWith(
+        "exercise",
+        "Compter",
+        null,
+        SOUFFLE
+      )
+    )
+    expect(templatesApi.listStarters).toHaveBeenCalledWith("exercise")
+    expect(
+      await screen.findByText(texts.methods.create.created.exercise("Compter"))
+    ).toBeInTheDocument()
+  })
+
+  it("« Descendre » : un exercice en fin de leçon passe en tête de la suivante, avec une annonce", async () => {
+    await openMethod()
+    const label = outline.exerciseLabel(2, "Retenir")
+    fireEvent.click(
+      within(await planColumn()).getByRole("button", {
+        name: outline.actions(label),
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: outline.moveDown })
+    )
+    const [souffle, carree] = withExercises[0].lessons
+    await waitFor(() =>
+      expect(methodsApi.reorderOutline).toHaveBeenCalledWith(
+        METHOD,
+        [
+          chapterOf(withExercises[0], [
+            lessonOf(souffle, [souffle.exercises[0]]),
+            lessonOf(carree, [souffle.exercises[1]]),
+          ]),
+          withExercises[1],
+        ],
+        expect.any(String)
+      )
+    )
+    expect(
+      screen.getByText(
+        outline.moved(
+          label,
+          outline.exercisePlace(
+            1,
+            1,
+            outline.lessonLabel(2, "Respiration carrée")
+          )
+        )
+      )
+    ).toBeInTheDocument()
+  })
+
+  it("le téléphone de la méthode donne le nombre d'exercices montrés d'une leçon, pas leur liste", async () => {
+    await openMethod()
+    const phone = screen.getByRole("region", {
+      name: texts.editor.preview.screen.ios,
+    })
+    expect(
+      within(phone).getByRole("link", { name: /Le souffle/ })
+    ).toHaveTextContent(texts.methods.preview.exercises(1))
+    expect(within(phone).queryByText("Inspirer")).toBeNull()
+    expect(within(phone).getByText(outline.count(1, 2, 1))).toBeVisible()
+  })
+
+  it("la liste des changements nomme la leçon et le chapitre d'un exercice", async () => {
+    vi.mocked(methodsApi.getMethodPreview).mockResolvedValue([
+      ...preview,
+      previewRow(INSPIRER, "exercise", "Inspirer", "new", {
+        chapterId: BASES,
+        chapterTitle: "Les bases",
+        lessonId: SOUFFLE,
+        lessonTitle: "Le souffle",
+      }),
+    ])
+    await openMethod()
+    const changesCard = within(
+      screen.getByRole("complementary", {
+        name: texts.editor.columns.right.method,
+      })
+    ).getByRole("region", { name: changes.cardTitle })
+    await waitFor(() =>
+      expect(
+        changesCard.querySelector(`[data-element-id="${INSPIRER}"]`)
+      ).toHaveTextContent(
+        `${changes.row(changes.kinds.exercise, "Inspirer")} ${changes.inLesson("Le souffle", "Les bases")}`
+      )
+    )
+  })
+
+  it("une leçon montre ses exercices en bas du téléphone, comme dans l'app", async () => {
+    renderApp(`/methodes/lecons/${SOUFFLE}`)
+    await editable()
+    const phone = screen.getByRole("region", {
+      name: texts.editor.preview.screen.ios,
+    })
+    const list = await within(phone).findByRole("region", {
+      name: texts.methods.preview.lessonExercises,
+    })
+    expect(
+      within(list).getByRole("link", { name: /Inspirer/ })
+    ).toHaveAttribute("href", `/methodes/exercices/${INSPIRER}`)
+    // Seulement les exercices montrés dans l'app.
+    expect(within(list).queryByText("Retenir")).toBeNull()
+  })
+
+  it("l'éditeur d'un exercice : sa place jusqu'à sa leçon, et l'accès de sa leçon", async () => {
+    vi.mocked(api.getContent).mockImplementation(async (id) =>
+      id === INSPIRER
+        ? contentOf(INSPIRER, "exercise", "Inspirer", {
+            parent_id: SOUFFLE,
+            in_app: true,
+          })
+        : null
+    )
+    vi.mocked(methodsApi.getElementContext).mockResolvedValue({
+      method: methodOfElement,
+      chapter: { id: BASES, title: "Les bases" },
+      lesson: { id: SOUFFLE, title: "Le souffle", isFree: true },
+    })
+    renderApp(`/methodes/exercices/${INSPIRER}`)
+    await editable()
+    expect(
+      await screen.findByRole("link", { name: words.back("Mieux respirer") })
+    ).toHaveAttribute("href", `/methodes/${METHOD}`)
+    const card = document.querySelector<HTMLElement>(
+      '[data-element-card="exercise"]'
+    )!
+    await waitFor(() =>
+      expect(card.querySelector("[data-element-place]")).toHaveTextContent(
+        `${words.place.label} : Mieux respirer, ${words.place.chapterOf(1, "Les bases")}, ${words.place.lessonOf(1, "Le souffle")}, ${words.place.exercise(1)}`
+      )
+    )
+    await waitFor(() =>
+      expect(card.querySelector("[data-element-state]")).toHaveAttribute(
+        "data-element-state",
+        "new"
+      )
+    )
+    // Sa leçon est gratuite : lui aussi ; pas de case « Gratuit » à lui.
+    expect(document.querySelector("[data-element-access]")).toHaveTextContent(
+      words.access.lessonFree
+    )
+    expect(screen.queryByLabelText(words.isFree)).toBeNull()
   })
 })
