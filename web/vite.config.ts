@@ -40,8 +40,11 @@ export default defineConfig({
     // Les tests de parcours (e2e/) tournent avec Playwright, pas avec Vitest.
     exclude: [...configDefaults.exclude, "e2e/**"],
     // Valeurs fictives : les tests remplacent les appels à Supabase, rien ne part sur le réseau.
+    // L'adresse vise un port fermé, jamais le Supabase local : une lecture qu'un test oublie de
+    // simuler échoue sur l'ordinateur comme dans les garde-fous (après les nouvelles tentatives
+    // de supabase-js, plusieurs secondes), au lieu de passer en local seulement.
     env: {
-      VITE_SUPABASE_URL: "http://127.0.0.1:54321",
+      VITE_SUPABASE_URL: "http://127.0.0.1:9",
       VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_tests",
     },
   },

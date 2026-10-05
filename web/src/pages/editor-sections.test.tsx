@@ -22,6 +22,8 @@ vi.mock("@/lib/contents/api", async (importOriginal) => {
     ...actual,
     getContent: vi.fn(),
     getMediaByIds: vi.fn(async () => []),
+    // La liste, au retour de l'éditeur.
+    listContents: vi.fn(async () => []),
     saveDraft: vi.fn(),
     lockTake: vi.fn(),
     lockStatus: vi.fn(),
@@ -49,6 +51,7 @@ vi.mock("@/lib/contents/templates", async (importOriginal) => {
     ...actual,
     getTemplatesByIds: vi.fn(async () => []),
     listTemplates: vi.fn(async () => []),
+    listStarters: vi.fn(async () => []),
   }
 })
 

@@ -1,9 +1,16 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import * as contentsApi from "@/lib/contents/api"
 import * as api from "@/lib/media/api"
 import { fakeAuth, renderApp } from "@/test/render"
 import { texts } from "@/texts"
+
+// « Ouvrir » un contenu restauré : son éditeur le lit.
+vi.mock("@/lib/contents/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof contentsApi>()
+  return { ...actual, getContent: vi.fn(async () => null) }
+})
 
 vi.mock("@/lib/media/api", async (importOriginal) => {
   const actual = await importOriginal<typeof api>()

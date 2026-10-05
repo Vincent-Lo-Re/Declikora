@@ -34,6 +34,7 @@ vi.mock("@/lib/contents/api", async (importOriginal) => ({
 vi.mock("@/lib/contents/templates", async (importOriginal) => ({
   ...(await importOriginal<typeof templatesApi>()),
   getTemplatesByIds: vi.fn(),
+  listStarters: vi.fn(async () => []),
   listTemplateUses: vi.fn(async () => []),
   getTemplateOutdated: vi.fn(async () => []),
 }))

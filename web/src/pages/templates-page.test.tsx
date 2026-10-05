@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Draft } from "@/blocks/types"
+import * as levelsApi from "@/lib/access-levels"
 import * as api from "@/lib/contents/api"
 import * as publicationApi from "@/lib/contents/publication"
 import * as templatesApi from "@/lib/contents/templates"
@@ -51,6 +52,12 @@ vi.mock("@/lib/contents/templates", async (importOriginal) => {
     createTemplate: vi.fn(),
     detachTemplateEverywhere: vi.fn(),
   }
+})
+
+// Les formules, lues par l'éditeur d'un modèle ou d'une page.
+vi.mock("@/lib/access-levels", async (importOriginal) => {
+  const actual = await importOriginal<typeof levelsApi>()
+  return { ...actual, listAccessLevels: vi.fn(async () => []) }
 })
 
 vi.mock("@/lib/media/api", async (importOriginal) => {
