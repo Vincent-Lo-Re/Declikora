@@ -42,6 +42,15 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {}
 }
 
+// jsdom ne connaît pas ResizeObserver, utilisé par la recherche de l'aide (Command de shadcn, cmdk).
+if (!window.ResizeObserver) {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+}
+
 // jsdom ne fait pas défiler la fenêtre (window.scrollTo n'y est qu'annoncé) : la position demandée
 // est retenue dans scrollY, pour vérifier qu'une liste retrouve sa place (useScrollMemory).
 window.scrollTo = ((first?: number | ScrollToOptions, second?: number) => {

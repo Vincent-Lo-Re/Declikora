@@ -75,9 +75,9 @@
   --ring: oklch(0.709 0.01 56.259);
   --radius: 0.625rem;
   /* Les pages avec le menu (ADMIN § 7, « Des panneaux gris sur fond blanc ») : la page est
-     blanche ; le menu est un panneau gris (bg-muted) et le contenu un panneau d'un gris plus
-     léger (--panel : muted à 50 %), sur lequel le gris d'une barre de progression reste visible ;
-     les cartes et l'élément choisi du menu sont blancs (--card). */
+     blanche ; le menu est un panneau toujours sombre (classe dark de Sidebar, comme la colonne de
+     gauche de la page du preset) et le contenu un panneau gris léger (--panel : muted à 50 %),
+     sur lequel le gris d'une barre de progression reste visible ; les cartes sont blanches. */
   --panel: color-mix(in oklab, var(--muted) 50%, transparent);
   --sidebar: var(--muted);
   --sidebar-foreground: oklch(0.147 0.004 49.25);
@@ -111,8 +111,9 @@
   --panel: color-mix(in oklab, var(--muted) 30%, var(--background));
   --sidebar: var(--panel);
   --sidebar-foreground: oklch(0.985 0.001 106.423);
-  --sidebar-accent: var(--card);
-  --sidebar-accent-foreground: var(--card-foreground);
+  /* Le menu est une carte sombre : l'élément choisi y prend le gris de muted. */
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.553 0.013 58.071);
 }
@@ -186,6 +187,10 @@
   --feed-footer-space: 0px;
   /* L'écart blanc autour du menu et du contenu (le preset de shadcn : 24 px). */
   --page-gap: --spacing(6);
+  /* Le header des pages avec le menu (ADMIN § 7) : sa hauteur et l'espace sous lui, comme sur la
+     page du preset de shadcn (64 px, puis 6 px avant les panneaux). */
+  --header-height: --spacing(16);
+  --header-gap: --spacing(1.5);
 }
 
 :root[data-upload-window] {

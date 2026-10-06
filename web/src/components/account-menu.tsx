@@ -1,9 +1,7 @@
-import { LogOut, Palette } from "lucide-react"
+import { LogOut } from "lucide-react"
 import { useNavigate } from "react-router"
 
 import { useAuth } from "@/auth/auth-context"
-import { isTheme, useTheme } from "@/components/theme/theme-context"
-import { themeOptions } from "@/components/theme/theme-options"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -11,35 +9,29 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { displayName, initial } from "@/lib/people"
-import { authPaths, sections } from "@/navigation"
+import { authPaths } from "@/navigation"
 import { texts } from "@/texts"
-
-const AccountIcon = sections.account.icon
 
 /**
  * Le membre, en bas du menu de gauche : son avatar (initiale du prénom), son nom et, dessous, son
- * rôle ; le tout ouvre son menu (nom et e-mail, « Mon compte », le thème et « Se déconnecter »).
+ * rôle ; le tout ouvre son menu (nom et e-mail, et « Se déconnecter » ; Mon compte et le thème sont
+ * dans le header).
  * L'avatar commence avec les icônes du menu (les marges d'une ligne du menu).
  */
 export function AccountMenu() {
   const { profile } = useAuth()
-  const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   if (!profile) return null
   const name = displayName(profile)
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left outline-none hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-sidebar-accent">
+      {/* Encadré comme les blocs de la colonne de gauche de la page du preset (ring-foreground/10). */}
+      <DropdownMenuTrigger className="flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-left ring-1 ring-foreground/10 outline-none hover:bg-muted focus-visible:ring-foreground/50 data-popup-open:bg-muted">
         {/*
           Le bouton se lit par ce qu'il montre, le nom puis le rôle, et ce qu'il fait ; pas
           l'initiale. Les espaces séparent ces mots à la lecture (une grille ou une rangée ne les
@@ -67,32 +59,6 @@ export function AccountMenu() {
             )}
           </DropdownMenuLabel>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => void navigate(sections.account.path)}>
-          <AccountIcon />
-          {texts.sections.account.title}
-        </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Palette />
-            {texts.theme.title}
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuRadioGroup
-              value={theme}
-              onValueChange={(value) => {
-                if (isTheme(value)) setTheme(value)
-              }}
-            >
-              {themeOptions.map(({ value, label, icon: Icon }) => (
-                <DropdownMenuRadioItem key={value} value={value}>
-                  <Icon />
-                  {label}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => void navigate(authPaths.signOut)}>
           <LogOut />

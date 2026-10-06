@@ -13,12 +13,6 @@ import {
   listContents,
   type ContentKind,
 } from "@/lib/contents/api"
-import {
-  homeKeys,
-  listFailedSchedules,
-  listMyRecentDrafts,
-  listScheduled,
-} from "@/lib/contents/home"
 import { getPublication } from "@/lib/contents/publication"
 import {
   getTemplateOutdated,
@@ -93,18 +87,6 @@ export const categoriesRead = (section: CategorySection) =>
     queryKey: categoryKeys.list(section),
     queryFn: () => listCategories(section),
   })
-
-export const homeDraftsRead = (userId: string) =>
-  queryOptions({
-    queryKey: homeKeys.drafts(userId),
-    queryFn: () => listMyRecentDrafts(userId),
-  })
-
-export const homeScheduledRead = () =>
-  queryOptions({ queryKey: homeKeys.scheduled, queryFn: listScheduled })
-
-export const homeFailedRead = () =>
-  queryOptions({ queryKey: homeKeys.failed, queryFn: listFailedSchedules })
 
 export const templateListRead = () =>
   queryOptions({ queryKey: templateKeys.list, queryFn: listTemplates })

@@ -39,7 +39,6 @@ export const texts = {
 
   nav: {
     label: "Menu principal",
-    footerLabel: "Équipe et Paramètres",
     groups: {
       contents: "Contenus",
       tools: "Outils",
@@ -52,7 +51,7 @@ export const texts = {
   sections: {
     home: {
       title: "Tableau de bord",
-      description: "Brouillons récents et publications programmées.",
+      description: "Bienvenue",
     },
     blog: {
       title: "Le Fil",
@@ -92,33 +91,6 @@ export const texts = {
       title: "Mon compte",
       description: "Ton profil, ta sécurité et tes préférences d'affichage.",
     },
-  },
-
-  // Accueil (étape 7) : ce qui attend l'équipe.
-  home: {
-    drafts: {
-      title: "Mes brouillons récents",
-      description: "Ce que tu as modifié en dernier.",
-      empty:
-        "Tu n'as encore rien écrit. Commence par un article, un épisode ou une page.",
-    },
-    scheduled: {
-      title: "Publications programmées",
-      description:
-        "Dans l'ordre où elles partiront dans l'app. Une programmation en attente part dès que la personne qui écrit a quitté l'éditeur.",
-      empty: "Aucune publication programmée.",
-      by: (name: string) => `programmée par ${name}`,
-    },
-    failed: {
-      title: "Programmations échouées",
-      description:
-        "Elles ne sont pas parties dans l'app. Ouvre le contenu pour le programmer de nouveau, ou pour effacer l'échec.",
-      empty: "Aucune programmation échouée.",
-      reason: (reason: string) => `Raison : ${reason}`,
-      by: (name: string) => `Programmée par ${name}.`,
-    },
-    savedAt: (date: string) => `Modifié le ${date}`,
-    loadFailed: "Cette liste n'a pas pu être chargée.",
   },
 
   // Connexion : e-mail, puis code reçu par e-mail, puis double vérification.
@@ -2159,12 +2131,41 @@ export const texts = {
     open: "Menu de ton compte",
   },
 
+  header: {
+    label: "Menu du haut",
+    website: "Site web",
+    newTab: "(nouvel onglet)",
+  },
+
+  help: {
+    search: "Rechercher dans l'aide",
+    shortcut: { apple: "⌘K", other: "Ctrl K" },
+    title: "Aide",
+    description:
+      "Cherche une fiche d'aide : ce que tu veux faire, en quelques mots.",
+    placeholder: "Que veux-tu faire ?",
+    empty: "Aucune fiche ne correspond. Essaie d'autres mots.",
+    steps: "Étapes",
+    notes: "À savoir",
+    themes: {
+      contenus: "Écrire",
+      publication: "Publier",
+      mediatheque: "Médiathèque",
+      modeles: "Modèles de bloc",
+      corbeille: "Corbeille",
+      equipe: "Équipe et compte",
+    },
+  },
+
   theme: {
     title: "Thème",
     description: "Clair, sombre ou automatique (comme l'ordinateur).",
     light: "Clair",
     dark: "Sombre",
     system: "Automatique",
+    // Le bouton du header : le thème choisi, et celui qui vient au clic.
+    switch: (current: string, next: string) =>
+      `Thème : ${current}. Passer en ${next.toLowerCase()}`,
   },
 
   smallScreen: {

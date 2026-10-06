@@ -18,7 +18,7 @@ import {
 } from "./support/mailpit.ts"
 import {
   accountMenuButton,
-  bottomMenu,
+  headerMenu,
   expect,
   signIn,
   signInWithEmailCode,
@@ -75,7 +75,7 @@ test("un admin invite un éditeur, qui rejoint l'équipe sans voir Équipe", asy
   await expect(
     editorPage.getByRole("heading", { name: texts.sections.home.title })
   ).toBeVisible()
-  const editorMenu = bottomMenu(editorPage)
+  const editorMenu = headerMenu(editorPage)
   await expect(accountMenuButton(editorPage)).toBeVisible()
   await expect(
     editorMenu.getByRole("link", { name: texts.sections.team.title })

@@ -180,6 +180,10 @@ async function pick(filter: string, option: string) {
   await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull())
 }
 
+// Ce qui défile dans les pages avec le menu : le contenu, dans son panneau.
+const pageScroll = () =>
+  document.querySelector<HTMLElement>("[data-page-scroll]")!
+
 describe("Blog", () => {
   it("liste les articles avec leurs catégories, dans l'ordre de la section", async () => {
     vi.mocked(api.listContents).mockResolvedValue(articles)
@@ -318,8 +322,9 @@ describe("Blog", () => {
     vi.mocked(api.lockStatus).mockResolvedValue(lockRow({ mine: true }))
     await renderApp("/blog?etat=en-ligne")
     const link = await screen.findByRole("link", { name: "Bien dormir en été" })
-    window.scrollTo(0, 420)
-    fireEvent.scroll(window)
+    // C'est le contenu qui défile, dans son panneau (le header et le menu restent en place).
+    pageScroll().scrollTop = 420
+    fireEvent.scroll(pageScroll())
 
     fireEvent.click(link)
     // Un éditeur ouvert en avançant commence en haut.
@@ -335,7 +340,7 @@ describe("Blog", () => {
     )
     await waitFor(() => expect(shownTitles()).toEqual(["Bien dormir en été"]))
     // Le filtre est gardé, la place retrouvée, et la ligne s'allume.
-    expect(window.scrollY).toBe(420)
+    expect(pageScroll().scrollTop).toBe(420)
     await waitFor(() =>
       expect(
         document.querySelector(`[data-content-row="${ARTICLE}"]`)
@@ -347,12 +352,12 @@ describe("Blog", () => {
     vi.mocked(api.listContents).mockResolvedValue(articles)
     await renderApp("/blog")
     await screen.findByRole("link", { name: "Bien dormir en été" })
-    window.scrollTo(0, 300)
-    fireEvent.scroll(window)
+    pageScroll().scrollTop = 300
+    fireEvent.scroll(pageScroll())
     fireEvent.click(
       screen.getByRole("link", { name: texts.sections.podcasts.title })
     )
-    await waitFor(() => expect(window.scrollY).toBe(0))
+    await waitFor(() => expect(pageScroll().scrollTop).toBe(0))
   })
 
   it("la liste reste à l'écran pendant que l'éditeur se prépare ; au bout de 2 s, il s'affiche avec ses lignes grises", async () => {

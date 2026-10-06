@@ -37,15 +37,18 @@ describe("menu", () => {
       "Corbeille",
     ])
 
-    const footer = screen.getByRole("navigation", {
-      name: texts.nav.footerLabel,
-    })
-    // « Mon compte » n'est plus dans le menu : il est dans celui de l'avatar, en haut.
+    // Le compte, l'équipe et les paramètres sont dans le header, après « Site web ».
+    const header = screen.getByRole("navigation", { name: texts.header.label })
     expect(
-      within(footer)
+      within(header)
         .getAllByRole("link")
         .map((link) => link.textContent)
-    ).toEqual(["Équipe", "Paramètres"])
+    ).toEqual([
+      `${texts.header.website} ${texts.header.newTab}`,
+      "Mon compte",
+      "Équipe",
+      "Paramètres",
+    ])
   })
 
   it("mène aux adresses en français", async () => {
@@ -148,10 +151,13 @@ describe("rôles", () => {
   it("cache Équipe et Paramètres dans le menu d'un éditeur", async () => {
     await renderApp("/", fakeAuth({ role: "editor" }))
 
-    // Plus rien en bas du menu : le bloc disparaît.
+    // Le header garde « Site web » et Mon compte.
+    const header = screen.getByRole("navigation", { name: texts.header.label })
     expect(
-      screen.queryByRole("navigation", { name: texts.nav.footerLabel })
-    ).toBeNull()
+      within(header)
+        .getAllByRole("link")
+        .map((link) => link.textContent)
+    ).toEqual([`${texts.header.website} ${texts.header.newTab}`, "Mon compte"])
     expect(screen.queryByRole("link", { name: "Équipe" })).toBeNull()
   })
 

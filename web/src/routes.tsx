@@ -11,7 +11,6 @@ import {
   prepareCategories,
   prepareContentList,
   prepareEditor,
-  prepareHome,
   prepareMedia,
   prepareSettings,
   prepareTeam,
@@ -154,7 +153,7 @@ export const routes: RouteObject[] = [
                     sections.home.path,
                     () => import("@/pages/home-page"),
                     (m) => <m.HomePage />,
-                    prepareHome
+                    null
                   ),
                   page(
                     sections.blog.path,

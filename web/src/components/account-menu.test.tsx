@@ -38,39 +38,23 @@ describe("menu de l'avatar", () => {
     expect(within(menu).getByText("anne@exemple.test")).toBeVisible()
   })
 
-  it("mène à Mon compte, et « Se déconnecter » ferme la session", async () => {
+  it("« Se déconnecter » ferme la session ; Mon compte et le thème sont dans le header", async () => {
     const { router } = await renderApp("/", fakeAuth({ role: "editor" }))
 
-    fireEvent.click(
-      within(await openMenu()).getByRole("menuitem", {
+    const menu = await openMenu()
+    expect(
+      within(menu).queryByRole("menuitem", {
         name: texts.sections.account.title,
       })
-    )
-    await waitFor(() =>
-      expect(router.state.location.pathname).toBe("/mon-compte")
-    )
-
+    ).toBeNull()
+    expect(
+      within(menu).queryByRole("menuitem", { name: texts.theme.title })
+    ).toBeNull()
     fireEvent.click(
-      within(await openMenu()).getByRole("menuitem", {
-        name: texts.common.signOut,
-      })
+      within(menu).getByRole("menuitem", { name: texts.common.signOut })
     )
     await waitFor(() =>
       expect(router.state.location.pathname).toBe("/deconnexion")
     )
-  })
-
-  it("change le thème", async () => {
-    await renderApp("/", fakeAuth({ role: "editor" }))
-
-    fireEvent.click(
-      within(await openMenu()).getByRole("menuitem", {
-        name: texts.theme.title,
-      })
-    )
-    fireEvent.click(
-      await screen.findByRole("menuitemradio", { name: texts.theme.dark })
-    )
-    await waitFor(() => expect(document.documentElement).toHaveClass("dark"))
   })
 })

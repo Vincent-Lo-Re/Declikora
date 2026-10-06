@@ -122,23 +122,20 @@ export async function verifySecondFactor(page: Page, account: Account) {
   )
 }
 
-/** Le menu du bas (Équipe et Paramètres, pour les admins). */
-export function bottomMenu(page: Page) {
-  return page.getByRole("navigation", { name: texts.nav.footerLabel })
+/** Le menu du header (Site web, Mon compte, et Équipe et Paramètres pour les admins). */
+export function headerMenu(page: Page) {
+  return page.getByRole("navigation", { name: texts.header.label })
 }
 
-/**
- * L'avatar en bas du menu de gauche, qui ouvre le menu du compte (Mon compte, thème, déconnexion).
- */
+/** L'avatar en bas du menu de gauche, qui ouvre le menu du compte (nom, e-mail, déconnexion). */
 export function accountMenuButton(page: Page) {
   return page.getByRole("button", { name: texts.accountMenu.open })
 }
 
-/** Ouvre « Mon compte » par le menu de l'avatar. */
+/** Ouvre « Mon compte » par le header. */
 export async function openAccountPage(page: Page) {
-  await accountMenuButton(page).click()
-  await page
-    .getByRole("menuitem", { name: texts.sections.account.title })
+  await headerMenu(page)
+    .getByRole("link", { name: texts.sections.account.title })
     .click()
   await expect(page).toHaveURL(/\/mon-compte$/)
 }

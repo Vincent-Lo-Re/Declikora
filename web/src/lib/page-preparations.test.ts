@@ -5,7 +5,6 @@ import type { Draft } from "@/blocks/types"
 import * as levelsApi from "@/lib/access-levels"
 import * as categoriesApi from "@/lib/categories"
 import * as api from "@/lib/contents/api"
-import * as homeApi from "@/lib/contents/home"
 import * as publicationApi from "@/lib/contents/publication"
 import * as templatesApi from "@/lib/contents/templates"
 import * as mediaApi from "@/lib/media/api"
@@ -13,7 +12,6 @@ import { PUBLIC_BUCKET, type Media } from "@/lib/media/constants"
 import {
   prepareContentList,
   prepareEditor,
-  prepareHome,
   prepareMedia,
   prepareTeam,
 } from "@/lib/page-preparations"
@@ -40,12 +38,6 @@ vi.mock("@/lib/contents/templates", async (importOriginal) => ({
 vi.mock("@/lib/contents/publication", async (importOriginal) => ({
   ...(await importOriginal<typeof publicationApi>()),
   getPublication: vi.fn(async () => null),
-}))
-vi.mock("@/lib/contents/home", async (importOriginal) => ({
-  ...(await importOriginal<typeof homeApi>()),
-  listMyRecentDrafts: vi.fn(),
-  listScheduled: vi.fn(async () => []),
-  listFailedSchedules: vi.fn(async () => []),
 }))
 vi.mock("@/lib/media/api", async (importOriginal) => ({
   ...(await importOriginal<typeof mediaApi>()),
@@ -256,18 +248,6 @@ describe("les listes", () => {
     expect(mediaApi.getMedia).toHaveBeenCalledWith(PHOTO)
     expect(mediaApi.getStorageUsed).toHaveBeenCalled()
     expect(mediaApi.getLatestAudit).toHaveBeenCalled()
-  })
-
-  it("l'Accueil : mes brouillons, les programmations et leurs échecs", async () => {
-    vi.mocked(homeApi.listMyRecentDrafts).mockResolvedValue([
-      { id: ARTICLE, kind: "article", live_draft_rev: 2 },
-    ] as homeApi.HomeItem[])
-
-    await prepareHome(args())
-
-    expect(homeApi.listMyRecentDrafts).toHaveBeenCalledWith(editor.id)
-    expect(homeApi.listScheduled).toHaveBeenCalled()
-    expect(homeApi.listFailedSchedules).toHaveBeenCalled()
   })
 
   it("l'Équipe n'est lue que pour un admin", async () => {
