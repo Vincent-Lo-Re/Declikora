@@ -59,7 +59,6 @@ import type { RefusedSlug } from "@/lib/contents/slug"
 import {
   contentProfile,
   isListedKind,
-  type ElementKind,
   type ListedKind,
   type PublishedKind,
 } from "@/lib/editor/profile"
@@ -94,10 +93,9 @@ const statTrigger =
   "flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
 /**
- * L'Article (l'Épisode, la Page, la Méthode), dans la colonne de droite de l'éditeur du Fil
- * (ADMIN § 4) : ce qui manque pour publier, la carte de la liste (image de présentation), l'audio
- * d'un épisode, l'adresse d'une page, le niveau d'accès et les catégories, puis ce qui est propre
- * à la sorte (children : « Ce qui changera dans l'app » d'une méthode). Tout part avec le
+ * L'Article (l'Épisode, la Page), dans la colonne de droite de l'éditeur du Fil (ADMIN § 4) :
+ * ce qui manque pour publier, la carte de la liste (image de présentation), l'audio d'un
+ * épisode, l'adresse d'une page, le niveau d'accès et les catégories. Tout part avec le
  * brouillon.
  */
 export function ArticlePanel({
@@ -122,7 +120,6 @@ export function ArticlePanel({
   onRemoveCover,
   onChooseAudio,
   onRemoveAudio,
-  children,
 }: {
   kind: PublishedKind
   contentId: string
@@ -150,7 +147,6 @@ export function ArticlePanel({
   onRemoveCover: () => void
   onChooseAudio: () => void
   onRemoveAudio: () => void
-  children?: ReactNode
 }) {
   // Une page n'est dans aucune liste de l'app : ni carte, ni image de présentation.
   const listed = isListedKind(kind) ? kind : null
@@ -227,7 +223,6 @@ export function ArticlePanel({
           }
         />
       )}
-      {children}
     </div>
   )
 }
@@ -244,7 +239,6 @@ type Measure = { Icon: LucideIcon; short: string; tip: string }
 export function ArticleFooter({
   stats,
   audio,
-  measure,
   savedAt,
   saveStatus,
   children,
@@ -252,8 +246,6 @@ export function ArticleFooter({
   stats: { words: number; minutes: number }
   // Un épisode : son audio, dont la durée remplace le temps de lecture.
   audio: BlockMedia | null
-  // À la place du temps de lecture (une méthode : la taille de son plan).
-  measure?: Measure
   savedAt: string | null
   // L'état de l'enregistrement, en icône (son infobulle dit l'état et l'heure).
   saveStatus: ReactNode
@@ -261,15 +253,13 @@ export function ArticleFooter({
 }) {
   const saved = savedAt ? formatShortDateTime(savedAt) : null
   const words = labels.stats.words(integer.format(stats.words))
-  const length: Measure =
-    measure ??
-    (audio
-      ? audioLength(audio, words)
-      : {
-          Icon: Clock,
-          short: labels.stats.short(stats.minutes, words),
-          tip: labels.stats.readingTip(stats.minutes, words),
-        })
+  const length: Measure = audio
+    ? audioLength(audio, words)
+    : {
+        Icon: Clock,
+        short: labels.stats.short(stats.minutes, words),
+        tip: labels.stats.readingTip(stats.minutes, words),
+      }
   return (
     // data-feed-footer : les messages passent au-dessus (index.css).
     <div
@@ -432,12 +422,11 @@ function ReadyCard({
 }
 
 /**
- * La carte du contenu dans la liste de sa section (le Fil, Radio Éclaircies), ou d'un chapitre ou
- * d'une leçon dans le plan de sa méthode : son image de présentation (la vignette, qui est aussi
- * en tête du contenu ; facultative pour un élément) et son titre. Pas de résumé (03/10/2026,
- * ADMIN § 4).
+ * La carte du contenu dans la liste de sa section (le Fil, Radio Éclaircies) : son image de
+ * présentation (la vignette, qui est aussi en tête du contenu) et son titre. Pas de résumé
+ * (03/10/2026, ADMIN § 4).
  */
-export function CoverCard({
+function CoverCard({
   kind,
   draft,
   editable,
@@ -445,7 +434,7 @@ export function CoverCard({
   onChooseCover,
   onRemoveCover,
 }: {
-  kind: ListedKind | ElementKind
+  kind: ListedKind
   draft: Draft
   editable: boolean
   cover: BlockMedia

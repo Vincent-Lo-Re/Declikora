@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maquette — page d'une méthode</title>
+<style>
+:root{--bg:#f6f6f7;--card:#fff;--line:#e4e4e7;--muted:#71717a;--text:#18181b;--accent:#f4f4f5;--primary:#18181b;--chap:#2563eb;--les:#0891b2;--ex:#d97706;--io:#7c3aed;--screen:#a21caf}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;color:var(--text);background:var(--bg);height:100vh;display:flex;flex-direction:column}
+.note{background:#fef3c7;border-bottom:1px solid #fde68a;padding:6px 16px;font-size:12px;color:#92400e}
+.app{flex:1;display:flex;min-height:0}
+aside{width:340px;background:var(--card);display:flex;flex-direction:column;min-height:0}
+aside.left{border-right:1px solid var(--line)}aside.right{border-left:1px solid var(--line)}
+.colhead{height:52px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--line);font-weight:600}
+.colhead .back{color:var(--muted);margin-right:4px}
+.scroll{flex:1;overflow:auto;padding:10px 12px}
+.foot{height:72px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 16px}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px}
+.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn.dashed{border-style:dashed;color:var(--muted);width:100%}
+.btn.small{padding:3px 8px;font-size:12px}
+/* plan */
+.row{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:7px;cursor:pointer;user-select:none}
+.row:hover{background:#fafafa}.row.current{background:var(--accent)}
+.row.drop-before{box-shadow:0 -2px 0 var(--primary) inset}
+.grip{color:#c4c4c8;cursor:grab;width:12px;font-size:11px}
+.ico{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;color:#fff;font-size:11px;flex:none}
+.ico.chapter{background:var(--chap)}.ico.lesson{background:var(--les)}.ico.exercise{background:var(--ex)}.ico.entree,.ico.sortie{background:var(--io)}
+.ico.page{background:#fff;border:1.5px solid #a1a1aa;color:#71717a}.ico.screen{background:#fff;border:1.5px solid var(--screen);color:var(--screen)}
+.ttl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ttl.part{font-weight:600}.ttl .num{color:var(--muted);font-weight:400;margin-right:4px}
+.ttl .excerpt{color:var(--muted)}
+.badge{font-size:10px;border-radius:999px;padding:1px 7px;border:1px solid var(--line);color:var(--muted);flex:none}
+.badge.ecrans{border-color:#f0abfc;color:var(--screen);background:#fdf4ff}
+.kids{margin-left:14px;border-left:1px solid var(--line);padding-left:6px}
+.add{position:relative;margin:3px 0 6px}
+.menu{position:absolute;z-index:20;left:0;top:100%;margin-top:4px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px #0002;padding:4px;min-width:230px}
+.menu button{display:flex;gap:8px;align-items:center;width:100%;border:0;background:none;padding:7px 8px;border-radius:6px;text-align:left}
+.menu button:hover{background:var(--accent)}
+.menu .sep{height:1px;background:var(--line);margin:4px}
+.menu small{color:var(--muted);display:block;font-size:11px}
+/* centre */
+main{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0;background-image:radial-gradient(#d4d4d8 1px,transparent 1px);background-size:16px 16px;padding:18px}
+.modes{display:flex;gap:4px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:3px;margin-bottom:12px}
+.modes button{border:0;background:none;padding:5px 12px;border-radius:7px}.modes button.on{background:var(--primary);color:#fff}
+.phone{width:375px;flex:1;max-height:760px;min-height:0;background:#111;border-radius:46px;padding:12px;display:flex}
+.screen-in{flex:1;background:#fff;border-radius:36px;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.status{height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 26px;font-size:13px;font-weight:600;flex:none}
+.appbar{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex:none}
+.appbar .arrow{font-size:22px;color:var(--text)}
+.dots{display:flex;gap:5px}.dots i{width:7px;height:7px;border-radius:50%;background:#d4d4d8}.dots i.on{background:var(--text)}
+.where{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:4px 22px 0;flex:none}
+.content{flex:1;overflow:auto;padding:10px 22px 16px}
+.blk{padding:6px 8px;margin:0 -8px 8px;border-radius:6px;outline:none;line-height:1.55;font-size:15px}
+.edit .blk:hover{background:#fafafa}.edit .blk:focus{box-shadow:0 0 0 2px #a1a1aa}
+.blk.img{height:150px;border-radius:12px;background:linear-gradient(135deg,#e0e7ff,#fce7f3);display:grid;place-items:center;color:var(--muted);font-size:13px}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:30px 0}
+.addblk{display:flex;gap:6px;margin-top:6px}
+.next{margin:0 22px 18px;padding:12px;border-radius:12px;background:var(--primary);color:#fff;text-align:center;font-weight:600;flex:none}
+.nav{display:flex;align-items:center;gap:12px;margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px 8px}
+.nav button{border:0;background:none;font-size:18px;padding:2px 8px}.nav button:disabled{opacity:.3}
+/* droite */
+.field{margin-bottom:16px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.field input[type=text]{width:100%;font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px}
+.card{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:13px}
+.switch{display:flex;align-items:center;gap:8px;margin:6px 0}
+.hint{color:var(--muted);font-size:12px;line-height:1.45}
+.fixed{display:inline-flex;gap:6px;align-items:center;font-size:12px;background:var(--accent);border-radius:7px;padding:4px 8px}
+/* Blocs (glissière par-dessus le plan) */
+aside.left{position:relative}
+.drawer{position:absolute;inset:0;background:var(--card);display:flex;flex-direction:column;z-index:30;animation:slide .15s ease-out}
+@keyframes slide{from{transform:translateX(-12px);opacity:.6}to{transform:none;opacity:1}}
+.drawer .colhead{justify-content:space-between}
+.drawer .close{border:0;background:none;font-size:18px;color:var(--muted)}
+.target{margin:12px;padding:8px 10px;border-radius:8px;background:#fdf4ff;color:var(--screen);font-size:12px}
+.lib{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 12px}
+.lib button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:14px 4px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:grab}
+.lib button:hover{background:#fafafa}
+.lib .big{font-size:20px}
+.mine{margin:12px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--muted)}
+.help{padding:0 12px 10px;color:var(--muted);font-size:12px;line-height:1.45}
+/* blocs dans le plan */
+.brow{display:flex;align-items:center;gap:6px;padding:3px 6px;margin-left:18px;border-radius:6px;font-size:13px;cursor:pointer}
+.brow:hover{background:#fafafa}.brow.sel{background:var(--accent);font-weight:500}
+.brow .bi{width:16px;color:var(--muted);text-align:center}
+.brow.drop-before{box-shadow:0 -2px 0 var(--primary) inset}
+.row.drop-into{background:#fdf4ff;box-shadow:0 0 0 1px #f0abfc inset}
+.planadd{margin:2px 0 6px 18px}
+/* blocs dans le téléphone */
+.edit .blk.sel{box-shadow:0 0 0 2px #52525b}
+.edit .blk[contenteditable]:empty:before{content:attr(data-placeholder);color:#a1a1aa}
+.locked{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:30px;text-align:center;color:var(--muted)}
+.locked b{color:var(--text);font-size:17px}
+.blk.box{background:#f4f4f5;padding:12px 14px;border-radius:12px}
+.edit .blk.drop-before{box-shadow:0 -3px 0 var(--primary)}
+.addbig{width:100%;border:1.5px dashed var(--line);background:none;border-radius:10px;padding:10px;color:var(--muted);margin-top:6px}
+.content.drop-end{box-shadow:inset 0 -3px 0 var(--primary)}
+.settings{position:absolute;top:52px;left:0;right:0;bottom:72px;background:var(--card);display:flex;flex-direction:column;z-index:5}
+.settings .bar{border-top:1px solid var(--line);padding:10px 16px;display:flex;gap:6px}
+aside.right{position:relative}
+</style>
+</head>
+<body>
+<div class="note">Maquette : rien n'est enregistré. Clique dans le plan, ajoute des parties (« + ») et des blocs (« Ajouter un bloc »), glisse les lignes pour les ranger, passe en Lecture.</div>
+<div class="app">
+  <aside class="left">
+    <div class="colhead"><span class="back">←</span>Plan de la méthode</div>
+    <div class="scroll" id="plan"></div>
+    <div class="foot" id="planFoot"></div>
+    <div id="drawer"></div>
+  </aside>
+  <main>
+    <div style="display:flex;gap:8px"><div class="modes"><button id="mEdit" class="on">Édition</button><button id="mRead">Lecture</button></div>
+    <div class="modes" id="readers"><button id="rSub" class="on">Abonné</button><button id="rFree">Sans la formule</button></div></div>
+    <div class="phone"><div class="screen-in" id="phone"></div></div>
+    <div class="nav"><button id="prev">‹</button><span id="pos"></span><button id="nextBtn">›</button></div>
+  </main>
+  <aside class="right">
+    <div class="colhead" id="rightHead"></div>
+    <div class="scroll" id="right"></div>
+    <div id="settings"></div>
+    <div class="foot"><span class="hint" style="flex:1">Brouillon</span><button class="btn primary">Publier</button></div>
+  </aside>
+</div>
+<script>
+let uid = 0
+const id = () => 'n' + (++uid)
+const text = t => ({ id: id(), type: 'text', text: t })
+const image = () => ({ id: id(), type: 'image' })
+const box = (t = '') => ({ id: id(), type: 'box', text: t })
+const page = (...blocks) => ({ id: id(), type: 'page', blocks })
+const scr = (...blocks) => ({ id: id(), type: 'screen', blocks })
+const free = (p) => Object.assign(p, { free: true })
+const part = (kind, sort, title, items) => ({ id: id(), type: 'part', kind, sort, title, items, inApp: true, free: false })
+
+const KIND = {
+  entree: { name: 'Entrée', short: 'E', child: null },
+  sortie: { name: 'Sortie', short: 'S', child: null },
+  chapter: { name: 'Chapitre', short: 'C', child: 'lesson' },
+  lesson: { name: 'Leçon', short: 'L', child: 'exercise' },
+  exercise: { name: 'Exercice', short: 'X', child: null },
+}
+
+// L'exemple : Mieux respirer
+const method = {
+  title: 'Mieux respirer',
+  entree: free(part('entree', 'ecrans', 'Entrée', [
+    scr(text('Bienvenue dans « Mieux respirer ».'), image()),
+    scr(text('Avant de commencer : installe-toi confortablement, au calme.')),
+  ])),
+  chapters: [
+    part('chapter', 'simple', 'Les bases', [
+      free(part('lesson', 'ecrans', 'Le souffle', [
+        scr(text('Le souffle part du ventre.'), image()),
+        part('exercise', 'simple', 'Inspirer', [page(text('Inspire par le nez pendant 4 secondes.'))]),
+        scr(text('Expirer deux fois plus longtemps que l\'on inspire.')),
+      ])),
+      page(text('Dans ce chapitre, trois façons simples de respirer mieux.'), image()),
+      part('lesson', 'simple', 'Le calme', [page(text('Le calme vient avec une respiration lente.'))]),
+    ]),
+    part('chapter', 'ecrans', 'Aller plus loin', [
+      scr(text('Maintenant que les bases sont là, allons plus loin.')),
+      part('lesson', 'simple', 'La cohérence cardiaque', [page(text('Six respirations par minute, pendant cinq minutes.'))]),
+    ]),
+  ],
+  sortie: part('sortie', 'simple', 'Sortie', [page(text('Bravo, tu as terminé la méthode !'))]),
+}
+
+let mode = 'edit'
+let reader = 'subscriber' // en Lecture : abonné, ou sans la formule (la méthode est réservée)
+let current = null // id d'une page ou d'un écran
+let selectedPart = null // id d'une partie (colonne de droite)
+let openMenu = null
+let dragged = null
+let libraryOpen = false
+let selectedBlock = null // id d'un bloc choisi
+let draggedBlock = null // un bloc du plan qu'on glisse
+let libraryDrag = null // un bloc des Blocs qu'on glisse dans le téléphone
+
+// --- Parcours -----------------------------------------------------------------
+function topParts() {
+  return [method.entree, ...method.chapters, method.sortie].filter(Boolean)
+}
+function find(targetId, list = topParts(), parent = null) {
+  for (const [index, node] of list.entries()) {
+    if (node.id === targetId) return { node, parent, index, list }
+    if (node.type === 'part') {
+      const found = find(targetId, node.items, node)
+      if (found) return found
+    }
+  }
+  return null
+}
+// La suite de lecture : chaque page et chaque écran, dans l'ordre du plan.
+function sequence() {
+  const out = []
+  const walk = (p) => {
+    for (const item of p.items) {
+      if (item.type === 'part') walk(item)
+      else out.push({ item, part: p })
+    }
+  }
+  topParts().forEach(walk)
+  return out
+}
+// Ce que lit quelqu'un sans la formule : une leçon gratuite (et ses exercices), une Entrée ou
+// une Sortie cochée « Gratuite » ; le reste devient un écran « Réservé aux abonnés », un seul
+// pour ce qui se suit.
+function isFree(p) {
+  if (p.kind === 'lesson' || p.kind === 'entree' || p.kind === 'sortie') return p.free
+  if (p.kind === 'exercise') return find(p.id).parent.free
+  return false
+}
+function readSequence() {
+  const all = sequence()
+  if (mode !== 'read' || reader !== 'visitor') return all
+  const out = []
+  for (const e of all) {
+    if (isFree(e.part)) { out.push(e); continue }
+    const last = out[out.length - 1]
+    if (last && last.locked) last.ids.push(e.item.id)
+    else out.push({ item: e.item, part: e.part, locked: true, ids: [e.item.id] })
+  }
+  return out
+}
+function indexIn(seq, itemId) {
+  return seq.findIndex((e) => e.item.id === itemId || (e.locked && e.ids.includes(itemId)))
+}
+function screenNumber(p, item) {
+  const screens = p.items.filter((i) => i.type === 'screen')
+  return screens.indexOf(item) + 1
+}
+function partNumber(p) {
+  const loc = find(p.id)
+  if (p.kind === 'chapter') return method.chapters.indexOf(p) + 1
+  if (!loc || !loc.parent) return null
+  return loc.parent.items.filter((i) => i.type === 'part' && i.kind === p.kind).indexOf(p) + 1
+}
+function firstLine(item) {
+  const t = item.blocks.find((b) => b.type === 'text' && b.text.trim())
+  if (!t) return item.blocks.length ? 'Image' : 'vide'
+  return t.text.length > 28 ? t.text.slice(0, 28) + '…' : t.text
+}
+function partOf(itemId) {
+  const s = sequence().find((e) => e.item.id === itemId)
+  return s ? s.part : null
+}
+
+// --- Plan ------------------------------------------------------------------------
+const plan = document.getElementById('plan')
+function renderPlan() {
+  plan.innerHTML = ''
+  const fiche = el('div', 'row' + (selectedPart === 'method' ? ' current' : ''))
+  fiche.innerHTML = '<span class="grip"></span><span class="ico" style="background:#18181b">Σ</span><span class="ttl part">' + esc(method.title) + '</span>'
+  fiche.onclick = () => { selectedPart = 'method'; render() }
+  plan.append(fiche)
+  if (!method.entree) plan.append(addButton('+ Ajouter une Entrée', [
+    ['Entrée simple', 'Une page de blocs.', () => createTop('entree', 'simple')],
+    ['Entrée à écrans', 'Plusieurs écrans.', () => createTop('entree', 'ecrans')],
+  ]))
+  else plan.append(renderPart(method.entree, expanded(method.entree)))
+  for (const c of method.chapters) plan.append(renderPart(c, expanded(c)))
+  plan.append(addButton('+ Nouveau chapitre', [
+    ['Chapitre simple', 'Une page de blocs, et des leçons.', () => createChapter('simple')],
+    ['Chapitre à écrans', 'Des écrans, et des leçons.', () => createChapter('ecrans')],
+  ]))
+  if (!method.sortie) plan.append(addButton('+ Ajouter une Sortie', [
+    ['Sortie simple', 'Une page de blocs.', () => createTop('sortie', 'simple')],
+    ['Sortie à écrans', 'Plusieurs écrans.', () => createTop('sortie', 'ecrans')],
+  ]))
+  else plan.append(renderPart(method.sortie, expanded(method.sortie)))
+}
+// La partie du haut (Entrée, chapitre, Sortie) qui contient un élément.
+function topOf(nodeId) {
+  for (const t of topParts()) if (t.id === nodeId || find(nodeId, t.items)) return t
+  // Un bloc : la partie du haut de sa page ou de son écran.
+  const inBlock = findBlock(nodeId)
+  return inBlock ? topOf(inBlock.item.id) : null
+}
+// Seule la partie en cours est dépliée : celle de l'écran affiché, de la partie ou du bloc choisi.
+function expanded(t) {
+  const ids = [current, selectedPart, selectedBlock]
+  return ids.some((x) => x && x !== 'method' && topOf(x) === t)
+}
+function renderPart(p, open = true) {
+  const box = el('div')
+  const row = el('div', 'row' + (selectedPart === p.id ? ' current' : ''))
+  const n = partNumber(p)
+  const top = p.kind === 'chapter' || p.kind === 'entree' || p.kind === 'sortie'
+  row.innerHTML = '<span class="grip">' + (top ? (open ? '▾' : '▸') : '⋮⋮') + '</span><span class="ico ' + p.kind + '">' + KIND[p.kind].short + '</span>' +
+    '<span class="ttl part">' + (n ? '<span class="num">' + n + '</span>' : '') + esc(p.title || 'Sans titre') + '</span>' +
+    '<span class="badge ' + (p.sort === 'ecrans' ? 'ecrans' : '') + '">' + (p.sort === 'ecrans' ? 'à écrans' : 'simple') + '</span>'
+  row.onclick = () => {
+    selectedPart = p.id
+    selectedBlock = null
+    // Le premier écran (ou la première page) de la partie, dans l'ordre de lecture.
+    const first = sequence().find((e) => e.part === p || find(e.item.id, p.items))
+    if (first) current = first.item.id
+    render()
+  }
+  dropTarget(row, p)
+  box.append(row)
+  if (!open) return box
+  const kids = el('div', 'kids')
+  for (const item of p.items) {
+    if (item.type === 'part') kids.append(renderPart(item))
+    else {
+      const r = el('div', 'row' + (current === item.id ? ' current' : ''))
+      const label = item.type === 'page' ? 'Page' : 'Écran ' + screenNumber(p, item)
+      r.innerHTML = '<span class="grip">⋮⋮</span><span class="ico ' + item.type + '">' + (item.type === 'page' ? '▤' : '▯') + '</span>' +
+        '<span class="ttl">' + label + ' <span class="excerpt">· ' + esc(firstLine(item)) + '</span></span>'
+      r.onclick = () => { current = item.id; selectedPart = p.id; selectedBlock = null; render() }
+      dropTarget(r, item)
+      blockDropInto(r, item, p)
+      kids.append(r)
+      // L'écran (ou la page) affiché déplie ses blocs dessous.
+      if (current === item.id) {
+        for (const b of item.blocks) kids.append(blockRow(b, item, p))
+        const add = el('div', 'planadd')
+        const ab = el('button', 'btn dashed small'); ab.textContent = '+ Ajouter un bloc'
+        ab.onclick = (e) => { e.stopPropagation(); openLibrary() }
+        add.append(ab)
+        kids.append(add)
+      }
+    }
+  }
+  const choices = []
+  if (p.sort === 'ecrans') choices.push(['Écran', 'Un nouvel écran, à la fin.', () => addScreen(p)])
+  const child = KIND[p.kind].child
+  if (child) {
+    if (choices.length) choices.push('sep')
+    const name = KIND[child].name
+    choices.push([name + ' simple', 'Une page de blocs.', () => addChild(p, child, 'simple')])
+    choices.push([name + ' à écrans', 'Plusieurs écrans.', () => addChild(p, child, 'ecrans')])
+  }
+  if (choices.length) kids.append(addButton('+ Ajouter dans « ' + (p.title || KIND[p.kind].name) + ' »', choices, true))
+  box.append(kids)
+  return box
+}
+function addButton(label, choices, small) {
+  const wrap = el('div', 'add')
+  const b = el('button', 'btn dashed' + (small ? ' small' : ''))
+  b.textContent = label
+  b.onclick = (e) => { e.stopPropagation(); openMenu = openMenu === wrap ? null : wrap; renderMenus() }
+  wrap.append(b)
+  wrap._choices = choices
+  return wrap
+}
+function renderMenus() {
+  document.querySelectorAll('.menu').forEach((m) => m.remove())
+  if (!openMenu || !document.body.contains(openMenu)) return
+  const m = el('div', 'menu')
+  for (const c of openMenu._choices) {
+    if (c === 'sep') { m.append(el('div', 'sep')); continue }
+    const b = el('button')
+    b.innerHTML = '<span><b>' + c[0] + '</b><small>' + c[1] + '</small></span>'
+    b.onclick = (e) => { e.stopPropagation(); openMenu = null; c[2](); }
+    m.append(b)
+  }
+  openMenu.append(m)
+}
+document.addEventListener('click', () => { if (openMenu) { openMenu = null; renderMenus() } })
+
+// Ranger : tout se déplace, mais seulement dans son chapitre (ou son Entrée, sa Sortie). Les
+// chapitres se rangent entre eux. Une ligne lâchée sur une autre se place avant elle ; lâchée sur
+// une partie qui peut la recevoir (un exercice sur une leçon, un écran sur une partie à écrans),
+// elle va à sa fin.
+function isInside(a, b) { return a === b || (b.type === 'part' && !!find(a.id, b.items)) }
+function accepts(parent, node) {
+  if (node.type === 'screen') return parent.sort === 'ecrans'
+  if (node.type === 'part') return KIND[parent.kind].child === node.kind
+  return false // une page reste dans sa partie (une partie simple a une seule page)
+}
+function canDropBefore(node, target) {
+  if (!node || node === target) return false
+  if (node.kind === 'chapter') return target.kind === 'chapter'
+  if (node.kind === 'entree' || node.kind === 'sortie' || target.kind === 'entree' || target.kind === 'sortie' || target.kind === 'chapter') return false
+  if (topOf(node.id) !== topOf(target.id)) return false
+  const a = find(node.id), b = find(target.id)
+  if (a.list === b.list) return true
+  if (node.kind === 'lesson') return false
+  return !!b.parent && accepts(b.parent, node) && !isInside(target, node)
+}
+function canDropInto(node, part) {
+  if (!node || part.type !== 'part' || node.kind === 'chapter' || node.kind === 'lesson' && part.kind !== 'chapter') return false
+  if (node.type === 'page') return false
+  if (topOf(node.id) !== topOf(part.id)) return false
+  if (find(node.id).parent === part) return false
+  return accepts(part, node) && !isInside(part, node)
+}
+function listOf(node) {
+  if (node.kind === 'chapter') return method.chapters
+  return find(node.id).list
+}
+function dropTarget(row, node) {
+  if (node.kind !== 'entree' && node.kind !== 'sortie') {
+    row.draggable = true
+    row.ondragstart = (e) => { dragged = node; draggedBlock = null; e.dataTransfer.effectAllowed = 'move'; e.stopPropagation() }
+  }
+  row.addEventListener('dragover', (e) => {
+    if (!dragged) return
+    const before = canDropBefore(dragged, node)
+    if (!before && !canDropInto(dragged, node)) return
+    e.preventDefault(); e.stopPropagation()
+    row.classList.toggle('drop-before', before)
+    row.classList.toggle('drop-into', !before)
+  })
+  row.addEventListener('dragleave', () => row.classList.remove('drop-before', 'drop-into'))
+  row.addEventListener('drop', (e) => {
+    if (!dragged) return
+    e.preventDefault(); e.stopPropagation(); row.classList.remove('drop-before', 'drop-into')
+    const moving = dragged
+    dragged = null
+    const from = listOf(moving)
+    if (canDropBefore(moving, node)) {
+      const to = listOf(node)
+      from.splice(from.indexOf(moving), 1)
+      to.splice(to.indexOf(node), 0, moving)
+    } else if (canDropInto(moving, node)) {
+      from.splice(from.indexOf(moving), 1)
+      node.items.push(moving)
+    } else return
+    render()
+  })
+}
+
+// --- Les blocs ------------------------------------------------------------------
+const BLOCK = {
+  text: { icon: 'T', name: 'Texte' },
+  image: { icon: '▣', name: 'Image' },
+  box: { icon: '◻', name: 'Section' },
+}
+function blockLabel(b) {
+  if (b.type === 'image') return 'Image'
+  const t = (b.text || '').trim()
+  if (!t) return b.type === 'box' ? 'Section vide' : 'Texte vide'
+  return (b.type === 'box' ? 'Section · ' : '') + (t.length > 30 ? t.slice(0, 30) + '…' : t)
+}
+function findBlock(blockId) {
+  for (const { item, part: p } of sequence()) {
+    const index = item.blocks.findIndex((b) => b.id === blockId)
+    if (index >= 0) return { item, part: p, index, block: item.blocks[index] }
+  }
+  return null
+}
+function blockRow(b, item, p) {
+  const r = el('div', 'brow' + (selectedBlock === b.id ? ' sel' : ''))
+  r.innerHTML = '<span class="grip">⋮⋮</span><span class="bi">' + BLOCK[b.type].icon + '</span><span class="ttl">' + esc(blockLabel(b)) + '</span>'
+  r.onclick = (e) => { e.stopPropagation(); selectBlock(b.id) }
+  r.draggable = true
+  r.ondragstart = (e) => { draggedBlock = b; dragged = null; e.dataTransfer.effectAllowed = 'move'; e.stopPropagation() }
+  r.ondragend = () => { draggedBlock = null }
+  r.ondragover = (e) => {
+    if (!draggedBlock || draggedBlock === b || topOf(draggedBlock.id) !== topOf(b.id)) return
+    e.preventDefault(); e.stopPropagation(); r.classList.add('drop-before')
+  }
+  r.ondragleave = () => r.classList.remove('drop-before')
+  r.ondrop = (e) => {
+    e.preventDefault(); e.stopPropagation(); r.classList.remove('drop-before')
+    moveBlock(draggedBlock, item, item.blocks.indexOf(b))
+  }
+  return r
+}
+// Un bloc glissé sur la ligne d'un autre écran de la même partie : il passe à la fin de cet écran.
+function blockDropInto(row, item, p) {
+  row.addEventListener('dragover', (e) => {
+    if (!draggedBlock || topOf(draggedBlock.id) !== topOf(item.id) || findBlock(draggedBlock.id)?.item === item) return
+    e.preventDefault(); e.stopPropagation(); row.classList.add('drop-into')
+  })
+  row.addEventListener('dragleave', () => row.classList.remove('drop-into'))
+  row.addEventListener('drop', (e) => {
+    if (!draggedBlock) return
+    e.preventDefault(); e.stopPropagation(); row.classList.remove('drop-into')
+    moveBlock(draggedBlock, item, item.blocks.length)
+  })
+}
+function moveBlock(b, toItem, toIndex) {
+  const from = findBlock(b.id)
+  if (!from) return
+  from.item.blocks.splice(from.index, 1)
+  if (from.item === toItem && from.index < toIndex) toIndex -= 1
+  toItem.blocks.splice(toIndex, 0, b)
+  draggedBlock = null
+  current = toItem.id
+  selectedBlock = b.id
+  render()
+}
+function selectBlock(blockId) {
+  const found = findBlock(blockId)
+  if (!found) return
+  selectedBlock = blockId
+  current = found.item.id
+  selectedPart = found.part.id
+  render()
+}
+function currentItem() {
+  return sequence().find((e) => e.item.id === current)?.item ?? null
+}
+// Les Blocs ajoutent sous le bloc choisi, sinon à la fin de l'écran affiché.
+function addBlock(type, at) {
+  const item = currentItem()
+  if (!item) return
+  const b = type === 'text' ? text('') : type === 'image' ? image() : box('')
+  let index = item.blocks.length
+  if (at !== undefined) index = at
+  else if (selectedBlock) {
+    const i = item.blocks.findIndex((x) => x.id === selectedBlock)
+    if (i >= 0) index = i + 1
+  }
+  item.blocks.splice(index, 0, b)
+  selectedBlock = b.id
+  mode = 'edit'
+  render()
+  if (type !== 'image') setTimeout(() => phone.querySelector('.blk.sel')?.focus(), 0)
+}
+function openLibrary() { libraryOpen = true; mode = 'edit'; render() }
+function renderDrawer() {
+  const d = document.getElementById('drawer')
+  d.innerHTML = ''
+  if (!libraryOpen) return
+  const seqEntry = sequence().find((e) => e.item.id === current)
+  const drawer = el('div', 'drawer')
+  const head = el('div', 'colhead')
+  head.innerHTML = '<span>Blocs</span>'
+  const close = el('button', 'close'); close.textContent = '×'; close.title = 'Fermer les blocs'
+  close.onclick = () => { libraryOpen = false; render() }
+  head.append(close)
+  drawer.append(head)
+  if (seqEntry) {
+    const p = seqEntry.part
+    const n = partNumber(p)
+    const target = el('div', 'target')
+    target.textContent = 'Ajout dans : ' + KIND[p.kind].name + (n ? ' ' + n : '') + (p.title && p.kind !== 'entree' && p.kind !== 'sortie' ? ' « ' + p.title + ' »' : '') + ' › ' + (seqEntry.item.type === 'page' ? 'page' : 'écran ' + screenNumber(p, seqEntry.item))
+    drawer.append(target)
+  }
+  const help = el('div', 'help')
+  help.textContent = 'Clique sur un bloc pour l\'ajouter sous le bloc choisi (ou à la fin de l\'écran), ou glisse-le dans le téléphone.'
+  drawer.append(help)
+  const lib = el('div', 'lib')
+  for (const type of ['text', 'image', 'box']) {
+    const b = el('button')
+    b.innerHTML = '<span class="big">' + BLOCK[type].icon + '</span>' + BLOCK[type].name
+    b.onclick = () => addBlock(type)
+    b.draggable = true
+    b.ondragstart = (e) => { libraryDrag = type; e.dataTransfer.effectAllowed = 'copy' }
+    b.ondragend = () => { libraryDrag = null; phone.querySelectorAll('.drop-before,.drop-end').forEach((x) => x.classList.remove('drop-before', 'drop-end')) }
+    lib.append(b)
+  }
+  drawer.append(lib)
+  const mine = el('div', 'mine'); mine.innerHTML = '<b>Mes blocs</b> ›<br><small>Les blocs que tu as enregistrés.</small>'
+  drawer.append(mine)
+  d.append(drawer)
+}
+
+// --- Créer -------------------------------------------------------------------------
+function fresh(kind, sort) {
+  const title = kind === 'entree' ? 'Entrée' : kind === 'sortie' ? 'Sortie' : ''
+  const p = part(kind, sort, title, [sort === 'ecrans' ? scr() : page()])
+  return p
+}
+function select(p) {
+  selectedPart = p.id
+  current = p.items.find((i) => i.type !== 'part')?.id ?? current
+  render()
+  setTimeout(() => document.getElementById('titleInput')?.focus(), 0)
+}
+function createTop(kind, sort) { const p = fresh(kind, sort); method[kind] = p; select(p) }
+function createChapter(sort) { const p = fresh('chapter', sort); method.chapters.push(p); select(p) }
+function addChild(parent, kind, sort) { const p = fresh(kind, sort); parent.items.push(p); select(p) }
+function addScreen(p) { const s = scr(); p.items.push(s); current = s.id; selectedPart = p.id; render() }
+
+// --- Téléphone ------------------------------------------------------------------
+const phone = document.getElementById('phone')
+function renderPhone() {
+  const seq = readSequence()
+  document.getElementById('readers').style.visibility = mode === 'read' ? 'visible' : 'hidden'
+  document.getElementById('rSub').classList.toggle('on', reader === 'subscriber')
+  document.getElementById('rFree').classList.toggle('on', reader === 'visitor')
+  let i = indexIn(seq, current)
+  if (i < 0 && seq.length) { i = 0; current = seq[0].item.id }
+  phone.className = 'screen-in ' + (mode === 'edit' ? 'edit' : 'read')
+  phone.innerHTML = '<div class="status"><span>9:41</span><span>●●● ▮</span></div>'
+  if (!seq.length) { phone.innerHTML += '<div class="empty">Rien à lire pour l\'instant.</div>'; return }
+  const { item, part: p } = seq[i]
+  if (seq[i].locked) {
+    phone.innerHTML += '<div class="appbar"><span class="arrow">‹</span><span></span></div><div class="locked"><b>Réservé aux abonnés</b><span>Cette partie demande la formule Essentiel.</span><span class="btn">S\'abonner</span></div>'
+    if (i < seq.length - 1) { const nx = el('div', 'next'); nx.textContent = 'Suivant'; nx.style.cursor = 'pointer'; nx.onclick = () => go(1); phone.append(nx) }
+    document.getElementById('pos').textContent = (i + 1) + ' / ' + seq.length
+    document.getElementById('prev').disabled = i === 0
+    document.getElementById('nextBtn').disabled = i === seq.length - 1
+    return
+  }
+  // En haut : la flèche et les points (les pages ou écrans de la partie en cours).
+  // Les points : les écrans de la partie qui se suivent (un groupe s'arrête à une leçon ou un exercice).
+  let from = i, to = i
+  while (from > 0 && seq[from - 1].part === p && !seq[from - 1].locked && consecutive(p, seq[from - 1].item, seq[from].item)) from--
+  while (to < seq.length - 1 && seq[to + 1].part === p && !seq[to + 1].locked && consecutive(p, seq[to].item, seq[to + 1].item)) to++
+  const siblings = seq.slice(from, to + 1)
+  const bar = el('div', 'appbar')
+  bar.innerHTML = '<span class="arrow">‹</span><span class="dots">' + siblings.map((e) => '<i class="' + (e.item === item ? 'on' : '') + '"></i>').join('') + '</span>'
+  phone.append(bar)
+  if (mode === 'edit') {
+    const where = el('div', 'where')
+    const n = partNumber(p)
+    where.textContent = KIND[p.kind].name + (n ? ' ' + n : '') + (p.title && p.kind !== 'entree' && p.kind !== 'sortie' ? ' · ' + p.title : '') + ' — ' + (item.type === 'page' ? 'page' : 'écran ' + screenNumber(p, item))
+    phone.append(where)
+  }
+  const content = el('div', 'content')
+  if (!item.blocks.length) content.append(Object.assign(el('div', 'empty'), { textContent: mode === 'edit' ? 'Écran vide : il n\'apparaîtra pas dans l\'app.' : '' }))
+  item.blocks.forEach((b, index) => {
+    const d = el('div', 'blk' + (b.type === 'image' ? ' img' : b.type === 'box' ? ' box' : '') + (mode === 'edit' && selectedBlock === b.id ? ' sel' : ''))
+    if (b.type === 'image') d.textContent = 'Image'
+    else {
+      d.textContent = b.text
+      if (mode === 'edit') {
+        d.contentEditable = 'true'
+        d.dataset.placeholder = 'Écris ici…'
+        d.oninput = () => { b.text = d.textContent; renderPlan() }
+      }
+    }
+    if (mode === 'edit') {
+      d.tabIndex = 0
+      // Un clic choisit le bloc : ses réglages à droite, sa ligne allumée dans le plan.
+      d.onfocus = () => { if (selectedBlock !== b.id) { selectedBlock = b.id; renderPlan(); renderRight(); phone.querySelectorAll('.blk.sel').forEach((x) => x.classList.remove('sel')); d.classList.add('sel') } }
+      d.onclick = () => d.focus()
+      // Un bloc des Blocs glissé ici se place avant ce bloc.
+      d.ondragover = (e) => { if (!libraryDrag) return; e.preventDefault(); e.stopPropagation(); d.classList.add('drop-before') }
+      d.ondragleave = () => d.classList.remove('drop-before')
+      d.ondrop = (e) => { e.preventDefault(); e.stopPropagation(); d.classList.remove('drop-before'); const t = libraryDrag; libraryDrag = null; addBlock(t, index) }
+    }
+    content.append(d)
+  })
+  if (mode === 'edit') {
+    const add = el('button', 'addbig'); add.textContent = '+ Ajouter un bloc'
+    add.onclick = openLibrary
+    content.append(add)
+    content.ondragover = (e) => { if (!libraryDrag) return; e.preventDefault(); content.classList.add('drop-end') }
+    content.ondragleave = (e) => { if (e.target === content) content.classList.remove('drop-end') }
+    content.ondrop = (e) => { e.preventDefault(); content.classList.remove('drop-end'); const t = libraryDrag; libraryDrag = null; addBlock(t) }
+  }
+  phone.append(content)
+  if (mode === 'read' && i < seq.length - 1) {
+    const nx = el('div', 'next'); nx.textContent = 'Suivant'
+    nx.style.cursor = 'pointer'
+    nx.onclick = () => go(1)
+    phone.append(nx)
+  }
+  document.getElementById('pos').textContent = (i + 1) + ' / ' + seq.length
+  document.getElementById('prev').disabled = i === 0
+  document.getElementById('nextBtn').disabled = i === seq.length - 1
+}
+// Deux écrans d'une partie se suivent s'il n'y a rien entre eux (ni leçon ni exercice).
+function consecutive(p, a, b) {
+  return p.items.indexOf(b) === p.items.indexOf(a) + 1
+}
+function go(step) {
+  const seq = readSequence()
+  const i = indexIn(seq, current)
+  const next = seq[i + step]
+  if (!next) return
+  current = next.item.id
+  selectedPart = next.part.id
+  selectedBlock = null
+  render()
+}
+document.getElementById('prev').onclick = () => go(-1)
+document.getElementById('nextBtn').onclick = () => go(1)
+document.getElementById('mEdit').onclick = () => { mode = 'edit'; render() }
+document.getElementById('mRead').onclick = () => { mode = 'read'; render() }
+document.getElementById('rSub').onclick = () => { reader = 'subscriber'; render() }
+document.getElementById('rFree').onclick = () => { reader = 'visitor'; render() }
+
+// --- Colonne de droite ------------------------------------------------------------
+function renderSettings() {
+  const box = document.getElementById('settings')
+  box.innerHTML = ''
+  const found = selectedBlock && mode === 'edit' ? findBlock(selectedBlock) : null
+  if (!found) return
+  const { block: b, item } = found
+  const panel = el('div', 'settings')
+  const head = el('div', 'colhead')
+  head.style.justifyContent = 'space-between'
+  head.innerHTML = '<span>' + BLOCK[b.type].icon + ' ' + BLOCK[b.type].name + '</span>'
+  const close = el('button', 'btn small'); close.textContent = '×'; close.onclick = () => { selectedBlock = null; render() }
+  head.append(close)
+  panel.append(head)
+  const body = el('div', 'scroll')
+  body.innerHTML = '<p class="hint">' + (b.type === 'text' ? 'Écris directement dans le téléphone. Sélectionne des mots pour les mettre en gras, en italique ou en lien.' : b.type === 'image' ? 'Choisis l\'image dans la Médiathèque, et son texte alternatif.' : 'Une section regroupe des textes et des images, avec un fond ou une bordure.') + '</p>'
+  panel.append(body)
+  const bar = el('div', 'bar')
+  const up = el('button', 'btn small'); up.textContent = '↑ Monter'
+  const i = item.blocks.indexOf(b)
+  up.disabled = i === 0; up.onclick = () => moveBlock(b, item, i - 1)
+  const down = el('button', 'btn small'); down.textContent = '↓ Descendre'
+  down.disabled = i === item.blocks.length - 1; down.onclick = () => moveBlock(b, item, i + 2)
+  const del = el('button', 'btn small'); del.textContent = 'Supprimer'; del.style.marginLeft = 'auto'; del.style.color = '#dc2626'
+  del.onclick = () => { item.blocks.splice(i, 1); selectedBlock = null; render() }
+  bar.append(up, down, del)
+  panel.append(bar)
+  box.append(panel)
+}
+function renderRight() {
+  renderSettings()
+  const head = document.getElementById('rightHead')
+  const right = document.getElementById('right')
+  right.innerHTML = ''
+  if (selectedPart === 'method' || !selectedPart) {
+    head.textContent = 'Σ ' + method.title
+    right.innerHTML = '<div class="card"><h3>Dans la liste des Méthodes</h3><div class="hint">Le titre et l\'image de la méthode ne se voient que dans la page Méthodes, jamais dans le téléphone.</div></div>' +
+      '<div class="card"><h3>Niveau d\'accès</h3><div class="hint">Choisis un niveau…</div></div>' +
+      '<div class="card"><h3>Ce qui changera dans l\'app</h3><div class="hint">…</div></div>'
+    return
+  }
+  const p = find(selectedPart)?.node
+  if (!p) return
+  const n = partNumber(p)
+  head.textContent = KIND[p.kind].name + (n ? ' ' + n : '') + (p.title ? ' · ' + p.title : '')
+  const f = el('div', 'field')
+  f.innerHTML = '<label>Titre</label>'
+  const input = el('input'); input.type = 'text'; input.id = 'titleInput'; input.value = p.title; input.placeholder = 'Titre'
+  input.oninput = () => { p.title = input.value; renderPlan(); head.textContent = KIND[p.kind].name + (n ? ' ' + n : '') + ' · ' + p.title }
+  f.append(input)
+  right.append(f)
+  const sort = el('div', 'card')
+  const screens = p.items.filter((i) => i.type === 'screen').length
+  sort.innerHTML = '<h3>Sorte</h3><span class="fixed">' + (p.sort === 'ecrans' ? '▯ ' + KIND[p.kind].name + ' à écrans · ' + screens + ' écran' + (screens > 1 ? 's' : '') : '▤ ' + KIND[p.kind].name + ' simple · une page') + '</span><p class="hint">Choisie à la création : elle ne change plus.</p>'
+  right.append(sort)
+  const opts = el('div', 'card')
+  opts.innerHTML = '<h3>Dans l\'app</h3>'
+  opts.append(toggle('Montrer dans l\'app', p.inApp, (v) => (p.inApp = v)))
+  if (p.kind === 'lesson') opts.append(toggle('Leçon gratuite', p.free, (v) => (p.free = v)))
+  if (p.kind === 'entree' || p.kind === 'sortie') opts.append(toggle('Gratuite', p.free, (v) => (p.free = v)))
+  right.append(opts)
+}
+function toggle(label, value, set) {
+  const l = el('label', 'switch')
+  const c = el('input'); c.type = 'checkbox'; c.checked = value; c.onchange = () => set(c.checked)
+  l.append(c, document.createTextNode(label))
+  return l
+}
+
+// --- Outils ------------------------------------------------------------------------
+function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e }
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]) }
+function render() {
+  document.getElementById('mEdit').classList.toggle('on', mode === 'edit')
+  document.getElementById('mRead').classList.toggle('on', mode === 'read')
+  renderPlan(); renderPhone(); renderRight(); renderDrawer()
+}
+current = sequence()[0]?.item.id ?? null
+render()
+</script>
+</body>
+</html>

@@ -1,9 +1,5 @@
 // Tous les textes de l'interface, en français, au même endroit.
 
-/** « la leçon… » → « La leçon… » (en début de phrase). */
-const upperFirst = (text: string) =>
-  text.charAt(0).toUpperCase() + text.slice(1)
-
 export const texts = {
   app: {
     name: "Declikora",
@@ -66,11 +62,6 @@ export const texts = {
       title: "Radio Éclaircies",
       description: "Les épisodes et leurs catégories.",
     },
-    methods: {
-      title: "Méthodes",
-      description:
-        "Les méthodes, leurs chapitres, leurs leçons et leurs exercices.",
-    },
     pages: {
       title: "Pages",
       description: "Les pages simples de l'app.",
@@ -109,7 +100,7 @@ export const texts = {
       title: "Mes brouillons récents",
       description: "Ce que tu as modifié en dernier.",
       empty:
-        "Tu n'as encore rien écrit. Commence par un article, un épisode, une méthode ou une page.",
+        "Tu n'as encore rien écrit. Commence par un article, un épisode ou une page.",
     },
     scheduled: {
       title: "Publications programmées",
@@ -127,9 +118,6 @@ export const texts = {
       by: (name: string) => `Programmée par ${name}.`,
     },
     savedAt: (date: string) => `Modifié le ${date}`,
-    inMethod: (title: string) => `Méthode « ${title} »`,
-    // Un chapitre ou une leçon : publié avec sa méthode, sans état propre.
-    withMethod: "Part avec sa méthode",
     loadFailed: "Cette liste n'a pas pu être chargée.",
   },
 
@@ -696,7 +684,6 @@ export const texts = {
       page: "Pages",
       article: "Le Fil",
       episode: "Radio Éclaircies",
-      method: "Méthodes",
       template: "Modèles de bloc",
     },
     itemTypes: {
@@ -707,14 +694,10 @@ export const texts = {
     contentKinds: {
       article: "Article",
       episode: "Épisode",
-      method: "Méthode",
-      chapter: "Chapitre",
-      lesson: "Leçon",
-      exercise: "Exercice",
       page: "Page",
       template: "Modèle de bloc",
     },
-    // Ce qui est parti avec une méthode (même lot) : restauré ou effacé avec elle.
+    // Ce qui est parti avec un élément (même lot) : restauré ou effacé avec lui.
     batch: (count: number) =>
       count === 1 ? "avec 1 élément" : `avec ${count} éléments`,
     batchList: (names: string) => `Dans le même lot : ${names}.`,
@@ -748,7 +731,7 @@ export const texts = {
       "Ce fichier a été inséré dans un contenu entre-temps. Restaure-le, ou retire-le du contenu avant de vider la corbeille.",
     restore: "Restaurer",
     restoreItem: (name: string) => `Restaurer ${name}`,
-    // Sans accord : l'élément peut être un fichier, une page, une méthode…
+    // Sans accord : l'élément peut être un fichier, une page, un article…
     restored: (name: string) => `« ${name} » est de retour.`,
     eraseItem: (name: string) => `Effacer définitivement ${name}`,
     erase: "Effacer définitivement",
@@ -888,49 +871,12 @@ export const texts = {
         noResults:
           "Aucun épisode ne correspond à ta recherche ou à tes filtres.",
       },
-      method: {
-        submit: "Créer la méthode",
-        create: "Nouvelle méthode",
-        createFailed: "La méthode n'a pas pu être créée.",
-        blank: "Méthode vide",
-        confirmTrashTitle: "Mettre cette méthode à la corbeille ?",
-        confirmTrash: (title: string) =>
-          `« ${title} » va dans la corbeille, avec ses chapitres, ses leçons et leurs exercices. Si elle est en ligne, elle disparaît aussi de l'app, et une publication programmée est annulée. Tu pourras la restaurer pendant 30 jours.`,
-        restored: (title: string) =>
-          `« ${title} » est restaurée, en brouillon, avec ses chapitres, ses leçons et leurs exercices.`,
-        // Sélection en masse.
-        confirmTrashManyTitle: (count: number) =>
-          `Mettre ${count} méthodes à la corbeille ?`,
-        confirmTrashMany:
-          "Elles vont dans la corbeille, avec leurs chapitres, leurs leçons et leurs exercices. Celles qui sont en ligne disparaissent aussi de l'app, et leurs publications programmées sont annulées. Tu pourras les restaurer pendant 30 jours.",
-        trashedMany: (count: number) =>
-          count === 1
-            ? "1 méthode mise à la corbeille."
-            : `${count} méthodes mises à la corbeille.`,
-        restoredMany: (count: number) =>
-          count === 1
-            ? "1 méthode restaurée, en brouillon."
-            : `${count} méthodes restaurées, en brouillon.`,
-        keptTitle: (count: number) =>
-          count === 1 ? "1 méthode gardée" : `${count} méthodes gardées`,
-        keptHint: (count: number) =>
-          count === 1
-            ? "Elle reste sélectionnée."
-            : "Elles restent sélectionnées.",
-        emptyTitle: "Aucune méthode pour l'instant",
-        emptyDescription:
-          "Crée une méthode : elle s'ouvre aussitôt, avec sa fiche et son plan. Ajoute-lui ensuite ses chapitres, ses leçons et leurs exercices.",
-        search: "Rechercher une méthode",
-        noResults:
-          "Aucune méthode ne correspond à ta recherche ou à tes filtres.",
-      },
     },
     columns: {
       cover: "Image de présentation",
       title: "Titre",
       publication: "Publication",
       categories: "Catégories",
-      level: "Niveau d'accès",
       savedAt: "Dernière modification",
     },
     searchPlaceholder: "Rechercher par titre…",
@@ -956,8 +902,6 @@ export const texts = {
           ? "1 contenu"
           : `${total} contenus`
         : `${shown} sur ${total}`,
-    // Méthodes : le niveau de la fiche.
-    levelNotChosen: "Pas encore choisi",
     noCategory: "Aucune",
     manageCategories: "Catégories",
     actions: (title: string) => `Actions pour ${title}`,
@@ -986,7 +930,7 @@ export const texts = {
       settingsFailed: (message: string) =>
         `Le contenu est créé, mais ses réglages n'ont pas été enregistrés : ${message} Corrige-les dans l'éditeur.`,
     },
-    // Ordre des listes (Le Fil, Radio Éclaircies, Méthodes, [D47]) : glisser-déposer.
+    // Ordre des listes (Le Fil, Radio Éclaircies, [D47]) : glisser-déposer.
     order: {
       column: "Ordre",
       handle: (title: string) => `Déplacer « ${title} »`,
@@ -1027,339 +971,6 @@ export const texts = {
     loadFailed: "La liste n'a pas pu être chargée.",
     refreshFailed:
       "La liste n'a pas pu être mise à jour : elle date peut-être un peu.",
-  },
-
-  // Méthodes (étape 7, partie 7b) : ADMIN § 1 et § 3, [D29], [D26], [D36], [D42], [D43].
-  methods: {
-    outline: {
-      title: "Plan de la méthode",
-      description:
-        "Les chapitres, leurs leçons et leurs exercices, dans l'ordre de l'app. Range-les par leur poignée : rien ne change dans l'app avant la publication de la méthode.",
-      readOnly:
-        "Lecture seule : prends la main sur la méthode pour ranger le plan et y ajouter des chapitres, des leçons ou des exercices.",
-      reading:
-        "En Lecture : passe en Édition pour ranger le plan et y ajouter des chapitres, des leçons ou des exercices.",
-      label: "Chapitres et leçons",
-      // « 2 chapitres · 5 leçons » : en tête du plan, sous le titre dans le téléphone ; les
-      // exercices s'ajoutent s'il y en a (« · 3 exercices »).
-      count: (chapters: number, lessons: number, exercises = 0) =>
-        `${chapters === 1 ? "1 chapitre" : `${chapters} chapitres`} · ${lessons === 1 ? "1 leçon" : `${lessons} leçons`}${exercises === 0 ? "" : exercises === 1 ? " · 1 exercice" : ` · ${exercises} exercices`}`,
-      empty:
-        "Aucun chapitre pour l'instant : commence par « Nouveau chapitre », en bas. Chaque chapitre a sa propre introduction en blocs, affichée avant ses leçons.",
-      newChapter: "Nouveau chapitre",
-      newLesson: "Nouvelle leçon",
-      newLessonIn: (chapter: string) => `Nouvelle leçon dans ${chapter}`,
-      noLessons:
-        "Aucune leçon dans ce chapitre. Dépose une leçon ici, ou crée-la.",
-      newExercise: "Nouvel exercice",
-      noExercises: "Aucun exercice. Dépose un exercice ici.",
-      // La flèche d'une leçon qui a des exercices : « Replier les exercices de la leçon 2 « … » ».
-      fold: (label: string) => `Replier les exercices de ${label}`,
-      unfold: (label: string) => `Déplier les exercices de ${label}`,
-      exercisesOf: (label: string) => `Exercices de ${label}`,
-      // Le numéro devant le titre, dans le plan : « 1 · Les bases », « 2 Respirer ».
-      chapterNumber: (position: number) => `${position} ·`,
-      lessonNumber: (position: number) => `${position}`,
-      exerciseNumber: (position: number) => `${position}`,
-      // Nom complet d'un élément (boutons, annonces, cases à cocher).
-      chapterLabel: (position: number, title: string) =>
-        `le chapitre ${position} « ${title} »`,
-      lessonLabel: (position: number, title: string) =>
-        `la leçon ${position} « ${title} »`,
-      exerciseLabel: (position: number, title: string) =>
-        `l'exercice ${position} « ${title} »`,
-      handle: (label: string) => `Déplacer : ${label}`,
-      inApp: "Montrer dans l'app",
-      inAppFor: (label: string) => `Montrer dans l'app : ${label}`,
-      isFree: "Leçon gratuite",
-      isFreeFor: (label: string) => `Leçon gratuite : ${label}`,
-      free: "Gratuite",
-      editing: (name: string) => `${name} écrit cet élément en ce moment.`,
-      openElsewhere: "Ouvert dans un autre de tes onglets.",
-      actions: (label: string) => `Actions pour ${label}`,
-      open: "Ouvrir",
-      moveUp: "Monter",
-      moveDown: "Descendre",
-      unpublish: "Retirer de l'app",
-      trash: "Mettre à la corbeille",
-      states: {
-        live: "En ligne",
-        modified: "Modifié depuis la publication",
-        new: "À publier",
-        removing: "Sortira de l'app",
-        withdrawn: "Plus dans l'app",
-        hidden: "Pas dans l'app",
-        blocked: "Pas dans l'app, comme son chapitre",
-        blockedLesson: "Pas dans l'app, comme sa leçon",
-      },
-      stateHints: {
-        live: "Dans l'app, tel quel.",
-        modified:
-          "Ses modifications partiront à la prochaine publication de la méthode.",
-        new: "Partira dans l'app à la prochaine publication de la méthode.",
-        removing:
-          "Décoché : sortira de l'app à la prochaine publication de la méthode.",
-        withdrawn:
-          "N'est plus dans l'app. Pour l'y remettre, coche « Montrer dans l'app », puis publie la méthode.",
-        hidden:
-          "Coche « Montrer dans l'app » quand c'est prêt : ce sera dans l'app à la prochaine publication de la méthode.",
-        blocked:
-          "Son chapitre n'est pas montré dans l'app : rien de ce qu'il contient ne part avec la méthode.",
-        blockedLesson:
-          "Sa leçon n'est pas montrée dans l'app : cet exercice ne part pas avec la méthode.",
-      },
-      problem: "À corriger avant de publier",
-      reorderFailed: "Le plan n'a pas pu être rangé : il reprend son ordre.",
-      stale:
-        "Le plan a changé entre-temps (un élément ajouté, supprimé ou restauré) : il vient d'être relu. Range-le de nouveau.",
-      moved: (label: string, place: string) =>
-        `${upperFirst(label)} : ${place}.`,
-      chapterPlace: (position: number, total: number) =>
-        `chapitre ${position} sur ${total}`,
-      lessonPlace: (position: number, total: number, chapter: string) =>
-        `leçon ${position} sur ${total}, dans ${chapter}`,
-      exercisePlace: (position: number, total: number, lesson: string) =>
-        `exercice ${position} sur ${total}, dans ${lesson}`,
-      confirmUnpublish: {
-        title: (label: string) => `Retirer ${label} de l'app ?`,
-        chapter:
-          "Le chapitre et ses leçons disparaissent de l'app tout de suite (une nouvelle version de la méthode est écrite). « Montrer dans l'app » est décoché : coche-le, puis publie la méthode, pour le remettre.",
-        lesson:
-          "La leçon et ses exercices disparaissent de l'app tout de suite (une nouvelle version de la méthode est écrite). « Montrer dans l'app » est décoché : coche-le, puis publie la méthode, pour la remettre.",
-        exercise:
-          "L'exercice disparaît de l'app tout de suite (une nouvelle version de la méthode est écrite). « Montrer dans l'app » est décoché : coche-le, puis publie la méthode, pour le remettre.",
-        confirm: "Retirer de l'app",
-      },
-      unpublished: (label: string) => `Retiré de l'app : ${label}.`,
-      confirmTrash: {
-        title: (label: string) => `Mettre ${label} à la corbeille ?`,
-        chapter:
-          "Le chapitre et ses leçons vont dans la corbeille. S'ils sont en ligne, ils disparaissent aussi de l'app. Tu pourras les restaurer pendant 30 jours.",
-        lesson:
-          "La leçon et ses exercices vont dans la corbeille. S'ils sont en ligne, ils disparaissent aussi de l'app. Tu pourras les restaurer pendant 30 jours.",
-        exercise:
-          "L'exercice va dans la corbeille. S'il est en ligne, il disparaît aussi de l'app. Tu pourras le restaurer pendant 30 jours.",
-        confirm: "Mettre à la corbeille",
-      },
-      trashed: (label: string) => `${upperFirst(label)} est dans la corbeille.`,
-      undo: "Annuler",
-      restored: (label: string) =>
-        `De retour en fin de liste, hors de l'app : ${label}.`,
-      loadFailed: "Le plan n'a pas pu être chargé.",
-      refreshFailed:
-        "Le plan n'a pas pu être mis à jour : il date peut-être un peu.",
-    },
-    // Glisser-déposer du plan : annonces lues par les lecteurs d'écran.
-    dnd: {
-      roleDescription: "élément déplaçable",
-      instructions:
-        "Pour déplacer un chapitre, une leçon ou un exercice, appuie sur Espace ou Entrée sur sa poignée. Déplace-le avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour le déposer, ou sur Échap pour annuler. Une leçon peut changer de chapitre, un exercice de leçon.",
-      start: (label: string) => `Tu as pris ${label}.`,
-      over: (label: string, target: string) =>
-        `${upperFirst(label)} est sur ${target}.`,
-      overChapter: (label: string, chapter: string) =>
-        `${upperFirst(label)} est dans ${chapter}.`,
-      // Un exercice au-dessus d'une leçon sans exercice.
-      overLesson: (label: string, lesson: string) =>
-        `${upperFirst(label)} est dans ${lesson}.`,
-      outside: (label: string) =>
-        `${upperFirst(label)} n'est sur aucun emplacement.`,
-      end: (label: string, place: string) => `Déposé : ${label}, ${place}.`,
-      endOutside: (label: string) =>
-        `Lâché hors du plan : ${label} reprend sa place.`,
-      cancel: (label: string) =>
-        `Déplacement annulé : ${label} reprend sa place.`,
-    },
-    // Ajouter un chapitre, une leçon ou un exercice (le bouton propose les points de départ, [D42]).
-    create: {
-      blank: {
-        chapter: "Chapitre vide",
-        lesson: "Leçon vide",
-        exercise: "Exercice vide",
-      },
-      failed: "L'élément n'a pas pu être créé.",
-    },
-    // Un chapitre, une leçon ou un exercice dans la page de sa méthode : il n'a pas de bouton
-    // Publier, tout part avec la méthode ([D29]).
-    element: {
-      // La carte « Dans la méthode », en tête de la colonne de droite.
-      card: "Dans la méthode",
-      cardHint: {
-        chapter:
-          "Ce chapitre part dans l'app avec sa méthode : publie-la avec « Publier », en bas de cette colonne. Son introduction est affichée avant ses leçons.",
-        lesson:
-          "Cette leçon part dans l'app avec sa méthode : publie-la avec « Publier », en bas de cette colonne. Ses exercices sont montrés en bas, dans l'ordre du plan.",
-        exercise:
-          "Cet exercice part dans l'app avec sa méthode : publie-la avec « Publier », en bas de cette colonne. Il a son propre écran, ouvert depuis le bas de sa leçon.",
-      },
-      // Sa place : « Respirer en conscience › Chapitre 1 « Les bases » › Leçon 2 ».
-      place: {
-        label: "Sa place dans la méthode",
-        chapter: (position: number) => `Chapitre ${position}`,
-        chapterOf: (position: number, title: string) =>
-          `Chapitre ${position} « ${title} »`,
-        lesson: (position: number) => `Leçon ${position}`,
-        lessonOf: (position: number, title: string) =>
-          `Leçon ${position} « ${title} »`,
-        exercise: (position: number) => `Exercice ${position}`,
-      },
-      // « Montrer dans l'app » et « Leçon gratuite » ([D29], [D43]) : partent avec le brouillon.
-      inApp: "Montrer dans l'app",
-      chapterInAppHint:
-        "Ses leçons ne partent que si leur chapitre est montré.",
-      lessonInAppHint:
-        "Ses exercices ne partent que si leur leçon est montrée.",
-      isFree: "Leçon gratuite",
-      isFreeHint:
-        "Lisible par tout le monde, même si la méthode est réservée. L'introduction de son chapitre devient gratuite elle aussi.",
-      // Le niveau d'accès : celui de la méthode, en lecture.
-      access: {
-        method: (level: string) => `Celui de la méthode : ${level}`,
-        notChosen: "Celui de la méthode, pas encore choisi",
-        chapterHint:
-          "Son introduction devient gratuite dès qu'une de ses leçons montrées dans l'app l'est.",
-        // Un exercice : l'accès de sa leçon.
-        lessonFree: "Comme sa leçon : gratuit",
-        lesson: (level: string) => `Comme sa leçon : ${level}`,
-        exerciseHint:
-          "Un exercice suit sa leçon : gratuit si elle est gratuite, sinon le niveau de la méthode. « Leçon gratuite » se règle dans la leçon.",
-        change:
-          "Le niveau d'accès se choisit sur la fiche de la méthode, en tête de la page.",
-      },
-      // La programmation de la méthode, vue depuis un chapitre ou une leçon ([D31]).
-      schedule: {
-        scheduled: (date: string) => `La méthode est programmée le ${date}.`,
-        scheduledHint:
-          "Si « Montrer dans l'app » est coché, c'est le dernier brouillon enregistré à cette heure-là qui partira. Si quelqu'un a modifié la méthode depuis la programmation et l'écrit encore à ce moment-là, la publication attend qu'il rende la main, une heure au plus.",
-        due: (date: string) =>
-          `La méthode est programmée le ${date} : sa publication part dans un instant.`,
-        dueHint:
-          "Si quelqu'un a modifié la méthode depuis la programmation et l'écrit encore, la publication attendra que cette personne rende la main, une heure au plus.",
-        waiting: (date: string) =>
-          `La publication de la méthode, programmée le ${date}, attend : quelqu'un écrit la méthode.`,
-        waitingHint:
-          "Elle partira dès que cette personne aura rendu la main. Au bout d'une heure, elle échouera.",
-        // La personne devant l'écran tient la main sur la méthode.
-        waitingMine: (date: string) =>
-          `La méthode est programmée le ${date} : sa publication attend peut-être que tu rendes la main.`,
-        waitingMineHint:
-          "Si tu as modifié la méthode depuis la programmation, elle ne part pas tant que tu tiens la main, même sans écrire : passe en Lecture ou quitte la page. Au bout d'une heure, elle échouera.",
-        failed: "La publication programmée de la méthode a échoué.",
-        failedHint: (reason: string) =>
-          `Raison : ${reason} Tu peux la programmer de nouveau avec « Publier », en bas de cette colonne.`,
-      },
-      methodInTrash:
-        "Sa méthode est dans la corbeille : restaure-la pour publier cet élément.",
-      problem: (text: string) =>
-        `À corriger avant de publier la méthode : ${text}`,
-    },
-    // Dans le téléphone de l'écran d'une méthode : son plan, tel que l'app le montrera après la
-    // prochaine publication (ADMIN § 4).
-    preview: {
-      label: "Chapitres et leçons, comme dans l'app",
-      empty:
-        "Aucun chapitre montré dans l'app pour l'instant : coche « Montrer dans l'app » dans le menu ⋯ du plan.",
-      chapter: (position: number, title: string) => `${position} · ${title}`,
-      free: "Gratuite",
-      locked: "Réservée",
-      lockedExercise: "Réservé",
-      // Le plan ne liste pas les exercices : il en donne le nombre (QCM du 04/10/2026).
-      exercises: (count: number) =>
-        count === 1 ? "1 exercice" : `${count} exercices`,
-      // En bas d'une leçon, comme dans l'app : ses exercices montrés.
-      lessonExercises: "Exercices",
-      // Sous l'introduction d'un chapitre, comme dans l'app : ses leçons montrées.
-      chapterLessons: "Leçons",
-      // En bas d'un chapitre ou d'une leçon : l'écran d'après dans l'ordre du plan.
-      next: "Suivant",
-    },
-    // La page d'une méthode (ADMIN § 4, « Une méthode sur une seule page ») : la fiche, puis
-    // chaque chapitre, ses leçons et leurs exercices, à la suite.
-    page: {
-      // « Chapitre 1 · Les bases » : en tête de la colonne de droite et pour les lecteurs d'écran.
-      part: (place: string, title: string) => `${place} · ${title}`,
-      titleOf: (place: string) => `Titre : ${place}`,
-      addBlockIn: (place: string) => `Ajouter un bloc : ${place}`,
-      options: (part: string) => `Options : ${part}`,
-      fiche: "Fiche de la méthode",
-      // Le nom complet d'une partie, unique dans la méthode (lecteurs d'écran).
-      path: {
-        chapter: (chapter: number) => `Chapitre ${chapter}`,
-        lesson: (chapter: number, lesson: number) =>
-          `Chapitre ${chapter}, leçon ${lesson}`,
-        exercise: (chapter: number, lesson: number, exercise: number) =>
-          `Chapitre ${chapter}, leçon ${lesson}, exercice ${exercise}`,
-      },
-      // Dans le téléphone, à la fin de chaque leçon et de chaque chapitre.
-      newExerciseIn: (lesson: number, title: string) =>
-        `Nouvel exercice dans la leçon ${lesson} « ${title} »`,
-      newLessonIn: (chapter: number) =>
-        `Nouvelle leçon dans le chapitre ${chapter}`,
-      // Annoncé quand la partie ajoutée arrive à sa place (le curseur est dans son titre).
-      added: {
-        chapter: "Nouveau chapitre ajouté : écris son titre.",
-        lesson: "Nouvelle leçon ajoutée : écris son titre.",
-        exercise: "Nouvel exercice ajouté : écris son titre.",
-      },
-    },
-    // Avant de publier ou de programmer une méthode : la liste de ce qui va changer ([D29]).
-    changes: {
-      title: "Ce qui va changer dans l'app",
-      // La même liste, dans la colonne de droite de l'écran d'une méthode.
-      cardTitle: "Ce qui changera dans l'app",
-      loading: "Recherche de ce qui a changé…",
-      failed: "La liste des changements n'a pas pu être lue.",
-      nothing:
-        "Rien à publier : l'app montre déjà cette méthode telle qu'elle est.",
-      method: {
-        new: "La méthode entre dans l'app",
-        modified: "Fiche de la méthode modifiée",
-        reordered: "Chapitres ou leçons rangés autrement",
-      },
-      kinds: {
-        chapter: "Chapitre",
-        lesson: "Leçon",
-        exercise: "Exercice",
-      },
-      // « Leçon « Respirer » » : la sorte, puis le titre.
-      row: (kind: string, title: string) => `${kind} « ${title} »`,
-      // Tant que la méthode n'est pas dans l'app : un résumé au lieu d'une ligne par élément.
-      entry: (chapters: number, lessons: number, exercises = 0) => {
-        const counted = {
-          chapters: chapters === 1 ? "1 chapitre" : `${chapters} chapitres`,
-          lessons: lessons === 1 ? "1 leçon" : `${lessons} leçons`,
-          exercises: exercises === 1 ? "1 exercice" : `${exercises} exercices`,
-        }
-        if (chapters === 0)
-          return "La méthode entre dans l'app, sans chapitre pour l'instant."
-        if (lessons === 0)
-          return `La méthode entre dans l'app avec ${counted.chapters}, sans leçon pour l'instant.`
-        if (exercises === 0)
-          return `La méthode entre dans l'app avec ${counted.chapters} et ${counted.lessons}.`
-        return `La méthode entre dans l'app avec ${counted.chapters}, ${counted.lessons} et ${counted.exercises}.`
-      },
-      // Ensuite, les chapitres et les leçons par sorte de changement : « Modifications (12) ».
-      groups: {
-        new: "Ajouts",
-        modified: "Modifications",
-        removed: "Retraits",
-        reordered: "Nouvelles places",
-      },
-      groupTitle: (label: string, count: number) => `${label} (${count})`,
-      showAll: (count: number) => `Voir tout (${count})`,
-      showLess: "Voir moins",
-      inChapter: (title: string) => `dans « ${title} »`,
-      inLesson: (lesson: string, chapter: string) =>
-        `dans « ${lesson} », « ${chapter} »`,
-      savedAt: (date: string) => `modifié le ${date}`,
-      open: (label: string) => `Ouvrir ${label}`,
-      blocked:
-        "Corrige d'abord ce qui est signalé : la publication serait refusée.",
-      scheduleNote:
-        "C'est ce qui partirait maintenant. À l'heure programmée, c'est l'état de ce moment-là qui partira : la fiche, le plan et les éléments cochés.",
-      count: (count: number) =>
-        count === 1 ? "1 changement" : `${count} changements`,
-    },
   },
 
   // Catégories du Blog et des Podcasts (étape 7) : ADMIN § 3, [D28], [D44].
@@ -1848,10 +1459,6 @@ export const texts = {
         article: "Article et réglages du bloc",
         episode: "Épisode et réglages du bloc",
         page: "Page et réglages du bloc",
-        method: "Méthode",
-        chapter: "Chapitre et réglages du bloc",
-        lesson: "Leçon et réglages du bloc",
-        exercise: "Exercice et réglages du bloc",
         template: "Modèle et réglages du bloc",
       },
       blocks: "Blocs",
@@ -1859,10 +1466,6 @@ export const texts = {
         article: "Article",
         episode: "Épisode",
         page: "Page",
-        method: "Méthode",
-        chapter: "Chapitre",
-        lesson: "Leçon",
-        exercise: "Exercice",
         template: "Modèle",
       },
     },
@@ -1920,32 +1523,13 @@ export const texts = {
             `Avec la formule ${level}, tu écoutes tout l'épisode.`,
           page: (level: string) =>
             `Avec la formule ${level}, tu lis toute la page.`,
-          chapter: (level: string) =>
-            `Avec la formule ${level}, tu lis tout le chapitre.`,
-          lesson: (level: string) =>
-            `Avec la formule ${level}, tu lis toute la leçon.`,
-          exercise: (level: string) =>
-            `Avec la formule ${level}, tu fais tout l'exercice.`,
         },
         textUnknown: {
           article: "Avec la bonne formule, tu lis tout l'article.",
           episode: "Avec la bonne formule, tu écoutes tout l'épisode.",
           page: "Avec la bonne formule, tu lis toute la page.",
-          chapter: "Avec la bonne formule, tu lis tout le chapitre.",
-          lesson: "Avec la bonne formule, tu lis toute la leçon.",
-          exercise: "Avec la bonne formule, tu fais tout l'exercice.",
         },
         action: "Voir les formules",
-      },
-      // En Lecture, la flèche de la barre de l'app mène à l'écran du dessus (QCM du 04/10/2026).
-      back: (title: string) => `Retour à « ${title} »`,
-      // En Lecture, au-dessus du téléphone : un chapitre, une leçon ou un exercice qui ne sera pas
-      // dans l'app à la prochaine publication de la méthode.
-      notInApp: {
-        self: "Pas dans l'app : seuls les membres le voient.",
-        chapter:
-          "Son chapitre n'est pas dans l'app : seuls les membres le voient.",
-        lesson: "Sa leçon n'est pas dans l'app : seuls les membres le voient.",
       },
       // En Lecture, on ne prend pas la main : rien ne se modifie.
       reading: "En Lecture : passe en Édition pour modifier.",
@@ -2018,10 +1602,6 @@ export const texts = {
         title: {
           article: "Dans la liste du Fil",
           episode: "Dans la liste de Radio Éclaircies",
-          method: "Dans la liste des Méthodes",
-          chapter: "Dans le plan de la méthode",
-          lesson: "Dans le plan de la méthode",
-          exercise: "En bas de sa leçon",
         },
         choose: "Choisir",
         chooseLabel: "Choisir l'image de présentation",
@@ -2031,15 +1611,6 @@ export const texts = {
             "L'image est obligatoire pour publier : c'est aussi celle en tête de l'article.",
           episode:
             "L'image est obligatoire pour publier : c'est aussi celle en tête de l'épisode.",
-          method:
-            "L'image est obligatoire pour publier : c'est aussi celle en tête de la méthode.",
-          // Elle n'est pas exigée : [D45] ne vise que les contenus des listes.
-          chapter:
-            "Image facultative : la vignette du chapitre dans le plan de la méthode, dans l'app, et en tête du chapitre. Elle reste publique.",
-          lesson:
-            "Image facultative : la vignette de la leçon dans le plan de la méthode, dans l'app, et en tête de la leçon. Elle reste publique.",
-          exercise:
-            "Image facultative : la vignette de l'exercice en bas de sa leçon, dans l'app, et en tête de l'exercice. Elle reste publique.",
         },
       },
       categories: {
@@ -2055,10 +1626,6 @@ export const texts = {
         readingTip: (minutes: number, words: string) =>
           `Environ ${minutes} min de lecture, ${words}`,
         // Un épisode : la durée de son audio au lieu du temps de lecture.
-        // Une méthode : la taille de son plan au lieu du temps de lecture.
-        lessons: (count: number) =>
-          count === 1 ? "1 leçon" : `${count} leçons`,
-        planTip: (count: string) => `Dans le plan : ${count}`,
         audioShort: (duration: string, words: string) =>
           `${duration} · ${words}`,
         audioTip: (duration: string, words: string) =>
@@ -2259,8 +1826,6 @@ export const texts = {
       version_immuable: "Une version publiée ne se modifie pas.",
       modele_utilise:
         "Ce modèle est encore utilisé dans des brouillons : détache-le d'abord.",
-      parent_dans_la_corbeille:
-        "Restaure d'abord le chapitre ou la méthode qui contient cet élément.",
       // Étape 6 : modèles de blocs.
       modele_vide:
         "Ce bloc partagé est encore vide : ajoute-lui son bloc dans Modèles de bloc avant de l'insérer.",
@@ -2270,11 +1835,6 @@ export const texts = {
         "Un des blocs choisis n'est pas encore enregistré. Attends la fin de l'enregistrement, puis réessaie.",
       modele_introuvable:
         "Ce modèle n'existe plus, ou ce n'est pas un bloc partagé. Recharge la page.",
-      // Étape 7, partie 7b : méthodes.
-      plan_perime:
-        "Le plan a changé entre-temps : relis-le, puis range-le de nouveau.",
-      plan_invalide:
-        "Le plan de la méthode n'est pas valide. Recharge la page.",
     },
   },
 
@@ -2327,22 +1887,6 @@ export const texts = {
       waitingMineHint:
         "Tu as modifié le brouillon depuis la programmation : tant que ton éditeur reste ouvert, même sans écrire, elle ne part pas. Au bout d'une heure, elle échouera.",
       leave: "Quitter l'éditeur",
-      // Une méthode : une seule personne l'écrit à la fois, fiche, chapitres, leçons et exercices
-      // compris ([D31]).
-      method: {
-        scheduledHint:
-          "Ce sont les derniers brouillons enregistrés à cette heure-là (fiche, chapitres, leçons et exercices) qui seront publiés. Si quelqu'un a modifié la méthode depuis la programmation et l'écrit encore à ce moment-là, la publication attend que cette personne rende la main, une heure au plus.",
-        dueHint:
-          "Si quelqu'un a modifié la méthode depuis la programmation et l'écrit encore, la publication attendra que cette personne rende la main, une heure au plus.",
-        waiting: (date: string) =>
-          `Programmation en attente depuis le ${date} : quelqu'un écrit la méthode.`,
-        waitingHint:
-          "La publication partira dès que cette personne aura rendu la main. Au bout d'une heure, elle échouera.",
-        waitingMine: (date: string) =>
-          `Programmé le ${date} : la publication attend que tu rendes la main.`,
-        waitingMineHint:
-          "Tu as modifié la méthode depuis la programmation : tant que tu tiens la main, même sans écrire, elle ne part pas. Passe en Lecture ou quitte la page. Au bout d'une heure, elle échouera.",
-      },
       failed: "La publication programmée a échoué.",
       failedReason: (reason: string) => `Raison : ${reason}`,
       failedBy: (name: string) => `Elle avait été programmée par ${name}.`,
@@ -2374,9 +1918,6 @@ export const texts = {
       access: "Niveau d'accès",
       address: "Adresse",
       confirm: "Publier",
-      // Une méthode : tout part d'un seul geste ([D29]).
-      methodDescription:
-        "La fiche, le plan, ainsi que les chapitres et leçons où « Montrer dans l'app » est coché, partent ensemble, tels qu'ils sont enregistrés. Rien d'autre ne change dans l'app.",
     },
     // Ce qui manque pour publier ou programmer ([D45], audio d'un épisode), et le conseil [D46].
     requirements: {
@@ -2410,10 +1951,6 @@ export const texts = {
       description: (name: string) =>
         `${name} écrit ce brouillon en ce moment. Pour publier, reprends la main (${name} passera en lecture seule), ou attends que ${name} ait fini.`,
       take: "Reprendre la main",
-      // Méthode : quelqu'un écrit un de ses chapitres ou une de ses leçons ([D14]).
-      elementTitle: "Quelqu'un écrit un élément de la méthode",
-      elementDescription: (name: string) =>
-        `${name} écrit un chapitre ou une leçon de cette méthode en ce moment : le plan montre lequel. Attends que cette personne ait fini, ou ouvre cet élément pour reprendre la main, puis publie.`,
     },
     unpublishDialog: {
       title: "Retirer de l'app ?",
@@ -2421,9 +1958,6 @@ export const texts = {
         "Les lecteurs ne verront plus ce contenu. Le brouillon et l'historique sont gardés, et tu pourras le publier de nouveau. Une publication programmée est annulée.",
       confirm: "Retirer de l'app",
       done: "Retiré de l'app.",
-      // Une méthode : ses chapitres, ses leçons et leurs exercices partent avec elle.
-      methodDescription:
-        "Les lecteurs ne verront plus la méthode, ni ses chapitres ni ses leçons. Les brouillons et l'historique sont gardés, et tu pourras la publier de nouveau. Une publication programmée est annulée.",
     },
     scheduleDialog: {
       title: "Programmer la publication",
@@ -2458,7 +1992,6 @@ export const texts = {
         manual: "Publiée",
         scheduled: "Publiée à l'heure programmée",
         template: "Mise à jour d'un modèle",
-        outline: "Plan de la méthode",
         files: "Textes de la médiathèque mis à jour",
       },
       // Les catégories d'une version (article, épisode), dans l'ordre de la section ([D28]).
@@ -2473,19 +2006,11 @@ export const texts = {
         // Ce que revert_to_version remplace dépend de la sorte : l'adresse d'une page, les
         // catégories d'un article ou d'un épisode.
         description: (kind: string) =>
-          kind === "method"
-            ? "Seule la fiche revient : le titre, l'image de présentation et le niveau d'accès. Le plan, les chapitres et les leçons ne changent pas : chacun a son propre historique. Rien ne change dans l'app avant la prochaine publication."
-            : kind === "chapter"
-              ? "L'introduction du chapitre sera remplacée par cette version. Rien ne change dans l'app avant la prochaine publication de la méthode."
-              : kind === "lesson"
-                ? "La leçon sera remplacée par cette version : son texte et « Leçon gratuite ». Rien ne change dans l'app avant la prochaine publication de la méthode."
-                : kind === "exercise"
-                  ? "L'exercice sera remplacé par cette version : son texte. Rien ne change dans l'app avant la prochaine publication de la méthode."
-                  : kind === "page"
-                    ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et son adresse. Rien ne change dans l'app avant la prochaine publication."
-                    : kind === "article" || kind === "episode"
-                      ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et ses catégories (une catégorie supprimée depuis ne revient pas). Rien ne change dans l'app avant la prochaine publication."
-                      : "Le brouillon sera remplacé par cette version : son texte et son niveau d'accès. Rien ne change dans l'app avant la prochaine publication.",
+          kind === "page"
+            ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et son adresse. Rien ne change dans l'app avant la prochaine publication."
+            : kind === "article" || kind === "episode"
+              ? "Le brouillon sera remplacé par cette version : son texte, son niveau d'accès et ses catégories (une catégorie supprimée depuis ne revient pas). Rien ne change dans l'app avant la prochaine publication."
+              : "Le brouillon sera remplacé par cette version : son texte et son niveau d'accès. Rien ne change dans l'app avant la prochaine publication.",
         confirm: "Revenir à cette version",
       },
       needsLock:

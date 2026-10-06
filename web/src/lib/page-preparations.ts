@@ -7,7 +7,7 @@ import { askedFileFromAddress, mediaFiltersFromAddress } from "@/lib/address"
 import type { CategorySection } from "@/lib/categories"
 import type { ContentKind } from "@/lib/contents/api"
 import { isTemplateSort } from "@/lib/contents/templates"
-import { contentProfile, type EditorKind } from "@/lib/editor/profile"
+import { contentProfile } from "@/lib/editor/profile"
 import { previewKey } from "@/lib/media/api"
 import type { Media } from "@/lib/media/constants"
 import { fresh, preloadImages, ready, type Prepare } from "@/lib/preparation"
@@ -18,18 +18,13 @@ import {
   contentListRead,
   contentRead,
   coverIds,
-  elementContextRead,
   homeDraftsRead,
   homeFailedRead,
   homeScheduledRead,
   linkedTemplatesRead,
-  liveMethodIds,
   mediaByIdsRead,
   mediaListRead,
   mediaRead,
-  methodPartsRead,
-  methodPreviewRead,
-  methodTreeRead,
   previewKeys,
   previewUrlsRead,
   publicationRead,
@@ -87,29 +82,15 @@ async function prepareFiles(
   await prepareImages(queryClient, shownFiles(media ?? []), limit)
 }
 
-/** Les méthodes en ligne d'une liste : y a-t-il quelque chose à publier ? */
-function prepareMethodPending(
-  queryClient: QueryClient,
-  items: Parameters<typeof liveMethodIds>[0],
-  allMethods = false
-) {
-  return Promise.all(
-    liveMethodIds(items, allMethods).map((id) =>
-      ready(queryClient, methodPreviewRead(id))
-    )
-  )
-}
-
 export const prepareHome: Prepare = async ({ queryClient, member }) => {
-  const [drafts] = await Promise.all([
+  await Promise.all([
     ready(queryClient, homeDraftsRead(member.id)),
     ready(queryClient, homeScheduledRead()),
     ready(queryClient, homeFailedRead()),
   ])
-  await prepareMethodPending(queryClient, drafts)
 }
 
-/** Le Fil, Radio Éclaircies, Méthodes, Pages. */
+/** Le Fil, Radio Éclaircies, Pages. */
 export function prepareContentList(kind: ContentKind): Prepare {
   const profile = contentProfile(kind)
   return async ({ queryClient }) => {
@@ -118,14 +99,12 @@ export function prepareContentList(kind: ContentKind): Prepare {
       profile.categories &&
         ready(queryClient, categoriesRead(profile.categories)),
       ready(queryClient, accessLevelsRead()),
-      // « Nouvel article » : ses points de départ (pas pour une méthode, [D42]).
-      kind !== "method" && ready(queryClient, startersRead(kind)),
+      // « Nouvel article » : ses points de départ ([D42]).
+      ready(queryClient, startersRead(kind)),
     ])
-    await Promise.all([
-      kind === "method" && prepareMethodPending(queryClient, items, true),
-      profile.cover === "required" &&
-        prepareFiles(queryClient, coverIds(items ?? []), LIST_IMAGES),
-    ])
+    if (profile.cover === "required") {
+      await prepareFiles(queryClient, coverIds(items ?? []), LIST_IMAGES)
+    }
   }
 }
 
@@ -184,7 +163,7 @@ async function prepareDraftFiles(queryClient: QueryClient, draft: Draft) {
 }
 
 /** L'éditeur d'un contenu : son brouillon, ses cartes et ses images. */
-export function prepareEditor(kind: EditorKind): Prepare {
+export function prepareEditor(kind: ContentKind): Prepare {
   return async ({ queryClient, params }) => {
     const contentId = params.contentId ?? ""
     const content = await fresh(
@@ -213,43 +192,4 @@ export function prepareEditor(kind: EditorKind): Prepare {
       prepareDraftFiles(queryClient, content.draft),
     ])
   }
-}
-
-/**
- * La page d'une méthode : sa fiche, son plan et les brouillons de toutes ses parties (relus s'ils
- * datent), ce qui changera dans l'app, sa publication, les points de départ de ses parties, et
- * les fichiers de chaque brouillon.
- */
-export const prepareMethodPage: Prepare = async ({ queryClient, params }) => {
-  const methodId = params.contentId ?? ""
-  const content = await fresh(
-    queryClient,
-    contentRead(methodId),
-    DRAFT_MAX_AGE_MS
-  )
-  // Introuvable, à la corbeille ou d'une autre sorte : la page le dira.
-  if (!content || content.deleted_at || content.kind !== "method") return
-  const [parts] = await Promise.all([
-    fresh(queryClient, methodPartsRead(methodId), DRAFT_MAX_AGE_MS),
-    fresh(queryClient, methodTreeRead(methodId), DRAFT_MAX_AGE_MS),
-    fresh(queryClient, methodPreviewRead(methodId)),
-    fresh(queryClient, publicationRead(methodId)),
-    ready(queryClient, accessLevelsRead()),
-    ...(["chapter", "lesson", "exercise"] as const).map((kind) =>
-      ready(queryClient, startersRead(kind))
-    ),
-  ])
-  await Promise.all(
-    [content, ...(parts ?? [])].map((part) =>
-      prepareDraftFiles(queryClient, part.draft)
-    )
-  )
-}
-
-/** Un chapitre, une leçon ou un exercice ouvert d'ailleurs : sa méthode, où il mène. */
-export const prepareMethodElement: Prepare = async ({
-  queryClient,
-  params,
-}) => {
-  await ready(queryClient, elementContextRead(params.contentId ?? ""))
 }

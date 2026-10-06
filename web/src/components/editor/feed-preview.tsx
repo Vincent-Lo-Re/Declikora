@@ -26,7 +26,6 @@ import {
   type ComponentType,
   type CSSProperties,
   type ReactNode,
-  type Ref,
   type SVGProps,
 } from "react"
 
@@ -73,8 +72,6 @@ export function FeedPreview({
   appBar,
   focus,
   readers = true,
-  scrollRef,
-  onScroll,
   children,
 }: {
   preview: PreviewSettings
@@ -90,9 +87,6 @@ export function FeedPreview({
   notices: ReactNode
   // En Lecture : la barre du haut de l'app, au-dessus de ce qui défile.
   appBar?: ReactNode
-  // Ce qui défile dans l'écran (la page d'une méthode suit sa partie en cours).
-  scrollRef?: Ref<HTMLDivElement>
-  onScroll?: () => void
   children: ReactNode
 }) {
   // Écran entier (Lecture) : la hauteur disponible pour le téléphone, relue quand la fenêtre change.
@@ -167,13 +161,7 @@ export function FeedPreview({
               </span>
             </div>
             {appBar}
-            <div
-              ref={scrollRef}
-              className="blocks-screen-scroll"
-              onScroll={onScroll}
-            >
-              {children}
-            </div>
+            <div className="blocks-screen-scroll">{children}</div>
             <div aria-hidden className="blocks-home" />
           </div>
         </div>
@@ -385,39 +373,13 @@ function ToolGroup<T extends string>({
 }
 
 /**
- * En Lecture : la barre du haut de l'app (provisoire). Sa flèche mène à l'écran du dessus, comme
- * dans l'app (QCM du 04/10/2026) ; sans écran du dessus (méthode, article, page), elle ne fait
- * rien. Le reste n'a pas d'action.
+ * En Lecture : la barre du haut de l'app (provisoire). Un article ou une page n'a pas d'écran du
+ * dessus : la liste de l'app n'est pas imitée, et rien n'y a d'action.
  */
-export function ReadAppBar({
-  section,
-  back,
-}: {
-  section: string
-  // L'écran du dessus : son titre, et ce qui l'ouvre dans le téléphone.
-  back: { onClick: () => void; title: string } | null
-}) {
+export function ReadAppBar({ section }: { section: string }) {
   return (
     <div className="blocks-appbar">
-      {back ? (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                onClick={back.onClick}
-                aria-label={labels.back(back.title)}
-                className="blocks-appbar-back"
-              />
-            }
-          >
-            <ChevronLeft aria-hidden />
-          </TooltipTrigger>
-          <TooltipContent>{labels.back(back.title)}</TooltipContent>
-        </Tooltip>
-      ) : (
-        <ChevronLeft aria-hidden />
-      )}
+      <ChevronLeft aria-hidden />
       <span aria-hidden className="flex-1">
         {section}
       </span>
@@ -440,8 +402,6 @@ export function ReadView({
   meta,
   locked,
   resolve,
-  children,
-  after,
 }: {
   draft: Draft
   title: string
@@ -457,11 +417,6 @@ export function ReadView({
   locked: { kind: LockableKind; level: string | null } | false
   // Le bloc d'un modèle partagé, tel qu'il est aujourd'hui.
   resolve: (block: Block) => Block | null
-  // À la place des blocs : le plan d'une méthode.
-  children?: ReactNode
-  // Sous les blocs, même verrouillés : les leçons d'un chapitre, les exercices d'une leçon, puis
-  // « Suivant ».
-  after?: ReactNode
 }) {
   return (
     <article className="blocks-phone blocks-read">
@@ -495,24 +450,21 @@ export function ReadView({
           <span className="blocks-locked-action">{labels.locked.action}</span>
         </div>
       ) : (
-        (children ?? (
-          <div className="blocks-list">
-            {draft.blocks.map((block) => {
-              const shown = block.type === "linked" ? resolve(block) : block
-              // Chaque bloc porte son identifiant : un clic dans le plan y fait défiler.
-              return shown ? (
-                <StaticBlock
-                  key={block.id}
-                  block={shown}
-                  anchor={block.id}
-                  anchorChildren={block.type !== "linked"}
-                />
-              ) : null
-            })}
-          </div>
-        ))
+        <div className="blocks-list">
+          {draft.blocks.map((block) => {
+            const shown = block.type === "linked" ? resolve(block) : block
+            // Chaque bloc porte son identifiant : un clic dans le plan y fait défiler.
+            return shown ? (
+              <StaticBlock
+                key={block.id}
+                block={shown}
+                anchor={block.id}
+                anchorChildren={block.type !== "linked"}
+              />
+            ) : null
+          })}
+        </div>
       )}
-      {after}
     </article>
   )
 }

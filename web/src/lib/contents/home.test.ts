@@ -7,7 +7,7 @@ const calls: [string, unknown[]][] = []
 
 vi.mock("@/lib/supabase", () => {
   const builder: Record<string, unknown> = {}
-  for (const method of ["from", "select", "is", "not", "neq", "eq", "order"]) {
+  for (const method of ["from", "select", "is", "not", "in", "eq", "order"]) {
     builder[method] = (...args: unknown[]) => {
       calls.push([method, args])
       return builder
@@ -35,5 +35,10 @@ describe("programmations échouées de l'Accueil", () => {
       "id",
     ])
     expect(orders[0][1][1]).toEqual({ ascending: false })
+    // Seules les sortes de l'admin : pas les anciennes méthodes, en cours de refonte.
+    expect(calls).toContainEqual([
+      "in",
+      ["kind", ["article", "episode", "page"]],
+    ])
   })
 })

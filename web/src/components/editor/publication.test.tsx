@@ -73,14 +73,11 @@ const content: api.Content = {
   draft_rev: 4,
   draft_saved_at: "2026-09-27T12:30:00Z",
   deleted_at: null,
-  parent_id: null,
   access_chosen: true,
   access_level_id: null,
   slug: "aide",
   template_sort: null,
   template_for: null,
-  in_app: false,
-  is_free: false,
   category_ids: [],
 }
 
@@ -103,7 +100,6 @@ const liveVersion: publicationApi.LiveVersion = {
   published_by_name: "Anne Admin",
   slug: "aide",
   access_level_id: null,
-  outline: null,
 }
 
 const mineRow: api.LockRow = {

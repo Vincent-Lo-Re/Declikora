@@ -46,14 +46,7 @@ describe("ce qui manque pour publier", () => {
   })
 
   it("le titre est demandé en premier, et des espaces ne font pas un titre ([D49])", () => {
-    for (const kind of [
-      "page",
-      "article",
-      "episode",
-      "method",
-      "chapter",
-      "lesson",
-    ] as const) {
+    for (const kind of ["page", "article", "episode"] as const) {
       expect(
         publishChecks(kind, { title: "  " }, mediaFor({})).missing[0]
       ).toEqual({ key: "title", state: "missing" })

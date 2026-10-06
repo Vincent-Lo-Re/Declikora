@@ -37,7 +37,7 @@ import { texts } from "@/texts"
 const labels = texts.contentList
 
 /** Les sortes de contenu qui ont une liste (et donc cette fenêtre). */
-export type ListKind = "page" | "article" | "episode" | "method"
+export type ListKind = "page" | "article" | "episode"
 
 // Un contenu neuf : pas encore de niveau d'accès ([D41]), ni d'adresse, ni de catégorie.
 const emptyChoices: ContentSettings = {
@@ -45,8 +45,6 @@ const emptyChoices: ContentSettings = {
   accessLevelId: null,
   slug: null,
   categoryIds: [],
-  inApp: false,
-  isFree: false,
 }
 
 const BLANK = "vide"
@@ -59,7 +57,7 @@ export type NewContent = {
 }
 
 /**
- * « Nouvel article », « Nouvel épisode », « Nouvelle méthode », « Nouvelle page » : le titre, un
+ * « Nouvel article », « Nouvel épisode », « Nouvelle page » : le titre, un
  * point de départ s'il y en a, les catégories (qu'on peut créer sur place) et, pour une page,
  * l'adresse tirée du titre. Le niveau d'accès et le reste se règlent ensuite dans les réglages.
  */
@@ -76,7 +74,7 @@ export function NewContentDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
   kind: ListKind
-  // Les points de départ de cette sorte (vide pour une méthode).
+  // Les points de départ de cette sorte.
   starters: { id: string; title: string }[]
   categories?: SectionCategories
   pending: boolean

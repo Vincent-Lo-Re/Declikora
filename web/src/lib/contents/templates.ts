@@ -26,7 +26,10 @@ export const templateSorts: readonly TemplateSort[] = [
   "starter",
 ]
 
-/** Dans l'ordre du menu (Blog, Podcasts, Méthodes, Pages). */
+/**
+ * Dans l'ordre du menu (Blog, Podcasts, Méthodes, Pages). Les points de départ d'un chapitre,
+ * d'une leçon ou d'un exercice restent : ils serviront aux méthodes refaites (ADMIN § 1).
+ */
 export const templateSections: readonly TemplateFor[] = [
   "article",
   "episode",

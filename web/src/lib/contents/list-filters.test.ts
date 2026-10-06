@@ -116,33 +116,6 @@ describe("filtre par état", () => {
   })
 })
 
-describe("méthodes ([D29])", () => {
-  it("« modifié » vient de la liste des changements, pas de la seule fiche", () => {
-    const live = {
-      live_draft_rev: 3,
-      first_published_at: "2026-09-20T08:00:00Z",
-    }
-    const methods = [
-      // La fiche n'a pas changé, mais une leçon oui.
-      item("lecon", "Leçon modifiée", { ...live, pending_changes: true }),
-      // La fiche a changé puis est revenue à l'identique : rien à publier.
-      item("identique", "Rien à publier", {
-        ...live,
-        draft_rev: 5,
-        pending_changes: false,
-      }),
-      // Pas encore lu : la révision de la fiche.
-      item("inconnu", "Pas encore lu", { ...live }),
-    ]
-    const titles = (state: "live" | "modified") =>
-      filterContents(methods, { ...noFilters, state }, NOW).map(
-        (entry) => entry.title
-      )
-    expect(titles("modified")).toEqual(["Leçon modifiée"])
-    expect(titles("live")).toEqual(["Rien à publier", "Pas encore lu"])
-  })
-})
-
 describe("filtre par catégorie", () => {
   it("une catégorie, ou aucune ([D44])", () => {
     expect(

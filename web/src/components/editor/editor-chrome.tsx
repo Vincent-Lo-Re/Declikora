@@ -30,8 +30,7 @@ import { RETURN_STATE, returnAddress } from "@/lib/scroll-memory"
 import { sections, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
 
-// Ce qui entoure un éditeur plein écran, partagé par l'éditeur du Fil (editor-page.tsx) et la
-// page d'une méthode (method-page.tsx) : le retour vers la liste, un contenu introuvable, la
+// Ce qui entoure l'éditeur plein écran du Fil (editor-page.tsx) : le retour vers la liste, un contenu introuvable, la
 // glissière des Blocs, la pastille de la Concentration et la fenêtre « Quitter ».
 
 /**

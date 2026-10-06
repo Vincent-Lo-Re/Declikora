@@ -96,24 +96,6 @@ export function toContentError(
   })
 }
 
-/** Le message d'un code d'erreur de la base (texts.editor.errors), ou le message générique. */
-function contentErrorText(code: string): string {
-  return isContentErrorCode(code)
-    ? texts.editor.errors[code]
-    : texts.common.unexpected
-}
-
-/**
- * Ce qui ferait refuser la publication d'un élément (publish_preview) : la précision de la base
- * (en français, et plus précise : « bloc n° 2 »), sinon le message du code.
- */
-export function contentProblemText(
-  code: string,
-  detail: string | null
-): string {
-  return detail?.trim() || contentErrorText(code)
-}
-
 /** Vrai si l'erreur montre que la personne n'a plus accès (fiche ou session à relire). */
 export function isContentAccessLost(error: unknown): boolean {
   return error instanceof ContentError && error.code === "reserve_a_l_equipe"
@@ -137,15 +119,21 @@ export const contentKeys = {
 // Lecture
 // ---------------------------------------------------------------------------------------------
 
-export type ContentKind =
-  | "article"
-  | "episode"
-  | "method"
-  | "chapter"
-  | "lesson"
-  | "exercise"
-  | "page"
-  | "template"
+// Les sortes de contenu de l'admin. La base en connaît d'autres (les méthodes, en cours de
+// refonte) : l'admin ne les montre pas (ADMIN § 1, « Méthodes »).
+const CONTENT_KINDS = ["article", "episode", "page", "template"] as const
+
+export type ContentKind = (typeof CONTENT_KINDS)[number]
+
+/** Vrai pour une sorte que l'admin connaît. */
+export function isContentKind(kind: string): kind is ContentKind {
+  return (CONTENT_KINDS as readonly string[]).includes(kind)
+}
+
+// Celles qui partent dans l'app (pas un modèle de bloc) : l'Accueil.
+export const APP_KINDS = CONTENT_KINDS.filter(
+  (kind): kind is Exclude<ContentKind, "template"> => kind !== "template"
+)
 
 export type ContentListItem = {
   id: string
@@ -154,7 +142,7 @@ export type ContentListItem = {
   slug: string | null
   // Image de présentation du brouillon (id du fichier), s'il y en a une.
   cover_id: string | null
-  // Article, épisode, méthode : sa place dans la liste de sa section ([D47]) ; null pour une page.
+  // Article, épisode : sa place dans la liste de sa section ([D47]) ; null pour une page.
   list_position: number | null
   // Catégories du brouillon (articles et épisodes), dans aucun ordre particulier.
   category_ids: string[]
@@ -165,12 +153,9 @@ export type ContentListItem = {
   first_published_at: string | null
   scheduled_at: string | null
   schedule_error: string | null
-  // Niveau d'accès du brouillon (liste des méthodes) : choisi ou non ([D41]), null = Gratuit.
+  // Niveau d'accès du brouillon : choisi ou non ([D41]), null = Gratuit.
   access_chosen: boolean
   access_level_id: string | null
-  // Méthodes : vrai si publier changerait quelque chose dans l'app (publish_preview), faux si
-  // rien, absent tant qu'on ne le sait pas (la révision de la fiche ne suffit pas : [D29]).
-  pending_changes?: boolean
 }
 
 /** Les catégories d'un brouillon (content_categories), triées : l'ordre ne compte pas. */
@@ -205,8 +190,8 @@ export async function findPageBySlug(
 /** Les sortes rangées à la main, dans l'ordre de leur liste ([D47]). */
 export function isOrderedKind(
   kind: ContentKind
-): kind is "article" | "episode" | "method" {
-  return kind === "article" || kind === "episode" || kind === "method"
+): kind is "article" | "episode" {
+  return kind === "article" || kind === "episode"
 }
 
 /**
@@ -214,7 +199,7 @@ export function isOrderedKind(
  * voulu (contents_reorder, [D47]).
  */
 export async function reorderContents(
-  kind: "article" | "episode" | "method",
+  kind: "article" | "episode",
   ids: string[]
 ): Promise<void> {
   const { error, status } = await supabase.rpc("contents_reorder", {
@@ -225,8 +210,8 @@ export async function reorderContents(
 }
 
 /**
- * Les contenus d'une sorte, hors corbeille : dans l'ordre de la liste pour Le Fil, Radio
- * Éclaircies et les Méthodes, les derniers modifiés d'abord pour les pages.
+ * Les contenus d'une sorte, hors corbeille : dans l'ordre de la liste pour Le Fil et Radio
+ * Éclaircies, les derniers modifiés d'abord pour les pages.
  */
 export async function listContents(
   kind: ContentKind
@@ -238,7 +223,7 @@ export async function listContents(
     )
     .eq("kind", kind)
     .is("deleted_at", null)
-  // Le Fil, Radio Éclaircies, Méthodes : dans l'ordre de la liste ([D47], comme l'app) ; les
+  // Le Fil, Radio Éclaircies : dans l'ordre de la liste ([D47], comme l'app) ; les
   // pages : les dernières modifiées d'abord.
   const ordered = isOrderedKind(kind)
     ? query.order("list_position").order("id")
@@ -273,14 +258,11 @@ export type Content = Pick<
   | "draft_rev"
   | "draft_saved_at"
   | "deleted_at"
-  | "parent_id"
   | "access_chosen"
   | "access_level_id"
   | "slug"
   | "template_sort"
   | "template_for"
-  | "in_app"
-  | "is_free"
 > & {
   draft: Draft
   title: string
@@ -288,9 +270,9 @@ export type Content = Pick<
   category_ids: string[]
 }
 
-// Les colonnes d'un contenu ouvert dans un éditeur (un seul, ou toutes les parties d'une méthode).
-export const CONTENT_COLUMNS =
-  "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, parent_id, access_chosen, access_level_id, slug, template_sort, template_for, in_app, is_free, content_categories(category_id)"
+// Les colonnes d'un contenu ouvert dans un éditeur.
+const CONTENT_COLUMNS =
+  "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, access_chosen, access_level_id, slug, template_sort, template_for, content_categories(category_id)"
 
 type ContentRow = Omit<Content, "draft" | "title" | "category_ids"> & {
   title: string | null
@@ -299,7 +281,7 @@ type ContentRow = Omit<Content, "draft" | "title" | "category_ids"> & {
 }
 
 /** Une ligne lue avec CONTENT_COLUMNS, telle que l'éditeur la lit. */
-export function toContent(row: ContentRow): Content {
+function toContent(row: ContentRow): Content {
   const { content_categories: categories, ...rest } = row
   return {
     ...rest,
@@ -337,21 +319,17 @@ export async function getMediaByIds(ids: string[]): Promise<Media[]> {
 
 /**
  * Crée un contenu ; l'appelant tient aussitôt son verrou. fromTemplateId : un point de départ de
- * cette sorte de contenu, dont les blocs sont recopiés ([D42]). parentId : la méthode d'un
- * chapitre, le chapitre d'une leçon (l'élément naît en fin de liste, « Montrer dans l'app »
- * décoché).
+ * cette sorte de contenu, dont les blocs sont recopiés ([D42]).
  */
 export async function createContent(
   kind: ContentKind,
   title = "",
-  fromTemplateId: string | null = null,
-  parentId: string | null = null
+  fromTemplateId: string | null = null
 ): Promise<Content> {
   const { data, error, status } = await supabase.rpc("content_create", {
     kind,
     title,
     ...(fromTemplateId && { from_template_id: fromTemplateId }),
-    ...(parentId && { parent_id: parentId }),
   })
   if (error) throw toContentError(error, status)
   return {
@@ -379,10 +357,6 @@ export type ContentSettings = {
   slug: string | null
   // Catégories (articles et épisodes), triées : l'ordre ne compte pas ([D44] : facultatives).
   categoryIds: string[]
-  // Chapitre ou leçon : « Montrer dans l'app » (à la prochaine publication de la méthode, [D29]).
-  inApp: boolean
-  // Leçon : « Leçon gratuite » dans une méthode réservée.
-  isFree: boolean
 }
 
 /** Ce que save_draft reçoit dans settings (seulement les réglages changés). */
@@ -390,19 +364,12 @@ export type SettingsPayload = {
   access_level_id?: string | null
   slug?: string | null
   category_ids?: string[]
-  in_app?: boolean
-  is_free?: boolean
 }
 
 export function settingsOf(
   content: Pick<
     Content,
-    | "access_chosen"
-    | "access_level_id"
-    | "slug"
-    | "category_ids"
-    | "in_app"
-    | "is_free"
+    "access_chosen" | "access_level_id" | "slug" | "category_ids"
   >
 ): ContentSettings {
   return {
@@ -410,8 +377,6 @@ export function settingsOf(
     accessLevelId: content.access_level_id,
     slug: content.slug,
     categoryIds: [...content.category_ids].sort(),
-    inApp: content.in_app,
-    isFree: content.is_free,
   }
 }
 
@@ -445,8 +410,6 @@ export function settingsDiff(
   if (!sameCategories(saved.categoryIds, wanted.categoryIds)) {
     payload.category_ids = [...wanted.categoryIds].sort()
   }
-  if (wanted.inApp !== saved.inApp) payload.in_app = wanted.inApp
-  if (wanted.isFree !== saved.isFree) payload.is_free = wanted.isFree
   return Object.keys(payload).length > 0 ? payload : null
 }
 
@@ -571,17 +534,11 @@ export function lockReleaseOnExit(
 }
 
 /**
- * Ce que Realtime envoie d'une ligne de edit_locks (sans le nom de la personne). method_rev : la
- * révision de toute la méthode (ligne d'une méthode seulement).
+ * Ce que Realtime envoie d'une ligne de edit_locks (sans le nom de la personne).
  */
 export type LockChange = Pick<
   Tables<"edit_locks">,
-  | "holder_id"
-  | "holder_session"
-  | "heartbeat_at"
-  | "draft_rev"
-  | "taken_at"
-  | "method_rev"
+  "holder_id" | "holder_session" | "heartbeat_at" | "draft_rev" | "taken_at"
 >
 
 export type ChannelState =
@@ -618,7 +575,6 @@ export function subscribeLock(
           heartbeat_at: row.heartbeat_at,
           draft_rev: row.draft_rev,
           taken_at: row.taken_at,
-          method_rev: row.method_rev,
         })
       }
     )

@@ -8,9 +8,8 @@ import {
 } from "@/lib/editor/library-drag"
 
 /**
- * Un bloc des Blocs glissé dans le téléphone (éditeur du Fil, ou une partie de la page d'une
- * méthode) (glisser-déposer du navigateur). Le
- * trait qui montre où il tombera (lineTop, par rapport au téléphone), seulement au premier niveau,
+ * Un bloc des Blocs glissé dans le téléphone de l'éditeur du Fil (glisser-déposer du
+ * navigateur). Le trait qui montre où il tombera (lineTop, par rapport au téléphone), seulement au premier niveau,
  * entre deux blocs ; au dépôt, onDrop reçoit sa place. Les gestionnaires sont en capture : le
  * texte (Tiptap) ne reçoit pas le bloc glissé.
  */

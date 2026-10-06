@@ -1,5 +1,5 @@
 // Ce qu'il faut pour publier un contenu, vu de l'admin (sans React) : le titre ([D49], tout ce
-// qui se publie), [D45] (image de présentation d'un article, d'un épisode et d'une méthode),
+// qui se publie), [D45] (image de présentation d'un article et d'un épisode),
 // l'audio d'un épisode, et le conseil [D46] (transcription). La base vérifie les mêmes règles
 // (publish, schedule) : l'admin ne fait qu'expliquer avant d'envoyer.
 

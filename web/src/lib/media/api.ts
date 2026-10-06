@@ -11,6 +11,7 @@ import {
   type MediaKind,
 } from "@/lib/media/constants"
 import type { PreparedFile } from "@/lib/media/prepare"
+import { isContentKind } from "@/lib/contents/api"
 import { restoreContent } from "@/lib/contents/publication"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
@@ -240,7 +241,6 @@ export type MediaUse = {
   content_id: string
   kind: string
   title: string
-  parent_title: string | null
   in_draft: boolean
   in_app: boolean
 }
@@ -327,8 +327,7 @@ export type TrashItem = {
   id: string
   kind: string
   title: string | null
-  parent_title: string | null
-  // Contenus : le lot (une méthode et ses chapitres et leçons partent et reviennent ensemble).
+  // Contenus : le lot (ce qui part et revient ensemble).
   trash_batch: string | null
   // Vrai pour l'élément qu'on a mis à la corbeille (et pour chaque fichier).
   batch_root: boolean
@@ -343,11 +342,14 @@ export async function listTrash(): Promise<TrashItem[]> {
   const { data, error } = await supabase
     .from("trash_items")
     .select(
-      "item_type, id, kind, title, parent_title, trash_batch, batch_root, deleted_at, deleted_by_name, purge_at, purge_error"
+      "item_type, id, kind, title, trash_batch, batch_root, deleted_at, deleted_by_name, purge_at, purge_error"
     )
     .order("deleted_at", { ascending: false })
   if (error) throw toMediaError(error)
-  return data as TrashItem[]
+  // Les sortes que l'admin ne connaît pas (les anciennes méthodes) n'y sont pas montrées.
+  return (data as TrashItem[]).filter(
+    (item) => item.item_type === "file" || isContentKind(item.kind)
+  )
 }
 
 // ---------------------------------------------------------------------------------------------

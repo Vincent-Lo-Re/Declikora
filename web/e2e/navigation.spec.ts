@@ -58,38 +58,11 @@ test("le tour de l'admin : chaque page arrive préparée, sans lecture oubliée"
   await createBlankPage(page)
   await back(page, sections.pages.title)
 
-  // Une méthode, avec un chapitre et une leçon ajoutés sur sa page (le curseur va dans leur titre).
-  const outline = texts.methods.outline
-  const plan = page.getByRole("complementary", { name: outline.title })
-  await menu(page, sections.methods.title)
-  const method = `Méthode du tour ${id}`
-  await createFromDialog(page, "method", method)
-  await plan.getByRole("button", { name: outline.newChapter }).click()
-  await expect(
-    page.getByLabel(texts.methods.page.titleOf("Chapitre 1"))
-  ).toBeFocused()
-  await page.keyboard.type("Chapitre du tour")
-  await plan
-    .getByRole("button", {
-      name: outline.newLessonIn(outline.chapterLabel(1, "Chapitre du tour")),
-    })
-    .click()
-  const lesson = `Leçon du tour ${id}`
-  await expect(
-    page.getByLabel(texts.methods.page.titleOf("Chapitre 1, leçon 1"))
-  ).toBeFocused()
-  await page.keyboard.type(lesson)
-  await expect(page.locator('[data-save-status="saved"]').first()).toBeVisible({
-    timeout: 15_000,
-  })
-  await back(page, sections.methods.title)
-
   // Toutes les sections du menu.
   for (const section of [
     sections.home,
     sections.blog,
     sections.podcasts,
-    sections.methods,
     sections.pages,
     sections.templates,
     sections.media,
@@ -118,27 +91,6 @@ test("le tour de l'admin : chaque page arrive préparée, sans lecture oubliée"
   await expect(page.getByLabel(texts.editor.title.label)).toHaveValue(article)
   await back(page, sections.blog.title)
   await menu(page, sections.home.title)
-  await page.getByRole("link", { name: article }).first().click()
-  await expect(page.getByLabel(texts.editor.title.label)).toHaveValue(article)
-
-  // La page d'une méthode depuis sa liste, puis une leçon depuis l'Accueil : la page de sa
-  // méthode, sur elle.
-  await back(page, sections.blog.title)
-  await menu(page, sections.methods.title)
-  const methodRow = page.getByRole("link", { name: method })
-  await methodRow.hover()
-  await methodRow.click()
-  await expect(page.getByLabel(texts.editor.title.label)).toHaveValue(method)
-  await back(page, sections.methods.title)
-  await menu(page, sections.home.title)
-  await page.getByRole("link", { name: lesson }).first().click()
-  await expect(
-    page.getByLabel(texts.methods.page.titleOf("Chapitre 1, leçon 1"))
-  ).toHaveValue(lesson)
-  await page.goBack()
-  await expect(
-    page.getByRole("heading", { level: 1, name: sections.home.title })
-  ).toBeVisible()
   await page.getByRole("link", { name: article }).first().click()
   await expect(page.getByLabel(texts.editor.title.label)).toHaveValue(article)
 

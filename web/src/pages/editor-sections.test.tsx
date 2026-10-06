@@ -141,14 +141,11 @@ function contentOf(
     draft_rev: 4,
     draft_saved_at: "2026-09-27T12:30:00Z",
     deleted_at: null,
-    parent_id: null,
     access_chosen: true,
     access_level_id: null,
     slug: null,
     template_sort: null,
     template_for: null,
-    in_app: false,
-    is_free: false,
     category_ids: [],
     ...changes,
   }
@@ -1643,7 +1640,6 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
         heartbeat_at: new Date().toISOString(),
         draft_rev: 4,
         taken_at: new Date().toISOString(),
-        method_rev: 0,
       })
     )
     const window = await screen.findByRole("alertdialog")

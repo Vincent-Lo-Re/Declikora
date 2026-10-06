@@ -6,15 +6,13 @@ import { LoadingScreen } from "@/components/loading-screen"
 import { AppLayout } from "@/layouts/app-layout"
 import { AuthLayout } from "@/layouts/auth-layout"
 import { RootLayout } from "@/layouts/root-layout"
-import type { EditorKind } from "@/lib/editor/profile"
+import type { ContentKind } from "@/lib/contents/api"
 import {
   prepareCategories,
   prepareContentList,
   prepareEditor,
   prepareHome,
   prepareMedia,
-  prepareMethodElement,
-  prepareMethodPage,
   prepareSettings,
   prepareTeam,
   prepareTemplates,
@@ -30,7 +28,6 @@ import {
   authPaths,
   categoriesPath,
   menuRouteId,
-  methodElementSegments,
   sections,
   type SectionKey,
 } from "@/navigation"
@@ -73,13 +70,15 @@ function authPage<M>(
 }
 
 const editorCode = () => import("@/pages/editor-page")
-const methodCode = () => import("@/pages/method-page")
 const listCode = () => import("@/pages/content-list-page")
 const categoriesCode = () => import("@/pages/categories-page")
 // Les éditeurs plein écran : la section (pour « ← Blog »), la sorte de contenu et l'adresse.
-type EditorRoute = { section: SectionKey; kind: EditorKind; path: string }
+type EditorRoute = { section: SectionKey; kind: ContentKind; path: string }
 
-const sectionEditor = (section: SectionKey, kind: EditorKind): EditorRoute => ({
+const sectionEditor = (
+  section: SectionKey,
+  kind: ContentKind
+): EditorRoute => ({
   section,
   kind,
   path: `${sections[section].path}/:contentId`,
@@ -143,28 +142,6 @@ export const routes: RouteObject[] = [
             ),
             errorElement: <ErrorPage />,
           })),
-          // Une méthode : une seule page, sa fiche puis ses chapitres, leçons et exercices à la
-          // suite (ADMIN § 4) ; son code se télécharge aussi dès l'ouverture de l'admin.
-          {
-            ...page(
-              `${sections.methods.path}/:contentId`,
-              methodCode,
-              (m) => <m.MethodPage />,
-              prepareMethodPage,
-              { warm: true }
-            ),
-            errorElement: <ErrorPage />,
-          },
-          // Un chapitre, une leçon ou un exercice : la page de sa méthode, sur cette partie.
-          ...(["chapter", "lesson", "exercise"] as const).map((kind) => ({
-            ...page(
-              `${sections.methods.path}/${methodElementSegments[kind]}/:contentId`,
-              () => import("@/pages/method-element-page"),
-              (m) => <m.MethodElementPage />,
-              prepareMethodElement
-            ),
-            errorElement: <ErrorPage />,
-          })),
           {
             id: menuRouteId,
             element: <AppLayout />,
@@ -178,14 +155,6 @@ export const routes: RouteObject[] = [
                     () => import("@/pages/home-page"),
                     (m) => <m.HomePage />,
                     prepareHome
-                  ),
-                  page(
-                    sections.methods.path,
-                    listCode,
-                    (m) => (
-                      <m.ContentListPage section="methods" kind="method" />
-                    ),
-                    prepareContentList("method")
                   ),
                   page(
                     sections.blog.path,

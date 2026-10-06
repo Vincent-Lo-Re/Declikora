@@ -32,22 +32,17 @@ const RELOAD_RETRY_MS = 3000
 // Refus de save_draft qui viennent d'un réglage (et non du brouillon).
 const SLUG_REFUSALS = new Set(["adresse_prise", "adresse_invalide"])
 
-/**
- * « Copier mon texte » : les brouillons en texte simple, dans le presse-papiers (plusieurs : les
- * parties d'une méthode, l'une après l'autre).
- */
-export async function copyDrafts(drafts: readonly Draft[]) {
+/** « Copier mon texte » : le brouillon en texte simple, dans le presse-papiers. */
+async function copyDraft(draft: Draft) {
   try {
-    await navigator.clipboard.writeText(
-      drafts.map((draft) => draftToPlainText(draft)).join("\n\n")
-    )
+    await navigator.clipboard.writeText(draftToPlainText(draft))
     toast.success(texts.editor.lock.copied)
   } catch {
     toast.error(texts.editor.lock.copyFailed)
   }
 }
 
-/** Ce qu'un brouillon sait du verrou sous lequel il s'écrit (le sien, ou celui de sa méthode). */
+/** Ce qu'un brouillon sait du verrou sous lequel il s'écrit. */
 export type PartLock = {
   phase: LockState["phase"]
   lost: boolean
@@ -58,7 +53,7 @@ export type PartLock = {
 
 /**
  * Un brouillon et ses réglages, tenus à jour avec la base sous un verrou tenu ailleurs (celui du
- * contenu dans useDraftSync, celui de la méthode pour chacune de ses parties) : l'enregistrement
+ * contenu, dans useDraftSync) : l'enregistrement
  * automatique, la relecture quand quelqu'un d'autre a écrit, la reprise après « Reprendre la
  * main » (resumeSignal change), et « Copier mon texte » quand la main est perdue. session :
  * l'ouverture de l'éditeur qui tient le verrou. afterSave : ce qui est relu après chaque
@@ -124,9 +119,6 @@ export function usePartDraft({
               access_level_id: saved.settings.accessLevelId,
               slug: saved.settings.slug,
               category_ids: saved.settings.categoryIds,
-              // Un chapitre ou une leçon : rouvert plus tard, il montre les cases enregistrées.
-              in_app: saved.settings.inApp,
-              is_free: saved.settings.isFree,
             }
         )
         afterSave()
@@ -139,7 +131,7 @@ export function usePartDraft({
           duration: Infinity,
           action: {
             label: texts.editor.lock.copy,
-            onClick: () => void copyDrafts([value.draft]),
+            onClick: () => void copyDraft(value.draft),
           },
         }),
     },
@@ -393,11 +385,7 @@ export function usePartDraft({
   const lostOrStopped = lock.lost || autosave.state.status === "stopped"
   const canCopy =
     stash !== null || (lostOrStopped && saving.unsavedValue !== null)
-  const copy = () => copyDrafts([saving.unsavedValue?.draft ?? stash ?? draft])
-  // Ce qui n'était pas enregistré au moment de perdre la main (la page d'une méthode le copie avec
-  // celui des autres parties).
-  const unsavedDraft = () =>
-    canCopy ? (saving.unsavedValue?.draft ?? stash) : null
+  const copy = () => copyDraft(saving.unsavedValue?.draft ?? stash ?? draft)
 
   return {
     draft,
@@ -418,7 +406,6 @@ export function usePartDraft({
     applySettings,
     canCopy,
     copy,
-    unsavedDraft,
     dismissStash: () => setStash(null),
   }
 }

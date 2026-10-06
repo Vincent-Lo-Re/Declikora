@@ -545,12 +545,6 @@ function UseList({
             <SectionIcon kind={use.kind} />
             <span className="min-w-0 flex-1 truncate">
               <UseTitle use={use} />
-              {use.parent_title && (
-                <span className="text-muted-foreground">
-                  {" "}
-                  ({use.parent_title})
-                </span>
-              )}
             </span>
             {badge}
           </li>
@@ -611,7 +605,6 @@ function OutdatedTexts({ media }: { media: Media }) {
                   content_id: item.content_id,
                   kind: item.kind,
                   title: item.title,
-                  parent_title: null,
                   in_draft: false,
                   in_app: true,
                 }}
@@ -733,7 +726,7 @@ function TrashBar({
   )
 }
 
-/** L'icône de la section d'un contenu (Le Fil, Méthodes…), comme dans le menu. */
+/** L'icône de la section d'un contenu (Le Fil, Pages…), comme dans le menu. */
 function SectionIcon({ kind }: { kind: string }) {
   const section = contentSection(kind)
   const Icon = section ? sections[section].icon : FileText

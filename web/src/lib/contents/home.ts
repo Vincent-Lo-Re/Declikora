@@ -2,7 +2,7 @@
 // programmations échouées. Lecture directe de contents, réservée à l'équipe en aal2 par la RLS
 // (contrat : docs/ARCHITECTURE-CONTENUS.md, « Étape 7, partie 7a »).
 
-import { toContentError, type ContentKind } from "@/lib/contents/api"
+import { APP_KINDS, toContentError, type ContentKind } from "@/lib/contents/api"
 import { displayName, type PersonName } from "@/lib/people"
 import { supabase } from "@/lib/supabase"
 
@@ -26,12 +26,10 @@ export type HomeItem = {
   schedule_error: string | null
   scheduled_set_at: string | null
   scheduled_by_name: string | null
-  // Un chapitre ou une leçon : le titre de sa méthode (ils n'ont pas d'état propre dans l'app).
-  method_title: string | null
 }
 
 const COLUMNS =
-  "id, kind, title, draft_rev, draft_saved_at, first_published_at, scheduled_at, scheduled_set_at, schedule_error, scheduler:profiles!contents_scheduled_by_fkey(full_name, email), live:versions!contents_live_version_fkey(draft_rev), parent_id"
+  "id, kind, title, draft_rev, draft_saved_at, first_published_at, scheduled_at, scheduled_set_at, schedule_error, scheduler:profiles!contents_scheduled_by_fkey(full_name, email), live:versions!contents_live_version_fkey(draft_rev)"
 
 type Row = {
   id: string
@@ -45,7 +43,6 @@ type Row = {
   schedule_error: string | null
   scheduler: unknown
   live: unknown
-  parent_id: string | null
 }
 
 function toItem(row: Row): HomeItem {
@@ -62,60 +59,7 @@ function toItem(row: Row): HomeItem {
     scheduled_set_at: row.scheduled_set_at,
     schedule_error: row.schedule_error,
     scheduled_by_name: displayName(row.scheduler as PersonName | null),
-    method_title: null,
   }
-}
-
-// Les sortes qui appartiennent à une méthode.
-const METHOD_ELEMENTS = new Set(["chapter", "lesson", "exercise"])
-
-/**
- * Le titre de la méthode de chaque chapitre, leçon et exercice (l'API ne sait pas remonter d'une
- * ligne de contents à son parent : de petites lectures, par identifiants, un cran à la fois ; trois
- * au plus, d'un exercice à sa méthode).
- */
-async function withMethodTitles(rows: Row[]): Promise<HomeItem[]> {
-  const items = rows.map(toItem)
-  const parents = new Map<
-    string,
-    { kind: string; title: string; parent_id: string | null }
-  >()
-  let wanted = new Set(
-    rows.flatMap((row) =>
-      METHOD_ELEMENTS.has(row.kind) && row.parent_id ? [row.parent_id] : []
-    )
-  )
-  while (wanted.size > 0) {
-    const { data, error, status } = await supabase
-      .from("contents")
-      .select("id, kind, title, parent_id")
-      .in("id", [...wanted])
-    if (error) throw toContentError(error, status)
-    for (const row of data) {
-      parents.set(row.id, {
-        kind: row.kind,
-        title: row.title ?? "",
-        parent_id: row.parent_id,
-      })
-    }
-    wanted = new Set(
-      data.flatMap((row) =>
-        row.kind !== "method" && row.parent_id && !parents.has(row.parent_id)
-          ? [row.parent_id]
-          : []
-      )
-    )
-  }
-  return items.map((item, index) => {
-    if (!METHOD_ELEMENTS.has(item.kind)) return item
-    let parentId = rows[index].parent_id
-    let parent = parentId ? parents.get(parentId) : undefined
-    while (parent && parent.kind !== "method") {
-      parentId = parent.parent_id
-      parent = parentId ? parents.get(parentId) : undefined
-    }
-    return { ...item, method_title: parent?.title ?? null }
-  })
 }
 
 // Combien de brouillons récents l'Accueil montre.
@@ -134,11 +78,11 @@ export async function listMyRecentDrafts(
     .select(COLUMNS)
     .eq("draft_saved_by", userId)
     .is("deleted_at", null)
-    .neq("kind", "template")
+    .in("kind", APP_KINDS)
     .order("draft_saved_at", { ascending: false })
     .limit(limit)
   if (error) throw toContentError(error, status)
-  return withMethodTitles(data as Row[])
+  return (data as Row[]).map(toItem)
 }
 
 /**
@@ -151,6 +95,7 @@ export async function listScheduled(): Promise<HomeItem[]> {
     .select(COLUMNS)
     .not("scheduled_at", "is", null)
     .is("deleted_at", null)
+    .in("kind", APP_KINDS)
     .order("scheduled_at")
     .limit(200)
   if (error) throw toContentError(error, status)
@@ -169,6 +114,7 @@ export async function listFailedSchedules(): Promise<HomeItem[]> {
     .is("scheduled_at", null)
     .not("schedule_error", "is", null)
     .is("deleted_at", null)
+    .in("kind", APP_KINDS)
     .order("draft_saved_at", { ascending: false })
     .order("id")
     .limit(200)

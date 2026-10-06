@@ -8,7 +8,7 @@ import { texts } from "@/texts"
  * départ s'il est donné, puis crée.
  */
 export async function createFromDialog(
-  kind: "page" | "article" | "episode" | "method",
+  kind: "page" | "article" | "episode",
   title: string,
   starter?: string
 ) {

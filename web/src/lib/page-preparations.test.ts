@@ -6,7 +6,6 @@ import * as levelsApi from "@/lib/access-levels"
 import * as categoriesApi from "@/lib/categories"
 import * as api from "@/lib/contents/api"
 import * as homeApi from "@/lib/contents/home"
-import * as methodsApi from "@/lib/contents/methods"
 import * as publicationApi from "@/lib/contents/publication"
 import * as templatesApi from "@/lib/contents/templates"
 import * as mediaApi from "@/lib/media/api"
@@ -16,8 +15,6 @@ import {
   prepareEditor,
   prepareHome,
   prepareMedia,
-  prepareMethodElement,
-  prepareMethodPage,
   prepareTeam,
 } from "@/lib/page-preparations"
 import type { Member } from "@/lib/preparation"
@@ -43,13 +40,6 @@ vi.mock("@/lib/contents/templates", async (importOriginal) => ({
 vi.mock("@/lib/contents/publication", async (importOriginal) => ({
   ...(await importOriginal<typeof publicationApi>()),
   getPublication: vi.fn(async () => null),
-}))
-vi.mock("@/lib/contents/methods", async (importOriginal) => ({
-  ...(await importOriginal<typeof methodsApi>()),
-  getElementContext: vi.fn(),
-  getMethodParts: vi.fn(async () => []),
-  getMethodPreview: vi.fn(async () => []),
-  getMethodTree: vi.fn(async () => []),
 }))
 vi.mock("@/lib/contents/home", async (importOriginal) => ({
   ...(await importOriginal<typeof homeApi>()),
@@ -86,8 +76,6 @@ const PHOTO = "00000000-0000-4000-8000-0000000000c1"
 const COVER = "00000000-0000-4000-8000-0000000000c2"
 const SHARED_PHOTO = "00000000-0000-4000-8000-0000000000c3"
 const SOUND = "00000000-0000-4000-8000-0000000000c4"
-const LESSON = "00000000-0000-4000-8000-0000000000d1"
-const METHOD = "00000000-0000-4000-8000-0000000000d2"
 
 const editor: Member = { id: "membre-1", role: "editor" }
 
@@ -211,66 +199,6 @@ describe("l'éditeur arrive avec son brouillon, ses cartes et ses images", () =>
         .sort()
         .map((id) => `https://fichiers/${PUBLIC_BUCKET}/${id}.webp`)
     )
-    // Pas une méthode ni l'un de ses éléments.
-    expect(methodsApi.getElementContext).not.toHaveBeenCalled()
-  })
-
-  it("la page d'une méthode : sa fiche, son plan, toutes ses parties et leurs fichiers, ses changements, sa publication, les points de départ", async () => {
-    vi.mocked(api.getContent).mockResolvedValue(
-      contentOf("method", {
-        id: METHOD,
-        draft: {
-          v: 1,
-          title: "Respirer",
-          blocks: [],
-          cover: { mediaId: COVER },
-        } as unknown as Draft,
-      })
-    )
-    vi.mocked(methodsApi.getMethodParts).mockResolvedValue([
-      contentOf("lesson", {
-        id: LESSON,
-        draft: {
-          v: 1,
-          title: "Le souffle",
-          blocks: [imageBlock("00000000-0000-4000-8000-0000000000e3", PHOTO)],
-        } as unknown as Draft,
-      }),
-    ])
-    vi.mocked(api.getMediaByIds).mockImplementation(async (ids) =>
-      ids.map((id) => file(id))
-    )
-
-    await prepareMethodPage(args({ contentId: METHOD }))
-
-    expect(methodsApi.getMethodParts).toHaveBeenCalledWith(METHOD)
-    expect(methodsApi.getMethodTree).toHaveBeenCalledWith(METHOD)
-    expect(methodsApi.getMethodPreview).toHaveBeenCalledWith(METHOD)
-    expect(publicationApi.getPublication).toHaveBeenCalledWith(METHOD)
-    for (const kind of ["chapter", "lesson", "exercise"]) {
-      expect(templatesApi.listStarters).toHaveBeenCalledWith(kind)
-    }
-    // Les fichiers de la fiche et ceux de chaque partie, chacun avec sa propre lecture.
-    expect(api.getMediaByIds).toHaveBeenCalledWith([COVER])
-    expect(api.getMediaByIds).toHaveBeenCalledWith([PHOTO])
-    expect(loaded.sort()).toEqual(
-      [COVER, PHOTO]
-        .sort()
-        .map((id) => `https://fichiers/${PUBLIC_BUCKET}/${id}.webp`)
-    )
-  })
-
-  it("une méthode introuvable, ou un autre contenu : rien de plus à lire", async () => {
-    vi.mocked(api.getContent).mockResolvedValue(contentOf("article"))
-    await prepareMethodPage(args({ contentId: ARTICLE }))
-    expect(methodsApi.getMethodParts).not.toHaveBeenCalled()
-    expect(publicationApi.getPublication).not.toHaveBeenCalled()
-  })
-
-  it("une leçon ouverte d'ailleurs : sa méthode, où elle mène", async () => {
-    vi.mocked(methodsApi.getElementContext).mockResolvedValue(null)
-    await prepareMethodElement(args({ contentId: LESSON }))
-    expect(methodsApi.getElementContext).toHaveBeenCalledWith(LESSON)
   })
 
   it("un contenu introuvable, à la corbeille ou d'une autre sorte : rien de plus à lire", async () => {
@@ -330,17 +258,16 @@ describe("les listes", () => {
     expect(mediaApi.getLatestAudit).toHaveBeenCalled()
   })
 
-  it("l'Accueil : mes brouillons, et ce qu'il y a à publier dans mes méthodes en ligne", async () => {
+  it("l'Accueil : mes brouillons, les programmations et leurs échecs", async () => {
     vi.mocked(homeApi.listMyRecentDrafts).mockResolvedValue([
-      { id: METHOD, kind: "method", live_draft_rev: 3 },
       { id: ARTICLE, kind: "article", live_draft_rev: 2 },
     ] as homeApi.HomeItem[])
 
     await prepareHome(args())
 
     expect(homeApi.listMyRecentDrafts).toHaveBeenCalledWith(editor.id)
-    expect(methodsApi.getMethodPreview).toHaveBeenCalledTimes(1)
-    expect(methodsApi.getMethodPreview).toHaveBeenCalledWith(METHOD)
+    expect(homeApi.listScheduled).toHaveBeenCalled()
+    expect(homeApi.listFailedSchedules).toHaveBeenCalled()
   })
 
   it("l'Équipe n'est lue que pour un admin", async () => {

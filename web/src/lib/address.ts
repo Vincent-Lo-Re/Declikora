@@ -49,7 +49,7 @@ function writeText(params: URLSearchParams, name: string, value: string) {
 
 const SEARCH = "recherche"
 
-// --- Le Fil, Radio Éclaircies, Méthodes, Pages ----------------------------------------------
+// --- Le Fil, Radio Éclaircies, Pages ------------------------------------------------------
 
 const stateChoice: Choice<StateFilter> = {
   name: "etat",
@@ -181,7 +181,6 @@ const trashChoice: Choice<TrashFilter> = {
     all: "tous",
     article: "article",
     episode: "episode",
-    method: "methode",
     page: "page",
     template: "modele",
     file: "fichier",
