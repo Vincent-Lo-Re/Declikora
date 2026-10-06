@@ -6,7 +6,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(58);
+select plan(60);
 
 select pg_temp.create_people();
 select pg_temp.empty_media_library();
@@ -252,6 +252,14 @@ select throws_ok(
   format('select * from public.outline_reorder(%L, %L::jsonb)', pg_temp.cid('m'), pg_temp.outline()),
   'P0001', 'verrou_perdu', 'admin : l''éditeur tient la méthode, admin doit prendre la main'
 );
+select throws_ok(
+  format('select * from public.trash(%L)', pg_temp.cid('reservee')), 'P0001', 'verrou_tenu',
+  'admin : l''éditeur écrit la méthode, ses leçons ne vont pas à la corbeille'
+);
+select is(
+  (select mine from public.lock_take(pg_temp.cid('m'), true)), true,
+  'admin : reprend la main sur la méthode'
+);
 select lives_ok(
   format('select * from public.trash(%L)', pg_temp.cid('reservee')), 'admin : mettre une leçon à la corbeille'
 );
@@ -262,6 +270,7 @@ select lives_ok(
   format('select public.schedule(%L, now() + interval ''1 day'')', pg_temp.cid('m')),
   'admin : programmer la méthode'
 );
+select public.lock_release(pg_temp.cid('m'));
 
 -- ---------------------------------------------------------------------------------------------
 -- Clé secrète : ni aperçu, ni rangement ; l'app se lit
@@ -283,6 +292,7 @@ select is(pg_temp.app_lessons(), array['Libre:false'], 'service_role : app_metho
 -- ---------------------------------------------------------------------------------------------
 
 select pg_temp.as_person('editor');
+select public.lock_take(pg_temp.cid('m'));
 select pg_temp.create_content('neuve', 'lesson', 'c', 'Neuve');
 select pg_temp.save('neuve', pg_temp.draft('[]', 'Neuve'));
 select pg_temp.as_anon();

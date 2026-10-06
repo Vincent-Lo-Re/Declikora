@@ -268,6 +268,7 @@ export type Database = {
           heartbeat_at: string
           holder_id: string | null
           holder_session: string | null
+          method_rev: number
           taken_at: string | null
         }
         Insert: {
@@ -276,6 +277,7 @@ export type Database = {
           heartbeat_at?: string
           holder_id?: string | null
           holder_session?: string | null
+          method_rev?: number
           taken_at?: string | null
         }
         Update: {
@@ -284,6 +286,7 @@ export type Database = {
           heartbeat_at?: string
           holder_id?: string | null
           holder_session?: string | null
+          method_rev?: number
           taken_at?: string | null
         }
         Relationships: [
