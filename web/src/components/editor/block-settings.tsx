@@ -38,6 +38,8 @@ import { ColumnHeader } from "@/components/editor/column-header"
 import { MediaFileLink } from "@/components/media/media-file-link"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
+import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -387,13 +389,10 @@ function IconAction({
             />
           ) : (
             <Button
-              variant="ghost"
+              variant={destructive ? "destructive" : "ghost"}
               size="icon-sm"
               aria-label={label}
-              className={cn(
-                "aria-disabled:opacity-50",
-                destructive && "text-destructive hover:text-destructive"
-              )}
+              className="aria-disabled:opacity-50"
               disabled={disabled}
               focusableWhenDisabled
               onClick={onClick}
@@ -437,26 +436,32 @@ function ImageSettings({
         {media.state === "ready" || media.state === "not_ready" ? (
           // Le fichier choisi : sa vignette, son nom, et sa fiche dans la Médiathèque (nouvel
           // onglet : l'éditeur reste ouvert).
-          <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-2">
-            {media.state === "ready" && media.url ? (
-              <img
-                src={media.url}
-                alt=""
-                className={cn(
-                  "size-14 shrink-0 rounded-md bg-muted",
-                  media.media.kind === "svg" ? "object-contain" : "object-cover"
-                )}
-              />
-            ) : (
-              <span className="flex size-14 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                <ImageIcon aria-hidden className="size-5" />
-              </span>
-            )}
-            <div className="grid min-w-0 gap-0.5">
-              <p className="truncate text-sm font-medium">{media.media.name}</p>
+          <Item variant="muted" size="sm">
+            <ItemMedia>
+              {media.state === "ready" && media.url ? (
+                <img
+                  src={media.url}
+                  alt=""
+                  className={cn(
+                    "size-14 shrink-0 rounded-md bg-muted",
+                    media.media.kind === "svg"
+                      ? "object-contain"
+                      : "object-cover"
+                  )}
+                />
+              ) : (
+                <span className="flex size-14 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                  <ImageIcon aria-hidden className="size-5" />
+                </span>
+              )}
+            </ItemMedia>
+            <ItemContent className="min-w-0">
+              <ItemTitle className="block w-full truncate">
+                {media.media.name}
+              </ItemTitle>
               <MediaFileLink mediaId={media.media.id} />
-            </div>
-          </div>
+            </ItemContent>
+          </Item>
         ) : (
           <p className="truncate text-sm">
             {media.state === "missing"
@@ -484,7 +489,7 @@ function ImageSettings({
 
       <Field>
         <FieldLabel>{image.alt}</FieldLabel>
-        <label className="flex items-center gap-2 text-sm">
+        <Label className="font-normal">
           <Switch
             aria-label={image.altFromLibrary}
             checked={followsLibrary}
@@ -492,7 +497,7 @@ function ImageSettings({
             onCheckedChange={(checked) => setAlt(checked ? null : libraryAlt)}
           />
           {image.altFromLibrary}
-        </label>
+        </Label>
         {followsLibrary ? (
           <FieldDescription>
             {libraryAlt ? image.libraryAlt(libraryAlt) : image.noLibraryAlt}

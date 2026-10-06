@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
@@ -274,14 +275,14 @@ function CategoriesSection({
         >
           {list.map((category) => (
             <li key={category.id}>
-              <label className="flex items-center gap-2 text-sm">
+              <Label className="font-normal">
                 <Checkbox
                   checked={chosen.includes(category.id)}
                   disabled={!editable}
                   onCheckedChange={(checked) => toggle(category.id, checked)}
                 />
                 {category.name}
-              </label>
+              </Label>
             </li>
           ))}
         </ul>

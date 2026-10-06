@@ -57,6 +57,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Empty, EmptyContent, EmptyDescription } from "@/components/ui/empty"
+import {
+  SidebarMenu,
+  SidebarMenuAction,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+} from "@/components/ui/sidebar"
 import {
   Tooltip,
   TooltipContent,
@@ -272,23 +280,29 @@ function OutlineBlocks({
   }, [selectedId])
   if (all.length === 0) {
     return (
-      <div className="grid gap-3 px-2">
-        <p className="text-sm text-muted-foreground">{labels.empty}</p>
+      <Empty className="p-2">
+        <EmptyDescription>{labels.empty}</EmptyDescription>
         {feed.onAdd && (
-          <AddBlockButton label={texts.editor.add.label} onClick={feed.onAdd} />
+          <EmptyContent>
+            <AddBlockButton
+              label={texts.editor.add.label}
+              onClick={feed.onAdd}
+            />
+          </EmptyContent>
         )}
-      </div>
+      </Empty>
     )
   }
   const list = (
-    <ol className="grid gap-0.5">
+    <SidebarMenu className="gap-0.5">
       {draft.blocks.map((block) => (
         <Row key={block.id} block={block} container={ROOT} shared={shared} />
       ))}
-    </ol>
+    </SidebarMenu>
   )
   return (
-    <div ref={listRef}>
+    // Les lignes du menu (SidebarMenu de shadcn), sur la colonne blanche.
+    <div ref={listRef} className="sidebar-on-white">
       {shared.dnd ? (
         <DndContext {...drag.dndProps}>
           <DraggingTypeContext value={drag.active?.type ?? null}>
@@ -386,17 +400,17 @@ function SortableRow(props: RowProps) {
       dragging={isDragging}
       handle={
         shared.sortable && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
             ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}
             aria-label={texts.editor.handle(label)}
             // Au début de la ligne, centrée sur elle ; toujours devinée (pâle), franche au survol.
-            className="absolute top-1/2 left-0 flex h-7 w-4 -translate-y-1/2 cursor-grab touch-none items-center justify-center rounded-sm text-muted-foreground opacity-40 group-hover/row:text-foreground group-hover/row:opacity-100 hover:bg-accent focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
+            className="absolute top-1/2 left-0 h-7 w-4 -translate-y-1/2 cursor-grab touch-none p-0 text-muted-foreground opacity-50 group-hover/menu-item:text-foreground group-hover/menu-item:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
           >
-            <GripVertical aria-hidden className="size-4" />
-          </button>
+            <GripVertical aria-hidden />
+          </Button>
         )
       }
     />
@@ -425,15 +439,17 @@ function OutlineRow({
   const isCollapsed = shared.collapsed.has(block.id)
   const warningId = useId()
   return (
-    <li
+    <SidebarMenuItem
       ref={rowRef}
       // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer (dnd-kit)
       style={rowStyle}
-      className={cn("grid gap-0.5", dragging && "opacity-40")}
+      className={cn("grid gap-0.5", dragging && "opacity-50")}
     >
+      {/* Le groupe du survol est la ligne seule (pas les blocs d'une section dessous) : son menu
+          « ⋮ » n'apparaît qu'au survol de sa ligne. */}
       <div
         className={cn(
-          "group/row relative flex min-w-0 items-center gap-1 rounded-md",
+          "group/menu-item relative flex min-w-0 items-center gap-1",
           // La place de la poignée, au début de la ligne.
           shared.sortable && "pl-5"
         )}
@@ -449,120 +465,107 @@ function OutlineRow({
             onCheckedChange={(checked) => selection.onChoose(block.id, checked)}
           />
         )}
-        {/* Un seul fond pour la ligne, son chevron et son menu (survol, ligne choisie), sans la
-            poignée. */}
-        <div
+        <SidebarMenuButton
+          isActive={selectedId === block.id}
+          aria-label={labels.select(label)}
+          aria-current={selectedId === block.id || undefined}
+          // Retrouvée par « N points à vérifier dans le plan », qui l'allume.
+          data-outline-id={block.id}
+          aria-describedby={warning ? warningId : undefined}
+          onClick={() => onSelect(block.id)}
           className={cn(
-            "relative flex min-w-0 flex-1 items-center gap-1 rounded-md",
-            selectedId === block.id
-              ? "bg-accent"
-              : feed.hoveredId === block.id && "bg-accent/60"
+            "h-auto min-h-8 flex-1 scroll-mt-20 py-1.5",
+            // Survolé dans le téléphone : la ligne s'allume à moitié.
+            selectedId !== block.id &&
+              feed.hoveredId === block.id &&
+              "bg-sidebar-accent/60",
+            // Le chevron d'une section et le menu « ⋮ » (au survol) se posent au bout de la ligne :
+            // elle leur fait place, rien n'est caché dessous.
+            block.type === "box" && "pr-8",
+            feed.actions &&
+              (block.type === "box"
+                ? "group-focus-within/menu-item:pr-14 group-hover/menu-item:pr-14"
+                : "group-focus-within/menu-item:pr-8 group-hover/menu-item:pr-8")
           )}
         >
-          <button
-            type="button"
-            aria-label={labels.select(label)}
-            aria-current={selectedId === block.id || undefined}
-            // Retrouvée par « N points à vérifier dans le plan », qui l'allume.
-            data-outline-id={block.id}
-            aria-describedby={warning ? warningId : undefined}
-            onClick={() => onSelect(block.id)}
-            className={cn(
-              rowButton,
-              selectedId === block.id && "font-medium",
-              // Le menu « ⋮ » s'affiche au bout de la ligne (avant le chevron d'une section, qui ne
-              // bouge pas) : la ligne lui fait place, rien n'est caché dessous.
-              feed.actions && "group-focus-within/row:pr-8 group-hover/row:pr-8"
-            )}
+          <BlockSummary
+            block={block}
+            media={block.type === "image" ? feed.mediaFor(block.mediaId) : null}
+            templateName={shared.templateName(block)}
+            warning={
+              warning && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={<span className="flex shrink-0 text-warning" />}
+                  >
+                    <TriangleAlert aria-hidden />
+                    <span id={warningId} className="sr-only">
+                      {labels.warnings[warning]}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>{labels.warnings[warning]}</TooltipContent>
+                </Tooltip>
+              )
+            }
+          />
+        </SidebarMenuButton>
+        {/* Déplier, replier une section : au bout de sa ligne, toujours à la même place. */}
+        {block.type === "box" && (
+          <SidebarMenuAction
+            aria-expanded={!isCollapsed}
+            aria-label={
+              isCollapsed ? labels.expand(label) : labels.collapse(label)
+            }
+            onClick={() => shared.toggleCollapsed(block.id)}
           >
-            <BlockSummary
-              block={block}
-              media={
-                block.type === "image" ? feed.mediaFor(block.mediaId) : null
-              }
-              templateName={shared.templateName(block)}
-              warning={
-                warning && (
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={<span className="flex shrink-0 text-warning" />}
-                    >
-                      <TriangleAlert aria-hidden className="size-4" />
-                      <span id={warningId} className="sr-only">
-                        {labels.warnings[warning]}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>{labels.warnings[warning]}</TooltipContent>
-                  </Tooltip>
-                )
-              }
-            />
-          </button>
-          {/* Déplier, replier une section : au bout de sa ligne, toujours à la même place. */}
-          {block.type === "box" && (
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              // Pas de fond une fois déplié (aria-expanded) : celui de la ligne ; au survol, le
-              // même gris que la ligne choisie.
-              className="mr-1 shrink-0 text-muted-foreground hover:bg-accent aria-expanded:bg-transparent aria-expanded:text-muted-foreground aria-expanded:hover:bg-accent"
-              aria-expanded={!isCollapsed}
-              aria-label={
-                isCollapsed ? labels.expand(label) : labels.collapse(label)
-              }
-              onClick={() => shared.toggleCollapsed(block.id)}
-            >
-              {isCollapsed ? <ChevronRight /> : <ChevronDown />}
-            </Button>
-          )}
-          {feed.actions && (
-            <RowActions
-              label={label}
-              onDuplicate={() => feed.actions!.onDuplicate(block.id)}
-              duplicateBlocked={feed.actions.rootFull && container === ROOT}
-              onSaveToMine={
-                container === ROOT &&
-                block.type !== "linked" &&
-                feed.actions.onSaveToMine
-                  ? () => feed.actions!.onSaveToMine?.(block.id)
-                  : undefined
-              }
-              onLeaveBox={
-                container !== ROOT
-                  ? () => feed.actions!.onLeaveBox(block.id)
-                  : undefined
-              }
-              leaveBlocked={feed.actions.rootFull}
-              onRemove={() => feed.actions!.onRemove(block.id)}
-              beforeToggle={block.type === "box"}
-              removeBlocked={feed.actions.removeBlocked(block.id)}
-            />
-          )}
-        </div>
+            {isCollapsed ? <ChevronRight /> : <ChevronDown />}
+          </SidebarMenuAction>
+        )}
+        {feed.actions && (
+          <RowActions
+            label={label}
+            onDuplicate={() => feed.actions!.onDuplicate(block.id)}
+            duplicateBlocked={feed.actions.rootFull && container === ROOT}
+            onSaveToMine={
+              container === ROOT &&
+              block.type !== "linked" &&
+              feed.actions.onSaveToMine
+                ? () => feed.actions!.onSaveToMine?.(block.id)
+                : undefined
+            }
+            onLeaveBox={
+              container !== ROOT
+                ? () => feed.actions!.onLeaveBox(block.id)
+                : undefined
+            }
+            leaveBlocked={feed.actions.rootFull}
+            onRemove={() => feed.actions!.onRemove(block.id)}
+            beforeToggle={block.type === "box"}
+            removeBlocked={feed.actions.removeBlocked(block.id)}
+          />
+        )}
       </div>
       {block.type === "box" && !isCollapsed && (
         <BoxRows box={block} shared={shared} />
       )}
-    </li>
+    </SidebarMenuItem>
   )
 }
 
-// Les blocs d'une section : un trait qui part du début des lignes (après la place des poignées).
+// Les blocs d'une section (SidebarMenuSub de shadcn) : un trait qui part du début des lignes
+// (après la place des poignées).
 const boxRowsClass = (shared: RowShared) =>
-  cn(
-    "grid min-h-2 gap-0.5 rounded-md border-l pl-1.5",
-    shared.choosing ? "ml-9" : "ml-5"
-  )
+  cn("mr-0 min-h-2 gap-0.5 pr-0 pl-1.5", shared.choosing ? "ml-9" : "ml-5")
 
 /** Les blocs d'une section dépliée. */
 function BoxRows({ box, shared }: { box: BoxBlock; shared: RowShared }) {
   if (shared.dnd) return <DroppableBoxRows box={box} shared={shared} />
   return (
-    <ol className={boxRowsClass(shared)}>
+    <SidebarMenuSub className={boxRowsClass(shared)}>
       {box.blocks.map((child) => (
         <Row key={child.id} block={child} container={box.id} shared={shared} />
       ))}
-    </ol>
+    </SidebarMenuSub>
   )
 }
 
@@ -590,7 +593,7 @@ function DroppableBoxRows({
       items={box.blocks.map((child) => child.id)}
       strategy={verticalListSortingStrategy}
     >
-      <ol
+      <SidebarMenuSub
         ref={setNodeRef}
         className={cn(
           boxRowsClass(shared),
@@ -615,14 +618,10 @@ function DroppableBoxRows({
             />
           </li>
         )}
-      </ol>
+      </SidebarMenuSub>
     </SortableContext>
   )
 }
-
-// scroll-mt-20 : une ligne amenée sous les yeux ne passe pas sous le haut collé du plan.
-const rowButton =
-  "flex min-w-0 flex-1 scroll-mt-20 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
 /**
  * Le menu ⋮ d'une ligne du plan : Dupliquer, Enregistrer comme modèle…, Sortir de la section,
@@ -656,16 +655,11 @@ function RowActions({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button
-            variant="ghost"
-            size="icon-xs"
+          <SidebarMenuAction
+            showOnHover
             aria-label={labels.actions(label)}
-            // Par-dessus la fin de la ligne : il ne prend pas de place au libellé.
-            className={cn(
-              // Sur le fond de la ligne, sans fond à lui : la ligne lui fait place.
-              "absolute top-1 opacity-0 group-hover/row:opacity-100 hover:bg-accent focus-visible:opacity-100 aria-expanded:bg-accent aria-expanded:opacity-100",
-              beforeToggle ? "right-8" : "right-1"
-            )}
+            // Une section : juste avant son chevron, qui ne bouge pas.
+            className={cn(beforeToggle && "right-7")}
           />
         }
       >

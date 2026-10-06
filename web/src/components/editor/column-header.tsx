@@ -54,7 +54,7 @@ export function ColumnHeader({
           id={titleId}
           text={title}
           className={cn(
-            "flex-1 font-semibold outline-none",
+            "flex-1 font-medium outline-none",
             large ? "text-base" : "text-sm"
           )}
         />

@@ -141,6 +141,13 @@
   width: clamp(--spacing(52), calc((100vw - 36rem) / 2), --spacing(88));
 }
 
+/* Éditeur du Fil : le plan reprend les lignes du menu (SidebarMenuButton), mais sur une colonne
+   blanche ; la ligne choisie ou survolée y prend le gris de `muted` au lieu du blanc du menu. */
+@utility sidebar-on-white {
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+}
+
 /* Éditeur du Fil : le bas des deux colonnes, à la même hauteur (à gauche le retour et « Ajouter un
    bloc », à droite la lecture, l'état et « Publier »). */
 @utility h-feed-footer {

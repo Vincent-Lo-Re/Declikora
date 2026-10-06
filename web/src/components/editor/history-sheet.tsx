@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { History, RotateCcw } from "lucide-react"
 import { useState } from "react"
 
+import { LoadState } from "@/components/load-state"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -20,13 +21,19 @@ import {
   EmptyMedia,
 } from "@/components/ui/empty"
 import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from "@/components/ui/item"
+import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { useCategories } from "@/hooks/use-categories"
 import { versionCategoryNames, type Category } from "@/lib/categories"
@@ -110,24 +117,12 @@ export function HistorySheet({
                 {labels.needsLock}
               </p>
             )}
-            {versions.isPending ? (
-              <div className="space-y-2">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-              </div>
-            ) : versions.isError ? (
-              <div className="space-y-2">
-                <p role="alert" className="text-sm text-destructive">
-                  {labels.loadFailed}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => versions.refetch()}
-                >
-                  {texts.common.retry}
-                </Button>
-              </div>
+            {versions.data === undefined ? (
+              <LoadState
+                query={versions}
+                failed={labels.loadFailed}
+                rowClassName="h-16 w-full"
+              />
             ) : versions.data.length === 0 ? (
               <Empty className="border border-dashed">
                 <EmptyHeader>
@@ -140,49 +135,50 @@ export function HistorySheet({
             ) : (
               <ol className="space-y-2" aria-label={labels.title}>
                 {versions.data.map((version) => (
-                  <li
-                    key={version.id}
-                    className="space-y-2 rounded-lg border p-3 text-sm"
-                    data-version={version.number}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">
-                        {labels.version(version.number)}
-                      </span>
-                      {version.id === liveVersionId && (
-                        <Badge variant="secondary">
-                          <span
-                            aria-hidden
-                            className="size-1.5 rounded-full bg-status-live"
+                  <li key={version.id} data-version={version.number}>
+                    {/* L'Item de shadcn, en contour : la version, puis « Revenir à cette version ». */}
+                    <Item variant="outline" size="sm" className="items-start">
+                      <ItemContent className="min-w-0">
+                        <ItemTitle className="flex-wrap">
+                          {labels.version(version.number)}
+                          {version.id === liveVersionId && (
+                            <Badge variant="secondary">
+                              <span
+                                aria-hidden
+                                className="size-1.5 rounded-full bg-status-live"
+                              />
+                              {labels.live}
+                            </Badge>
+                          )}
+                          <span className="font-normal text-muted-foreground">
+                            {versionOriginLabel(version.origin)}
+                          </span>
+                        </ItemTitle>
+                        <ItemDescription>
+                          {formatDateTime(version.published_at)}
+                          {version.published_by_name &&
+                            ` ${labels.by(version.published_by_name)}`}
+                        </ItemDescription>
+                        {categories.data && (
+                          <VersionCategories
+                            ids={version.category_ids}
+                            categories={categories.data}
                           />
-                          {labels.live}
-                        </Badge>
-                      )}
-                      <span className="text-muted-foreground">
-                        {versionOriginLabel(version.origin)}
-                      </span>
-                    </div>
-                    <p className="text-muted-foreground">
-                      {formatDateTime(version.published_at)}
-                      {version.published_by_name &&
-                        ` ${labels.by(version.published_by_name)}`}
-                    </p>
-                    {categories.data && (
-                      <VersionCategories
-                        ids={version.category_ids}
-                        categories={categories.data}
-                      />
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!canRevert || revert.isPending}
-                      aria-label={labels.revertItem(version.number)}
-                      onClick={() => setConfirming(version)}
-                    >
-                      <RotateCcw />
-                      {labels.revert}
-                    </Button>
+                        )}
+                      </ItemContent>
+                      <ItemActions>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!canRevert || revert.isPending}
+                          aria-label={labels.revertItem(version.number)}
+                          onClick={() => setConfirming(version)}
+                        >
+                          <RotateCcw />
+                          {labels.revert}
+                        </Button>
+                      </ItemActions>
+                    </Item>
                   </li>
                 ))}
               </ol>

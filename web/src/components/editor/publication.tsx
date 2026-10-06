@@ -20,7 +20,7 @@ import type {
   LevelPick,
   PublicationControls,
 } from "@/components/editor/use-publication"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group"
 import {
   Dialog,
   DialogContent,
@@ -249,13 +250,16 @@ export function PublishButton({
   const inApp = status.live === "live" || status.live === "modified"
   const upToDate = status.live === "live" && !alwaysPublishable
   return (
-    <div className="flex items-center">
-      {/* Un bouton grisé ne reçoit pas la souris : l'infobulle se pose sur son contenant. */}
+    // « Publier » et son menu, accolés (ButtonGroup de shadcn).
+    <ButtonGroup>
+      {/* Un bouton grisé ne reçoit pas la souris : l'infobulle se pose sur son contenant. Le
+          bouton n'est donc pas un enfant direct du groupe : il aplatit lui-même son bord droit
+          (« ! » : au-dessus de l'arrondi que Button prend dans un groupe). */}
       <Tooltip disabled={!upToDate}>
         <TooltipTrigger render={<span className="inline-flex" />}>
           <Button
             size="sm"
-            className="rounded-r-none"
+            className="rounded-r-none!"
             disabled={
               disabled || pub.busy || pub.loading || pub.failed || upToDate
             }
@@ -267,16 +271,12 @@ export function PublishButton({
         </TooltipTrigger>
         <TooltipContent>{labels.upToDate}</TooltipContent>
       </Tooltip>
+      <ButtonGroupSeparator />
       <DropdownMenu>
         <DropdownMenuTrigger
           disabled={disabled || pub.busy || pub.loading || pub.failed}
           aria-label={labels.actions.more}
-          render={
-            <Button
-              size="icon-sm"
-              className="rounded-l-none border-l border-l-primary-foreground/25"
-            />
-          }
+          render={<Button size="icon-sm" />}
         >
           <ChevronDown />
         </DropdownMenuTrigger>
@@ -313,7 +313,7 @@ export function PublishButton({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+    </ButtonGroup>
   )
 }
 
@@ -653,11 +653,11 @@ function RequirementsNotice({
       {checks.missing.length > 0 && (
         <Alert variant="destructive" data-requirements>
           <TriangleAlert />
-          <AlertDescription className="space-y-2 text-foreground">
-            <p className="font-medium">
-              {action === "publish" ? words.publishTitle : words.scheduleTitle}
-            </p>
-            <ul className="space-y-2">
+          <AlertTitle>
+            {action === "publish" ? words.publishTitle : words.scheduleTitle}
+          </AlertTitle>
+          <AlertDescription>
+            <ul className="space-y-2 text-foreground">
               {checks.missing.map((item) => (
                 <li
                   key={item.key}
@@ -695,14 +695,11 @@ function RequirementsNotice({
         </Alert>
       )}
       {checks.advice.map((item) => (
-        <p
-          key={item.key}
-          className="flex items-start gap-1.5 text-sm text-warning"
-          data-advice={item.key}
-        >
-          <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-          {words.transcript}
-        </p>
+        // Un conseil, pas un refus : l'Alert de shadcn, son icône en orange.
+        <Alert key={item.key} role="status" data-advice={item.key}>
+          <TriangleAlert className="text-warning" />
+          <AlertTitle className="font-normal">{words.transcript}</AlertTitle>
+        </Alert>
       ))}
     </>
   )
