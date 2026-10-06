@@ -120,7 +120,7 @@ export function FormatToolbar({
       <TooltipTrigger
         render={
           <Toggle
-            size="sm"
+            size="icon-sm"
             aria-label={label}
             pressed={formats[key]}
             disabled={!usable || disabled}

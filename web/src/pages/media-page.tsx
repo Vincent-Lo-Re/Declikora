@@ -25,6 +25,7 @@ import {
   SelectAllToggle,
   type SelectAll,
 } from "@/components/bulk-selection"
+import { ListCard } from "@/components/list-card"
 import { LoadState } from "@/components/load-state"
 import { acceptedFiles, kindIcons } from "@/components/media/media-kinds"
 import { MediaGrid, MediaTable } from "@/components/media/media-collection"
@@ -387,7 +388,13 @@ export function MediaPage() {
             return (
               <Tooltip key={item}>
                 <TooltipTrigger
-                  render={<ToggleGroupItem value={item} aria-label={label} />}
+                  render={
+                    <ToggleGroupItem
+                      value={item}
+                      size="icon"
+                      aria-label={label}
+                    />
+                  }
                 >
                   <Icon />
                 </TooltipTrigger>
@@ -402,6 +409,7 @@ export function MediaPage() {
             render={
               <Toggle
                 variant="outline"
+                size="icon"
                 aria-label={texts.media.filters.unused}
                 pressed={unused}
                 onPressedChange={setUnused}
@@ -439,6 +447,7 @@ export function MediaPage() {
                 render={
                   <ToggleGroupItem
                     value={value}
+                    size="icon"
                     aria-label={texts.media.view[value]}
                   />
                 }
@@ -452,17 +461,19 @@ export function MediaPage() {
       </div>
 
       {media.data === undefined ? (
-        <LoadState
-          query={media}
-          failed={texts.media.loadFailed}
-          skeleton={
-            <div className="grid grid-cols-media gap-4">
-              {Array.from({ length: 6 }, (_, index) => (
-                <Skeleton key={index} className="aspect-square w-full" />
-              ))}
-            </div>
-          }
-        />
+        <ListCard className="p-4">
+          <LoadState
+            query={media}
+            failed={texts.media.loadFailed}
+            skeleton={
+              <div className="grid grid-cols-media gap-4">
+                {Array.from({ length: 6 }, (_, index) => (
+                  <Skeleton key={index} className="aspect-square w-full" />
+                ))}
+              </div>
+            }
+          />
+        </ListCard>
       ) : (
         <div className="space-y-4">
           {media.isError && (
@@ -481,7 +492,7 @@ export function MediaPage() {
             </Alert>
           )}
           {media.data.length === 0 ? (
-            <Empty className="border border-dashed">
+            <Empty className="bg-card ring-1 ring-foreground/10">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   {filtering ? <Search /> : <UploadCloud />}

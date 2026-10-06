@@ -20,6 +20,7 @@ import {
   SelectAllHead,
   type SelectAll,
 } from "@/components/bulk-selection"
+import { ListCard } from "@/components/list-card"
 import { CoverCell, SavedCell } from "@/components/contents/row-cells"
 import { useContentsSelection } from "@/components/contents/use-contents-selection"
 import { ListSettingsSheet } from "@/components/contents/list-settings-sheet"
@@ -343,12 +344,14 @@ export function ContentListPage({
       />
 
       {list.data === undefined ? (
-        <LoadState
-          query={list}
-          failed={labels.loadFailed}
-          rows={3}
-          rowClassName="h-12 w-full"
-        />
+        <ListCard>
+          <LoadState
+            query={list}
+            failed={labels.loadFailed}
+            rows={3}
+            rowClassName="h-12 w-full"
+          />
+        </ListCard>
       ) : (
         <div className="space-y-4">
           {list.isError && (
@@ -364,7 +367,7 @@ export function ContentListPage({
             onClose={bulk.closeKept}
           />
           {list.data.length === 0 ? (
-            <Empty className="border border-dashed">
+            <Empty className="bg-card ring-1 ring-foreground/10">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <FileText />
@@ -629,99 +632,103 @@ function ContentTable({
   // Le Fil, Radio Éclaircies : l'image de présentation de chacun, en vignette.
   const withCover = profile.cover === "required"
   const table = (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {order && (
+    <ListCard>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {order && (
+              <TableHead className="w-0">
+                <span className="sr-only">{labels.order.column}</span>
+              </TableHead>
+            )}
+            <SelectAllHead {...selectAll} />
+            {withCover && (
+              <TableHead className="w-14">
+                <span className="sr-only">{labels.columns.cover}</span>
+              </TableHead>
+            )}
+            <TableHead>{labels.columns.title}</TableHead>
+            {withCategories && (
+              <TableHead>{labels.columns.categories}</TableHead>
+            )}
+            <TableHead>{labels.columns.publication}</TableHead>
+            <TableHead>{labels.columns.savedAt}</TableHead>
             <TableHead className="w-0">
-              <span className="sr-only">{labels.order.column}</span>
+              <span className="sr-only">{texts.common.actions}</span>
             </TableHead>
-          )}
-          <SelectAllHead {...selectAll} />
-          {withCover && (
-            <TableHead className="w-14">
-              <span className="sr-only">{labels.columns.cover}</span>
-            </TableHead>
-          )}
-          <TableHead>{labels.columns.title}</TableHead>
-          {withCategories && <TableHead>{labels.columns.categories}</TableHead>}
-          <TableHead>{labels.columns.publication}</TableHead>
-          <TableHead>{labels.columns.savedAt}</TableHead>
-          <TableHead className="w-0">
-            <span className="sr-only">{texts.common.actions}</span>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((item) => {
-          const status = itemStatus(item, now)
-          const name = titleOf(item)
-          const cells = (
-            <>
-              <TableCell>
-                <Checkbox
-                  aria-label={texts.selection.select(name)}
-                  checked={selected.has(item.id)}
-                  disabled={trashing}
-                  onCheckedChange={(value) => onSelect(item, value)}
-                />
-              </TableCell>
-              {withCover && <CoverCell {...coverFor(item)} />}
-              <TableCell className="max-w-80 font-medium">
-                <Link
-                  to={editorPath(section, item.id)}
-                  className="line-clamp-2 underline-offset-4 hover:underline"
-                >
-                  {name}
-                </Link>
-              </TableCell>
-              {withCategories && (
-                <TableCell className="max-w-64 text-muted-foreground">
-                  <CategoriesCell ids={item.category_ids} all={categories} />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((item) => {
+            const status = itemStatus(item, now)
+            const name = titleOf(item)
+            const cells = (
+              <>
+                <TableCell>
+                  <Checkbox
+                    aria-label={texts.selection.select(name)}
+                    checked={selected.has(item.id)}
+                    disabled={trashing}
+                    onCheckedChange={(value) => onSelect(item, value)}
+                  />
                 </TableCell>
-              )}
-              <TableCell>
-                <div className="flex flex-wrap gap-1.5">
-                  <LiveBadge live={status.live} />
-                  <ScheduleBadge schedule={status.schedule} />
-                </div>
-              </TableCell>
-              <SavedCell savedAt={item.draft_saved_at} />
-              <TableCell>
-                <RowActions
-                  title={name}
-                  editPath={editorPath(section, item.id)}
-                  disabled={trashing}
-                  onTrash={() => onTrash(item)}
-                  onSettings={() => onSettings(item)}
-                />
-              </TableCell>
-            </>
-          )
-          const state = selected.has(item.id) ? "selected" : undefined
-          return order ? (
-            <SortableRow
-              key={item.id}
-              id={item.id}
-              name={name}
-              disabled={order.disabled}
-              data-state={state}
-              data-content-row={item.id}
-            >
-              {cells}
-            </SortableRow>
-          ) : (
-            <TableRow
-              key={item.id}
-              data-state={state}
-              data-content-row={item.id}
-            >
-              {cells}
-            </TableRow>
-          )
-        })}
-      </TableBody>
-    </Table>
+                {withCover && <CoverCell {...coverFor(item)} />}
+                <TableCell className="max-w-80 font-medium">
+                  <Link
+                    to={editorPath(section, item.id)}
+                    className="line-clamp-2 underline-offset-4 hover:underline"
+                  >
+                    {name}
+                  </Link>
+                </TableCell>
+                {withCategories && (
+                  <TableCell className="max-w-64 text-muted-foreground">
+                    <CategoriesCell ids={item.category_ids} all={categories} />
+                  </TableCell>
+                )}
+                <TableCell>
+                  <div className="flex flex-wrap gap-1.5">
+                    <LiveBadge live={status.live} />
+                    <ScheduleBadge schedule={status.schedule} />
+                  </div>
+                </TableCell>
+                <SavedCell savedAt={item.draft_saved_at} />
+                <TableCell>
+                  <RowActions
+                    title={name}
+                    editPath={editorPath(section, item.id)}
+                    disabled={trashing}
+                    onTrash={() => onTrash(item)}
+                    onSettings={() => onSettings(item)}
+                  />
+                </TableCell>
+              </>
+            )
+            const state = selected.has(item.id) ? "selected" : undefined
+            return order ? (
+              <SortableRow
+                key={item.id}
+                id={item.id}
+                name={name}
+                disabled={order.disabled}
+                data-state={state}
+                data-content-row={item.id}
+              >
+                {cells}
+              </SortableRow>
+            ) : (
+              <TableRow
+                key={item.id}
+                data-state={state}
+                data-content-row={item.id}
+              >
+                {cells}
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </ListCard>
   )
   return order ? (
     <SortableList

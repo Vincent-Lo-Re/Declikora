@@ -20,6 +20,7 @@ import {
   SelectAllHead,
   type SelectAll,
 } from "@/components/bulk-selection"
+import { ListCard } from "@/components/list-card"
 import { SavedCell } from "@/components/contents/row-cells"
 import { useContentsSelection } from "@/components/contents/use-contents-selection"
 import { LoadState } from "@/components/load-state"
@@ -176,14 +177,16 @@ export function TemplatesPage() {
       />
 
       {list.data === undefined ? (
-        <LoadState
-          query={list}
-          failed={labels.loadFailed}
-          rows={3}
-          rowClassName="h-12 w-full"
-        />
+        <ListCard>
+          <LoadState
+            query={list}
+            failed={labels.loadFailed}
+            rows={3}
+            rowClassName="h-12 w-full"
+          />
+        </ListCard>
       ) : list.data.length === 0 ? (
-        <Empty className="border border-dashed">
+        <Empty className="bg-card ring-1 ring-foreground/10">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <LayoutTemplate />
@@ -329,57 +332,59 @@ function TemplateTable({
     )
   }
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <SelectAllHead {...selectAll} />
-          <TableHead>{labels.columns.name}</TableHead>
-          {withType && <TableHead>{labels.columns.type}</TableHead>}
-          <TableHead>{labels.columns.savedAt}</TableHead>
-          <TableHead className="w-0">
-            <span className="sr-only">{texts.common.actions}</span>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((item) => (
-          <TableRow
-            key={item.id}
-            data-content-row={item.id}
-            data-template={item.id}
-            data-state={selected.has(item.id) ? "selected" : undefined}
-          >
-            <TableCell>
-              <Checkbox
-                aria-label={texts.selection.select(nameOf(item))}
-                checked={selected.has(item.id)}
-                disabled={selectionDisabled}
-                onCheckedChange={(value) => onSelect(item, value)}
-              />
-            </TableCell>
-            <TableCell className="font-medium">
-              <Link
-                to={editorPath("templates", item.id)}
-                className="underline-offset-4 hover:underline"
-              >
-                {nameOf(item)}
-              </Link>
-            </TableCell>
-            {withType && (
-              <TableCell>
-                <Badge variant="outline">
-                  {texts.templates.sorts[item.sort].title}
-                </Badge>
-              </TableCell>
-            )}
-            <SavedCell savedAt={item.draft_saved_at} />
-            <TableCell>
-              <RowActions item={item} onTrash={() => onTrash(item)} />
-            </TableCell>
+    <ListCard>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <SelectAllHead {...selectAll} />
+            <TableHead>{labels.columns.name}</TableHead>
+            {withType && <TableHead>{labels.columns.type}</TableHead>}
+            <TableHead>{labels.columns.savedAt}</TableHead>
+            <TableHead className="w-0">
+              <span className="sr-only">{texts.common.actions}</span>
+            </TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {items.map((item) => (
+            <TableRow
+              key={item.id}
+              data-content-row={item.id}
+              data-template={item.id}
+              data-state={selected.has(item.id) ? "selected" : undefined}
+            >
+              <TableCell>
+                <Checkbox
+                  aria-label={texts.selection.select(nameOf(item))}
+                  checked={selected.has(item.id)}
+                  disabled={selectionDisabled}
+                  onCheckedChange={(value) => onSelect(item, value)}
+                />
+              </TableCell>
+              <TableCell className="font-medium">
+                <Link
+                  to={editorPath("templates", item.id)}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {nameOf(item)}
+                </Link>
+              </TableCell>
+              {withType && (
+                <TableCell>
+                  <Badge variant="outline">
+                    {texts.templates.sorts[item.sort].title}
+                  </Badge>
+                </TableCell>
+              )}
+              <SavedCell savedAt={item.draft_saved_at} />
+              <TableCell>
+                <RowActions item={item} onTrash={() => onTrash(item)} />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </ListCard>
   )
 }
 

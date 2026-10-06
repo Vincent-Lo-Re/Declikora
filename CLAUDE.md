@@ -24,7 +24,7 @@ Elles ont été vérifiées sur npm et Expo le 2026-09-27. Elles sont épinglée
 - React 19.3, Vite 8.3, React Router 8.4
 - Tiptap 3.31 (`@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`)
 - dnd-kit : `@dnd-kit/core` 6.3, `@dnd-kit/sortable` 10.0, `@dnd-kit/utilities` 3.2
-- Tailwind CSS 4.3 + shadcn/ui (composants Base UI, style « base-nova », couleur de base neutre), icônes Lucide, police Inter
+- Tailwind CSS 4.3 + shadcn/ui (composants Base UI, style « base-nova », couleur de base Stone depuis le 06/10/2026, preset shadcn `bJMSkfGi`), icônes Lucide, police Inter
 - Sentry 11 (`@sentry/react`)
 - Vitest 5.0 (jsdom + Testing Library)
 - ESLint 10.11 + typescript-eslint 8.70, Prettier 3.9
@@ -97,6 +97,7 @@ npm run db:stop
 - `web/src/navigation.ts` : les sections (adresse en français, icône) et le rangement du menu. `web/src/routes.tsx` : les pages. Le menu : `web/src/components/app-sidebar.tsx`, toujours ouvert (pas de barre du haut ; en bas, le membre : `account-menu.tsx`).
 - `web/src/components/ui/` : les composants shadcn/ui (on peut les modifier ; leurs textes passent aussi par `texts.ts`). Seuls les morceaux et les variantes qui servent y restent.
 - Briques communes (à réutiliser avant d'en écrire une autre) :
+  - `web/src/components/list-card.tsx` (`ListCard`) : une liste (tableau, grille, état vide, chargement) dans une carte blanche, sur le panneau gris des pages avec le menu (ADMIN § 7, « Des panneaux gris sur fond blanc » : `--panel`, `--page-gap` et `bg-panel` d'`index.css`, `Sidebar` et `SidebarInset` de `components/ui/sidebar.tsx`) ;
   - `web/src/components/load-state.tsx` : une liste pas encore chargée (lignes grises, ou message d'échec et « Réessayer ») ;
   - `web/src/components/ordered-names.tsx` : une liste de noms rangée par glisser-déposer, renommée, complétée, avec suppression confirmée (Catégories, Formules) : la liste au centre, l'ajout dans une colonne à droite (`lg:grid-cols-list-aside`) ;
   - `web/src/blocks/components/media-state.tsx` : une image à ses proportions, et un fichier choisi qui ne s'affiche pas (bloc Image, présentation) ;

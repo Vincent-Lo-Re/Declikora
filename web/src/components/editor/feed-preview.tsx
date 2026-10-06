@@ -253,6 +253,7 @@ function PreviewTools({
         <TooltipTrigger
           render={
             <Toggle
+              size="icon"
               aria-label={texts.editor.focusMode.label}
               aria-keyshortcuts={focus.keys}
               pressed={focus.on}
@@ -279,6 +280,7 @@ function PreviewTools({
         <TooltipTrigger
           render={
             <Toggle
+              size="icon"
               aria-label={labels.largeText}
               pressed={preview.largeText}
               onPressedChange={(largeText) =>
@@ -359,7 +361,11 @@ function ToolGroup<T extends string>({
           <Tooltip key={candidate}>
             <TooltipTrigger
               render={
-                <ToggleGroupItem value={candidate} aria-label={itemLabel} />
+                <ToggleGroupItem
+                  value={candidate}
+                  size="icon"
+                  aria-label={itemLabel}
+                />
               }
             >
               <Icon />

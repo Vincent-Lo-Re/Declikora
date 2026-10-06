@@ -11,6 +11,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 import { toast } from "sonner"
 
+import { ListCard } from "@/components/list-card"
 import { SelectAllHead } from "@/components/bulk-selection"
 import { LoadState } from "@/components/load-state"
 import { kindIcons } from "@/components/media/media-kinds"
@@ -255,7 +256,9 @@ export function TrashPage() {
       </div>
 
       {trash.data === undefined ? (
-        <LoadState query={trash} failed={texts.trash.loadFailed} />
+        <ListCard>
+          <LoadState query={trash} failed={texts.trash.loadFailed} />
+        </ListCard>
       ) : (
         <div className="space-y-4">
           {trash.isError && (
@@ -274,7 +277,7 @@ export function TrashPage() {
             </Alert>
           )}
           {entries.length === 0 ? (
-            <Empty className="border border-dashed">
+            <Empty className="bg-card ring-1 ring-foreground/10">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <Trash2 />
@@ -290,48 +293,50 @@ export function TrashPage() {
               {texts.trash.emptyFilter}
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <SelectAllHead
-                    all={allChecked}
-                    some={selection.length > 0 && !allChecked}
-                    disabled={busy}
-                    onToggleAll={(checked) =>
-                      setSelected((current) => {
-                        const next = new Set(
-                          [...current].filter((key) => !shownKeys.has(key))
-                        )
-                        if (checked) {
-                          for (const key of shownKeys) next.add(key)
-                        }
-                        return next
-                      })
-                    }
-                  />
-                  <TableHead>{texts.trash.columns.name}</TableHead>
-                  <TableHead>{texts.trash.columns.type}</TableHead>
-                  <TableHead>{texts.trash.columns.deletedAt}</TableHead>
-                  <TableHead>{texts.trash.columns.purgeAt}</TableHead>
-                  <TableHead className="w-0">
-                    <span className="sr-only">{texts.common.actions}</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {shown.map((entry) => (
-                  <TrashRow
-                    key={keyOf(entry.item)}
-                    entry={entry}
-                    checked={selected.has(keyOf(entry.item))}
-                    disabled={busy}
-                    onCheck={(checked) => toggle(entry.item, checked)}
-                    onRestore={() => restore.mutate(entry.item)}
-                    onErase={() => setConfirmation({ scope: "item", entry })}
-                  />
-                ))}
-              </TableBody>
-            </Table>
+            <ListCard>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <SelectAllHead
+                      all={allChecked}
+                      some={selection.length > 0 && !allChecked}
+                      disabled={busy}
+                      onToggleAll={(checked) =>
+                        setSelected((current) => {
+                          const next = new Set(
+                            [...current].filter((key) => !shownKeys.has(key))
+                          )
+                          if (checked) {
+                            for (const key of shownKeys) next.add(key)
+                          }
+                          return next
+                        })
+                      }
+                    />
+                    <TableHead>{texts.trash.columns.name}</TableHead>
+                    <TableHead>{texts.trash.columns.type}</TableHead>
+                    <TableHead>{texts.trash.columns.deletedAt}</TableHead>
+                    <TableHead>{texts.trash.columns.purgeAt}</TableHead>
+                    <TableHead className="w-0">
+                      <span className="sr-only">{texts.common.actions}</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {shown.map((entry) => (
+                    <TrashRow
+                      key={keyOf(entry.item)}
+                      entry={entry}
+                      checked={selected.has(keyOf(entry.item))}
+                      disabled={busy}
+                      onCheck={(checked) => toggle(entry.item, checked)}
+                      onRestore={() => restore.mutate(entry.item)}
+                      onErase={() => setConfirmation({ scope: "item", entry })}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </ListCard>
           )}
         </div>
       )}

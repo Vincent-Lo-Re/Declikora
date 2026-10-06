@@ -1,5 +1,6 @@
 import { cn } from "cn"
 
+import { ListCard } from "@/components/list-card"
 import { SelectAllHead, type SelectAll } from "@/components/bulk-selection"
 import {
   MediaStatusIcon,
@@ -53,75 +54,77 @@ export function MediaGrid({
   // Dès qu'un fichier est coché, un clic sur une vignette la coche au lieu d'ouvrir sa fiche.
   const selecting = items.some((media) => selected.has(media.id))
   return (
-    <ul className="grid grid-cols-media gap-4">
-      {items.map((media) => {
-        const checked = selected.has(media.id)
-        return (
-          <li key={media.id} className="group/media relative">
-            {/* La case apparaît au survol ou au clavier, et reste visible pendant une sélection. */}
-            <div
-              className={cn(
-                "absolute top-2 left-2 z-10 flex rounded-md bg-background/90 p-1.5 shadow-sm transition-opacity group-hover/media:opacity-100 focus-within:opacity-100 motion-reduce:transition-none",
-                selecting ? "opacity-100" : "opacity-0"
-              )}
-            >
-              <Checkbox
-                aria-label={texts.selection.select(media.name)}
-                checked={checked}
-                disabled={selectionDisabled}
-                onCheckedChange={(value) => onSelect(media, value)}
-              />
-            </div>
-            <button
-              type="button"
-              className={cn(
-                "group flex w-full flex-col overflow-hidden rounded-xl text-left ring-1 ring-foreground/10 transition-shadow outline-none hover:ring-foreground/25 focus-visible:ring-3 focus-visible:ring-ring/50",
-                checked && "ring-2 ring-primary hover:ring-primary"
-              )}
-              // Pendant une sélection, la vignette entière coche ou décoche le fichier.
-              aria-label={
-                selecting
-                  ? texts.selection.select(media.name)
-                  : texts.media.open(media.name)
-              }
-              aria-pressed={selecting ? checked : undefined}
-              // Au clavier, la case suffit : pas deux arrêts pour le même fichier.
-              tabIndex={selecting ? -1 : undefined}
-              aria-describedby={`media-${media.id}-etat`}
-              data-media-open={media.id}
-              onClick={() => {
-                if (!selecting) onOpen(media)
-                else if (!selectionDisabled) onSelect(media, !checked)
-              }}
-            >
-              <MediaThumbnail
-                media={media}
-                url={urlFor(media)}
-                className="aspect-square w-full"
-              />
-              <div className="space-y-1.5 p-3" id={`media-${media.id}-etat`}>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={<p className="truncate text-sm font-medium" />}
-                  >
-                    {media.name}
-                  </TooltipTrigger>
-                  <TooltipContent>{media.name}</TooltipContent>
-                </Tooltip>
-                <p className="text-xs text-muted-foreground">
-                  {texts.media.kinds[media.kind]} ·{" "}
-                  {formatBytes(media.size_bytes)}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  <MediaStatusIcon media={media} now={now} />
-                  <MediaUseIcon media={media} />
-                </div>
+    <ListCard className="p-4">
+      <ul className="grid grid-cols-media gap-4">
+        {items.map((media) => {
+          const checked = selected.has(media.id)
+          return (
+            <li key={media.id} className="group/media relative">
+              {/* La case apparaît au survol ou au clavier, et reste visible pendant une sélection. */}
+              <div
+                className={cn(
+                  "absolute top-2 left-2 z-10 flex rounded-md bg-background/90 p-1.5 shadow-sm transition-opacity group-hover/media:opacity-100 focus-within:opacity-100 motion-reduce:transition-none",
+                  selecting ? "opacity-100" : "opacity-0"
+                )}
+              >
+                <Checkbox
+                  aria-label={texts.selection.select(media.name)}
+                  checked={checked}
+                  disabled={selectionDisabled}
+                  onCheckedChange={(value) => onSelect(media, value)}
+                />
               </div>
-            </button>
-          </li>
-        )
-      })}
-    </ul>
+              <button
+                type="button"
+                className={cn(
+                  "group flex w-full flex-col overflow-hidden rounded-xl text-left ring-1 ring-foreground/10 transition-shadow outline-none hover:ring-foreground/25 focus-visible:ring-3 focus-visible:ring-ring/50",
+                  checked && "ring-2 ring-primary hover:ring-primary"
+                )}
+                // Pendant une sélection, la vignette entière coche ou décoche le fichier.
+                aria-label={
+                  selecting
+                    ? texts.selection.select(media.name)
+                    : texts.media.open(media.name)
+                }
+                aria-pressed={selecting ? checked : undefined}
+                // Au clavier, la case suffit : pas deux arrêts pour le même fichier.
+                tabIndex={selecting ? -1 : undefined}
+                aria-describedby={`media-${media.id}-etat`}
+                data-media-open={media.id}
+                onClick={() => {
+                  if (!selecting) onOpen(media)
+                  else if (!selectionDisabled) onSelect(media, !checked)
+                }}
+              >
+                <MediaThumbnail
+                  media={media}
+                  url={urlFor(media)}
+                  className="aspect-square w-full"
+                />
+                <div className="space-y-1.5 p-3" id={`media-${media.id}-etat`}>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={<p className="truncate text-sm font-medium" />}
+                    >
+                      {media.name}
+                    </TooltipTrigger>
+                    <TooltipContent>{media.name}</TooltipContent>
+                  </Tooltip>
+                  <p className="text-xs text-muted-foreground">
+                    {texts.media.kinds[media.kind]} ·{" "}
+                    {formatBytes(media.size_bytes)}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <MediaStatusIcon media={media} now={now} />
+                    <MediaUseIcon media={media} />
+                  </div>
+                </div>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </ListCard>
   )
 }
 
@@ -137,72 +140,74 @@ export function MediaTable({
   selectionDisabled,
 }: CollectionProps) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <SelectAllHead {...selectAll} />
-          <TableHead className="w-14">
-            <span className="sr-only">{texts.media.columns.preview}</span>
-          </TableHead>
-          <TableHead>{texts.media.columns.name}</TableHead>
-          <TableHead>{texts.media.columns.kind}</TableHead>
-          <TableHead>{texts.media.columns.size}</TableHead>
-          <TableHead>{texts.media.columns.createdAt}</TableHead>
-          <TableHead>{texts.media.columns.status}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((media) => (
-          <TableRow
-            key={media.id}
-            data-state={selected.has(media.id) ? "selected" : undefined}
-          >
-            <TableCell>
-              <Checkbox
-                aria-label={texts.selection.select(media.name)}
-                checked={selected.has(media.id)}
-                disabled={selectionDisabled}
-                onCheckedChange={(value) => onSelect(media, value)}
-              />
-            </TableCell>
-            <TableCell>
-              <MediaThumbnail
-                media={media}
-                url={urlFor(media)}
-                className="size-10 rounded-md"
-                iconClassName="size-4"
-              />
-            </TableCell>
-            <TableCell className="max-w-72">
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      type="button"
-                      className="max-w-full truncate text-left font-medium underline-offset-4 outline-none hover:underline focus-visible:underline"
-                      aria-label={texts.media.open(media.name)}
-                      data-media-open={media.id}
-                      onClick={() => onOpen(media)}
-                    />
-                  }
-                >
-                  {media.name}
-                </TooltipTrigger>
-                <TooltipContent>{media.name}</TooltipContent>
-              </Tooltip>
-            </TableCell>
-            <TableCell>{texts.media.kinds[media.kind]}</TableCell>
-            <TableCell>{formatBytes(media.size_bytes)}</TableCell>
-            <TableCell>{formatDateTime(media.created_at)}</TableCell>
-            <TableCell>
-              <div className="flex items-center gap-1.5">
-                <MediaStatusIcon media={media} now={now} />
-                <MediaUseIcon media={media} />
-              </div>
-            </TableCell>
+    <ListCard>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <SelectAllHead {...selectAll} />
+            <TableHead className="w-14">
+              <span className="sr-only">{texts.media.columns.preview}</span>
+            </TableHead>
+            <TableHead>{texts.media.columns.name}</TableHead>
+            <TableHead>{texts.media.columns.kind}</TableHead>
+            <TableHead>{texts.media.columns.size}</TableHead>
+            <TableHead>{texts.media.columns.createdAt}</TableHead>
+            <TableHead>{texts.media.columns.status}</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {items.map((media) => (
+            <TableRow
+              key={media.id}
+              data-state={selected.has(media.id) ? "selected" : undefined}
+            >
+              <TableCell>
+                <Checkbox
+                  aria-label={texts.selection.select(media.name)}
+                  checked={selected.has(media.id)}
+                  disabled={selectionDisabled}
+                  onCheckedChange={(value) => onSelect(media, value)}
+                />
+              </TableCell>
+              <TableCell>
+                <MediaThumbnail
+                  media={media}
+                  url={urlFor(media)}
+                  className="size-10 rounded-md"
+                  iconClassName="size-4"
+                />
+              </TableCell>
+              <TableCell className="max-w-72">
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        className="max-w-full truncate text-left font-medium underline-offset-4 outline-none hover:underline focus-visible:underline"
+                        aria-label={texts.media.open(media.name)}
+                        data-media-open={media.id}
+                        onClick={() => onOpen(media)}
+                      />
+                    }
+                  >
+                    {media.name}
+                  </TooltipTrigger>
+                  <TooltipContent>{media.name}</TooltipContent>
+                </Tooltip>
+              </TableCell>
+              <TableCell>{texts.media.kinds[media.kind]}</TableCell>
+              <TableCell>{formatBytes(media.size_bytes)}</TableCell>
+              <TableCell>{formatDateTime(media.created_at)}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1.5">
+                  <MediaStatusIcon media={media} now={now} />
+                  <MediaUseIcon media={media} />
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </ListCard>
   )
 }

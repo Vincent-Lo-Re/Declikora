@@ -8,7 +8,10 @@ import { cn } from "cn"
 import { Separator } from "@/components/ui/separator"
 
 // Le menu de gauche est toujours ouvert (docs/ADMINISTRATION.md § 7) : ni repli en icônes, ni
-// raccourci, ni version mobile (l'admin est faite pour 1 024 px de large au moins).
+// raccourci, ni version mobile (l'admin est faite pour 1 024 px de large au moins). Le menu et le
+// contenu sont deux panneaux gris arrondis sur la page blanche, séparés par --page-gap ; le menu
+// passe en diagonale (du coin en haut à gauche au coin en bas à droite) de son gris à celui du
+// contenu.
 const SIDEBAR_WIDTH = "16rem"
 
 function SidebarWrapper({
@@ -42,11 +45,14 @@ function Sidebar({
   return (
     <div data-slot="sidebar" className="text-sidebar-foreground">
       {/* La place du menu, à côté de la page : le menu lui-même reste fixe quand elle défile. */}
-      <div data-slot="sidebar-gap" className="w-(--sidebar-width)" />
+      <div
+        data-slot="sidebar-gap"
+        className="w-[calc(var(--sidebar-width)+var(--page-gap))]"
+      />
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed inset-y-0 left-0 z-10 flex h-svh w-(--sidebar-width)",
+          "fixed inset-y-0 left-0 z-10 flex h-svh w-[calc(var(--sidebar-width)+var(--page-gap))] py-(--page-gap) pl-(--page-gap)",
           className
         )}
         {...props}
@@ -54,7 +60,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="flex size-full flex-col bg-sidebar"
+          className="flex size-full flex-col overflow-hidden rounded-2xl bg-linear-to-br from-sidebar to-panel ring-1 ring-muted dark:ring-foreground/10"
         >
           {children}
         </div>
@@ -68,7 +74,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
     <main
       data-slot="sidebar-inset"
       className={cn(
-        "relative flex w-full flex-1 flex-col bg-background",
+        "relative m-(--page-gap) flex min-h-[calc(100svh-2*var(--page-gap))] min-w-0 flex-1 flex-col rounded-2xl bg-panel ring-1 ring-muted dark:ring-foreground/10",
         className
       )}
       {...props}
@@ -180,7 +186,7 @@ function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
     <ul
       data-slot="sidebar-menu"
       data-sidebar="menu"
-      className={cn("flex w-full min-w-0 flex-col gap-0", className)}
+      className={cn("flex w-full min-w-0 flex-col gap-1", className)}
       {...props}
     />
   )
