@@ -155,7 +155,7 @@ select is(
     from pg_proc p
     where p.pronamespace = 'private'::regnamespace
       and p.proname in ('do_publish', 'run_due_publications', 'reader_rank', 'app_content_json',
-        'require_admin', 'publish_scope', 'resolve_linked', 'resolve_alt', 'resolve_alts',
+        'require_admin', 'resolve_linked', 'resolve_alt', 'resolve_alts',
         'body_to_draft', 'block_to_draft', 'media_available', 'active_writer', 'media_ids_of',
         'settings_already_applied', 'access_levels_before_write', 'access_levels_before_delete',
         'versions_immutable')

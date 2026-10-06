@@ -408,7 +408,7 @@ select is(
   'media_push : tout le reste de la version en ligne est recopié'
 );
 select is(
-  (select body_hash = encode(sha256(convert_to(jsonb_build_array(body, files, is_free)::text, 'UTF8')), 'hex')
+  (select body_hash = encode(sha256(convert_to(jsonb_build_array(body, files)::text, 'UTF8')), 'hex')
     from public.versions where content_id = pg_temp.cid('a') and number = 4),
   true,
   'media_push : empreinte recalculée'

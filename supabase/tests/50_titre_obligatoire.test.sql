@@ -1,5 +1,4 @@
--- Le titre est obligatoire pour publier (02/10/2026) : article, épisode, page, méthode, chapitre
--- et leçon. Un titre fait d'espaces ne compte pas. Refus à la publication et dès la
+-- Le titre est obligatoire pour publier (02/10/2026) : article, épisode et page. Un titre fait d'espaces ne compte pas. Refus à la publication et dès la
 -- programmation ; un contenu titré se publie.
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
@@ -59,20 +58,17 @@ select lives_ok(
 );
 select isnt(pg_temp.publish('sans'), null, 'l''article titré se publie');
 
--- Les autres sortes : même règle, chacune son message (chapitre et leçon : avec la méthode).
+-- Les autres sortes : même règle, chacune son message.
 reset role;
 select is(
   (select array_agg(pg_temp.error_of(format(
     $$select private.check_publish_requirements(%L, '{"title": ""}')$$, kind)) order by n)
-   from unnest(array['episode', 'page', 'method', 'chapter', 'lesson']) with ordinality k (kind, n)),
+   from unnest(array['episode', 'page']) with ordinality k (kind, n)),
   array[
     'titre_manquant | Donne un titre à l''épisode avant de le publier. | ',
-    'titre_manquant | Donne un titre à la page avant de la publier. | ',
-    'titre_manquant | Donne un titre à la méthode avant de la publier. | ',
-    'titre_manquant | Donne un titre au chapitre avant de publier la méthode. | ',
-    'titre_manquant | Donne un titre à la leçon avant de publier la méthode. | '
+    'titre_manquant | Donne un titre à la page avant de la publier. | '
   ],
-  'épisode, page, méthode, chapitre et leçon : titre obligatoire'
+  'épisode et page : titre obligatoire'
 );
 select is(
   pg_temp.error_of($$select private.check_publish_requirements('page', '{"title": "À propos"}')$$),

@@ -1,11 +1,11 @@
 -- Contenus : règles tenues par la base (docs/ARCHITECTURE-CONTENUS.md, § 1.5, § 1.6, § 3.2,
 -- § 3.3, § 3.5 et § 6, « Étape 4 ») : création, forme et usage du brouillon, enregistrement
--- sous le verrou, réglages, catégories, sorte, ordre dans le parent, corbeille, « Où il est
--- utilisé » et retrait d'un membre de l'équipe.
+-- sous le verrou, réglages, catégories, sorte, corbeille, « Où il est utilisé » et retrait d'un
+-- membre de l'équipe.
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(118);
+select plan(97);
 
 select pg_temp.create_people();
 select pg_temp.empty_media_library();
@@ -31,7 +31,6 @@ $$;
 create function pg_temp.create_content(
   content_name text,
   content_kind text,
-  parent_name text default null,
   content_title text default '',
   sort text default null,
   starter_name text default null,
@@ -45,7 +44,6 @@ declare
 begin
   select (public.content_create(
     kind => content_kind,
-    parent_id => pg_temp.cid(parent_name),
     title => content_title,
     template_sort => sort,
     from_template_id => pg_temp.cid(starter_name),
@@ -127,7 +125,7 @@ $$;
 
 grant execute on function
   pg_temp.cid(text),
-  pg_temp.create_content(text, text, text, text, text, text, text),
+  pg_temp.create_content(text, text, text, text, text, text),
   pg_temp.rev(text),
   pg_temp.save(text, jsonb, jsonb),
   pg_temp.draft(jsonb, text, jsonb),
@@ -191,40 +189,6 @@ select is(
   'création : titre nettoyé (espaces autour, Unicode composé)'
 );
 select lives_ok($$select pg_temp.create_content('episode', 'episode')$$, 'un épisode est créé');
-select lives_ok($$select pg_temp.create_content('method', 'method')$$, 'une méthode est créée');
-select lives_ok($$select pg_temp.create_content('ch1', 'chapter', 'method')$$, 'un chapitre est créé dans la méthode');
-select lives_ok($$select pg_temp.create_content('ch2', 'chapter', 'method')$$, 'un second chapitre est créé');
-select lives_ok($$select pg_temp.create_content('l1', 'lesson', 'ch1')$$, 'une leçon est créée dans le chapitre');
-select lives_ok($$select pg_temp.create_content('l2', 'lesson', 'ch1')$$, 'une deuxième leçon');
-select lives_ok($$select pg_temp.create_content('l3', 'lesson', 'ch1')$$, 'une troisième leçon');
-select is(
-  (select array_agg(position order by position) from public.contents
-    where parent_id = pg_temp.cid('method')),
-  array[1, 2],
-  'chapitres : en fin de liste de la méthode'
-);
-select is(
-  (select array_agg(position::text || ':' || in_app::text order by position) from public.contents
-    where parent_id = pg_temp.cid('ch1')),
-  array['1:false', '2:false', '3:false'],
-  'leçons : en fin de liste, « Montrer dans l''app » décoché'
-);
-select throws_ok(
-  $$select public.content_create('chapter')$$, 'P0001', 'parent_invalide',
-  'un chapitre sans méthode est refusé'
-);
-select throws_ok(
-  $$select pg_temp.create_content('x', 'lesson', 'method')$$, 'P0001', 'parent_invalide',
-  'une leçon directement dans une méthode est refusée'
-);
-select throws_ok(
-  $$select pg_temp.create_content('x', 'chapter', 'ch1')$$, 'P0001', 'parent_invalide',
-  'un chapitre dans un chapitre est refusé'
-);
-select throws_ok(
-  $$select pg_temp.create_content('x', 'article', 'method')$$, 'P0001', 'parent_invalide',
-  'un article n''a pas de parent'
-);
 select throws_ok(
   $$select public.content_create('video')$$, 'P0001', 'sorte_invalide', 'sorte inconnue refusée'
 );
@@ -522,23 +486,6 @@ select throws_ok(
 -- ---------------------------------------------------------------------------------------------
 
 select pg_temp.as_person('editor');
-select lives_ok(
-  $$select pg_temp.save('l1', pg_temp.draft('[]', 'Leçon 1'), '{"in_app": true, "is_free": true}')$$,
-  'leçon : « Montrer dans l''app » et « Leçon gratuite »'
-);
-select is(
-  (select array[in_app, is_free] from public.contents where id = pg_temp.cid('l1')),
-  array[true, true],
-  'leçon : réglages enregistrés'
-);
-select throws_ok(
-  $$select pg_temp.save('article', pg_temp.draft('[]', 'Café'), '{"in_app": true}')$$,
-  'P0001', 'reglages_invalides', '« Montrer dans l''app » refusé sur un article'
-);
-select throws_ok(
-  $$select pg_temp.save('ch1', pg_temp.draft('[]'), '{"is_free": true}')$$,
-  'P0001', 'reglages_invalides', '« Leçon gratuite » refusé sur un chapitre'
-);
 select throws_ok(
   $$select pg_temp.save('article', pg_temp.draft('[]', 'Café'), '{"slug": "cafe"}')$$,
   'P0001', 'reglages_invalides', 'adresse refusée sur un article'
@@ -569,7 +516,7 @@ select throws_ok(
   'P0001', 'reglages_invalides', 'réglage inconnu refusé'
 );
 select throws_ok(
-  $$select pg_temp.save('page', pg_temp.draft('[]', 'Aide'), '{"in_app": "oui"}')$$,
+  $$select pg_temp.save('page', pg_temp.draft('[]', 'Aide'), '{"slug": 5}')$$,
   'P0001', 'reglages_invalides', 'réglage du mauvais type refusé'
 );
 select lives_ok(
@@ -622,7 +569,7 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------------------------
--- Sorte, parent et contraintes (écritures de la base elle-même, en postgres)
+-- Sorte et contraintes (écritures de la base elle-même, en postgres)
 -- ---------------------------------------------------------------------------------------------
 
 select pg_temp.as_postgres();
@@ -635,17 +582,8 @@ select throws_ok(
   'P0001', 'sorte_immuable', 'la sorte d''un modèle ne change pas'
 );
 select throws_ok(
-  $$insert into public.contents (kind, parent_id, position, draft)
-    values ('lesson', pg_temp.cid('method'), 9, '{"v":1,"title":"x","blocks":[]}')$$,
-  'P0001', 'parent_invalide', 'parent de la mauvaise sorte refusé'
-);
-select throws_ok(
-  $$update public.contents set in_app = true where id = pg_temp.cid('article')$$,
-  '23514', null, '« Montrer dans l''app » impossible sur un article (check)'
-);
-select throws_ok(
-  $$update public.contents set live_version_id = gen_random_uuid() where id = pg_temp.cid('l1')$$,
-  '23514', null, 'une leçon n''a pas de version en ligne à elle (check)'
+  $$update public.contents set live_version_id = gen_random_uuid() where id = pg_temp.cid('style')$$,
+  '23514', null, 'un modèle n''a pas de version en ligne (check)'
 );
 select throws_ok(
   $$update public.contents set draft = '{"v":1,"title":"x","blocks":[]}' || jsonb_build_object('summary', repeat('a', 262200))
@@ -672,55 +610,37 @@ select is(
   'catégorie : nom nettoyé, en fin de liste de sa section'
 );
 
--- Ordre dans le parent : on renumérote les leçons après en avoir mis une à la corbeille.
+-- La seconde page va à la corbeille.
 update public.contents
 set deleted_at = now(), deleted_by = pg_temp.person_id('editor'), trash_batch = gen_random_uuid()
-where id = pg_temp.cid('l2');
-update public.contents set position = 2 where id = pg_temp.cid('l3');
-select lives_ok(
-  'set constraints public.contents_position_unique immediate',
-  'renuméroter les leçons après une mise à la corbeille : accepté'
-);
-set constraints public.contents_position_unique deferred;
-update public.contents set position = 2 where id = pg_temp.cid('l1');
-select throws_ok(
-  'set constraints public.contents_position_unique immediate', '23P01', null,
-  'deux leçons à la même place refusées'
-);
-set constraints public.contents_position_unique deferred;
-update public.contents set position = 1 where id = pg_temp.cid('l3');
-select lives_ok(
-  'set constraints public.contents_position_unique immediate',
-  'échanger deux leçons en deux temps : accepté à la fin de la transaction'
-);
-set constraints public.contents_position_unique deferred;
+where id = pg_temp.cid('page2');
 
 -- ---------------------------------------------------------------------------------------------
 -- Corbeille : un contenu dans la corbeille ne change pas
 -- ---------------------------------------------------------------------------------------------
 
 select throws_ok(
-  $$update public.contents set draft = '{"v":1,"title":"Changé","blocks":[]}' where id = pg_temp.cid('l2')$$,
+  $$update public.contents set draft = '{"v":1,"title":"Changé","blocks":[]}' where id = pg_temp.cid('page2')$$,
   'P0001', 'dans_la_corbeille', 'le brouillon d''un contenu dans la corbeille ne change pas'
 );
 select throws_ok(
-  $$update public.contents set in_app = true where id = pg_temp.cid('l2')$$,
+  $$update public.contents set slug = 'autre' where id = pg_temp.cid('page2')$$,
   'P0001', 'dans_la_corbeille', 'ses réglages non plus'
 );
 select set_config('declikora.detach_all', 'on', true);
 select lives_ok(
   $$update public.contents set draft = '{"v":1,"title":"Détaché","blocks":[]}', draft_rev = draft_rev + 1
-    where id = pg_temp.cid('l2')$$,
+    where id = pg_temp.cid('page2')$$,
   '« Détacher partout » peut changer le brouillon d''un contenu dans la corbeille'
 );
 select throws_ok(
-  $$update public.contents set in_app = true where id = pg_temp.cid('l2')$$,
+  $$update public.contents set slug = 'autre' where id = pg_temp.cid('page2')$$,
   'P0001', 'dans_la_corbeille', '« Détacher partout » ne change que le brouillon'
 );
 select set_config('declikora.detach_all', '', true);
 select pg_temp.as_person('editor');
 select throws_ok(
-  $$select pg_temp.save('l2', pg_temp.draft('[]'))$$, 'P0001', 'dans_la_corbeille',
+  $$select pg_temp.save('page2', pg_temp.draft('[]'))$$, 'P0001', 'dans_la_corbeille',
   'save_draft refusé sur un contenu dans la corbeille'
 );
 

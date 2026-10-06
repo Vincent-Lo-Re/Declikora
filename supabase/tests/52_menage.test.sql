@@ -1,7 +1,6 @@
 -- Ménage de la base (04/10/2026) : ce qui a été retiré ou rangé. Le résumé retiré est vérifié
 -- ailleurs : forme des blocs (cas partagé refuse-resume, 30_blocs_schema), brouillon d'un nouveau
--- contenu (32_contenus_regles), app_feed et app_content (44_sections_regles), app_method
--- (46_methodes_regles, 51_exercices).
+-- contenu (32_contenus_regles), app_feed et app_content (44_sections_regles).
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc

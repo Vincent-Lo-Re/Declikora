@@ -134,7 +134,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.content_create('template', template_sort => 'starter', template_for => 'method')$$,
-  'P0001', 'sorte_invalide', 'pas de point de départ pour une méthode (elle n''a pas de blocs)'
+  'P0001', 'sorte_invalide', 'une sorte inconnue n''a pas de point de départ'
 );
 select lives_ok(
   $$select pg_temp.create_template('depart_page', 'Interview', 'starter', 'page')$$,

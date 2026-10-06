@@ -44,11 +44,11 @@ update public.edit_locks set holder_id = null, holder_session = null, taken_at =
 -- ---------------------------------------------------------------------------------------------
 
 select function_privs_are(
-  'public', 'content_create', array['text', 'uuid', 'text', 'text', 'uuid', 'text'], 'anon',
+  'public', 'content_create', array['text', 'text', 'text', 'uuid', 'text'], 'anon',
   array[]::text[], 'anon : ne peut pas appeler content_create'
 );
 select function_privs_are(
-  'public', 'content_create', array['text', 'uuid', 'text', 'text', 'uuid', 'text'], 'authenticated',
+  'public', 'content_create', array['text', 'text', 'text', 'uuid', 'text'], 'authenticated',
   array['EXECUTE'], 'authenticated : peut appeler content_create'
 );
 select function_privs_are(

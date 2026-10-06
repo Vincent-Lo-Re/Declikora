@@ -223,14 +223,14 @@ values
     '60000000-0000-4000-8000-000000000009/i.png', 'image/png', 10, 'ready', now(), now());
 create or replace function private.media_uses(target_media_id uuid)
 returns table (
-  content_id uuid, kind text, title text, parent_title text, in_draft boolean, in_app boolean
+  content_id uuid, kind text, title text, in_draft boolean, in_app boolean
 )
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select gen_random_uuid(), 'article', 'Bien respirer', null::text, true, false
+  select gen_random_uuid(), 'article', 'Bien respirer', true, false
   where target_media_id in (
     '60000000-0000-4000-8000-000000000008', '60000000-0000-4000-8000-000000000009')
 $$;

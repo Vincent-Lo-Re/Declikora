@@ -3,13 +3,14 @@
 > Rédigé le 27/09/2026, révisé le même jour après deux relectures critiques. Références : `docs/ADMINISTRATION.md` (cité **« ADMIN § n »**) et `CLAUDE.md`. Un renvoi « § n » ou « § n.m » sans autre mention désigne une partie de **ce** document.
 > Point de départ : l'étape 2 (branche `etape-2-connexion`) est considérée comme faite, avec `public.profiles`, les rôles `admin` et `editor`, et `public.is_staff()` / `public.is_admin()`, qui exigent la double vérification (aal2) et que `anon` ne peut pas exécuter. La règle « fiche d'équipe sur invitation seulement » y est en place : un compte ne reçoit une fiche que si son rôle a été posé dans `app_metadata` par la clé secrète (§ 6.0, point 1).
 > Cadre : l'offre **gratuite** de Supabase (500 Mo de base, 1 Go de fichiers, 50 Mo par fichier, pas de transformation d'images, pas de vidage du cache CDN) et Vercel Hobby. L'offre Pro reste prévue avant le lancement de l'app (ADMIN § 8), mais rien ici n'en dépend.
+> **Méthodes, 06/10/2026** : l'ancien système des méthodes (méthode, chapitres, leçons, exercices, plan figé, « Montrer dans l'app », « Leçon gratuite », verrou de toute la méthode) est **retiré** de l'admin et de la base (migration `…_methodes_retirees.sql`, voir § 1.8 et « Étape 7 : l'ancien système des méthodes retiré »). Les méthodes sont refaites en écrans (ADMIN § 1). Le reste de ce document parle encore des méthodes là où il raconte ce qui a été construit ; les tableaux du § 1 décrivent la base telle qu'elle est.
 > Chaque partie commence par un **En bref** pour une lecture sans connaissances techniques. Le détail qui suit s'adresse au développeur. Les choix que j'ai faits sans toi sont notés **[Dn]** et regroupés au § 8.1 ; les questions qui n'appartiennent qu'à toi sont au § 8.2.
 
 ## En bref
 
-1. Tout ce qui s'écrit (article, épisode, méthode, chapitre, leçon, page, modèle) est rangé dans **une seule table**. On écrit donc une seule fois l'éditeur, l'enregistrement automatique, le verrou « un seul à la fois » et la corbeille.
+1. Tout ce qui s'écrit (article, épisode, page, modèle) est rangé dans **une seule table**. On écrit donc une seule fois l'éditeur, l'enregistrement automatique, le verrou « un seul à la fois » et la corbeille.
 2. Chaque contenu a **un brouillon**. « Publier » en fait une **copie figée**, que l'app lit. Les copies successives forment l'historique.
-3. Une méthode se publie **d'un seul geste**, avec son plan (ordre des chapitres et des leçons) et toutes les leçons modifiées (question 4 : décidé le 27/09/2026). Une leçon neuve reste cachée tant qu'on n'a pas coché « Montrer dans l'app », et l'admin montre la liste de ce qui va partir avant de publier.
+3. Les méthodes sont en cours de refonte (ADMIN § 1, « Méthodes, refaites en écrans ») : l'ancien système est retiré depuis le 06/10/2026, la nouvelle structure viendra avec sa migration.
 4. La forme des blocs est décrite **une seule fois**. L'admin, l'app et la base vérifient chacune ce même fichier.
 5. Tout fichier arrive **protégé**. Il ne devient public que quand un contenu gratuit publié l'utilise, ou quand il est l'image de présentation d'un contenu publié, même réservé (question 1 : décidé le 27/09/2026). Il redevient protégé sinon. Sans l'offre Pro, son ancienne adresse publique peut encore marcher deux minutes au plus (question 5 : décidé le 27/09/2026).
 6. Les publications programmées, la vidange de la corbeille et le rangement des fichiers se font **dans Supabase**, par des tâches planifiées et une seule fonction serveur.
@@ -79,35 +80,30 @@ ADMIN § 10 remet à plus tard les formules et le service de paiement. Cette tab
 | Colonne | Détail |
 |---|---|
 | `id uuid` | |
-| `kind text` | `article`, `episode`, `method`, `chapter`, `lesson`, `exercise` (depuis le 04/10/2026), `page`, `template`. Ne change jamais (trigger). |
-| `parent_id uuid` → `contents` `on delete cascade` | obligatoire pour `chapter` (parent : une méthode), `lesson` (parent : un chapitre) et `exercise` (parent : une leçon), interdit sinon. Un trigger vérifie la sorte du parent. |
-| `position int` | ordre dans le parent (voir la contrainte d'exclusion ci-dessous) |
-| `in_app bool not null default false` | chapitres, leçons et exercices : « Montrer dans l'app » à la prochaine publication de la méthode. **Décoché à la création**, pour qu'une leçon à moitié écrite ne parte pas avec les autres (§ 1.8, [D29]) |
+| `kind text` | `article`, `episode`, `page`, `template` (depuis le 06/10/2026 ; avant, aussi `method`, `chapter`, `lesson`, `exercise`). Ne change jamais (trigger). |
 | `draft jsonb` | **le brouillon unique** (forme au § 2.2) |
 | `title text` | colonne générée : `draft->>'title'` (listes, recherche) |
 | `draft_rev int` | augmente à chaque changement du brouillon (contrôle de conflit) |
 | `draft_saved_at`, `draft_saved_by` | dernier enregistrement |
-| `access_level_id uuid null` → `access_levels` `restrict` | `article`, `episode`, `method`, `page` seulement (`null` = gratuit). La clé étrangère est ajoutée à l'étape 5 |
+| `access_level_id uuid null` → `access_levels` `restrict` | `article`, `episode`, `page` seulement (`null` = gratuit). La clé étrangère est ajoutée à l'étape 5 |
 | `access_chosen bool not null default false` | sortes racines : vrai dès que l'équipe a choisi « Gratuit » ou une formule (réglage `access_level_id` de `save_draft`, `null` compris). Tant qu'il est faux, `publish` et `schedule` refusent (`acces_a_choisir`) **[D41]**. Ajoutée à l'étape 5 |
-| `is_free bool default false` | `lesson` seulement : leçon gratuite dans une méthode réservée |
 | `slug text` | `page` seulement : l'adresse que l'app demande (`mentions-legales`…), **dans le brouillon**. L'adresse en ligne est celle de la version publiée (`versions.slug`, § 1.7). `unique (slug) where kind = 'page' and deleted_at is null` |
 | `template_sort text` | `template` seulement : `style` (mise en forme), `shared` (bloc partagé) ou `starter` (point de départ). Ne change jamais (trigger). |
-| `template_for text` | `starter` seulement, obligatoire : la sorte de contenu que le point de départ sert à créer (`article`, `episode`, `chapter`, `lesson`, `exercise`, `page`) **[D42]**. Choisie à la création, ne change jamais (trigger). Ajoutée à l'étape 6 |
-| `live_version_id uuid null` | la version que lit l'app (`null` = pas dans l'app). Sortes « racines » seulement : `article`, `episode`, `method`, `page`. |
+| `template_for text` | `starter` seulement, obligatoire : la sorte de contenu que le point de départ sert à créer (`article`, `episode`, `chapter`, `lesson`, `exercise`, `page` ; les trois sections des méthodes restent pour les méthodes refaites) **[D42]**. Choisie à la création, ne change jamais (trigger). Ajoutée à l'étape 6 |
+| `live_version_id uuid null` | la version que lit l'app (`null` = pas dans l'app). Sortes publiées seulement : `article`, `episode`, `page`. |
 | `first_published_at timestamptz` | date de la première publication (l'app triait sur elle jusqu'au 30/09/2026, **[D27]** ; elle suit maintenant `list_position`) |
-| `list_position integer` | article, épisode ou méthode : sa place dans la liste de sa section, la plus petite en tête ; un contenu neuf arrive en tête (déclencheur `contents_05_list_position`) ; rangée par `contents_reorder` ; l'admin et l'app suivent cet ordre, brouillons compris **[D47]** |
+| `list_position integer` | article ou épisode : sa place dans la liste de sa section, la plus petite en tête ; un contenu neuf arrive en tête (déclencheur `contents_05_list_position`) ; rangée par `contents_reorder` ; l'admin et l'app suivent cet ordre, brouillons compris **[D47]** |
 | `scheduled_at`, `scheduled_by`, `scheduled_rev int`, `scheduled_set_at`, `schedule_error text` | publication programmée (sortes racines seulement) : l'heure, qui l'a programmée, la révision du brouillon et le moment où elle l'a fait (§ 3.8, [D31]), et l'éventuel échec |
-| `deleted_at`, `deleted_by`, `trash_batch uuid` | corbeille ; le lot sert à restaurer ensemble une méthode, ses chapitres et ses leçons |
+| `deleted_at`, `deleted_by`, `trash_batch uuid` | corbeille ; le lot sert à restaurer ensemble ce qui est parti ensemble (aujourd'hui, un contenu seul) |
 | `draft_media_ids uuid[]`, `draft_template_ids uuid[]` | tenus par trigger à partir de `draft` |
 | `created_at`, `created_by` | |
 
 **Contraintes**
-- `check` sur chaque combinaison de sorte : `parent_id`, `in_app` (chapitre, leçon, exercice), `is_free` (leçon), `slug` (page), `template_sort` (modèle, obligatoire), `access_level_id`, `live_version_id`, `scheduled_at` (sortes racines ; toujours `null` pour un chapitre, une leçon ou un modèle).
-- **Ordre dans le parent** : `exclude using btree (parent_id with =, position with =) where (deleted_at is null) deferrable initially deferred`. Une contrainte d'exclusion accepte à la fois un `where` et `deferrable`, ce que ne permet pas un index unique partiel. Les éléments dans la corbeille ne comptent donc pas : on peut renuméroter les leçons restantes 1, 2, 3 après en avoir supprimé une. `restore` replace l'élément **en fin de liste** de son parent.
+- `check` sur chaque combinaison de sorte : `slug` (page), `template_sort` (modèle, obligatoire), `access_level_id`, `access_chosen`, `live_version_id`, `scheduled_at`, `list_position` (sortes publiées ; toujours `null` pour un modèle).
 - **Clé étrangère composite** `(live_version_id, id) → versions (id, content_id)`, `on delete set null (live_version_id)` (Postgres 15+) : un contenu ne peut pas pointer vers la version d'un autre. Ajoutée à l'étape 5.
 - `check (octet_length(draft::text) <= 262144)` : 256 Ko par brouillon, pour ménager les 500 Mo de base **[D35]**. Un long article fait quelques dizaines de Ko ; les images ne sont que des références.
 
-**Index** : `(kind, deleted_at, draft_saved_at desc)` pour les listes et l'Accueil ; `(parent_id, position)` ; `(scheduled_at) where scheduled_at is not null` ; GIN sur `draft_media_ids` et `draft_template_ids`.
+**Index** : `(kind, deleted_at, draft_saved_at desc)` pour les listes et l'Accueil ; `(scheduled_at) where scheduled_at is not null` ; GIN sur `draft_media_ids` et `draft_template_ids`.
 
 Pourquoi une seule table, modèles compris ? Toutes ces sortes ont besoin des mêmes choses : un brouillon en blocs, l'enregistrement automatique, le verrou, la corbeille et le « où est-il utilisé ». Le prix est une série de `check` par sorte, écrits une fois et testés par pgTAP **[D3]**.
 
@@ -117,18 +113,17 @@ Pourquoi une seule table, modèles compris ? Toutes ces sortes ont besoin des m�
 |---|---|
 | `id`, `content_id` → `contents` `on delete cascade` | `unique (id, content_id)` pour la clé composite ci-dessus |
 | `number int` | 1, 2, 3… par contenu, `unique (content_id, number)` |
-| `origin text` | `manual`, `scheduled`, `template` (mise à jour d'un modèle), `outline` (retrait d'un chapitre ou d'une leçon, § 3.4), `files` (mise à jour des textes de la médiathèque, [D30] option B) |
+| `origin text` | `manual`, `scheduled`, `template` (mise à jour d'un modèle), `files` (mise à jour des textes de la médiathèque, [D30] option B) |
 | `body jsonb` | copie figée du brouillon : modèles liés **résolus**, textes alternatifs **résolus** (§ 2.4), vérifiée par le schéma `published` |
-| `body_hash text` | empreinte SHA-256 du corps résolu, de `files` et de `is_free` : sert à savoir si un chapitre ou une leçon a vraiment changé (§ 3.4) |
+| `body_hash text` | empreinte SHA-256 du corps résolu et de `files` (`private.version_hash`) ; elle servait à réutiliser la version d'une leçon inchangée |
 | `files jsonb` | pour chaque fichier cité : `kind`, `mime`, `alt`, `transcript`, `width`, `height`, `duration_s`, **figés** au moment de la publication ([D30]) |
-| `access_level_id` → `access_levels` `restrict`, `is_free` | accès figé |
+| `access_level_id` → `access_levels` `restrict` | accès figé |
 | `slug text` | pages seulement : l'adresse figée, celle que cherche `app_page` |
 | `category_ids uuid[]` | catégories figées (GIN) |
 | `media_ids uuid[]` | tous les fichiers cités, couverture et audio compris (GIN) |
 | `cover_media_id uuid` | l'image de présentation (`cover.mediaId` du corps), recopiée pour la règle « public ou protégé » : elle est publique tant que la version est en ligne, quel que soit le niveau (§ 4.4, question 1) |
 | `template_ids uuid[]` | modèles `shared` recopiés dans la version (GIN) |
 | `block_types text[]` | sortes de blocs utilisées, pour prévenir quand une ancienne app ne sait pas les afficher |
-| `outline jsonb` | méthodes seulement : le plan figé (§ 1.8) |
 | `draft_rev int` | révision du brouillon d'origine (affichage « modifié depuis la publication ») |
 | `published_at`, `published_by` (uuid, sans clé étrangère, § 1.1), `published_by_name` | auteur et date ; le nom est recopié |
 
@@ -137,27 +132,8 @@ Pourquoi une seule table, modèles compris ? Toutes ces sortes ont besoin des m�
 
 ### 1.8 Les méthodes
 
-- Une méthode, chacun de ses chapitres et chacune de ses leçons sont **des lignes distinctes** de `contents`. Depuis le 04/10/2026, une leçon peut avoir des **exercices** (ADMIN § 1), eux aussi des lignes de `contents` (`kind = 'exercise'`, parent : la leçon), gérés comme une leçon : brouillon en blocs, verrou, historique, « Montrer dans l'app », place dans la leçon, points de départ ; ni « Gratuit » ni niveau à eux. Chacune a son brouillon et son historique. **Depuis le 06/10/2026, une personne à la fois sur toute la méthode** (ADMIN § 4, « Une méthode sur une seule page ») : le verrou de la méthode vaut pour ses chapitres, ses leçons et ses exercices (§ 1.10) ; avant, chaque élément avait le sien, et deux membres pouvaient écrire deux leçons en même temps.
-- Le brouillon d'une méthode porte sa fiche (titre, image de présentation) ; sa liste de blocs reste vide pour l'instant **[D4]**. L'introduction d'un chapitre, c'est le brouillon en blocs de la ligne `chapter`.
-- **Un seul bouton « Publier », celui de la méthode** **[D29]**, validé le 27/09/2026 (question 4 du § 8.2, réponse A). Il publie la fiche, le plan et **tous** les chapitres et leçons modifiés qui ont « Montrer dans l'app » coché. Conséquence : corriger une virgule dans la leçon 1 envoie aussi dans l'app les autres leçons modifiées depuis la dernière publication. Deux garde-fous le rendent sûr :
-  - une leçon ou un chapitre **neuf** est créé avec « Montrer dans l'app » **décoché** : on le coche quand il est prêt ;
-  - avant de publier (ou de programmer) une méthode, l'admin affiche **la liste des éléments qui vont changer dans l'app** (neufs, modifiés, retirés), avec qui les a modifiés et quand, et demande de confirmer.
-  - (Un élément tenu en ce moment par un autre membre bloque la publication, [D14].)
-- La version de la méthode porte le **plan figé** :
-
-```json
-[
-  { "chapterId": "…", "versionId": "…",
-    "lessons": [ { "lessonId": "…", "versionId": "…",
-      "exercises": [ { "exerciseId": "…", "versionId": "…" } ] } ] }
-]
-```
-
-  `exercises` est écrit par chaque publication depuis le 04/10/2026 ; une leçon d'un plan plus ancien, sans `exercises`, reste valable.
-
-  Chaque `versionId` pointe vers la version d'un chapitre ou d'une leçon. Celles qui n'ont pas changé depuis la dernière publication sont **réutilisées**, pas recopiées : on ne duplique pas trente leçons pour une virgule. « Pas changé » se juge sur le contenu **résolu** (§ 3.4), pas seulement sur `draft_rev`. Un trigger vérifie, à l'insertion, que chaque `versionId` existe et appartient bien à un enfant de cette méthode.
-- Les chapitres et les leçons n'ont donc pas de `live_version_id` : ce qui est en ligne, c'est ce que cite le plan de la version en ligne de la méthode. **Réordonner ou déplacer une leçon ne change l'app qu'à la publication suivante**, comme tout le reste (ADMIN § 3).
-- **Niveau d'une leçon** : `null` (gratuit) si la version de la leçon a `is_free`, sinon celui de la version de la méthode. **Introduction d'un chapitre** : calculée par `private.chapter_intro_level()` : gratuite dès qu'une leçon du chapitre, en ligne dans le plan, est gratuite, sinon le niveau de la méthode **[D43]** (question 2, décidée le 28/09/2026). **Niveau d'un exercice** : celui de sa leçon dans ce plan (gratuit si elle l'est). Tout cela est calculé à un seul endroit, la vue `private.live` (§ 3.2).
+- **Retirées le 06/10/2026** (ADMIN § 1, « Méthodes, refaites en écrans ») : la migration `…_methodes_retirees.sql` supprime les méthodes, leurs chapitres, leurs leçons et leurs exercices, et tout ce qui ne servait qu'à eux (sortes, `parent_id`, `position`, `in_app`, `is_free`, `versions.outline`, `edit_locks.method_rev`, `app_method`, `publish_preview`, `outline_reorder` et les fonctions internes du plan). Les gestes communs reprennent leur forme pour un contenu seul. La nouvelle structure (Entrée, chapitres, Sortie ; parties simples ou à écrans) sera décrite ici avec sa migration.
+- Ce qui était en place avant : une méthode et chacun de ses éléments étaient des lignes de `contents` liées par `parent_id` ; la version de la méthode portait le plan figé, et la publication d'un seul geste réutilisait les versions inchangées ([D29]) ; le niveau d'un élément venait de la méthode, avec « Leçon gratuite » et l'introduction d'un chapitre gratuite dès qu'une de ses leçons l'était ([D43], gardée pour les méthodes refaites).
 
 ### 1.9 `media` (médiathèque)
 
@@ -190,7 +166,7 @@ Pourquoi une seule table, modèles compris ? Toutes ces sortes ont besoin des m�
 - Le verrou est **libre** si `holder_id` est `null`, et **périmé** si `heartbeat_at < now() - interval '90 seconds'`. Relâcher un verrou **ne supprime pas la ligne** : `holder_id` passe à `null` (un `UPDATE`, que Realtime peut filtrer par contenu et soumettre à la RLS). La tâche `menage` efface les lignes libres depuis plus d'un jour.
 - `draft_rev` est recopié à chaque enregistrement : c'est la seule chose qu'écoutent ceux qui regardent en lecture seule, ce qui garde les messages Realtime minuscules (on n'envoie jamais le brouillon lui-même).
 - Comme les modèles sont des lignes de `contents`, ils ont le même verrou.
-- **Une méthode, un seul verrou** (06/10/2026) : la ligne de la méthode vaut pour toute la méthode. Un chapitre, une leçon ou un exercice s'écrit sous le verrou de sa méthode, et n'a pas de ligne à lui (sauf si l'admin d'avant la page unique en prend une : deux personnes ne tiennent alors jamais deux parties d'une même méthode). `method_rev int` (ligne d'une méthode seulement) augmente à chaque changement de la méthode, fiche, plan ou élément (déclencheur `contents_method_rev_*`) : ceux qui lisent la méthode n'écoutent que lui.
+- **Une méthode, un seul verrou** (06/10/2026) : retiré le même jour avec l'ancien système des méthodes (`method_rev` compris). « Une personne à la fois sur toute la méthode » est gardée pour les méthodes refaites (ADMIN § 1).
 
 ### 1.11 `media_audit`
 
@@ -1135,6 +1111,16 @@ Les noms des jobs ne changent pas : les Deployment Checks de Vercel attendent «
 - **La Lecture** : le téléphone montre l'écran de la partie en cours, comme dans l'app ; les listes, « Suivant » et la flèche de l'app ouvrent un autre écran dans le téléphone (`GoToPartContext`), la page de l'admin ne change pas et le plan suit.
 - **Ce qui est partagé avec l'éditeur du Fil** : `useBlockEditing`, `usePartDraft`, `usePhoneView`, `useFocusMode`, `useRevert`, `SaveAsDialog`, `editor-chrome.tsx`, `OutlineBlocks`, `AddBlockButton` (qui peut ouvrir un menu). L'enregistrement automatique ne prévient plus de rien quand son état ne change pas (une frappe de plus) : 260 zones de texte (65 parties) restent fluides.
 - Tests : Vitest `method-page.test.tsx` (30 : la page, le plan, la colonne d'une partie, la publication, les exercices, la Lecture) et `lib/contents/method-page.test.ts` ; parcours `methodes.spec.ts` (3, réécrits pour la page) et la page dans le tour `navigation.spec.ts`.
+
+**Étape 7 : l'ancien système des méthodes retiré (06/10/2026)** (ADMIN § 1, « Méthodes, refaites en écrans » ; on repart au propre avant la nouvelle structure) :
+- **Admin d'abord** (`web/`) : plus de section Méthodes (menu, liste, page d'une méthode, adresses `/methodes/…`), ni de code qui ne servait qu'à elles (`components/methods/`, `lib/contents/outline.ts`, `methods.ts`, `method-page.ts`, leurs tests, `methodes.spec.ts`). Les sortes de l'admin sont `article`, `episode`, `page` et `template` (`ContentKind`, `isContentKind`, `APP_KINDS` de `lib/contents/api.ts`) ; l'Accueil et la Corbeille ne montrent pas les autres. Les points de départ d'un chapitre, d'une leçon ou d'un exercice restent.
+- **Puis la base** (`…_methodes_retirees.sql`) :
+  - les méthodes, leurs chapitres, leurs leçons et leurs exercices sont supprimés (versions, verrous et catégories en cascade) ;
+  - retirés : les sortes `method`, `chapter`, `lesson`, `exercise` ; `contents.parent_id`, `position`, `in_app`, `is_free` ; `versions.is_free`, `outline` et l'origine `outline` ; `edit_locks.method_rev` ; `app_method`, `publish_preview`, `outline_reorder` ; `private.method_of`, `lock_scope`, `publish_scope`, `try_prepare`, `element_version`, `prepare_element`, `element_label`, `place_in_parent`, `chapter_intro_level`, les fonctions du plan (`outline_*`, `*_live_outline`, `write_method_outline`, `do_publish_method`) et les déclencheurs `contents_method_rev_*` et `versions_outline` ;
+  - le verrou, `save_draft`, `revert_to_version`, `publish`, `schedule`, `unpublish`, `trash`, `restore`, la tâche « publications », `template_push`, `template_detach_all`, `media_push`, `media_replace` et `media_replace_live` reprennent leur forme pour un contenu seul ; `save_draft` n'accepte plus que `slug`, `access_level_id` et `category_ids` ;
+  - signatures changées : `content_create(kind, title, template_sort, from_template_id, template_for)` (sans `parent_id`), `media_uses` sans `parent_title`, `private.version_hash(body, files)`, `private.insert_version(prepared, origin, author)` ;
+  - `private.live` perd `method_id` ; `public.trash_items` perd `parent_title` ; `app_content` ne renvoie plus `methodId`, `lessonId`, `exercises` ni `isFree`.
+- Tests : pgTAP `54_methodes_retirees` ; `45`, `46`, `51` et `53` (méthodes) sont retirés, les autres ne parlent plus des méthodes.
 
 ---
 
