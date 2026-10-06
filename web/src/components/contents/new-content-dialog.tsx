@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
+import { TriangleAlert } from "lucide-react"
 import { useState, type FormEvent } from "react"
 
 import {
   ContentSettingsFields,
   type SectionCategories,
 } from "@/components/editor/content-settings-sheet"
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -235,9 +237,10 @@ export function NewContentDialog({
               }
             />
             {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
+              <Alert variant="destructive">
+                <TriangleAlert />
+                <AlertTitle>{error}</AlertTitle>
+              </Alert>
             )}
           </div>
           <DialogFooter>

@@ -3,11 +3,11 @@ import {
   Ellipsis,
   Layers,
   LayoutTemplate,
+  type LucideIcon,
   Plus,
   SquarePen,
   Trash2,
   TriangleAlert,
-  type LucideIcon,
   Unlink,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -30,7 +30,7 @@ import { TemplateDialog } from "@/components/templates/template-dialog"
 import { templateSortIcons } from "@/components/templates/sort-icons"
 import { UsesList } from "@/components/templates/uses-list"
 import { TrashDialog } from "@/components/trash-dialog"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -516,9 +516,10 @@ function TrashTemplateDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         {shared && uses.isError && (
-          <p role="alert" className="text-sm text-destructive">
-            {labels.used.checkFailed}
-          </p>
+          <Alert variant="destructive">
+            <TriangleAlert />
+            <AlertTitle>{labels.used.checkFailed}</AlertTitle>
+          </Alert>
         )}
         {shared && uses.isPending && (
           <p className="text-sm text-muted-foreground">{labels.usesLoading}</p>

@@ -10,6 +10,7 @@ import { profileQueryKey, useAuth, type Profile } from "@/auth/auth-context"
 import { PageHeader } from "@/components/page-header"
 import { ThemeChoice } from "@/components/theme-choice"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { ButtonGroup } from "@/components/ui/button-group"
 import {
   Card,
   CardContent,
@@ -143,7 +144,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
               <FieldLabel htmlFor="account-name">
                 {texts.account.profile.name}
               </FieldLabel>
-              <div className="flex gap-2">
+              <ButtonGroup className="w-full">
                 <Input
                   {...field}
                   id="account-name"
@@ -159,7 +160,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
                   {save.isPending && <Spinner />}
                   {texts.common.save}
                 </Button>
-              </div>
+              </ButtonGroup>
               <FieldError errors={[fieldState.error]} />
             </Field>
           )}

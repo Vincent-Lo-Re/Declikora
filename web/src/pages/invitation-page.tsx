@@ -1,7 +1,9 @@
+import { TriangleAlert } from "lucide-react"
 import { useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router"
 
 import { AuthCard } from "@/components/auth-card"
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { FieldError, FieldGroup } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
@@ -48,9 +50,10 @@ export function InvitationPage() {
         </FieldGroup>
       ) : (
         <FieldGroup>
-          <p role="alert" className="text-sm text-destructive">
-            {texts.invitation.incomplete}
-          </p>
+          <Alert variant="destructive">
+            <TriangleAlert />
+            <AlertTitle>{texts.invitation.incomplete}</AlertTitle>
+          </Alert>
           <Link
             to={authPaths.signIn}
             className={buttonVariants({ variant: "outline" })}

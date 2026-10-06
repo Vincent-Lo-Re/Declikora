@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { FileText, Files, RefreshCw } from "lucide-react"
+import { Files, FileText, RefreshCw, TriangleAlert } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
 import { toast } from "sonner"
@@ -9,6 +9,7 @@ import { PanelCard } from "@/components/panel-card"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { templateSortIcons } from "@/components/templates/sort-icons"
 import { useTemplateUses } from "@/components/templates/use-template-uses"
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -76,7 +77,7 @@ export function TemplateSortCard({
       icon={templateSortIcons[sort]}
       title={sorts[sort].title}
     >
-      <p className="text-xs text-muted-foreground">{sorts[sort].description}</p>
+      <p className="text-sm text-muted-foreground">{sorts[sort].description}</p>
       {sort === "starter" && templateFor && (
         <p className="mt-1.5 text-xs">
           {labels.starterFor(texts.templates.sections[templateFor])}
@@ -188,9 +189,10 @@ export function TemplateUsesCard({ templateId }: { templateId: string }) {
         </ItemGroup>
       )}
       {outdated.isError && (
-        <p role="alert" className="mt-2 text-xs text-destructive">
-          {labels.outdated.failed}
-        </p>
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertTitle>{labels.outdated.failed}</AlertTitle>
+        </Alert>
       )}
       {stale.length > 0 && (
         <Button

@@ -2,9 +2,14 @@ import { CalendarDays } from "lucide-react"
 import { useState, type ComponentProps } from "react"
 import { fr } from "react-day-picker/locale"
 
-import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import {
   Popover,
   PopoverContent,
@@ -39,15 +44,16 @@ function isoOf(date: Date): string {
 }
 
 /**
- * Un jour, écrit à la française (« 25/10/2099 ») ou choisi dans le calendrier. La valeur est le
+ * Un jour, écrit à la française (« 25/10/2099 ») ou choisi dans le calendrier (le bouton est dans
+ * le champ : l'`InputGroup` de shadcn). La valeur est le
  * texte saisi : parseDayInput (lib/dates.ts) le lit.
  */
 export function DayField({ value, onChange, onBlur, ...props }: FieldProps) {
   const [open, setOpen] = useState(false)
   const selected = dayOf(parseDayInput(value))
   return (
-    <div className="flex gap-2">
-      <Input
+    <InputGroup>
+      <InputGroupInput
         {...props}
         value={value}
         inputMode="numeric"
@@ -61,35 +67,35 @@ export function DayField({ value, onChange, onBlur, ...props }: FieldProps) {
           onBlur?.(event)
         }}
       />
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          render={
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label={labels.pickDay}
-              disabled={props.disabled}
+      <InputGroupAddon align="inline-end">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger
+            render={
+              <InputGroupButton
+                size="icon-xs"
+                aria-label={labels.pickDay}
+                disabled={props.disabled}
+              />
+            }
+          >
+            <CalendarDays />
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-auto p-0">
+            <Calendar
+              mode="single"
+              locale={fr}
+              selected={selected}
+              defaultMonth={selected}
+              onSelect={(date) => {
+                if (!date) return
+                onChange(formatDayInput(isoOf(date)))
+                setOpen(false)
+              }}
             />
-          }
-        >
-          <CalendarDays />
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-auto p-0">
-          <Calendar
-            mode="single"
-            locale={fr}
-            selected={selected}
-            defaultMonth={selected}
-            onSelect={(date) => {
-              if (!date) return
-              onChange(formatDayInput(isoOf(date)))
-              setOpen(false)
-            }}
-          />
-        </PopoverContent>
-      </Popover>
-    </div>
+          </PopoverContent>
+        </Popover>
+      </InputGroupAddon>
+    </InputGroup>
   )
 }
 

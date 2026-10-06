@@ -26,9 +26,10 @@ describe("SearchInput", () => {
     ).toBeNull()
 
     fireEvent.change(field, { target: { value: "photo" } })
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.common.clearSearch })
-    )
+    // La loupe et la croix sont dans le champ : l'InputGroup de shadcn.
+    const clear = screen.getByRole("button", { name: texts.common.clearSearch })
+    expect(field.closest('[data-slot="input-group"]')).toContainElement(clear)
+    fireEvent.click(clear)
     expect(field).toHaveValue("")
     expect(document.activeElement).toBe(field)
   })

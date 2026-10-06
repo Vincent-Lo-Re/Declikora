@@ -1,6 +1,7 @@
-import { Pause, Play, Volume2, VolumeX } from "lucide-react"
+import { Pause, Play, TriangleAlert, Volume2, VolumeX } from "lucide-react"
 import { useRef, useState } from "react"
 
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { formatClock, formatDuration } from "@/lib/media/format"
@@ -71,9 +72,10 @@ export function AudioPlayer({
         {playing ? <Pause /> : <Play />}
       </Button>
       {failed ? (
-        <p role="alert" className="text-sm text-destructive">
-          {labels.failed}
-        </p>
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertTitle>{labels.failed}</AlertTitle>
+        </Alert>
       ) : (
         <>
           <Slider
