@@ -500,9 +500,10 @@ function MediaUses({ media }: { media: Media }) {
             {texts.media.detail.usesLoading}
           </p>
         ) : uses.isError ? (
-          <p role="alert" className="text-sm text-destructive">
-            {texts.media.detail.usesFailed}
-          </p>
+          <Alert variant="destructive">
+            <TriangleAlert />
+            <AlertTitle>{texts.media.detail.usesFailed}</AlertTitle>
+          </Alert>
         ) : uses.data.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {texts.media.detail.notUsed}
@@ -600,9 +601,10 @@ function OutdatedTexts({ media }: { media: Media }) {
 
   if (outdated.isError) {
     return (
-      <p role="alert" className="text-sm text-destructive">
-        {labels.failed}
-      </p>
+      <Alert variant="destructive">
+        <TriangleAlert />
+        <AlertTitle>{labels.failed}</AlertTitle>
+      </Alert>
     )
   }
   if (!outdated.data || outdated.data.length === 0) return null

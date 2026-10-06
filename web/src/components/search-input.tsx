@@ -1,13 +1,16 @@
-import { cn } from "cn"
 import { Search, X } from "lucide-react"
 import { useRef } from "react"
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import { texts } from "@/texts"
 
 /**
- * Un champ de recherche : la loupe, et notre bouton pour effacer (à la place de la croix du
+ * Un champ de recherche (l'`InputGroup` de shadcn) : la loupe, et notre bouton pour effacer (à la place de la croix du
  * navigateur, qui n'existe pas partout et ne suit pas le thème). Échap efface aussi.
  */
 export function SearchInput({
@@ -31,12 +34,8 @@ export function SearchInput({
     input.current?.focus()
   }
   return (
-    <div className={cn("relative", className)}>
-      <Search
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-      />
-      <Input
+    <InputGroup className={className}>
+      <InputGroupInput
         ref={input}
         type="search"
         autoFocus={autoFocus}
@@ -52,20 +51,22 @@ export function SearchInput({
         }}
         placeholder={placeholder}
         aria-label={label}
-        className="pr-8 pl-8 [&::-webkit-search-cancel-button]:appearance-none"
+        className="[&::-webkit-search-cancel-button]:appearance-none"
       />
+      <InputGroupAddon>
+        <Search aria-hidden />
+      </InputGroupAddon>
       {value !== "" && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="absolute top-1/2 right-1 size-6 -translate-y-1/2"
-          aria-label={texts.common.clearSearch}
-          onClick={clear}
-        >
-          <X />
-        </Button>
+        <InputGroupAddon align="inline-end">
+          <InputGroupButton
+            size="icon-xs"
+            aria-label={texts.common.clearSearch}
+            onClick={clear}
+          >
+            <X />
+          </InputGroupButton>
+        </InputGroupAddon>
       )}
-    </div>
+    </InputGroup>
   )
 }

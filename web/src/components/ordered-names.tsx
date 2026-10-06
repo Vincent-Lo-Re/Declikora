@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { ButtonGroup } from "@/components/ui/button-group"
 import {
   Card,
   CardContent,
@@ -559,7 +560,7 @@ function AddForm<T extends Named>({
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid}>
             <FieldLabel htmlFor={inputId}>{labels.name}</FieldLabel>
-            <div className="flex gap-2">
+            <ButtonGroup className="w-full">
               <Input
                 {...field}
                 id={inputId}
@@ -572,7 +573,7 @@ function AddForm<T extends Named>({
                 {create.isPending ? <Spinner /> : <Plus />}
                 {labels.add}
               </Button>
-            </div>
+            </ButtonGroup>
             <FieldError errors={[fieldState.error]} />
           </Field>
         )}

@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQuery } from "@tanstack/react-query"
+import { TriangleAlert } from "lucide-react"
 import { Controller, useForm } from "react-hook-form"
 import { Link, Navigate, useLocation } from "react-router"
 
@@ -7,6 +8,7 @@ import { useAuth } from "@/auth/auth-context"
 import { redirectTarget } from "@/auth/session"
 import { AuthCard } from "@/components/auth-card"
 import { CodeInput } from "@/components/code-input"
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Field,
@@ -72,9 +74,10 @@ function MfaSetup({ userId }: { userId: string }) {
         </div>
       ) : enrollment.isError ? (
         <div className="space-y-4">
-          <p role="alert" className="text-sm text-destructive">
-            {texts.mfa.setupFailed}
-          </p>
+          <Alert variant="destructive">
+            <TriangleAlert />
+            <AlertTitle>{texts.mfa.setupFailed}</AlertTitle>
+          </Alert>
           <SignOutLink />
         </div>
       ) : (

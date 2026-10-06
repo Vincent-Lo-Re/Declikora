@@ -39,6 +39,13 @@ import { SearchInput } from "@/components/search-input"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -556,13 +563,16 @@ export function MediaPage() {
           aria-hidden
           className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
         >
-          <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-primary px-12 py-10 text-center">
-            <UploadCloud className="size-10" />
-            <p className="text-lg font-medium">{texts.media.dropTitle}</p>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              {texts.media.dropHint}
-            </p>
-          </div>
+          {/* L'Empty de shadcn, en pointillés, au centre de l'écran. */}
+          <Empty className="w-auto flex-none border bg-background px-12 py-10">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <UploadCloud />
+              </EmptyMedia>
+              <EmptyTitle>{texts.media.dropTitle}</EmptyTitle>
+              <EmptyDescription>{texts.media.dropHint}</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         </div>
       )}
     </>

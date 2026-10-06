@@ -155,7 +155,7 @@ export function ReplaceFile({
   return (
     <PanelCard id="media-replace" icon={Replace} title={labels.title}>
       <div className="space-y-3" data-replace-file>
-        <p className="text-xs text-muted-foreground">{labels.description}</p>
+        <p className="text-sm text-muted-foreground">{labels.description}</p>
         <input
           ref={input}
           type="file"

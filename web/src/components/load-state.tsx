@@ -1,12 +1,19 @@
+import { TriangleAlert } from "lucide-react"
 import type { ReactNode } from "react"
 
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { texts } from "@/texts"
 
 /**
  * Tant qu'une liste n'a pas pu être chargée : des lignes grises pendant le chargement, sinon le
- * message d'échec (avec la raison) et « Réessayer ». Le reste de la page ne change pas.
+ * message d'échec (l'`Alert` de shadcn, avec la raison) et « Réessayer ». Le reste de la page ne change pas.
  */
 export function LoadState({
   query,
@@ -25,14 +32,18 @@ export function LoadState({
 }) {
   if (query.isError) {
     return (
-      <div className="space-y-3">
-        <p role="alert" className="text-sm text-destructive">
-          {failed} {query.error?.message}
-        </p>
-        <Button variant="outline" onClick={() => query.refetch()}>
-          {texts.common.retry}
-        </Button>
-      </div>
+      <Alert variant="destructive">
+        <TriangleAlert />
+        <AlertTitle>{failed}</AlertTitle>
+        {query.error?.message && (
+          <AlertDescription>{query.error.message}</AlertDescription>
+        )}
+        <AlertAction>
+          <Button variant="outline" size="xs" onClick={() => query.refetch()}>
+            {texts.common.retry}
+          </Button>
+        </AlertAction>
+      </Alert>
     )
   }
   return (

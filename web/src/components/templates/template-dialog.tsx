@@ -1,8 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { TriangleAlert } from "lucide-react"
 import { useEffect } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
 import { TITLE_MAX } from "@/blocks/draft"
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -208,9 +210,10 @@ export function TemplateDialog({
               />
             )}
             {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
+              <Alert variant="destructive">
+                <TriangleAlert />
+                <AlertTitle>{error}</AlertTitle>
+              </Alert>
             )}
           </FieldGroup>
           <DialogFooter>
