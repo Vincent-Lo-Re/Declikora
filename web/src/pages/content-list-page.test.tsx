@@ -369,13 +369,29 @@ describe("Blog", () => {
     expect(router.state.location.pathname).toBe("/blog")
     expect(shownTitles()).toHaveLength(3)
 
-    // Au bout de 2 secondes, l'éditeur quand même, avec des lignes grises à la place du brouillon.
-    expect(
-      await screen.findByLabelText(texts.editor.loading, undefined, {
+    // Au bout de 2 secondes, l'éditeur quand même, avec des lignes grises à la place du brouillon :
+    // l'écran a déjà sa forme (le plan, le téléphone, les cartes), le menu reste caché, et le
+    // retour marche.
+    const waiting = await screen.findByLabelText(
+      texts.editor.loading,
+      undefined,
+      {
         timeout: 3000,
-      })
-    ).toBeInTheDocument()
+      }
+    )
     expect(router.state.location.pathname).toBe(`/blog/${ARTICLE}`)
+    expect(
+      waiting.querySelector(".blocks-device .blocks-screen")
+    ).not.toBeNull()
+    expect(document.querySelectorAll("aside")).toHaveLength(2)
+    expect(
+      screen.queryByRole("navigation", { name: texts.nav.label })
+    ).toBeNull()
+    expect(
+      screen.getByRole("link", {
+        name: texts.editor.back(texts.sections.blog.title),
+      })
+    ).toHaveAttribute("href", "/blog")
     expect(
       screen.queryByRole("progressbar", { name: texts.nav.pageLoading })
     ).toBeNull()
@@ -407,6 +423,67 @@ describe("Blog", () => {
     expect(sawLoading).toBe(false)
     // Lu une seule fois : au survol.
     expect(api.getContent).toHaveBeenCalledTimes(1)
+  })
+
+  it("d'une liste à l'autre, le menu ne bouge pas : le contenu s'ouvre à neuf, en fondu, sans la recherche de l'autre", async () => {
+    vi.mocked(api.listContents).mockResolvedValue(articles)
+    const { router } = await renderApp("/blog?recherche=dormir")
+    await waitFor(() => expect(shownTitles()).toEqual(["Bien dormir en été"]))
+    const menu = screen.getByRole("navigation", { name: texts.nav.label })
+    const content = screen
+      .getByRole("heading", { level: 1 })
+      .closest("[data-page-fade]")
+
+    fireEvent.click(
+      within(menu).getByRole("link", { name: texts.sections.podcasts.title })
+    )
+    await screen.findByRole("heading", {
+      level: 1,
+      name: texts.sections.podcasts.title,
+    })
+    // Le menu est le même ; le contenu est nouveau, et apparaît en fondu (index.css).
+    expect(screen.getByRole("navigation", { name: texts.nav.label })).toBe(menu)
+    const next = screen
+      .getByRole("heading", { level: 1 })
+      .closest("[data-page-fade]")
+    expect(next).not.toBeNull()
+    expect(next).not.toBe(content)
+    // La recherche du Fil ne passe pas dans Radio Éclaircies.
+    expect(router.state.location.search).toBe("")
+    expect(await screen.findByRole("searchbox")).toHaveValue("")
+    await waitFor(() => expect(shownTitles()).toHaveLength(3))
+  })
+
+  it("d'une liste à un éditeur, et retour : toute la page s'ouvre à neuf, en fondu", async () => {
+    vi.mocked(api.listContents).mockResolvedValue(articles)
+    vi.mocked(api.getContent).mockResolvedValue(newArticle)
+    vi.mocked(api.lockTake).mockResolvedValue(lockRow({ mine: true }))
+    vi.mocked(api.lockStatus).mockResolvedValue(lockRow({ mine: true }))
+    await renderApp("/blog")
+    const page = () => document.querySelector("[data-page-fade]")
+    const list = page()
+
+    fireEvent.click(
+      await screen.findByRole("link", { name: "Bien dormir en été" })
+    )
+    await screen.findByLabelText(texts.editor.title.label)
+    const editor = page()
+    expect(editor).not.toBe(list)
+    expect(editor).toContainElement(
+      screen.getByLabelText(texts.editor.title.label)
+    )
+    // Le menu reste caché dans l'éditeur.
+    expect(
+      screen.queryByRole("navigation", { name: texts.nav.label })
+    ).toBeNull()
+
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: texts.editor.back(texts.sections.blog.title),
+      })
+    )
+    await screen.findByRole("navigation", { name: texts.nav.label })
+    expect(page()).not.toBe(editor)
   })
 
   it("« Nouvel article » : une fenêtre (titre, point de départ, catégories), puis l'éditeur", async () => {

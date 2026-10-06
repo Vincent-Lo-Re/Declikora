@@ -56,6 +56,7 @@ import {
 import { ROOT, type Block, type ImageBlock } from "@/blocks/types"
 import { AddBlockButton } from "@/components/editor/add-block-button"
 import { BlockSettings } from "@/components/editor/block-settings"
+import { EditorSkeleton } from "@/components/editor/editor-skeleton"
 import { useDraftMedia } from "@/components/editor/use-draft-media"
 import { useDraftSync } from "@/components/editor/use-draft-sync"
 import { useLinkedTemplates } from "@/components/editor/use-linked-templates"
@@ -130,7 +131,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Kbd } from "@/components/ui/kbd"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
   TooltipContent,
@@ -264,21 +264,10 @@ function EditorLoader({
 
   const waitingFresh =
     mustWaitFresh && !content.isFetchedAfterMount && !content.isError
+  // En attendant le brouillon (au premier chargement, ou au-delà des 2 secondes de préparation) :
+  // l'écran a déjà la forme de l'éditeur.
   if (content.isPending || waitingFresh) {
-    return (
-      <EditorFrame section={section}>
-        <div className="flex flex-1 justify-center p-10">
-          <div
-            className="w-(--blocks-phone-width) space-y-4"
-            aria-label={texts.editor.loading}
-          >
-            <Skeleton className="h-9 w-2/3" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-48 w-full" />
-          </div>
-        </div>
-      </EditorFrame>
-    )
+    return <EditorSkeleton back={<BackLink section={section} compact />} />
   }
 
   // Seule la première lecture compte ici : l'éditeur relit ensuite le brouillon lui-même, et

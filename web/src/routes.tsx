@@ -27,6 +27,7 @@ import {
 import {
   authPaths,
   categoriesPath,
+  menuRouteId,
   methodElementSegments,
   type MethodElementKind,
   sections,
@@ -156,6 +157,7 @@ export const routes: RouteObject[] = [
             errorElement: <ErrorPage />,
           })),
           {
+            id: menuRouteId,
             element: <AppLayout />,
             children: [
               {

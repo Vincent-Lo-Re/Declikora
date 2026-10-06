@@ -18,6 +18,12 @@ import { texts } from "@/texts"
 export type SectionKey = keyof typeof texts.sections
 
 // Adresse (en français) et icône de chaque section.
+/**
+ * La route des pages avec le menu (AppLayout) : d'une de ces pages à l'autre, seul leur contenu
+ * passe en fondu, le menu ne bouge pas (ADMIN § 7, « Une navigation sans à-coups »).
+ */
+export const menuRouteId = "menu"
+
 export const sections = {
   home: { path: "/", icon: LayoutDashboard },
   blog: { path: "/blog", icon: Rss },
