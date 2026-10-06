@@ -33,7 +33,24 @@ import {
 } from "@/components/editor/content-settings-sheet"
 import { CoverAlt } from "@/components/editor/presentation"
 import { SlugField } from "@/components/editor/slug-field"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item"
 import {
   Select,
   SelectContent,
@@ -41,6 +58,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Tooltip,
   TooltipContent,
@@ -82,10 +100,6 @@ const FREE = "gratuit"
 
 // Carte Audio d'un épisode : la place de l'audio, qui le choisit tant qu'il n'y en a pas.
 const AUDIO_CHOOSE_ID = "article-audio-choisir"
-
-// Une ligne de « Prêt à publier ? » (un bouton qui mène au réglage).
-const readyRow =
-  "flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm outline-none hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/50"
 
 // Une mesure du bas de la colonne (lecture, dernière modification) : son détail dans l'infobulle,
 // au survol comme au clavier.
@@ -344,26 +358,33 @@ function ReadyCard({
     // colonne a une marge intérieure, que ce fond recouvre), et ce qui passe dessous garde
     // l'écart habituel : le fond le prolonge (pb-3), à la place de l'espace entre les cartes.
     <div className="sticky -top-3 z-10 -mt-3 mb-0 bg-background pt-3 pb-3">
-      <section
-        aria-labelledby="article-pret"
-        className="rounded-xl border bg-muted p-3"
-      >
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <h3 id="article-pret" className="text-sm font-semibold">
-            {labels.ready.title}
-          </h3>
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {labels.ready.count(done, items.length)}
-          </span>
-        </div>
-        <ul>
-          {items.map((item) => {
-            const label = labels.ready.items[item.key]
-            return (
-              <li key={item.key}>
-                <button
-                  type="button"
-                  className={readyRow}
+      <Card size="sm" role="region" aria-labelledby="article-pret">
+        <CardHeader>
+          <CardTitle>
+            <h3 id="article-pret">{labels.ready.title}</h3>
+          </CardTitle>
+          <CardAction>
+            <Badge variant="secondary" className="tabular-nums">
+              {labels.ready.count(done, items.length)}
+            </Badge>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <ItemGroup className="gap-0.5">
+            {items.map((item) => {
+              const label = labels.ready.items[item.key]
+              return (
+                <ReadyRow
+                  key={item.key}
+                  icon={
+                    item.done ? (
+                      <CircleCheck className="text-status-live" />
+                    ) : (
+                      <CircleAlert className="text-warning" />
+                    )
+                  }
+                  label={label}
+                  chevron={!item.done}
                   aria-label={
                     item.done
                       ? labels.ready.done(label)
@@ -377,46 +398,57 @@ function ReadyCard({
                     // La carte vient sous les yeux et s'allume ; le curseur va sur son réglage.
                     showReadySetting(item.key)
                   }}
-                >
-                  {item.done ? (
-                    <CircleCheck
-                      aria-hidden
-                      className="size-4 text-status-live"
-                    />
-                  ) : (
-                    <CircleAlert aria-hidden className="size-4 text-warning" />
-                  )}
-                  <span className="flex-1">{label}</span>
-                  {!item.done && (
-                    <ChevronRight
-                      aria-hidden
-                      className="size-4 text-muted-foreground"
-                    />
-                  )}
-                </button>
-              </li>
-            )
-          })}
-          {warnings.count > 0 && (
-            <li>
-              <button
-                type="button"
-                className={readyRow}
-                onClick={warnings.onShow}
-              >
-                <TriangleAlert aria-hidden className="size-4 text-warning" />
-                <span className="flex-1">
-                  {labels.ready.warnings(warnings.count)}
-                </span>
-                <ChevronRight
-                  aria-hidden
-                  className="size-4 text-muted-foreground"
                 />
-              </button>
-            </li>
-          )}
-        </ul>
-      </section>
+              )
+            })}
+            {warnings.count > 0 && (
+              <ReadyRow
+                icon={<TriangleAlert className="text-warning" />}
+                label={labels.ready.warnings(warnings.count)}
+                chevron
+                onClick={warnings.onShow}
+              />
+            )}
+          </ItemGroup>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+/** Une ligne de « Prêt à publier ? » : l'`Item` de shadcn, un bouton qui mène au réglage. */
+function ReadyRow({
+  icon,
+  label,
+  chevron,
+  ...props
+}: {
+  icon: ReactNode
+  label: string
+  chevron: boolean
+  "aria-label"?: string
+  onClick: () => void
+}) {
+  return (
+    // La ligne de la liste ; dedans, le bouton (Item rendu en bouton).
+    <div role="listitem">
+      <Item
+        size="xs"
+        className="px-1.5 py-1 hover:bg-muted"
+        render={<button type="button" {...props} />}
+      >
+        <ItemMedia variant="icon" aria-hidden>
+          {icon}
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle className="font-normal">{label}</ItemTitle>
+        </ItemContent>
+        {chevron && (
+          <ItemActions aria-hidden className="text-muted-foreground">
+            <ChevronRight className="size-4" />
+          </ItemActions>
+        )}
+      </Item>
     </div>
   )
 }
@@ -451,41 +483,45 @@ function CoverCard({
       title={labels.feed.title[kind]}
       aside={<InfoTip text={labels.feed.hint[kind]} />}
     >
-      <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-2">
-        {/* data-presentation-choose : là où revient le focus quand le bouton utilisé a disparu
+      <Item variant="muted" size="sm">
+        <ItemMedia>
+          {/* data-presentation-choose : là où revient le focus quand le bouton utilisé a disparu
             (choix fait depuis l'aperçu ou depuis la fenêtre Publier). */}
-        <button
-          type="button"
-          id={READY_IDS.cover.control}
-          data-presentation-choose="cover"
-          disabled={!editable}
-          aria-label={
-            chosen ? labels.feed.replaceLabel : labels.feed.chooseLabel
-          }
-          className={cn(
-            "flex size-16 shrink-0 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md text-xs text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:text-foreground",
-            !file && "border border-dashed bg-background"
-          )}
-          onClick={onChooseCover}
-        >
-          {file ? (
-            <MediaThumbnail
-              media={file}
-              url={cover.state === "ready" ? cover.url : undefined}
-              className="size-16"
-              iconClassName="size-5"
-            />
-          ) : (
-            <>
-              <ImagePlus aria-hidden className="size-5" />
-              {editable && labels.feed.choose}
-            </>
-          )}
-        </button>
-        <p className="line-clamp-3 min-w-0 text-sm font-semibold">
-          {draft.title.trim() || texts.common.untitled}
-        </p>
-      </div>
+          <button
+            type="button"
+            id={READY_IDS.cover.control}
+            data-presentation-choose="cover"
+            disabled={!editable}
+            aria-label={
+              chosen ? labels.feed.replaceLabel : labels.feed.chooseLabel
+            }
+            className={cn(
+              "flex size-16 shrink-0 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md text-xs text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:text-foreground",
+              !file && "border border-dashed bg-background"
+            )}
+            onClick={onChooseCover}
+          >
+            {file ? (
+              <MediaThumbnail
+                media={file}
+                url={cover.state === "ready" ? cover.url : undefined}
+                className="size-16"
+                iconClassName="size-5"
+              />
+            ) : (
+              <>
+                <ImagePlus aria-hidden className="size-5" />
+                {editable && labels.feed.choose}
+              </>
+            )}
+          </button>
+        </ItemMedia>
+        <ItemContent className="min-w-0">
+          <ItemTitle className="line-clamp-3">
+            {draft.title.trim() || texts.common.untitled}
+          </ItemTitle>
+        </ItemContent>
+      </Item>
       {cover.state === "missing" && (
         <p className="mt-2 text-xs text-destructive">
           {texts.editor.presentation.cover.missing}
@@ -544,44 +580,46 @@ function AudioCard({
       title={audioWords.label}
       aside={<InfoTip text={audioWords.hint} />}
     >
-      <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-2">
-        {chosen ? (
-          <span className="flex size-16 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
-            <AudioLines aria-hidden className="size-5" />
-          </span>
-        ) : (
-          // Pas encore d'audio : la place de la vignette le choisit.
-          <button
-            type="button"
-            id={AUDIO_CHOOSE_ID}
-            data-presentation-choose="audio"
-            disabled={!editable}
-            aria-label={audioWords.choose}
-            className="flex size-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md border border-dashed bg-background text-xs text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:text-foreground"
-            onClick={onChoose}
-          >
-            <AudioLines aria-hidden className="size-5" />
-            {editable && labels.feed.choose}
-          </button>
-        )}
-        <div className="grid min-w-0 gap-0.5">
+      <Item variant="muted" size="sm">
+        <ItemMedia>
+          {chosen ? (
+            <span className="flex size-16 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+              <AudioLines aria-hidden className="size-5" />
+            </span>
+          ) : (
+            // Pas encore d'audio : la place de la vignette le choisit.
+            <button
+              type="button"
+              id={AUDIO_CHOOSE_ID}
+              data-presentation-choose="audio"
+              disabled={!editable}
+              aria-label={audioWords.choose}
+              className="flex size-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md border border-dashed bg-background text-xs text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:text-foreground"
+              onClick={onChoose}
+            >
+              <AudioLines aria-hidden className="size-5" />
+              {editable && labels.feed.choose}
+            </button>
+          )}
+        </ItemMedia>
+        <ItemContent className="min-w-0">
           {file ? (
             <>
-              <p className="truncate text-sm font-semibold">{file.name}</p>
-              <p className="text-xs text-muted-foreground">
+              <ItemTitle className="block w-full truncate">
+                {file.name}
+              </ItemTitle>
+              <ItemDescription>
                 {file.duration_s !== null
                   ? audioWords.duration(formatDuration(file.duration_s))
                   : audioWords.noDuration}
-              </p>
+              </ItemDescription>
               <MediaFileLink mediaId={file.id} />
             </>
           ) : (
-            <p
+            <ItemDescription
               className={cn(
-                "text-sm",
-                audio.state === "missing" || audio.state === "error"
-                  ? "text-destructive"
-                  : "text-muted-foreground"
+                (audio.state === "missing" || audio.state === "error") &&
+                  "text-destructive"
               )}
             >
               {audio.state === "missing"
@@ -591,16 +629,16 @@ function AudioCard({
                   : audio.state === "loading"
                     ? texts.common.loading
                     : audioWords.none}
-            </p>
+            </ItemDescription>
           )}
-        </div>
-      </div>
+        </ItemContent>
+      </Item>
       {audio.state === "not_ready" && (
         <p className="mt-2 text-xs text-destructive">{audioWords.notReady}</p>
       )}
       {audio.state === "ready" &&
         (audio.media.transcript?.trim() ? (
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground">
             {audioWords.transcriptOk}
           </p>
         ) : (
@@ -740,7 +778,7 @@ function AccessCard({
       )}
       {/* Pas encore choisi : la liste le dit elle-même ; ensuite, ce que le niveau ouvre. */}
       {settings.accessChosen && (
-        <p className="mt-1.5 text-xs text-muted-foreground">
+        <p className="mt-1.5 text-sm text-muted-foreground">
           {settings.accessLevelId === null
             ? access.freeHint
             : levels && isMostComplete(levels, settings.accessLevelId)
@@ -749,10 +787,10 @@ function AccessCard({
         </p>
       )}
       {levels?.length === 0 && (
-        <p className="mt-1 text-xs text-muted-foreground">{access.noLevels}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{access.noLevels}</p>
       )}
       {liveLevel && (
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           {access.live(liveLevel)}
         </p>
       )}
@@ -761,7 +799,8 @@ function AccessCard({
 }
 
 /**
- * Les catégories en pastilles (une pastille foncée est choisie), dans l'ordre de la section.
+ * Les catégories en boutons à bascule (une catégorie choisie est grisée, avec une coche), dans
+ * l'ordre de la section.
  * Une catégorie supprimée entre-temps n'est plus montrée, et part de la liste au prochain
  * changement ([D28]). « Nouvelle » la crée tout de suite, puis la choisit.
  */
@@ -778,14 +817,6 @@ function CategoriesCard({
 }) {
   const [adding, setAdding] = useState(false)
   const list = categories.list
-  const toggle = (id: string) => {
-    if (!list) return
-    const known = new Set(list.map((category) => category.id))
-    const next = new Set(chosen.filter((other) => known.has(other)))
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    onChange([...next].sort())
-  }
   return (
     <PanelCard id="article-categories" icon={Tags} title={categoryWords.label}>
       {list === undefined ? (
@@ -800,48 +831,42 @@ function CategoriesCard({
           rowClassName="h-7 w-40"
         />
       ) : (
-        <ul
-          aria-labelledby="article-categories"
-          className="flex flex-wrap gap-1.5"
-        >
-          {list.map((category) => {
-            const on = chosen.includes(category.id)
-            return (
-              <li key={category.id}>
-                <Button
-                  type="button"
-                  size="xs"
-                  variant={on ? "default" : "outline"}
-                  className="rounded-full"
-                  aria-pressed={on}
-                  disabled={!editable}
-                  onClick={() => toggle(category.id)}
-                >
-                  {on && <Check />}
-                  {category.name}
-                </Button>
-              </li>
-            )
-          })}
+        // Des boutons à bascule (ToggleGroup de shadcn), un par catégorie ; « Nouvelle » au bout.
+        <div className="flex flex-wrap items-center gap-1.5">
+          <ToggleGroup
+            multiple
+            variant="outline"
+            size="sm"
+            spacing={1.5}
+            aria-labelledby="article-categories"
+            className="flex-wrap"
+            value={chosen.filter((id) => list.some((one) => one.id === id))}
+            onValueChange={(ids: string[]) => onChange([...ids].sort())}
+            disabled={!editable}
+          >
+            {list.map((category) => (
+              <ToggleGroupItem key={category.id} value={category.id}>
+                {chosen.includes(category.id) && <Check />}
+                {category.name}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
           {editable && !adding && (
-            <li>
-              <Button
-                type="button"
-                size="xs"
-                variant="outline"
-                className="rounded-full border-dashed text-muted-foreground"
-                aria-label={labels.categories.addLabel}
-                onClick={() => setAdding(true)}
-              >
-                <Plus />
-                {labels.categories.add}
-              </Button>
-            </li>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              aria-label={labels.categories.addLabel}
+              onClick={() => setAdding(true)}
+            >
+              <Plus />
+              {labels.categories.add}
+            </Button>
           )}
-        </ul>
+        </div>
       )}
       {list?.length === 0 && !adding && (
-        <p className="mt-1.5 text-xs text-muted-foreground">
+        <p className="mt-1.5 text-sm text-muted-foreground">
           {categoryWords.none}
         </p>
       )}

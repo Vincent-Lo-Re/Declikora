@@ -22,7 +22,18 @@ import type { Block } from "@/blocks/types"
 import { LoadState } from "@/components/load-state"
 import { usePreviewUrls } from "@/components/media/use-preview-urls"
 import { SearchInput } from "@/components/search-input"
+import { Alert, AlertAction, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { Empty, EmptyDescription } from "@/components/ui/empty"
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemHeader,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Tooltip,
@@ -142,41 +153,42 @@ export function BlocksLibrary({
         inert={open}
       >
         {inBox && (
-          <div className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 py-1.5 pr-1.5 pl-2.5 text-sm">
-            <SquareDashed aria-hidden className="size-4 text-warning" />
-            <p role="status" className="min-w-0 flex-1">
-              {labels.target.box}
-            </p>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={labels.target.cancel}
-                    onClick={onCancelTarget}
-                  />
-                }
-              >
-                <X />
-              </TooltipTrigger>
-              <TooltipContent>{labels.target.cancel}</TooltipContent>
-            </Tooltip>
-          </div>
+          // L'Alert de shadcn (un état, pas une erreur : annoncé sans interrompre).
+          <Alert role="status">
+            <SquareDashed aria-hidden className="text-warning" />
+            <AlertTitle>{labels.target.box}</AlertTitle>
+            <AlertAction>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label={labels.target.cancel}
+                      onClick={onCancelTarget}
+                    />
+                  }
+                >
+                  <X />
+                </TooltipTrigger>
+                <TooltipContent>{labels.target.cancel}</TooltipContent>
+              </Tooltip>
+            </AlertAction>
+          </Alert>
         )}
         {/* Dans une section, le bandeau dit déjà où va le bloc (et il ne se glisse pas). */}
         {!inBox && (
-          <p className="text-xs text-muted-foreground">{labels.hint}</p>
+          <p className="text-sm text-muted-foreground">{labels.hint}</p>
         )}
         <section aria-labelledby="blocs-de-base" className="space-y-2">
-          <h3 id="blocs-de-base" className="text-sm font-semibold">
+          <h3 id="blocs-de-base" className="text-sm font-medium">
             {labels.basics}
           </h3>
           <ul className="grid grid-cols-3 gap-2">
             {insertableBlocks.map((definition, index) => (
               <li key={definition.type}>
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
                   id={index === 0 ? LIBRARY_FIRST_ID : undefined}
                   disabled={disabled || (inBox && !definition.allowedInBox)}
                   draggable={!disabled && !inBox}
@@ -184,43 +196,47 @@ export function BlocksLibrary({
                     startDrag(event, { kind: "block", type: definition.type })
                   }
                   aria-label={labels.addLabel(definition.label)}
-                  className="flex w-full flex-col items-center gap-1.5 rounded-lg border bg-background px-1 py-3 text-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:bg-muted disabled:opacity-50"
+                  // Une tuile : l'icône sur son nom, en petit (trois par ligne).
+                  className="h-auto w-full flex-col gap-1.5 px-1 py-3 text-xs"
                   onClick={() => onAdd(definition.type)}
                 >
                   <definition.icon aria-hidden className="size-5" />
                   {definition.label}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
         </section>
         {onInsert && (
-          <button
-            ref={opener}
-            type="button"
-            aria-expanded={open}
-            aria-controls="mes-blocs"
-            // Dans une section, pas de bloc enregistré.
-            disabled={inBox}
-            className="flex w-full items-center gap-3 rounded-lg border bg-background p-2.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:bg-muted disabled:opacity-50"
-            onClick={() => onOpenChange(true)}
+          // L'Item de shadcn, en contour, rendu en bouton.
+          <Item
+            variant="outline"
+            className="text-left enabled:hover:bg-muted disabled:opacity-50"
+            render={
+              <button
+                ref={opener}
+                type="button"
+                aria-expanded={open}
+                aria-controls="mes-blocs"
+                // Dans une section, pas de bloc enregistré.
+                disabled={inBox}
+                onClick={() => onOpenChange(true)}
+              />
+            }
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
-              <Bookmark aria-hidden className="size-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold">{mine.title}</span>
+            <ItemMedia variant="icon" aria-hidden>
+              <Bookmark />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>{mine.title}</ItemTitle>
               {count !== null && (
-                <span className="block text-xs text-muted-foreground">
-                  {mine.count(count)}
-                </span>
+                <ItemDescription>{mine.count(count)}</ItemDescription>
               )}
-            </span>
-            <ChevronRight
-              aria-hidden
-              className="size-4 text-muted-foreground"
-            />
-          </button>
+            </ItemContent>
+            <ItemActions aria-hidden className="text-muted-foreground">
+              <ChevronRight className="size-4" />
+            </ItemActions>
+          </Item>
         )}
       </div>
       {open && onInsert && (
@@ -280,15 +296,15 @@ function SavedBlocksPanel({
       }}
     >
       <div className="flex items-center gap-1 px-2.5 pt-2">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon-sm"
           aria-label={mine.back}
-          className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
           onClick={onBack}
         >
           <ArrowLeft />
-        </button>
-        <h3 id="mes-blocs-titre" className="text-sm font-semibold">
+        </Button>
+        <h3 id="mes-blocs-titre" className="text-sm font-medium">
           {mine.title}
         </h3>
       </div>
@@ -313,7 +329,7 @@ function SavedBlocksPanel({
           }}
         >
           {filters.map((value) => (
-            <ToggleGroupItem key={value} value={value} className="text-xs">
+            <ToggleGroupItem key={value} value={value}>
               {mine.filters[value]}
             </ToggleGroupItem>
           ))}
@@ -327,11 +343,13 @@ function SavedBlocksPanel({
             rowClassName="h-24 w-full"
           />
         ) : none ? (
-          <p className="text-sm text-muted-foreground">{mine.empty}</p>
+          <Empty className="p-4">
+            <EmptyDescription>{mine.empty}</EmptyDescription>
+          </Empty>
         ) : shown.length === 0 ? (
-          <p role="status" className="text-sm text-muted-foreground">
-            {mine.noResult}
-          </p>
+          <Empty role="status" className="p-4">
+            <EmptyDescription>{mine.noResult}</EmptyDescription>
+          </Empty>
         ) : (
           <ul className="space-y-2">
             {shown.map((template) => (
@@ -354,12 +372,12 @@ function SavedBlocksPanel({
           rel="noopener"
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
-            "mt-2 text-muted-foreground"
+            "mt-2"
           )}
         >
           <sections.templates.icon />
           {mine.manage}
-          <ExternalLink aria-hidden className="size-3" />
+          <ExternalLink aria-hidden />
           <span className="sr-only">
             {" "}
             {texts.editor.presentation.openFileHint}
@@ -391,36 +409,44 @@ function SavedBlock({
   // Un bloc partagé : l'icône de Modèles de bloc, dans le menu.
   const Icon = shared ? sections.templates.icon : Copy
   return (
-    <button
-      type="button"
-      disabled={disabled || empty}
-      draggable={!disabled && !empty}
-      onDragStart={(event) =>
-        startDrag(event, { kind: "template", id: template.id })
+    // L'Item de shadcn, en contour, rendu en bouton : l'aperçu en tête, puis le nom.
+    <Item
+      variant="outline"
+      className="text-left enabled:hover:bg-muted disabled:opacity-50"
+      render={
+        <button
+          type="button"
+          disabled={disabled || empty}
+          draggable={!disabled && !empty}
+          onDragStart={(event) =>
+            startDrag(event, { kind: "template", id: template.id })
+          }
+          aria-label={mine.insertLabel(name)}
+          // Ce qu'il devient une fois ajouté (copie, bloc partagé, vide) : lu après son nom.
+          aria-describedby={describedBy}
+          onClick={onInsert}
+        />
       }
-      aria-label={mine.insertLabel(name)}
-      // Ce qu'il devient une fois ajouté (copie, bloc partagé, vide) : lu après son nom.
-      aria-describedby={describedBy}
-      className="w-full rounded-lg border bg-background p-3 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 enabled:hover:border-foreground/30 disabled:opacity-60"
-      onClick={onInsert}
     >
-      <div aria-hidden className="blocks-mini">
+      <ItemHeader aria-hidden className="blocks-mini items-stretch">
         {template.draft.blocks.map((block) => (
           <MiniBlock key={block.id} block={block} imageFor={imageFor} />
         ))}
-      </div>
-      <span className="mt-2 flex items-center gap-1.5 text-sm font-medium">
-        <Icon aria-hidden className="size-3.5 shrink-0" />
-        <span className="truncate">{name}</span>
-      </span>
-      <span id={describedBy} className="block text-xs text-muted-foreground">
-        {empty
-          ? texts.templates.insert.emptyTemplate
-          : shared
-            ? mine.shared(uses)
-            : mine.style}
-      </span>
-    </button>
+      </ItemHeader>
+      <ItemContent className="min-w-0">
+        <ItemTitle className="w-full min-w-0">
+          <Icon aria-hidden className="size-4 shrink-0" />
+          <span className="truncate">{name}</span>
+        </ItemTitle>
+        <ItemDescription id={describedBy}>
+          {empty
+            ? texts.templates.insert.emptyTemplate
+            : shared
+              ? mine.shared(uses)
+              : mine.style}
+        </ItemDescription>
+      </ItemContent>
+    </Item>
   )
 }
 

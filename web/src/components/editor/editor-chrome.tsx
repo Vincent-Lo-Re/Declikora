@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { ArrowLeft, Blocks, FileQuestion, Focus } from "lucide-react"
 import type { ReactNode } from "react"
 import { Link, type useBlocker } from "react-router"
@@ -57,7 +58,11 @@ export function BackLink({
               to={to}
               state={RETURN_STATE}
               aria-label={label}
-              className="flex h-full w-12 shrink-0 items-center justify-center border-r text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset [&_svg]:size-4"
+              // Le bouton « fantôme » de shadcn, sur toute la hauteur de l'en-tête.
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "h-full w-12 shrink-0 rounded-none border-r focus-visible:ring-inset"
+              )}
             />
           }
         >

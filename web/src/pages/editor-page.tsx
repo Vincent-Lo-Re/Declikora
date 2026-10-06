@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { cn } from "cn"
-import { Info } from "lucide-react"
+import { Info, TriangleAlert } from "lucide-react"
 import {
   useCallback,
   useEffect,
@@ -79,6 +79,7 @@ import {
   TemplateSortCard,
   TemplateUsesCard,
 } from "@/components/templates/template-cards"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { buttonVariants } from "@/components/ui/button"
 import { useCategories } from "@/hooks/use-categories"
 import { useLockDialog } from "@/hooks/use-lock-dialog"
@@ -671,19 +672,25 @@ function ContentEditor({
   const notices = (
     <>
       {nearLimit && (
-        <p role="status" className="text-sm text-warning">
-          {texts.editor.save.nearLimit}
-        </p>
+        <Alert role="status">
+          <TriangleAlert className="text-warning" />
+          <AlertTitle>{texts.editor.save.nearLimit}</AlertTitle>
+        </Alert>
       )}
       {reloadFailed && mustReload && (
-        <p role="status" className="text-sm text-warning">
-          {texts.editor.save.rereadFailed}
-        </p>
+        <Alert role="status">
+          <TriangleAlert className="text-warning" />
+          <AlertTitle>{texts.editor.save.rereadFailed}</AlertTitle>
+        </Alert>
       )}
       {autosave.status === "failed" && autosave.error && (
-        <p role="alert" className="text-sm text-destructive">
-          {autosave.error.message} {autosave.error.detail}
-        </p>
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertTitle>{autosave.error.message}</AlertTitle>
+          {autosave.error.detail && (
+            <AlertDescription>{autosave.error.detail}</AlertDescription>
+          )}
+        </Alert>
       )}
     </>
   )

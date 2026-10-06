@@ -10,7 +10,9 @@ import {
   useUploadQueueWatch,
 } from "@/components/media/use-upload-queue"
 import { SearchInput } from "@/components/search-input"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -18,6 +20,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Empty, EmptyDescription } from "@/components/ui/empty"
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
@@ -149,35 +159,49 @@ function PickerBody({
           }
         />
       ) : ready.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">
-          {debounced.trim() ? labels.noResults : labels.empty}
-        </p>
+        <Empty>
+          <EmptyDescription>
+            {debounced.trim() ? labels.noResults : labels.empty}
+          </EmptyDescription>
+        </Empty>
       ) : kind === "audio" ? (
         <ul className="max-h-picker space-y-2 overflow-y-auto p-0.5">
           {ready.map((item) => (
             <li key={item.id}>
-              <button
-                type="button"
-                aria-label={labels.choose(item.name)}
-                onClick={() => onChoose(item)}
-                className="flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm outline-none hover:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              {/* L'Item de shadcn, en contour, rendu en bouton. */}
+              <Item
+                variant="outline"
+                size="sm"
+                className="text-left hover:bg-muted"
+                render={
+                  <button
+                    type="button"
+                    aria-label={labels.choose(item.name)}
+                    onClick={() => onChoose(item)}
+                  />
+                }
               >
-                <AudioLines
-                  aria-hidden
-                  className="size-5 shrink-0 text-muted-foreground"
-                />
-                <span className="min-w-0 flex-1 truncate">{item.name}</span>
-                {!item.transcript?.trim() && (
-                  <span className="shrink-0 text-xs text-warning">
-                    {texts.editor.audioPicker.noTranscript}
+                <ItemMedia variant="icon" className="text-muted-foreground">
+                  <AudioLines aria-hidden />
+                </ItemMedia>
+                <ItemContent className="min-w-0">
+                  <ItemTitle className="block w-full truncate font-normal">
+                    {item.name}
+                  </ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  {!item.transcript?.trim() && (
+                    <Badge variant="outline" className="text-warning">
+                      {texts.editor.audioPicker.noTranscript}
+                    </Badge>
+                  )}
+                  <span className="text-muted-foreground tabular-nums">
+                    {item.duration_s !== null
+                      ? formatDuration(item.duration_s)
+                      : ""}
                   </span>
-                )}
-                <span className="shrink-0 text-muted-foreground tabular-nums">
-                  {item.duration_s !== null
-                    ? formatDuration(item.duration_s)
-                    : ""}
-                </span>
-              </button>
+                </ItemActions>
+              </Item>
             </li>
           ))}
         </ul>
@@ -189,16 +213,22 @@ function PickerBody({
                 type="button"
                 aria-label={labels.choose(item.name)}
                 onClick={() => onChoose(item)}
-                className="group w-full overflow-hidden rounded-lg border text-left outline-none hover:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="group w-full rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                <MediaThumbnail
-                  media={item}
-                  url={urlFor(item)}
-                  className="aspect-square w-full"
-                />
-                <span className="block truncate px-2 py-1.5 text-xs">
-                  {item.name}
-                </span>
+                {/* La Card de shadcn, l'aperçu en tête, le nom dessous. */}
+                <Card
+                  size="sm"
+                  className="pt-0 transition-shadow group-hover:ring-foreground/25"
+                >
+                  <MediaThumbnail
+                    media={item}
+                    url={urlFor(item)}
+                    className="aspect-square w-full"
+                  />
+                  <CardContent>
+                    <p className="truncate">{item.name}</p>
+                  </CardContent>
+                </Card>
               </button>
             </li>
           ))}

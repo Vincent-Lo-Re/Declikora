@@ -232,6 +232,50 @@ function SidebarMenuButton({
   })
 }
 
+function SidebarMenuAction({
+  className,
+  render,
+  showOnHover = false,
+  ...props
+}: useRender.ComponentProps<"button"> &
+  React.ComponentProps<"button"> & {
+    showOnHover?: boolean
+  }) {
+  return useRender({
+    defaultTagName: "button",
+    props: mergeProps<"button">(
+      {
+        className: cn(
+          "absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform peer-hover/menu-button:text-sidebar-accent-foreground after:absolute after:-inset-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 md:after:hidden [&>svg]:size-4 [&>svg]:shrink-0",
+          showOnHover &&
+            "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 peer-data-active/menu-button:text-sidebar-accent-foreground aria-expanded:opacity-100 md:opacity-0",
+          className
+        ),
+      },
+      props
+    ),
+    render,
+    state: {
+      slot: "sidebar-menu-action",
+      sidebar: "menu-action",
+    },
+  })
+}
+
+function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
+  return (
+    <ul
+      data-slot="sidebar-menu-sub"
+      data-sidebar="menu-sub"
+      className={cn(
+        "mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
 export {
   Sidebar,
   SidebarContent,
@@ -242,8 +286,10 @@ export {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
   SidebarSeparator,
   SidebarWrapper,
 }

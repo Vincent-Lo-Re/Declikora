@@ -273,6 +273,16 @@ describe("éditeur d'un article (Le Fil)", () => {
         name: article.ready.todo(article.ready.items.cover),
       })
     ).toBeVisible()
+    // Les composants shadcn tels quels (ADMIN § 7) : « Prêt à publier ? » est une Card, « Publier »
+    // et son menu un ButtonGroup.
+    expect(
+      within(articleTab()).getByRole("region", { name: article.ready.title })
+    ).toHaveAttribute("data-slot", "card")
+    expect(
+      screen
+        .getByRole("button", { name: texts.publication.actions.more })
+        .closest('[data-slot="button-group"]')
+    ).not.toBeNull()
     expect(categoriesApi.listCategories).toHaveBeenCalledWith("blog")
     // Un article n'a pas d'audio, ni de résumé (03/10/2026).
     expect(screen.queryByText(words.audio.label)).toBeNull()
@@ -736,6 +746,12 @@ describe("éditeur d'un article (Le Fil)", () => {
     await renderApp(`/blog/${ARTICLE}`)
     await editable()
     const plan = screen.getByRole("navigation", { name: outline.title })
+    // Les lignes du plan sont celles du menu (SidebarMenuButton de shadcn, QCM du 06/10/2026).
+    expect(
+      within(plan).getByRole("button", {
+        name: outline.select(texts.editor.blockLabel.image),
+      })
+    ).toHaveAttribute("data-slot", "sidebar-menu-button")
     // Les blocs du premier niveau : la section (son image est comptée par elle).
     expect(within(plan).getByText(outline.count(1))).toBeVisible()
     // L'image de présentation n'est pas dans le plan : elle se règle dans la colonne de droite.
@@ -777,12 +793,10 @@ describe("éditeur d'un article (Le Fil)", () => {
     fireEvent.pointerOver(document.querySelector(`[data-block-id="${IMAGE}"]`)!)
     await waitFor(() =>
       expect(
-        within(plan)
-          .getByRole("button", {
-            name: outline.select(texts.editor.blockLabel.image),
-          })
-          .closest("div")
-      ).toHaveClass("bg-accent/60")
+        within(plan).getByRole("button", {
+          name: outline.select(texts.editor.blockLabel.image),
+        })
+      ).toHaveClass("bg-sidebar-accent/60")
     )
 
     // « … » : Enregistrer dans Mes blocs pour un bloc de premier niveau seulement.
