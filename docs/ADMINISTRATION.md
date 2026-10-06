@@ -29,6 +29,11 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
   - **Restent** : « Montrer dans l'app », « Leçon gratuite », un titre par partie. **Le titre et l'image de la méthode** n'apparaissent que dans la liste des Méthodes, jamais dans le téléphone.
   - **Les points de départ** ([D42]) restent de simples blocs : ils remplissent la page d'une partie simple, ou le premier écran d'une partie à écrans.
   - **Supprimer un écran** : il disparaît tout de suite, avec « Annuler » pendant quelques secondes. Il ne va pas dans la Corbeille ; la base le garde, pour pouvoir le retrouver plus tard si besoin.
+  - **Les règles de la publication** (QCM du 06/10/2026, sur le plan de la base) :
+    - **une partie à écrans peut rester sans écran** (par exemple après en avoir déplacé le dernier) : « Prêt à publier ? » le signale, et dans l'app elle ne montre rien (les exercices d'une leçon vide restent lus) ;
+    - **un écran ou une page sans bloc bloque la publication**, s'il est dans une partie montrée dans l'app : « Pour publier, il manque » le nomme, avec un lien vers lui. Une partie simple a toujours sa page : un chapitre qui ne contient que des leçons se crée donc « à écrans », sans écran ;
+    - **un titre pour chaque chapitre, leçon et exercice montré** ([D49]) ; l'Entrée et la Sortie peuvent rester sans titre ;
+    - **un écran supprimé est gardé 30 jours** dans la base, puis effacé par la même tâche que la Corbeille (sauf s'il est encore dans la version en ligne).
   - **Publier** (QCM du 06/10/2026) : **tout d'un coup**, un seul « Publier » pour toute la méthode, avec une fenêtre qui liste d'abord ce qui change. Seules les parties où « Montrer dans l'app » est coché partent, et l'app ne voit jamais une méthode à moitié à jour. **Programmer** se fait comme pour un article.
   - **Une personne à la fois sur toute la méthode** : celui qui écrit tient toute la méthode, les autres la lisent en direct (un bloc ou un écran peut passer d'une partie à l'autre).
   - **L'historique est celui de toute la méthode** : une version est la méthode entière, telle qu'elle était à une publication. « Revenir à cette version » remet tout le brouillon comme ce jour-là (les parties, leurs pages, leurs écrans et leur ordre) ; ce qui a été ajouté depuis sort du brouillon, mais reste gardé dans la base.

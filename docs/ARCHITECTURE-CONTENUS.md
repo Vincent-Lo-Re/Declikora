@@ -130,8 +130,67 @@ Pourquoi une seule table, modèles compris ? Toutes ces sortes ont besoin des m�
 - **Une version ne change jamais** : aucun droit `update`/`delete` pour personne, plus des triggers `before update` et `before truncate` qui lèvent toujours une erreur. Aucune clé étrangère de `versions` n'a d'action `set null` ou `cascade` qui la modifierait. Elle ne disparaît qu'en cascade, quand son contenu est effacé définitivement.
 - Les modèles n'ont jamais de version (§ 2.5).
 
-### 1.8 Les méthodes
+### 1.8 Les méthodes, en écrans (plan du 06/10/2026, ses points ouverts tranchés par QCM ; à construire)
 
+> **En bref** : une méthode est un arbre de lignes de `contents`. En haut, la méthode (sa fiche). Dessous, ses parties : l'Entrée, les chapitres, la Sortie ; dans un chapitre, ses leçons ; dans une leçon, ses exercices. Les blocs ne sont jamais dans une partie : ils sont dans ses **écrans**, une ligne par écran. Une partie simple a un seul écran, sa page, qui défile. Tout s'écrit sous un seul verrou, celui de la méthode, et tout part dans l'app d'un seul geste. Décisions : ADMIN § 1, « Méthodes, refaites en écrans ».
+
+**Les lignes**
+
+| Sorte (`kind`) | Ce qu'elle porte | Parent |
+|---|---|---|
+| `method` | la fiche : titre, image de présentation, niveau d'accès ; pas de blocs. Elle a sa place dans la liste des Méthodes (`list_position`, [D47]). | aucun |
+| `entry`, `exit` | l'Entrée, la Sortie : un titre, sa sorte, « Montrer dans l'app », « Gratuite » (`is_free`) ; pas de blocs. Une de chaque au plus. | la méthode |
+| `chapter` | un titre, sa sorte, « Montrer dans l'app » ; pas de blocs | la méthode |
+| `lesson` | un titre, sa sorte, « Montrer dans l'app », « Leçon gratuite » (`is_free`) ; pas de blocs | un chapitre |
+| `exercise` | un titre, sa sorte, « Montrer dans l'app » ; pas de blocs | une leçon |
+| `screen` | **les blocs** : un brouillon comme celui d'un article (texte, image, section, blocs partagés, points de départ). Pas de titre à lui. | une partie |
+
+- **La sorte d'une partie** (`part_sort` : `simple` ou `screens`) se choisit à la création et ne change plus (même déclencheur que `kind`).
+- **Une partie simple a exactement un écran**, créé avec elle : c'est sa page. Il ne se supprime pas et ne se déplace pas. Une partie à écrans en a autant qu'on veut.
+- Une page et un écran sont donc la même sorte de ligne : ce qui les distingue, c'est la sorte de leur partie. Dans l'app, un écran défile s'il a beaucoup de blocs, comme une page.
+- Pourquoi des lignes de `contents`, écrans compris : ils reçoivent sans rien réécrire le brouillon validé, l'enregistrement, les fichiers cités (« Où il est utilisé », public ou protégé), les blocs partagés, l'historique et la corbeille.
+
+**L'ordre et les règles de l'arbre** (tenues par la base)
+
+- `parent_id` et `position` reviennent. **Un seul ordre par parent**, partagé par les écrans et les parties : dans un chapitre, « Leçon 1, la page du chapitre, Leçon 2 » est un ordre comme un autre.
+- La méthode contient l'Entrée (toujours en tête), ses chapitres, puis la Sortie (toujours à la fin).
+- Un chapitre contient des leçons et des écrans ; une leçon, des exercices et des écrans ; l'Entrée, la Sortie et un exercice, seulement des écrans.
+- **Les déplacements restent dans leur partie du haut** (le chapitre, l'Entrée ou la Sortie) :
+  - un chapitre change de place parmi les chapitres ; l'Entrée et la Sortie ne bougent pas ;
+  - une leçon ne quitte jamais son chapitre (son parent ne change pas) ;
+  - un exercice va dans n'importe quelle leçon du même chapitre ;
+  - un écran va dans n'importe quelle partie **à écrans** du même chapitre ; une page ne quitte pas sa partie ;
+  - un bloc va dans n'importe quel écran ou page du même chapitre.
+- **Déplacer un bloc d'un écran à un autre touche deux brouillons** : une nouvelle fonction `save_drafts` les enregistre ensemble, ou aucun. Ranger l'arbre passe par `outline_reorder` (un geste = un enregistrement, sous le verrou de la méthode).
+
+**Le verrou** : celui de la méthode vaut pour tout son arbre (une personne à la fois sur toute la méthode, ADMIN § 1). Ses parties et ses écrans s'enregistrent sous lui ; `edit_locks.method_rev` revient, pour que ceux qui lisent la méthode sachent qu'elle a changé.
+
+**Publier, programmer, l'historique** (tout d'un coup)
+
+- `publish` d'une méthode écrit une version de chaque partie et de chaque écran **qui a changé** (une version identique est réutilisée, d'après son empreinte), puis une version de la méthode : sa fiche et **l'arbre en ligne**, dans l'ordre de lecture, qui cite la version de chaque partie et de chaque écran. Seules les parties où « Montrer dans l'app » est coché y entrent (et ce qu'elles contiennent).
+- Avant de publier ou de programmer, l'admin montre ce qui va changer (fonction de lecture à préciser avec l'écran).
+- **Ce que la publication refuse** (QCM du 06/10/2026), dans les parties montrées : un écran ou une page sans bloc (`ecran_vide`, l'écran nommé) ; un chapitre, une leçon ou un exercice sans titre (`titre_manquant`, [D49]) ; l'Entrée et la Sortie peuvent rester sans titre. Une partie à écrans **sans écran** est acceptée : elle n'entre pas dans la lecture (une leçon vide garde ses exercices).
+- `schedule` programme toute la méthode, comme un article ([D16], [D31]).
+- **L'historique est celui de la méthode** : ses versions. « Revenir à cette version » remet tout le brouillon comme ce jour-là : chaque partie et chaque écran reprend sa version, l'arbre reprend son ordre ; ce qui a été ajouté depuis sort de l'arbre et reste gardé dans la base (comme un écran supprimé).
+
+**L'accès** (calculé à un seul endroit, `private.live`)
+
+- Un niveau pour toute la méthode.
+- L'Entrée et la Sortie : gratuites si « Gratuite » est coché, sinon le niveau de la méthode.
+- Une leçon et ce qu'elle contient (ses écrans, ses exercices et leurs écrans) : gratuits si « Leçon gratuite » est coché.
+- Les écrans d'un chapitre (hors de ses leçons) : gratuits dès qu'une de ses leçons montrées l'est **[D43]**.
+- Un fichier suit l'écran qui le cite : public s'il est dans un écran gratuit en ligne, protégé sinon (§ 4.4). L'image de présentation de la méthode reste publique.
+
+**Ce que lit l'app** : `app_method(method_id)` rend **la lecture dans l'ordre** : chaque écran en ligne, avec sa partie (sorte, titre, place) et ses blocs s'il est lisible. Pour une personne sans la formule, plusieurs écrans réservés à la suite deviennent **une seule entrée « réservée »**, puis la lecture continue. Le titre et l'image de la méthode ne sont pas dans cette lecture : ils sont dans la liste des Méthodes (`app_feed`).
+
+**Supprimer**
+
+- Un écran supprimé disparaît de l'arbre tout de suite ; il ne va pas dans la Corbeille. La base le garde **30 jours** (QCM du 06/10/2026), puis la tâche de la Corbeille l'efface, sauf s'il est encore cité par la version en ligne.
+- Une partie, ou la méthode, va dans la Corbeille avec ce qu'elle contient (un lot, `trash_batch`).
+
+**Construction** : une migration (sortes, `part_sort`, `parent_id`, `position`, `in_app`, `is_free`, l'arbre en ligne, le verrou, `save_drafts`, `outline_reorder`, la publication, `private.live`, `app_method`, la corbeille) et ses tests pgTAP, puis `db push` ; ensuite l'admin (ADMIN § 1, « Ordre de construction »).
+
+**L'ancien système**
 - **Retirées le 06/10/2026** (ADMIN § 1, « Méthodes, refaites en écrans ») : la migration `…_methodes_retirees.sql` supprime les méthodes, leurs chapitres, leurs leçons et leurs exercices, et tout ce qui ne servait qu'à eux (sortes, `parent_id`, `position`, `in_app`, `is_free`, `versions.outline`, `edit_locks.method_rev`, `app_method`, `publish_preview`, `outline_reorder` et les fonctions internes du plan). Les gestes communs reprennent leur forme pour un contenu seul. La nouvelle structure (Entrée, chapitres, Sortie ; parties simples ou à écrans) sera décrite ici avec sa migration.
 - Ce qui était en place avant : une méthode et chacun de ses éléments étaient des lignes de `contents` liées par `parent_id` ; la version de la méthode portait le plan figé, et la publication d'un seul geste réutilisait les versions inchangées ([D29]) ; le niveau d'un élément venait de la méthode, avec « Leçon gratuite » et l'introduction d'un chapitre gratuite dès qu'une de ses leçons l'était ([D43], gardée pour les méthodes refaites).
 
