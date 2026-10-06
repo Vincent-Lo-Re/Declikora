@@ -20,8 +20,6 @@ export type LiveVersion = {
   published_by_name: string | null
   slug: string | null
   access_level_id: string | null
-  // Méthode : le plan figé (chapitres et leçons en ligne, § 1.8), null sinon.
-  outline: unknown
 }
 
 /** L'état de publication d'un contenu (colonnes de contents et version en ligne). */
@@ -40,7 +38,7 @@ export async function getPublication(id: string): Promise<Publication | null> {
   const { data, error, status } = await supabase
     .from("contents")
     .select(
-      "id, draft_rev, first_published_at, scheduled_at, schedule_error, deleted_at, scheduler:profiles!contents_scheduled_by_fkey(full_name, email), live:versions!contents_live_version_fkey(id, number, draft_rev, published_at, published_by_name, slug, access_level_id, outline)"
+      "id, draft_rev, first_published_at, scheduled_at, schedule_error, deleted_at, scheduler:profiles!contents_scheduled_by_fkey(full_name, email), live:versions!contents_live_version_fkey(id, number, draft_rev, published_at, published_by_name, slug, access_level_id)"
     )
     .eq("id", id)
     .maybeSingle()

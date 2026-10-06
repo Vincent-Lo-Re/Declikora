@@ -66,8 +66,7 @@ function presentationChooseButton(key: "cover" | "audio"): HTMLElement | null {
 }
 
 /**
- * L'édition des blocs d'un brouillon, partagée par l'éditeur du Fil et chaque partie de la page
- * d'une méthode : le bloc choisi, le texte qui a le curseur, le survol partagé avec le plan,
+ * L'édition des blocs d'un brouillon dans l'éditeur du Fil : le bloc choisi, le texte qui a le curseur, le survol partagé avec le plan,
  * l'ajout, le rangement, la suppression (avec « Annuler »), les images (blocs, présentation),
  * les blocs partagés et « Enregistrer comme modèle ». emptyFocus : où va le focus quand plus
  * aucun bloc ne reste ; onAddInBox : « Ajouter dans la section » (ouvre les Blocs).

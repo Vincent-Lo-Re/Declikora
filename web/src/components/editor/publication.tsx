@@ -56,7 +56,6 @@ import {
 } from "@/components/ui/field"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
-import { MethodChanges } from "@/components/methods/method-changes"
 import {
   Tooltip,
   TooltipContent,
@@ -342,10 +341,7 @@ export function ScheduleBanner({
   const { schedule } = pub.status
   if (schedule.kind === "none") return null
   const byName = pub.publication?.scheduled_by_name ?? null
-  // Une méthode : l'attente peut venir de sa fiche, d'un chapitre ou d'une leçon ([D31]).
-  const words = pub.bridge.method
-    ? { ...labels.banner, ...labels.banner.method }
-    : labels.banner
+  const words = labels.banner
 
   let message: string
   let extra: string
@@ -465,9 +461,7 @@ export function PublicationDialogs({ pub }: { pub: PublicationControls }) {
           <AlertDialogHeader>
             <AlertDialogTitle>{labels.unpublishDialog.title}</AlertDialogTitle>
             <AlertDialogDescription>
-              {pub.bridge.kind === "method"
-                ? labels.unpublishDialog.methodDescription
-                : labels.unpublishDialog.description}
+              {labels.unpublishDialog.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -486,44 +480,27 @@ export function PublicationDialogs({ pub }: { pub: PublicationControls }) {
         </AlertDialogContent>
       </AlertDialog>
       <AlertDialog open={dialog?.type === "held"} onOpenChange={close}>
-        {dialog?.type === "held" &&
-          (heldOnElement(pub) ? (
-            // Méthode dont on tient la fiche : c'est un chapitre ou une leçon qui est écrit
-            // par quelqu'un d'autre ([D14]). Reprendre la main sur la fiche n'y changerait rien.
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  {labels.lockHeld.elementTitle}
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  {labels.lockHeld.elementDescription(dialog.name)}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{texts.common.close}</AlertDialogCancel>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          ) : (
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{labels.lockHeld.title}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {labels.lockHeld.description(dialog.name)}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{texts.common.cancel}</AlertDialogCancel>
-                <Button
-                  onClick={() => {
-                    setDialog(null)
-                    pub.bridge.takeLock()
-                  }}
-                >
-                  {labels.lockHeld.take}
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          ))}
+        {dialog?.type === "held" && (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{labels.lockHeld.title}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {labels.lockHeld.description(dialog.name)}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{texts.common.cancel}</AlertDialogCancel>
+              <Button
+                onClick={() => {
+                  setDialog(null)
+                  pub.bridge.takeLock()
+                }}
+              >
+                {labels.lockHeld.take}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        )}
       </AlertDialog>
     </>
   )
@@ -663,30 +640,6 @@ function hasMissing(pub: PublicationControls): boolean {
 }
 
 /**
- * Une méthode dont on tient la fiche : un refus [D14] vient forcément d'un chapitre ou d'une
- * leçon écrit par quelqu'un d'autre.
- */
-function heldOnElement(pub: PublicationControls): boolean {
-  return pub.bridge.kind === "method" && pub.bridge.editable
-}
-
-/**
- * Une méthode : la liste des changements doit être lue (et à jour), non vide, sans problème
- * signalé ; sinon la confirmation attend ([D29]).
- */
-function methodNotReady(pub: PublicationControls): boolean {
-  const method = pub.bridge.method
-  if (!method) return false
-  if (method.preview === undefined || method.fetching || method.failed) {
-    return true
-  }
-  return (
-    method.preview.length === 0 ||
-    method.preview.some((row) => row.problem !== null)
-  )
-}
-
-/**
  * Ce qui manque pour publier ou programmer (image de présentation, audio), avec de quoi le
  * choisir, puis le conseil [D46] (transcription), qui n'empêche rien.
  */
@@ -768,19 +721,10 @@ function PublishDialog({ pub }: { pub: PublicationControls }) {
   const chosen = pub.bridge.settings.accessChosen
   const [pick, setPick] = useState<LevelPick>(undefined)
   const waiting =
-    (!chosen && pick === undefined) ||
-    levelsMissing(pub) ||
-    hasMissing(pub) ||
-    methodNotReady(pub)
-  const method = pub.bridge.method
+    (!chosen && pick === undefined) || levelsMissing(pub) || hasMissing(pub)
   return (
-    // Haute (liste des changements, formules) : elle défile dans la fenêtre du navigateur.
-    <DialogContent
-      className={cn(
-        "max-h-dialog overflow-y-auto",
-        method ? "sm:max-w-xl" : "sm:max-w-md"
-      )}
-    >
+    // Haute (formules) : elle défile dans la fenêtre du navigateur.
+    <DialogContent className="max-h-dialog overflow-y-auto sm:max-w-md">
       <DialogHeader>
         <DialogTitle>
           {pub.publication?.live
@@ -788,13 +732,10 @@ function PublishDialog({ pub }: { pub: PublicationControls }) {
             : labels.publishDialog.title}
         </DialogTitle>
         <DialogDescription>
-          {method
-            ? labels.publishDialog.methodDescription
-            : labels.publishDialog.description}
+          {labels.publishDialog.description}
         </DialogDescription>
       </DialogHeader>
       <RequirementsNotice pub={pub} action="publish" />
-      {method && <MethodChanges method={method} onOpen={closeDialog(pub)} />}
       {chosen ? (
         <Summary pub={pub} />
       ) : (
@@ -823,11 +764,6 @@ function PublishDialog({ pub }: { pub: PublicationControls }) {
       </DialogFooter>
     </DialogContent>
   )
-}
-
-/** Ferme la fenêtre avant d'ouvrir un élément de la liste des changements. */
-function closeDialog(pub: PublicationControls) {
-  return () => pub.setDialog(null)
 }
 
 // Jour et heure à Paris, tels qu'ils sont saisis (« 25/10/2099 », « 08h00 »).
@@ -902,12 +838,7 @@ function ScheduleDialog({ pub }: { pub: PublicationControls }) {
   })
 
   return (
-    <DialogContent
-      className={cn(
-        "max-h-dialog overflow-y-auto",
-        pub.bridge.method ? "sm:max-w-xl" : "sm:max-w-md"
-      )}
-    >
+    <DialogContent className="max-h-dialog overflow-y-auto sm:max-w-md">
       <form noValidate onSubmit={submit} className="grid gap-4">
         <DialogHeader>
           <DialogTitle>{labels.scheduleDialog.title}</DialogTitle>
@@ -980,13 +911,6 @@ function ScheduleDialog({ pub }: { pub: PublicationControls }) {
           )}
         </div>
         <RequirementsNotice pub={pub} action="schedule" />
-        {pub.bridge.method && (
-          <MethodChanges
-            method={pub.bridge.method}
-            onOpen={closeDialog(pub)}
-            note={texts.methods.changes.scheduleNote}
-          />
-        )}
         {chosen ? (
           <Summary pub={pub} />
         ) : (
@@ -1012,7 +936,6 @@ function ScheduleDialog({ pub }: { pub: PublicationControls }) {
               (!chosen && pick === undefined) ||
               levelsMissing(pub) ||
               hasMissing(pub) ||
-              methodNotReady(pub) ||
               pub.schedule.isPending
             }
           >

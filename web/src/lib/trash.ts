@@ -4,12 +4,11 @@ import type { TrashItem } from "@/lib/media/api"
 import { isMediaKind } from "@/lib/media/constants"
 import { texts } from "@/texts"
 
-// Filtre par type : les chapitres et les leçons sont rangés avec les méthodes.
-// Dans l'ordre du menu : Le Fil, Radio Éclaircies, Méthodes, Pages, Modèles de bloc, Médiathèque.
+// Filtre par type, dans l'ordre du menu : Le Fil, Radio Éclaircies, Pages, Modèles de bloc,
+// Médiathèque.
 const trashFilterOrder = [
   "article",
   "episode",
-  "method",
   "page",
   "template",
   "file",
@@ -22,11 +21,6 @@ export type TrashFilter = "all" | TrashType
 function trashTypeOf(item: TrashItem): TrashType {
   if (item.item_type === "file") return "file"
   switch (item.kind) {
-    case "chapter":
-    case "lesson":
-    case "exercise":
-    case "method":
-      return "method"
     case "page":
     case "article":
     case "episode":
@@ -47,8 +41,8 @@ export function trashFilters(items: TrashItem[]): TrashFilter[] {
 export type TrashEntry = { item: TrashItem; batch: TrashItem[] }
 
 /**
- * Regroupe les lots : les chapitres et les leçons partis avec leur méthode (batch_root faux)
- * sont rangés sous elle ; ils sont restaurés et effacés avec elle.
+ * Regroupe les lots : les éléments partis avec un autre (batch_root faux) sont rangés sous lui ;
+ * ils sont restaurés et effacés avec lui.
  */
 export function groupTrash(items: TrashItem[]): TrashEntry[] {
   const roots = new Map<string, TrashEntry>()

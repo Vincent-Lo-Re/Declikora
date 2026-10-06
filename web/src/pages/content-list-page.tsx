@@ -33,7 +33,6 @@ import { useCovers } from "@/components/contents/use-covers"
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
 import { SortableList } from "@/components/list-sorting"
 import { LoadState } from "@/components/load-state"
-import { useMethodPending } from "@/components/methods/use-method-pending"
 import { PageHeader } from "@/components/page-header"
 import { SearchInput } from "@/components/search-input"
 import { useAccessCheck } from "@/components/team/use-access-check"
@@ -64,7 +63,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -79,7 +77,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useAddressState } from "@/hooks/use-address-state"
-import type { AccessLevel } from "@/lib/access-levels"
 import { listFiltersFromAddress, writeListFilters } from "@/lib/address"
 import { categoryNames, type Category } from "@/lib/categories"
 import {
@@ -124,10 +121,10 @@ function titleOf(item: ContentListItem): string {
 }
 
 /**
- * Liste des contenus d'une section (Pages, Blog, Podcasts, Méthodes) : recherche, filtres par
- * état de publication et par catégorie, créer (vide ou depuis un point de départ, [D42]), ouvrir
- * dans l'éditeur, mettre à la corbeille. Pour une page, son adresse ; pour un article ou un
- * épisode, ses catégories ; pour une méthode, son niveau d'accès et la taille de son plan.
+ * Liste des contenus d'une section (Pages, Blog, Podcasts) : recherche, filtres par état de
+ * publication et par catégorie, créer (vide ou depuis un point de départ, [D42]), ouvrir dans
+ * l'éditeur, mettre à la corbeille. Pour une page, son adresse ; pour un article ou un épisode,
+ * ses catégories.
  */
 export function ContentListPage({
   section,
@@ -149,26 +146,14 @@ export function ContentListPage({
     refetchInterval: 30_000,
   })
   const categories = useCategories(categorySection)
-  const isMethod = kind === "method"
-  // Méthodes : les formules (niveau d'accès) et, pour
-  // celles qui sont en ligne, s'il y a quelque chose à publier (la fiche ne suffit pas : une
-  // leçon modifiée ne change pas la fiche, [D29]).
-  // Les formules : colonne des méthodes et réglages d'une ligne.
+  // Les formules : réglages d'une ligne.
   const levels = useQuery(accessLevelsRead())
-  const pendingById = useMethodPending(isMethod ? list.data : undefined, true)
-  // Le Fil, Radio Éclaircies, Méthodes : l'image de présentation de chacun, en vignette (celles
+  // Le Fil, Radio Éclaircies : l'image de présentation de chacun, en vignette (celles
   // de toute la liste : une recherche ou un filtre ne les relit pas).
   const coverFor = useCovers(
     contentProfile(kind).cover === "required" ? (list.data ?? []) : []
   )
-  const items =
-    isMethod && list.data
-      ? list.data.map((item) =>
-          pendingById.has(item.id)
-            ? { ...item, pending_changes: pendingById.get(item.id) }
-            : item
-        )
-      : list.data
+  const items = list.data
   const [toTrash, setToTrash] = useState<ContentListItem | null>(null)
   // La recherche et les filtres, gardés dans l'adresse (on retrouve la liste en y revenant).
   const [filters, setFilters] = useAddressState(
@@ -263,11 +248,7 @@ export function ContentListPage({
 
   // Les points de départ de cette sorte ([D42]) : « Nouvel article » propose « Article vide »
   // ou l'un d'eux. Sans point de départ (ou si la liste ne se lit pas), un contenu vide.
-  const starters = useQuery({
-    ...startersRead(kind),
-    // Il n'y a pas de point de départ pour une méthode ([D42] : chapitres et leçons seulement).
-    enabled: !isMethod,
-  })
+  const starters = useQuery(startersRead(kind))
 
   // « Nouvel article » (…) : une fenêtre (titre, point de départ, réglages), puis l'éditeur.
   const [creating, setCreating] = useState(false)
@@ -287,7 +268,7 @@ export function ContentListPage({
     },
     onError: (error) => checkAccess(error),
   })
-  // Le Fil, Radio Éclaircies, Méthodes : ranger par glisser-déposer ([D47]). La liste change
+  // Le Fil, Radio Éclaircies : ranger par glisser-déposer ([D47]). La liste change
   // tout de suite ; si l'enregistrement échoue, elle reprend son ordre.
   const reorder = useMutation({
     mutationFn: (ids: string[]) =>
@@ -421,7 +402,6 @@ export function ContentListPage({
                     items={shown}
                     now={list.dataUpdatedAt}
                     categories={categories.data}
-                    levels={levels.data}
                     selectAll={bulk.selectAll}
                     selected={bulk.checkedIds}
                     onSelect={bulk.toggle}
@@ -617,7 +597,6 @@ function ContentTable({
   items,
   now,
   categories,
-  levels,
   selectAll,
   selected,
   onSelect,
@@ -632,8 +611,6 @@ function ContentTable({
   items: ContentListItem[]
   now: number
   categories: Category[] | undefined
-  // Méthodes : les formules (undefined : pas encore lues).
-  levels: AccessLevel[] | undefined
   // Sélection en masse : « Tout sélectionner » et les contenus cochés.
   selectAll: SelectAll
   selected: ReadonlySet<string>
@@ -641,7 +618,7 @@ function ContentTable({
   trashing: boolean
   onTrash: (item: ContentListItem) => void
   onSettings: (item: ContentListItem) => void
-  // Le Fil, Radio Éclaircies, Méthodes : le glisser-déposer ([D47]) ; disabled pendant une
+  // Le Fil, Radio Éclaircies : le glisser-déposer ([D47]) ; disabled pendant une
   // recherche, un filtre ou un enregistrement (on ne range que la liste complète).
   order?: { disabled: boolean; onReorder: (ids: string[]) => void }
   // L'image de présentation de chacun (celles de toute la liste, lues en une fois).
@@ -649,8 +626,7 @@ function ContentTable({
 }) {
   const profile = contentProfile(kind)
   const withCategories = profile.categories !== null
-  const isMethod = kind === "method"
-  // Le Fil, Radio Éclaircies, Méthodes : l'image de présentation de chacun, en vignette.
+  // Le Fil, Radio Éclaircies : l'image de présentation de chacun, en vignette.
   const withCover = profile.cover === "required"
   const table = (
     <Table>
@@ -668,7 +644,6 @@ function ContentTable({
             </TableHead>
           )}
           <TableHead>{labels.columns.title}</TableHead>
-          {isMethod && <TableHead>{labels.columns.level}</TableHead>}
           {withCategories && <TableHead>{labels.columns.categories}</TableHead>}
           <TableHead>{labels.columns.publication}</TableHead>
           <TableHead>{labels.columns.savedAt}</TableHead>
@@ -700,7 +675,6 @@ function ContentTable({
                   {name}
                 </Link>
               </TableCell>
-              {isMethod && <LevelCell item={item} levels={levels} />}
               {withCategories && (
                 <TableCell className="max-w-64 text-muted-foreground">
                   <CategoriesCell ids={item.category_ids} all={categories} />
@@ -759,35 +733,6 @@ function ContentTable({
     </SortableList>
   ) : (
     table
-  )
-}
-
-/** Le niveau d'accès d'une méthode ([D41] : « Pas encore choisi »). */
-function LevelCell({
-  item,
-  levels,
-}: {
-  item: ContentListItem
-  levels: AccessLevel[] | undefined
-}) {
-  const level = !item.access_chosen
-    ? labels.levelNotChosen
-    : item.access_level_id === null
-      ? texts.publication.settings.access.free
-      : levels
-        ? (levels.find((entry) => entry.id === item.access_level_id)?.name ??
-          texts.publication.settings.access.deleted)
-        : null
-  return (
-    <TableCell className="text-muted-foreground">
-      {level === null ? (
-        <Skeleton className="h-4 w-20" />
-      ) : item.access_chosen ? (
-        <Badge variant="outline">{level}</Badge>
-      ) : (
-        <span className="text-xs">{level}</span>
-      )}
-    </TableCell>
   )
 }
 

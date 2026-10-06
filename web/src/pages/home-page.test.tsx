@@ -38,7 +38,6 @@ function item(
     schedule_error: null,
     scheduled_set_at: null,
     scheduled_by_name: null,
-    method_title: null,
     ...changes,
   }
 }
@@ -46,8 +45,6 @@ function item(
 const ARTICLE = "00000000-0000-4000-8000-0000000000a1"
 const EPISODE = "00000000-0000-4000-8000-0000000000e1"
 const PAGE = "00000000-0000-4000-8000-0000000000b1"
-const METHOD = "00000000-0000-4000-8000-0000000000d1"
-const LESSON = "00000000-0000-4000-8000-0000000000d2"
 
 beforeEach(() => {
   vi.mocked(homeApi.listMyRecentDrafts).mockResolvedValue([
@@ -56,9 +53,6 @@ beforeEach(() => {
       first_published_at: "2026-09-20T08:00:00Z",
     }),
     item(PAGE, "page", "Mentions légales"),
-    item(METHOD, "method", "Mieux respirer"),
-    // Une leçon : son éditeur, et le nom de sa méthode.
-    item(LESSON, "lesson", "Le souffle", { method_title: "Mieux respirer" }),
   ])
   vi.mocked(homeApi.listScheduled).mockResolvedValue([
     item(PAGE, "page", "Mentions légales", {
@@ -107,17 +101,6 @@ describe("Accueil", () => {
     expect(
       within(drafts).getByRole("link", { name: "Mentions légales" })
     ).toHaveAttribute("href", `/pages/${PAGE}`)
-    // Méthodes, chapitres et leçons ont leur éditeur (partie 7b).
-    expect(
-      within(drafts).getByRole("link", { name: "Mieux respirer" })
-    ).toHaveAttribute("href", `/methodes/${METHOD}`)
-    const lesson = within(drafts).getByRole("link", { name: "Le souffle" })
-    expect(lesson).toHaveAttribute("href", `/methodes/lecons/${LESSON}`)
-    const lessonRow = lesson.closest("li")!
-    expect(lessonRow).toHaveTextContent(labels.inMethod("Mieux respirer"))
-    // Une leçon part avec sa méthode : pas d'état de publication propre.
-    expect(lessonRow.querySelector("[data-publication]")).toBeNull()
-    expect(lessonRow).toHaveTextContent(labels.withMethod)
     expect(
       within(drafts).getByText(texts.trash.contentKinds.article)
     ).toBeVisible()

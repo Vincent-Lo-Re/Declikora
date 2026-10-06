@@ -60,9 +60,6 @@ export function ListSettingsSheet({
     accessLevelId: item.access_level_id,
     slug: item.slug,
     categoryIds: item.category_ids,
-    // Sans objet dans une liste (chapitres et leçons) : jamais envoyés.
-    inApp: false,
-    isFree: false,
   })
   const [refusedSlug, setRefusedSlug] = useState<RefusedSlug | null>(null)
   const [held, setHeld] = useState<string | null>(null)

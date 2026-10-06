@@ -42,19 +42,6 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {}
 }
 
-// jsdom ne fait pas défiler un élément (la page d'une méthode amène une partie en haut du
-// téléphone) : la position demandée est retenue dans scrollTop.
-if (!Element.prototype.scrollTo) {
-  Element.prototype.scrollTo = function (
-    this: Element,
-    first?: number | ScrollToOptions,
-    second?: number
-  ) {
-    this.scrollTop =
-      typeof first === "number" ? (second ?? 0) : (first?.top ?? this.scrollTop)
-  } as typeof Element.prototype.scrollTo
-}
-
 // jsdom ne fait pas défiler la fenêtre (window.scrollTo n'y est qu'annoncé) : la position demandée
 // est retenue dans scrollY, pour vérifier qu'une liste retrouve sa place (useScrollMemory).
 window.scrollTo = ((first?: number | ScrollToOptions, second?: number) => {

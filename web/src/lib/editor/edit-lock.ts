@@ -41,16 +41,13 @@ export type LockState = {
   // Heure (ms) du signe de vie de notre prise de main : un changement plus ancien, livré en
   // retard par Realtime (création du contenu, relâche d'avant), ne nous retire pas la main.
   mineSince: number | null
-  // Une méthode : la révision de toute la méthode (fiche, plan, éléments), vue par Realtime à
-  // chaque changement, le nôtre compris ; null tant qu'aucun changement n'est arrivé.
-  methodRev: number | null
 }
 
 // Un verrou sans signe de vie depuis 90 s est périmé ([D13]).
 const LOCK_TTL_MS = 90_000
 
 /** Vrai si le dernier signe de vie d'un verrou date de moins de 90 s. */
-export function isLockAlive(heartbeatAt: string, now: number): boolean {
+function isLockAlive(heartbeatAt: string, now: number): boolean {
   return now - new Date(heartbeatAt).getTime() < LOCK_TTL_MS
 }
 const HEARTBEAT_MS = 20_000
@@ -65,7 +62,6 @@ export const initialLockState: LockState = {
   lost: false,
   error: null,
   mineSince: null,
-  methodRev: null,
 }
 
 type LockEvent =
@@ -87,20 +83,6 @@ type LockEvent =
 
 /** La machine d'états du verrou : ce que devient l'état après chaque événement. */
 export function lockReducer(state: LockState, event: LockEvent): LockState {
-  const next = holderReducer(state, event)
-  // Chaque changement d'une méthode (le nôtre compris) peut augmenter sa révision ; les autres
-  // contenus en restent à 0.
-  if (
-    event.type !== "change" ||
-    event.change.method_rev <= (next.methodRev ?? 0)
-  ) {
-    return next
-  }
-  return { ...next, methodRev: event.change.method_rev }
-}
-
-/** Qui tient le verrou, et la révision du brouillon, après chaque événement. */
-function holderReducer(state: LockState, event: LockEvent): LockState {
   const wasMine = state.phase === "mine"
   switch (event.type) {
     case "taking":
@@ -131,7 +113,6 @@ function holderReducer(state: LockState, event: LockEvent): LockState {
               : Number.isNaN(takenAt)
                 ? null
                 : takenAt,
-          methodRev: state.methodRev,
         }
       }
       return {
@@ -142,7 +123,6 @@ function holderReducer(state: LockState, event: LockEvent): LockState {
         lost: state.lost || wasMine,
         error: null,
         mineSince: null,
-        methodRev: state.methodRev,
       }
     }
     case "change": {

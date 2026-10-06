@@ -111,14 +111,11 @@ function page(blocks: Draft["blocks"]): api.Content {
     draft_rev: 4,
     draft_saved_at: "2026-09-27T12:30:00Z",
     deleted_at: null,
-    parent_id: null,
     access_chosen: false,
     access_level_id: null,
     slug: null,
     template_sort: null,
     template_for: null,
-    in_app: false,
-    is_free: false,
     category_ids: [],
   }
 }
@@ -330,7 +327,6 @@ describe("bloc lié dans un contenu", () => {
         published_by_name: null,
         slug: "accueil",
         access_level_id: null,
-        outline: null,
       },
     })
     await renderApp(`/pages/${PAGE_ID}`)

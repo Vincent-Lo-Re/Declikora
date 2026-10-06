@@ -149,7 +149,7 @@ export async function openAccountPage(page: Page) {
  */
 export async function createFromDialog(
   page: Page,
-  kind: "page" | "article" | "episode" | "method",
+  kind: "page" | "article" | "episode",
   title: string
 ) {
   const words = texts.contentList.kinds[kind]

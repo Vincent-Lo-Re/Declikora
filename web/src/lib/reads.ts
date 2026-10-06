@@ -19,13 +19,6 @@ import {
   listMyRecentDrafts,
   listScheduled,
 } from "@/lib/contents/home"
-import {
-  getElementContext,
-  getMethodPreview,
-  getMethodParts,
-  getMethodTree,
-  methodKeys,
-} from "@/lib/contents/methods"
 import { getPublication } from "@/lib/contents/publication"
 import {
   getTemplateOutdated,
@@ -113,32 +106,6 @@ export const homeScheduledRead = () =>
 export const homeFailedRead = () =>
   queryOptions({ queryKey: homeKeys.failed, queryFn: listFailedSchedules })
 
-export const methodTreeRead = (methodId: string) =>
-  queryOptions({
-    queryKey: methodKeys.tree(methodId),
-    queryFn: () => getMethodTree(methodId),
-  })
-
-/** Les brouillons des chapitres, leçons et exercices d'une méthode (sa page les relit seule). */
-export const methodPartsRead = (methodId: string) =>
-  queryOptions({
-    queryKey: methodKeys.parts(methodId),
-    queryFn: () => getMethodParts(methodId),
-    staleTime: Infinity,
-  })
-
-export const methodPreviewRead = (methodId: string) =>
-  queryOptions({
-    queryKey: methodKeys.preview(methodId),
-    queryFn: () => getMethodPreview(methodId),
-  })
-
-export const elementContextRead = (elementId: string) =>
-  queryOptions({
-    queryKey: methodKeys.context(elementId),
-    queryFn: () => getElementContext(elementId),
-  })
-
 export const templateListRead = () =>
   queryOptions({ queryKey: templateKeys.list, queryFn: listTemplates })
 
@@ -220,21 +187,4 @@ export function coverIds(
   return [
     ...new Set(items.flatMap((item) => (item.cover_id ? [item.cover_id] : []))),
   ].sort()
-}
-
-/**
- * Les méthodes en ligne d'une liste, dont on lit s'il y a quelque chose à publier
- * (publish_preview, [D29]). allMethods : une liste d'une seule sorte, sans kind.
- */
-export function liveMethodIds(
-  items:
-    | readonly { id: string; kind?: string; live_draft_rev: number | null }[]
-    | undefined,
-  allMethods = false
-): string[] {
-  return (items ?? []).flatMap((item) =>
-    (allMethods || item.kind === "method") && item.live_draft_rev !== null
-      ? [item.id]
-      : []
-  )
 }

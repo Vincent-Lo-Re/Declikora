@@ -215,11 +215,10 @@ export function OutlinePanel({
 }
 
 /**
- * Les lignes du plan des blocs : dans le plan d'un contenu (OutlinePanel), et sous la partie en
- * cours dans le plan d'une méthode. Rangées par glisser-déposer quand le brouillon est tenu
+ * Les lignes du plan des blocs d'un contenu (OutlinePanel). Rangées par glisser-déposer quand le brouillon est tenu
  * (feed.onMove) ; sans bloc, « Aucun bloc pour l'instant » et « Ajouter un bloc ».
  */
-export function OutlineBlocks({
+function OutlineBlocks({
   draft,
   selectedId,
   onSelect,

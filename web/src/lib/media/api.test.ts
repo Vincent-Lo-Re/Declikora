@@ -8,6 +8,7 @@ import {
   emptyTrash,
   getPreviewUrls,
   listMedia,
+  listTrash,
   MediaError,
   PREVIEW_REFRESH_MS,
   PREVIEW_URL_SECONDS,
@@ -201,5 +202,37 @@ describe("listMedia", () => {
     expect(calls).toContainEqual(["eq", "kind", "image"])
     expect(calls).toContainEqual(["eq", "media_in_use", false])
     expect(calls).toContainEqual(["ilike", "name", "%chat%"])
+  })
+})
+
+describe("listTrash", () => {
+  it("ne montre pas les sortes que l'admin ne connaît pas (les anciennes méthodes)", async () => {
+    const row = (item_type: string, kind: string) => ({
+      item_type,
+      id: `${item_type}-${kind}`,
+      kind,
+    })
+    const query = {
+      select: () => query,
+      order: () =>
+        Promise.resolve({
+          data: [
+            row("file", "image"),
+            row("content", "article"),
+            row("content", "method"),
+            row("content", "lesson"),
+            row("content", "template"),
+          ],
+          error: null,
+        }),
+    }
+    vi.spyOn(supabase, "from").mockReturnValue(
+      query as unknown as ReturnType<typeof supabase.from>
+    )
+    expect((await listTrash()).map((item) => item.id)).toEqual([
+      "file-image",
+      "content-article",
+      "content-template",
+    ])
   })
 })

@@ -31,7 +31,6 @@ describe("menu", () => {
       "Tableau de bord",
       "Le Fil",
       "Radio Éclaircies",
-      "Méthodes",
       "Pages",
       "Modèles de bloc",
       "Médiathèque",
@@ -184,11 +183,8 @@ describe("éditeurs", () => {
     expect(contentEditorPath("episode", "e")).toBe("/podcasts/e")
     expect(contentEditorPath("page", "p")).toBe("/pages/p")
     expect(contentEditorPath("template", "t")).toBe("/modeles/t")
-    // Une méthode, ses chapitres, ses leçons (partie 7b) et leurs exercices.
-    expect(contentEditorPath("method", "m")).toBe("/methodes/m")
-    expect(contentEditorPath("chapter", "c")).toBe("/methodes/chapitres/c")
-    expect(contentEditorPath("lesson", "l")).toBe("/methodes/lecons/l")
-    expect(contentEditorPath("exercise", "x")).toBe("/methodes/exercices/x")
+    // Une sorte sans éditeur (les anciennes méthodes, en cours de refonte).
+    expect(contentEditorPath("method", "m")).toBeNull()
     expect(contentEditorPath("inconnu", "x")).toBeNull()
     expect(categoriesPath("podcasts")).toBe("/podcasts/categories")
     expect(mediaFilePath("f")).toBe("/mediatheque?fichier=f")

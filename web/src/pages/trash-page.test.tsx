@@ -28,7 +28,6 @@ const photo: api.TrashItem = {
   id: "00000000-0000-4000-8000-00000000000a",
   kind: "image",
   title: "photo.jpg",
-  parent_title: null,
   trash_batch: null,
   batch_root: true,
   deleted_at: "2026-09-27T12:30:00Z",
@@ -212,27 +211,31 @@ describe("Corbeille : contenus", () => {
     title: "Mentions légales",
     trash_batch: "00000000-0000-4000-8000-0000000000b1",
   }
-  const method: api.TrashItem = {
+  const article: api.TrashItem = {
     ...page,
     id: "00000000-0000-4000-8000-00000000000d",
-    kind: "method",
+    kind: "article",
     title: "Bien respirer",
     trash_batch: "00000000-0000-4000-8000-0000000000b2",
   }
-  const lesson: api.TrashItem = {
-    ...method,
+  // Parti avec l'article (même lot) : restauré ou effacé avec lui.
+  const withArticle: api.TrashItem = {
+    ...article,
     id: "00000000-0000-4000-8000-00000000000e",
-    kind: "lesson",
-    title: "Leçon 1",
-    parent_title: "Bien respirer",
+    title: "Suite",
     batch_root: false,
   }
 
   beforeEach(() => {
-    vi.mocked(api.listTrash).mockResolvedValue([page, photo, method, lesson])
+    vi.mocked(api.listTrash).mockResolvedValue([
+      page,
+      photo,
+      article,
+      withArticle,
+    ])
   })
 
-  it("filtre par type, avec les seuls types présents ; une méthode garde ses leçons", async () => {
+  it("filtre par type, avec les seuls types présents ; un lot reste sous sa tête", async () => {
     await renderApp("/corbeille")
     await screen.findByText(page.title!)
     const filters = screen.getByRole("group", {
@@ -242,33 +245,33 @@ describe("Corbeille : contenus", () => {
       within(filters)
         .getAllByRole("button")
         .map((button) => button.textContent)
-    ).toEqual(["Tout", "Méthodes", "Pages", "Médiathèque"])
-    // La leçon partie avec sa méthode n'a pas sa propre ligne.
+    ).toEqual(["Tout", "Le Fil", "Pages", "Médiathèque"])
+    // Ce qui est parti avec l'article n'a pas sa propre ligne.
     expect(screen.getAllByRole("row")).toHaveLength(4)
     expect(screen.getByText(texts.trash.batch(1))).toBeVisible()
 
     fireEvent.click(
-      within(filters).getByRole("button", { name: texts.trash.filters.method })
+      within(filters).getByRole("button", { name: texts.trash.filters.article })
     )
-    expect(screen.getByText(method.title!)).toBeVisible()
+    expect(screen.getByText(article.title!)).toBeVisible()
     expect(screen.queryByText(page.title!)).toBeNull()
     expect(screen.queryByText(photoName)).toBeNull()
   })
 
-  it("restaure une méthode, et « Ouvrir » dans le message mène à son écran", async () => {
+  it("restaure un article, et « Ouvrir » dans le message mène à son éditeur", async () => {
     vi.mocked(api.restoreTrashItem).mockResolvedValue({ addressRemoved: false })
     const { router } = await renderApp("/corbeille")
     fireEvent.click(
       await screen.findByRole("button", {
-        name: texts.trash.restoreItem(method.title!),
+        name: texts.trash.restoreItem(article.title!),
       })
     )
     expect(
-      await screen.findByText(texts.trash.restored(method.title!))
+      await screen.findByText(texts.trash.restored(article.title!))
     ).toBeVisible()
     fireEvent.click(screen.getByRole("button", { name: texts.trash.open }))
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe(`/methodes/${method.id}`)
+      expect(router.state.location.pathname).toBe(`/blog/${article.id}`)
     )
   })
 
@@ -297,7 +300,7 @@ describe("Corbeille : contenus", () => {
     )
     fireEvent.click(
       screen.getByRole("checkbox", {
-        name: texts.selection.select(method.title!),
+        name: texts.selection.select(article.title!),
       })
     )
     fireEvent.click(
@@ -315,7 +318,7 @@ describe("Corbeille : contenus", () => {
     await waitFor(() =>
       expect(api.emptyTrash).toHaveBeenCalledWith([
         { type: "content", id: page.id },
-        { type: "content", id: method.id },
+        { type: "content", id: article.id },
       ])
     )
   })
@@ -335,7 +338,7 @@ describe("Corbeille : contenus", () => {
       expect(api.emptyTrash).toHaveBeenCalledWith([
         { type: "content", id: page.id },
         { type: "file", id: photo.id },
-        { type: "content", id: method.id },
+        { type: "content", id: article.id },
       ])
     )
   })

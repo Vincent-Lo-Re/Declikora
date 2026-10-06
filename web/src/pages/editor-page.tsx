@@ -83,7 +83,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { useCategories } from "@/hooks/use-categories"
 import { useLockDialog } from "@/hooks/use-lock-dialog"
 import { categoryNames } from "@/lib/categories"
-import { contentKeys, type Content } from "@/lib/contents/api"
+import { contentKeys, type Content, type ContentKind } from "@/lib/contents/api"
 import { publishChecks, readyItems } from "@/lib/contents/requirements"
 import {
   isTemplateFor,
@@ -92,11 +92,7 @@ import {
 } from "@/lib/contents/templates"
 import { previewLocked, type PreviewSettings } from "@/lib/editor/preview"
 import { focusOnceShown } from "@/lib/editor/block-focus"
-import {
-  contentProfile,
-  isListedKind,
-  type EditorKind,
-} from "@/lib/editor/profile"
+import { contentProfile, isListedKind } from "@/lib/editor/profile"
 import { lockSituation } from "@/lib/editor/lock-view"
 import { CONTENT_TITLE_ID, showReadySetting } from "@/lib/editor/ready-targets"
 import { focusSoon, highlightSoon } from "@/lib/focus"
@@ -111,17 +107,14 @@ import {
 import { sections, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
 
-/**
- * L'éditeur plein écran d'un contenu : /pages/<id>. Le menu de l'admin se cache. Une méthode, ses
- * chapitres, ses leçons et ses exercices s'écrivent dans la page de la méthode (method-page.tsx).
- */
+/** L'éditeur plein écran d'un contenu : /pages/<id>. Le menu de l'admin se cache. */
 export function EditorPage({
   section,
   kind,
 }: {
   section: SectionKey
   // La sorte de contenu de cette section : un autre contenu ne s'ouvre pas ici.
-  kind: EditorKind
+  kind: ContentKind
 }) {
   const { contentId = "" } = useParams()
   // Un autre contenu ouvert par la même adresse : tout repart de zéro.
@@ -142,7 +135,7 @@ function EditorLoader({
 }: {
   contentId: string
   section: SectionKey
-  kind: EditorKind
+  kind: ContentKind
 }) {
   const checkAccess = useAccessCheck()
   const queryClient = useQueryClient()
@@ -206,7 +199,7 @@ function ContentEditor({
 }: {
   initial: Content
   section: SectionKey
-  kind: EditorKind
+  kind: ContentKind
 }) {
   const contentId = initial.id
   const queryClient = useQueryClient()
@@ -907,11 +900,7 @@ function ContentEditor({
                 {notices}
               </>
             }
-            appBar={
-              reading ? (
-                <ReadAppBar section={sectionTitle} back={null} />
-              ) : undefined
-            }
+            appBar={reading ? <ReadAppBar section={sectionTitle} /> : undefined}
           >
             {phoneView.mode === "read" ? (
               // Les images lisent l'éditeur (fichier, aperçu), en lecture seule.

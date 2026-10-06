@@ -108,14 +108,11 @@ const created: api.Content = {
   draft_rev: 1,
   draft_saved_at: "2026-09-27T12:30:00Z",
   deleted_at: null,
-  parent_id: null,
   access_chosen: false,
   access_level_id: null,
   slug: null,
   template_sort: "shared",
   template_for: null,
-  in_app: false,
-  is_free: false,
   category_ids: [],
 }
 

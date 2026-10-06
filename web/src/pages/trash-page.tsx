@@ -118,7 +118,7 @@ export function TrashPage() {
     mutationFn: restoreTrashItem,
     onSuccess: ({ addressRemoved }, item) => {
       const name = trashTitle(item)
-      // Un contenu restauré s'ouvre depuis le message (méthode, chapitre, leçon compris).
+      // Un contenu restauré s'ouvre depuis le message.
       const path =
         item.item_type === "content"
           ? contentEditorPath(item.kind, item.id)
@@ -151,7 +151,7 @@ export function TrashPage() {
   })
 
   const erase = useMutation({
-    // Les têtes de lot suffisent : effacer une méthode efface ce qui est parti avec elle.
+    // Les têtes de lot suffisent : effacer un élément efface ce qui est parti avec lui.
     mutationFn: (entries: TrashEntry[]) =>
       emptyTrash(
         entries.map(({ item }) => ({ type: item.item_type, id: item.id }))
@@ -436,11 +436,6 @@ function TrashRow({
             </TooltipTrigger>
             <TooltipContent>{name}</TooltipContent>
           </Tooltip>
-          {item.parent_title && (
-            <span className="truncate text-muted-foreground">
-              ({item.parent_title})
-            </span>
-          )}
         </div>
         {batch.length > 0 && (
           <Tooltip>

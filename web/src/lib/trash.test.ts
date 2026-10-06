@@ -15,7 +15,6 @@ function item(changes: Partial<TrashItem>): TrashItem {
     id: "id",
     kind: "page",
     title: "Titre",
-    parent_title: null,
     trash_batch: null,
     batch_root: true,
     deleted_at: "2026-09-27T12:30:00Z",
@@ -28,59 +27,58 @@ function item(changes: Partial<TrashItem>): TrashItem {
 
 const photo = item({ item_type: "file", id: "f1", kind: "image" })
 const page = item({ id: "p1", kind: "page", trash_batch: "lot-p" })
-const method = item({ id: "m1", kind: "method", trash_batch: "lot-m" })
-const chapter = item({
-  id: "c1",
-  kind: "chapter",
-  trash_batch: "lot-m",
-  batch_root: false,
-  parent_title: "Méthode",
-})
-const lesson = item({
-  id: "l1",
-  kind: "lesson",
-  trash_batch: "lot-m",
+// Un lot : un élément et ce qui est parti avec lui (batch_root faux).
+const article = item({ id: "a1", kind: "article", trash_batch: "lot-a" })
+const partOne = item({
+  id: "a2",
+  kind: "article",
+  trash_batch: "lot-a",
   batch_root: false,
 })
-// Une leçon mise seule à la corbeille : son propre lot.
-const aloneLesson = item({ id: "l2", kind: "lesson", trash_batch: "lot-l" })
+const partTwo = item({
+  id: "a3",
+  kind: "article",
+  trash_batch: "lot-a",
+  batch_root: false,
+})
+const template = item({ id: "t1", kind: "template", trash_batch: "lot-t" })
 
 describe("corbeille", () => {
-  it("range sous leur méthode les chapitres et leçons partis avec elle", () => {
-    const entries = groupTrash([chapter, photo, method, lesson, page])
-    expect(entries.map((entry) => entry.item.id)).toEqual(["f1", "m1", "p1"])
-    expect(entries[1].batch.map((part) => part.id)).toEqual(["c1", "l1"])
+  it("range sous un élément ce qui est parti avec lui", () => {
+    const entries = groupTrash([partOne, photo, article, partTwo, page])
+    expect(entries.map((entry) => entry.item.id)).toEqual(["f1", "a1", "p1"])
+    expect(entries[1].batch.map((part) => part.id)).toEqual(["a2", "a3"])
   })
 
   it("garde visible un élément dont la tête de lot manque", () => {
-    expect(groupTrash([chapter]).map((entry) => entry.item.id)).toEqual(["c1"])
+    expect(groupTrash([partOne]).map((entry) => entry.item.id)).toEqual(["a2"])
   })
 
   it("ne propose que les types présents, toujours dans le même ordre", () => {
     expect(trashFilters([])).toEqual(["all"])
-    expect(trashFilters([photo, lesson, page])).toEqual([
+    expect(trashFilters([photo, template, page])).toEqual([
       "all",
-      "method",
       "page",
+      "template",
       "file",
     ])
   })
 
-  it("filtre par type : les chapitres et leçons vont avec les méthodes", () => {
-    const entries = groupTrash([photo, method, chapter, page, aloneLesson])
+  it("filtre par type", () => {
+    const entries = groupTrash([photo, article, partOne, page, template])
     expect(
-      filterTrash(entries, "method").map((entry) => entry.item.id)
-    ).toEqual(["m1", "l2"])
+      filterTrash(entries, "article").map((entry) => entry.item.id)
+    ).toEqual(["a1"])
     expect(filterTrash(entries, "file").map((entry) => entry.item.id)).toEqual([
       "f1",
     ])
     expect(filterTrash(entries, "all")).toHaveLength(4)
-    expect(filterTrash(entries, "template")).toEqual([])
+    expect(filterTrash(entries, "episode")).toEqual([])
   })
 
   it("nomme le type et le titre", () => {
     expect(trashTypeLabel(photo)).toBe("Fichier · Image")
-    expect(trashTypeLabel(chapter)).toBe("Chapitre")
+    expect(trashTypeLabel(template)).toBe("Modèle de bloc")
     expect(trashTitle(item({ title: null }))).toBe("Sans titre")
     expect(trashTitle(item({ title: "  " }))).toBe("Sans titre")
   })

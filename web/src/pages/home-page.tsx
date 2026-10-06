@@ -6,7 +6,6 @@ import { Link } from "react-router"
 import { useAuth } from "@/auth/auth-context"
 import { LiveBadge, ScheduleBadge } from "@/components/editor/publication"
 import { LoadState } from "@/components/load-state"
-import { useMethodPending } from "@/components/methods/use-method-pending"
 import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Badge } from "@/components/ui/badge"
@@ -24,7 +23,6 @@ import {
   type PublicationStatus,
 } from "@/lib/contents/publication"
 import { formatDateTime } from "@/lib/dates"
-import { isElementKind } from "@/lib/editor/profile"
 import { homeDraftsRead, homeFailedRead, homeScheduledRead } from "@/lib/reads"
 import { contentEditorPath, sections } from "@/navigation"
 import { texts } from "@/texts"
@@ -34,15 +32,8 @@ const labels = texts.home
 // La tâche « publications » passe chaque minute : l'Accueil suit à peu près au même rythme.
 const REFRESH_MS = 30_000
 
-/**
- * L'état de publication d'un contenu. Une méthode en ligne : « Modifié depuis la publication »
- * vient de la liste de ses changements (pending), quand on la connaît.
- */
-function statusOf(
-  item: HomeItem,
-  now: number,
-  pending?: boolean
-): PublicationStatus {
+/** L'état de publication d'un contenu. */
+function statusOf(item: HomeItem, now: number): PublicationStatus {
   return publicationStatus(
     {
       live:
@@ -53,11 +44,8 @@ function statusOf(
       scheduled_at: item.scheduled_at,
       schedule_error: item.schedule_error,
     },
-    pending === false && item.live_draft_rev !== null
-      ? item.live_draft_rev
-      : item.draft_rev,
-    now,
-    pending === true
+    item.draft_rev,
+    now
   )
 }
 
@@ -90,8 +78,6 @@ export function HomePage() {
   }, [error, checkAccess])
 
   const hasFailures = (failed.data?.length ?? 0) > 0
-  // Les méthodes en ligne de « Mes brouillons récents » : y a-t-il quelque chose à publier ?
-  const pending = useMethodPending(drafts.data)
 
   // Les publications ratées : en tête, en rouge et sur toute la largeur s'il y en a ; sinon en
   // dernier, comme les autres cartes.
@@ -129,12 +115,7 @@ export function HomePage() {
           empty={labels.drafts.empty}
           dataAttribute="drafts"
           render={(item) => (
-            <DraftRow
-              key={item.id}
-              item={item}
-              now={drafts.dataUpdatedAt}
-              pending={pending.get(item.id)}
-            />
+            <DraftRow key={item.id} item={item} now={drafts.dataUpdatedAt} />
           )}
         />
         <HomeCard
@@ -207,7 +188,7 @@ function HomeCard({
   )
 }
 
-/** Le titre d'un contenu, avec un lien vers son éditeur (chapitre et leçon compris). */
+/** Le titre d'un contenu, avec un lien vers son éditeur. */
 function ItemTitle({ item }: { item: HomeItem }) {
   const name = item.title.trim() || texts.common.untitled
   const path = contentEditorPath(item.kind, item.id)
@@ -230,18 +211,8 @@ function ItemTitle({ item }: { item: HomeItem }) {
   )
 }
 
-function DraftRow({
-  item,
-  now,
-  pending,
-}: {
-  item: HomeItem
-  now: number
-  pending?: boolean
-}) {
-  const status = statusOf(item, now, pending)
-  // Un élément d'une méthode part avec elle : pas d'état de publication propre.
-  const element = isElementKind(item.kind)
+function DraftRow({ item, now }: { item: HomeItem; now: number }) {
+  const status = statusOf(item, now)
   return (
     <li
       data-content-row={item.id}
@@ -250,26 +221,13 @@ function DraftRow({
       <div className="min-w-0 space-y-0.5">
         <ItemTitle item={item} />
         <p className="text-xs text-muted-foreground">
-          {element && item.method_title !== null && (
-            <>
-              {labels.inMethod(
-                item.method_title.trim() || texts.common.untitled
-              )}{" "}
-              ·{" "}
-            </>
-          )}
           {labels.savedAt(formatDateTime(item.draft_saved_at))}
         </p>
       </div>
-      {element ? (
-        // Pas d'état propre : il part dans l'app avec sa méthode.
-        <Badge variant="outline">{labels.withMethod}</Badge>
-      ) : (
-        <div className="flex flex-wrap gap-1.5">
-          <LiveBadge live={status.live} />
-          <ScheduleBadge schedule={status.schedule} />
-        </div>
-      )}
+      <div className="flex flex-wrap gap-1.5">
+        <LiveBadge live={status.live} />
+        <ScheduleBadge schedule={status.schedule} />
+      </div>
     </li>
   )
 }
