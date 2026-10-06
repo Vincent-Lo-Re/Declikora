@@ -21,7 +21,8 @@
 //    corbeille quitte l'app (nouvelle version de la méthode).
 // 6. La Lecture, comme dans l'app (QCM du 04/10/2026) : gardée dans l'adresse, elle se parcourt
 //    par le téléphone (une leçon, ses exercices, la flèche de retour, « Suivant »), tient après un
-//    rechargement, et ne prend pas la main : un autre membre écrit la leçon qu'on lit.
+//    rechargement, et ne prend pas la main : un autre membre écrit la leçon qu'on lit, puis la
+//    rend (une personne à la fois sur toute la méthode, 06/10/2026).
 
 import type { Browser, Page } from "@playwright/test"
 
@@ -846,12 +847,22 @@ test("Méthodes : la Lecture se parcourt comme l'app, sans prendre la main", asy
   ).toBeVisible()
   await expect(page.getByLabel(editor.title.label)).toHaveCount(0)
 
-  // Oscar ouvre la leçon qu'on lit : personne ne la tient, il l'écrit.
+  // Oscar ouvre la leçon qu'on lit : personne ne la tient, il l'écrit. Il passe ensuite en
+  // Lecture et rend la main : une personne à la fois sur toute la méthode.
   const second = await secondBrowser(browser, { baseURL, locale, timezoneId })
   try {
     await second.page.goto(`/methodes/lecons/${souffleId}`)
     await signIn(second.page, oscar)
     await expect(second.page.getByLabel(editor.title.label)).toBeEditable()
+    const released = second.page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/rpc/lock_release") && response.ok()
+    )
+    await second.page
+      .getByRole("toolbar", { name: preview.tools })
+      .getByRole("button", { name: preview.mode.read })
+      .click()
+    await released
   } finally {
     await second.context.close()
   }

@@ -409,15 +409,16 @@ select is(
 );
 select is(pg_temp.preview('m'), array['Respirer:reordered'], 'publish_preview : le plan est rangé autrement');
 
--- Un autre membre modifie la leçon 2 ; le chapitre 2 est coché.
-select public.lock_release(pg_temp.cid('l2'));
+-- Un autre membre modifie la leçon 2, sous le verrou de la méthode ; le chapitre 2 est coché.
+select public.lock_release(pg_temp.cid('m'));
 select pg_temp.as_person('editor2');
-select public.lock_take(pg_temp.cid('l2'));
+select public.lock_take(pg_temp.cid('m'));
 select pg_temp.save('l2', pg_temp.draft(jsonb_build_array(
   pg_temp.text_block('00000000-0000-4000-8000-0000000001b1', 'Dos bien droit'),
   pg_temp.image_block('00000000-0000-4000-8000-0000000001b2', pg_temp.mid('vieux'), 'Une chaise')), 'Posture'));
-select public.lock_release(pg_temp.cid('l2'));
+select public.lock_release(pg_temp.cid('m'));
 select pg_temp.as_person('editor');
+select public.lock_take(pg_temp.cid('m'));
 select pg_temp.save('c2', pg_temp.draft(jsonb_build_array(
   pg_temp.text_block('00000000-0000-4000-8000-0000000001c2', 'Aller plus loin')), 'Plus loin'), '{"in_app": true}');
 select is(
@@ -434,8 +435,9 @@ select results_eq(
   'publish_preview : le chapitre, qui a enregistré en dernier, aucun problème'
 );
 
--- [D14] : un autre membre écrit la leçon 3.
-select public.lock_release(pg_temp.cid('l3'));
+-- [D14] : un autre membre écrit la leçon 3 (avec le verrou de la leçon, celui de l'admin d'avant
+-- la méthode sur une seule page).
+select public.lock_release(pg_temp.cid('m'));
 select pg_temp.as_person('editor2');
 select public.lock_take(pg_temp.cid('l3'));
 select pg_temp.as_person('editor');
@@ -447,7 +449,7 @@ select is(
 select pg_temp.as_person('editor2');
 select public.lock_release(pg_temp.cid('l3'));
 select pg_temp.as_person('editor');
-select public.lock_take(pg_temp.cid('l3'));
+select public.lock_take(pg_temp.cid('m'));
 
 -- Un élément invalide : rien n'est publié, l'erreur le nomme.
 select pg_temp.save('l3', pg_temp.draft(jsonb_build_array(
@@ -573,17 +575,18 @@ select is(
 -- Retirer une leçon de l'app ([D26])
 -- ---------------------------------------------------------------------------------------------
 
-select public.lock_release(pg_temp.cid('l2'));
+select public.lock_release(pg_temp.cid('m'));
 select pg_temp.as_person('editor2');
-select public.lock_take(pg_temp.cid('l2'));
+select public.lock_take(pg_temp.cid('m'));
 select pg_temp.as_person('editor');
 select throws_ok(
   format('select public.unpublish(%L)', pg_temp.cid('l2')), 'P0001', 'verrou_tenu',
-  'retirer une leçon qu''un autre membre écrit est refusé'
+  'retirer une leçon pendant qu''un autre membre écrit la méthode est refusé'
 );
 select pg_temp.as_person('editor2');
-select public.lock_release(pg_temp.cid('l2'));
+select public.lock_release(pg_temp.cid('m'));
 select pg_temp.as_person('editor');
+select public.lock_take(pg_temp.cid('m'));
 select lives_ok(format('select public.unpublish(%L)', pg_temp.cid('l2')), 'la leçon 2 est retirée de l''app');
 select is(
   array[(pg_temp.live('m')).origin, (select in_app::text from public.contents where id = pg_temp.cid('l2'))],
