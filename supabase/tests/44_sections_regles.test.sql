@@ -1,6 +1,6 @@
 -- Sections (étape 7, partie 7a) : règles.
---   - [D45] : image de présentation obligatoire pour publier ou programmer un article, un épisode
---     (et une méthode, préparé pour 7b) ; plus de résumé (retiré le 04/10/2026) ; rien pour une page ; le son d'un
+--   - [D45] : image de présentation obligatoire pour publier ou programmer un article, un
+--     épisode ; plus de résumé (retiré le 04/10/2026) ; rien pour une page ; le son d'un
 --     épisode (son_manquant, fichier_inadapte, fichier_indisponible) ; échec d'une programmation
 --     dont l'image a été retirée ensuite ;
 --   - catégories : [D44] facultatives, rangement (categories_reorder), suppression définitive
@@ -12,7 +12,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(104);
+select plan(102);
 
 select pg_temp.create_people();
 select pg_temp.empty_media_library();
@@ -208,22 +208,13 @@ select lives_ok(
 select lives_ok($$select public.schedule(pg_temp.cid('aide'), now() + interval '1 day')$$, 'elle se programme');
 select lives_ok($$select pg_temp.publish('aide')$$, 'et se publie');
 
--- La méthode (partie 7b) : la même règle est prête.
+-- Les sortes qui exigent une image de présentation.
 select pg_temp.as_postgres();
 select is(
-  array[private.cover_required('article'), private.cover_required('episode'), private.cover_required('method'),
-    private.cover_required('page'), private.cover_required('chapter'), private.cover_required('lesson'),
-    private.cover_required('template')],
-  array[true, true, true, false, false, false, false],
-  'image de présentation exigée : article, épisode, méthode'
-);
-select throws_ok(
-  $$select private.check_publish_requirements('method', '{"v": 1, "title": "M", "blocks": []}')$$,
-  'P0001', 'image_de_presentation_manquante', 'une méthode sans image ne passera pas (7b)'
-);
-select lives_ok(
-  format($$select private.check_publish_requirements('method', %L)$$, pg_temp.draft('[]', 'M', pg_temp.cover())),
-  'une méthode avec son image passe'
+  array[private.cover_required('article'), private.cover_required('episode'),
+    private.cover_required('page'), private.cover_required('template')],
+  array[true, true, false, false],
+  'image de présentation exigée : article et épisode seulement'
 );
 
 -- Programmée avec son image, puis l'image retirée : la tâche échoue, l'Accueil le montre.

@@ -29,7 +29,6 @@ $$;
 create function pg_temp.create_content(
   content_name text,
   content_kind text,
-  parent_name text default null,
   content_title text default '',
   sort text default null
 )
@@ -41,7 +40,6 @@ declare
 begin
   select (public.content_create(
     kind => content_kind,
-    parent_id => pg_temp.cid(parent_name),
     title => content_title,
     template_sort => sort
   )).id into created;
@@ -197,7 +195,7 @@ $$;
 
 grant execute on function
   pg_temp.cid(text),
-  pg_temp.create_content(text, text, text, text, text),
+  pg_temp.create_content(text, text, text, text),
   pg_temp.rev(text),
   pg_temp.save(text, jsonb, jsonb),
   pg_temp.publish(text),

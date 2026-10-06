@@ -1,5 +1,5 @@
 -- Ordre des listes et remplacement d'un fichier (30/09/2026).
---   - list_position : un article, un épisode ou une méthode neuf arrive en tête de sa liste ;
+--   - list_position : un article ou un épisode neuf arrive en tête de sa liste ;
 --     une page n'a pas de place ; contents_reorder (équipe en aal2) range la liste complète hors
 --     corbeille ; l'ordre de l'app est testé dans 44_sections_regles.test.sql.
 --   - media_replace : le nouveau fichier (même type, prêt) remplace l'ancien dans les brouillons,
@@ -23,7 +23,7 @@ select pg_temp.as_person('editor');
 select pg_temp.create_content('a', 'article', content_title => 'A');
 select pg_temp.create_content('b', 'article', content_title => 'B');
 select pg_temp.create_content('c', 'article', content_title => 'C');
-select pg_temp.create_content('m', 'method', content_title => 'M');
+select pg_temp.create_content('e', 'episode', content_title => 'E');
 select pg_temp.create_content('p', 'page', content_title => 'P');
 
 -- Les titres des articles, dans l'ordre de la liste.
@@ -40,8 +40,8 @@ grant execute on function pg_temp.article_order() to public;
 
 select is(pg_temp.article_order(), array['C', 'B', 'A'], 'un article neuf arrive en tête de sa liste');
 select ok(
-  (select list_position is not null from public.contents where id = pg_temp.cid('m')),
-  'une méthode a aussi une place'
+  (select list_position is not null from public.contents where id = pg_temp.cid('e')),
+  'un épisode a aussi une place'
 );
 select is(
   (select list_position from public.contents where id = pg_temp.cid('p')), null,
@@ -66,7 +66,7 @@ select throws_ok(
 );
 select throws_ok(
   format('select public.contents_reorder(%L, %L)', 'article',
-    array[pg_temp.cid('a'), pg_temp.cid('b'), pg_temp.cid('m')]),
+    array[pg_temp.cid('a'), pg_temp.cid('b'), pg_temp.cid('e')]),
   'P0001', 'demande_invalide', 'un contenu d''une autre section est refusé'
 );
 select throws_ok(

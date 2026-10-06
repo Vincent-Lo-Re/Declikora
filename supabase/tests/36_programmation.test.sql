@@ -92,10 +92,10 @@ select throws_ok(
   $$select public.schedule('20000000-0000-4000-8000-0000000000ff', now() + interval '1 day')$$,
   'P0001', 'contenu_introuvable', 'programmer un contenu inconnu'
 );
-select lives_ok($$select pg_temp.create_content('m', 'method')$$, 'une méthode');
+select lives_ok($$select pg_temp.create_content('m', 'template', sort => 'shared')$$, 'un modèle « bloc partagé »');
 select throws_ok(
-  $$select public.schedule(pg_temp.cid('m'), now() + interval '1 day')$$, 'P0001', 'acces_a_choisir',
-  'une méthode se programme (étape 7b), après le choix du niveau d''accès'
+  $$select public.schedule(pg_temp.cid('m'), now() + interval '1 day')$$, 'P0001', 'sorte_invalide',
+  'un modèle ne se programme pas'
 );
 select is(
   public.schedule(pg_temp.cid('a1'), '2030-10-03 08:00+02'), '2030-10-03 08:00+02'::timestamptz,

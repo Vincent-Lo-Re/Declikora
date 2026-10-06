@@ -125,13 +125,9 @@ export type Database = {
           draft_template_ids: string[]
           first_published_at: string | null
           id: string
-          in_app: boolean
-          is_free: boolean
           kind: string
           list_position: number | null
           live_version_id: string | null
-          parent_id: string | null
-          position: number | null
           schedule_error: string | null
           scheduled_at: string | null
           scheduled_by: string | null
@@ -158,13 +154,9 @@ export type Database = {
           draft_template_ids?: string[]
           first_published_at?: string | null
           id?: string
-          in_app?: boolean
-          is_free?: boolean
           kind: string
           list_position?: number | null
           live_version_id?: string | null
-          parent_id?: string | null
-          position?: number | null
           schedule_error?: string | null
           scheduled_at?: string | null
           scheduled_by?: string | null
@@ -191,13 +183,9 @@ export type Database = {
           draft_template_ids?: string[]
           first_published_at?: string | null
           id?: string
-          in_app?: boolean
-          is_free?: boolean
           kind?: string
           list_position?: number | null
           live_version_id?: string | null
-          parent_id?: string | null
-          position?: number | null
           schedule_error?: string | null
           scheduled_at?: string | null
           scheduled_by?: string | null
@@ -246,13 +234,6 @@ export type Database = {
             referencedColumns: ["id", "content_id"]
           },
           {
-            foreignKeyName: "contents_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "contents"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "contents_scheduled_by_fkey"
             columns: ["scheduled_by"]
             isOneToOne: false
@@ -268,7 +249,6 @@ export type Database = {
           heartbeat_at: string
           holder_id: string | null
           holder_session: string | null
-          method_rev: number
           taken_at: string | null
         }
         Insert: {
@@ -277,7 +257,6 @@ export type Database = {
           heartbeat_at?: string
           holder_id?: string | null
           holder_session?: string | null
-          method_rev?: number
           taken_at?: string | null
         }
         Update: {
@@ -286,7 +265,6 @@ export type Database = {
           heartbeat_at?: string
           holder_id?: string | null
           holder_session?: string | null
-          method_rev?: number
           taken_at?: string | null
         }
         Relationships: [
@@ -492,11 +470,9 @@ export type Database = {
           draft_rev: number
           files: NonNullable<Json>
           id: string
-          is_free: boolean
           media_ids: string[]
           number: number
           origin: string
-          outline: Json | null
           published_at: string
           published_by: string | null
           published_by_name: string | null
@@ -514,11 +490,9 @@ export type Database = {
           draft_rev: number
           files?: NonNullable<Json>
           id?: string
-          is_free?: boolean
           media_ids?: string[]
           number: number
           origin: string
-          outline?: Json | null
           published_at?: string
           published_by?: string | null
           published_by_name?: string | null
@@ -536,11 +510,9 @@ export type Database = {
           draft_rev?: number
           files?: NonNullable<Json>
           id?: string
-          is_free?: boolean
           media_ids?: string[]
           number?: number
           origin?: string
-          outline?: Json | null
           published_at?: string
           published_by?: string | null
           published_by_name?: string | null
@@ -574,7 +546,6 @@ export type Database = {
           id: string | null
           item_type: string | null
           kind: string | null
-          parent_title: string | null
           purge_at: string | null
           purge_error: string | null
           title: string | null
@@ -631,7 +602,6 @@ export type Database = {
           media_id: string
         }[]
       }
-      app_method: { Args: { content_id: string }; Returns: Json }
       app_page: { Args: { slug: string }; Returns: Json }
       categories_reorder: {
         Args: { ids: string[]; section: string }
@@ -653,7 +623,6 @@ export type Database = {
         Args: {
           from_template_id?: string
           kind: string
-          parent_id?: string
           template_for?: string
           template_sort?: string
           title?: string
@@ -673,13 +642,9 @@ export type Database = {
           draft_template_ids: string[]
           first_published_at: string | null
           id: string
-          in_app: boolean
-          is_free: boolean
           kind: string
           list_position: number | null
           live_version_id: string | null
-          parent_id: string | null
-          position: number | null
           schedule_error: string | null
           scheduled_at: string | null
           scheduled_by: string | null
@@ -977,17 +942,7 @@ export type Database = {
           in_app: boolean
           in_draft: boolean
           kind: string
-          parent_title: string
           title: string
-        }[]
-      }
-      outline_reorder: {
-        Args: { editor_session?: string; method_id: string; outline: Json }
-        Returns: {
-          content_id: string
-          kind: string
-          parent_id: string
-          position: number
         }[]
       }
       ping: { Args: Record<PropertyKey, never>; Returns: boolean }
@@ -998,24 +953,6 @@ export type Database = {
           published_at: string
           version_id: string
           version_number: number
-        }[]
-      }
-      publish_preview: {
-        Args: { content_id: string }
-        Returns: {
-          change: string
-          chapter_id: string
-          chapter_title: string
-          draft_saved_at: string
-          draft_saved_by: string
-          draft_saved_by_name: string
-          element_id: string
-          kind: string
-          lesson_id: string
-          lesson_title: string
-          problem: string
-          problem_detail: string
-          title: string
         }[]
       }
       restore: {
@@ -1084,13 +1021,9 @@ export type Database = {
           draft_template_ids: string[]
           first_published_at: string | null
           id: string
-          in_app: boolean
-          is_free: boolean
           kind: string
           list_position: number | null
           live_version_id: string | null
-          parent_id: string | null
-          position: number | null
           schedule_error: string | null
           scheduled_at: string | null
           scheduled_by: string | null

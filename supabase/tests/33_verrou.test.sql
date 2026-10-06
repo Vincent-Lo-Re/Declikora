@@ -283,7 +283,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.save_draft(pg_temp.page_id(), 3, '{"v":1,"title":"B","blocks":[]}',
-    '{"is_free": true}', 'b0000000-0000-4000-8000-00000000000b')$$,
+    '{"slug": "rejeu"}', 'b0000000-0000-4000-8000-00000000000b')$$,
   'P0001', 'conflit_revision', 'save_draft : un envoi rejoué avec des réglages reste un conflit'
 );
 select throws_ok(

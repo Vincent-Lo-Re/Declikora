@@ -1,11 +1,11 @@
--- Corbeille des contenus (docs/ARCHITECTURE-CONTENUS.md, § 3.6, [D18], [D36]) : mise à la
--- corbeille (retrait de l'app, programmation annulée, lots d'une méthode, verrou d'un autre
--- membre, modèle utilisé), restauration en brouillon sans republier (fin de liste, adresse
--- prise), trash_items, empty_trash (liste explicite, cascade des versions) et purge à 30 jours.
+-- Corbeille des contenus (docs/ARCHITECTURE-CONTENUS.md, § 3.6, [D18]) : mise à la corbeille
+-- (retrait de l'app, programmation annulée, verrou d'un autre membre, modèle utilisé),
+-- restauration en brouillon sans republier (adresse prise), trash_items, empty_trash (liste
+-- explicite, cascade des versions) et purge à 30 jours.
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(60);
+select plan(42);
 
 select pg_temp.create_people();
 select pg_temp.empty_media_library();
@@ -107,12 +107,12 @@ select throws_ok(
 );
 select results_eq(
   format(
-    $$select item_type, kind, title, parent_title, batch_root, deleted_by_name,
+    $$select item_type, kind, title, batch_root, deleted_by_name,
         purge_at = deleted_at + interval '30 days'
       from public.trash_items where id = %L$$,
     pg_temp.cid('article')
   ),
-  $$values ('content', 'article', 'Café', null::text, true, 'editeur2@tests.local', true)$$,
+  $$values ('content', 'article', 'Café', true, 'editeur2@tests.local', true)$$,
   'trash_items : le contenu, son auteur et la date d''effacement automatique'
 );
 
@@ -153,96 +153,6 @@ select lives_ok(
 select is(
   (select version_number from public.publish(pg_temp.cid('article'), pg_temp.rev('article'))), 2,
   'republier est un geste volontaire, qui marche après la restauration'
-);
-
--- ---------------------------------------------------------------------------------------------
--- Méthode : lots, chapitre ou leçon seul ([D36]), parent dans la corbeille, fin de liste
--- ---------------------------------------------------------------------------------------------
-
-select pg_temp.create_content('m', 'method', content_title => 'Méthode');
-select pg_temp.create_content('c1', 'chapter', 'm', 'Chapitre 1');
-select pg_temp.create_content('c2', 'chapter', 'm', 'Chapitre 2');
-select pg_temp.create_content('l1', 'lesson', 'c1', 'Leçon 1');
-select pg_temp.create_content('l2', 'lesson', 'c1', 'Leçon 2');
-select pg_temp.save('l2', pg_temp.draft('[]', 'Leçon 2'), '{"in_app": true}');
-
-select is(
-  (select trashed from public.trash(pg_temp.cid('l2'))), 1, 'une leçon part seule à la corbeille'
-);
-select results_eq(
-  format('select parent_title, batch_root from public.trash_items where id = %L', pg_temp.cid('l2')),
-  $$values ('Méthode', true)$$,
-  'trash_items : une leçon, avec le titre de sa méthode'
-);
-select is(
-  (select trashed from public.trash(pg_temp.cid('m'))), 4,
-  'la méthode emporte ses chapitres et ses leçons encore là (4 éléments)'
-);
-select is(
-  (select count(distinct trash_batch)::int from public.contents
-    where id in (pg_temp.cid('m'), pg_temp.cid('c1'), pg_temp.cid('c2'), pg_temp.cid('l1'))),
-  1, 'un seul lot pour la méthode et ses éléments'
-);
-select isnt(
-  (select trash_batch from public.contents where id = pg_temp.cid('l2')),
-  (select trash_batch from public.contents where id = pg_temp.cid('m')),
-  'la leçon partie avant garde son propre lot'
-);
-select results_eq(
-  $$select title, parent_title, batch_root from public.trash_items
-    where item_type = 'content' and kind in ('method', 'chapter', 'lesson') order by title$$,
-  $$values ('Chapitre 1', 'Méthode', false), ('Chapitre 2', 'Méthode', false),
-    ('Leçon 1', 'Méthode', false), ('Leçon 2', 'Méthode', true), ('Méthode', null::text, true)$$,
-  'trash_items : le lot de la méthode (une tête) et la leçon partie seule'
-);
-select throws_ok(
-  format('select public.restore(%L)', pg_temp.cid('l2')), 'P0001', 'parent_dans_la_corbeille',
-  'une leçon ne revient pas tant que sa méthode est dans la corbeille'
-);
-select is(
-  pg_temp.error_of(format('select public.restore(%L)', pg_temp.cid('l2'))),
-  'parent_dans_la_corbeille | Restaure d''abord le chapitre « Chapitre 1 ». | ',
-  'parent_dans_la_corbeille : le detail nomme le parent'
-);
-select is(
-  (select restored from public.restore(pg_temp.cid('c1'))), 4,
-  'restaurer un élément du lot restaure tout le lot'
-);
-select results_eq(
-  format(
-    $$select title, position, deleted_at is null from public.contents
-      where id in (%L, %L, %L) order by title$$,
-    pg_temp.cid('c1'), pg_temp.cid('c2'), pg_temp.cid('l1')
-  ),
-  $$values ('Chapitre 1', 1, true), ('Chapitre 2', 2, true), ('Leçon 1', 1, true)$$,
-  'le lot revient à sa place'
-);
-select pg_temp.create_content('l3', 'lesson', 'c1', 'Leçon 3');
-select is(
-  (select position from public.contents where id = pg_temp.cid('l3')), 2,
-  'une nouvelle leçon prend la place laissée'
-);
-select results_eq(
-  format('select restored, warnings from public.restore(%L)', pg_temp.cid('l2')),
-  $$values (1, '{}'::text[])$$,
-  'la leçon revient une fois sa méthode restaurée'
-);
-select results_eq(
-  format('select position, in_app from public.contents where id = %L', pg_temp.cid('l2')),
-  $$values (3, false)$$,
-  'une leçon restaurée seule revient en fin de liste, « Montrer dans l''app » décoché'
-);
-select is(
-  (select trashed from public.trash(pg_temp.cid('c2'))), 1, 'un chapitre part seul à la corbeille'
-);
-select results_eq(
-  format('select restored from public.restore(%L)', pg_temp.cid('c2')),
-  $$values (1)$$,
-  'le chapitre revient'
-);
-select is(
-  (select position from public.contents where id = pg_temp.cid('c2')), 2,
-  'le chapitre revient en fin de liste'
 );
 
 -- ---------------------------------------------------------------------------------------------
@@ -347,16 +257,6 @@ select ok(
   'empty_trash : un contenu hors corbeille n''est pas touché'
 );
 select pg_temp.as_person('editor');
-select public.trash(pg_temp.cid('m'));
-select is(
-  public.empty_trash(jsonb_build_array(jsonb_build_object('type', 'content', 'id', pg_temp.cid('m')))), 1,
-  'empty_trash : la méthode'
-);
-select is(
-  (select count(*)::int from public.contents
-    where id in (pg_temp.cid('c1'), pg_temp.cid('c2'), pg_temp.cid('l1'), pg_temp.cid('l2'), pg_temp.cid('l3'))),
-  0, 'empty_trash : ses chapitres et ses leçons partent avec elle'
-);
 select throws_ok(
   $$select public.empty_trash('[{"type": "contenu", "id": "20000000-0000-4000-8000-000000000001"}]')$$,
   'P0001', 'demande_invalide', 'empty_trash : type inconnu refusé'
