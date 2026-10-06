@@ -1643,6 +1643,7 @@ describe("éditeur du Fil : en-têtes des colonnes et lecture seule", () => {
         heartbeat_at: new Date().toISOString(),
         draft_rev: 4,
         taken_at: new Date().toISOString(),
+        method_rev: 0,
       })
     )
     const window = await screen.findByRole("alertdialog")

@@ -102,15 +102,6 @@ export function withPreview(
   return params
 }
 
-/**
- * Une adresse de l'éditeur qui garde les réglages du téléphone de l'adresse affichée : passer de
- * la méthode à une leçon reste en Lecture, sur le même téléphone.
- */
-export function keepPreview(path: string, search: string): string {
-  const kept = withPreview("", previewFromSearch(search)).toString()
-  return kept ? `${path}?${kept}` : path
-}
-
 // La hauteur du téléphone entier : --blocks-screen-height et deux fois --blocks-device-padding
 // de preview.css (.blocks-preview-layout[data-device]) ; les changer des deux côtés.
 const deviceHeights: Record<Device, number> = {

@@ -139,36 +139,8 @@ export function OutlinePanel({
   // La flèche de retour, à gauche de l'en-tête du plan.
   back?: ReactNode
 }) {
-  // Les sections repliées.
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
   const all = flattenBlocks(draft)
   const choosing = selection?.active ?? false
-  // Les lignes se rangent par glisser-déposer (pas pendant « Choisir des blocs »).
-  const sortable = feed.onMove !== undefined && !choosing
-  const drag = useBlockDrag({
-    draft,
-    onChange: feed.onMove ?? keep,
-    rootLimit: feed.rootLimit,
-  })
-  const shared: RowShared = {
-    // Le plan se range (brouillon tenu) : un DndContext à lui, avec son annonce.
-    dnd: feed.onMove !== undefined,
-    selectedId,
-    onSelect,
-    templateName,
-    selection,
-    choosing,
-    feed,
-    sortable,
-    collapsed,
-    toggleCollapsed: (id) =>
-      setCollapsed((current) => {
-        const next = new Set(current)
-        if (next.has(id)) next.delete(id)
-        else next.add(id)
-        return next
-      }),
-  }
   const count = selection
     ? draft.blocks.filter((block) => selection.chosen.has(block.id)).length
     : 0
@@ -184,16 +156,8 @@ export function OutlinePanel({
       {choosing ? saveAs.stopSelecting : saveAs.select}
     </Button>
   )
-  const navRef = useRef<HTMLElement>(null)
-  // Le bloc choisi ailleurs (aperçu, « Prêt à publier ? ») : sa ligne vient sous les yeux.
-  useEffect(() => {
-    navRef.current
-      ?.querySelector('[aria-current="true"]')
-      ?.scrollIntoView({ block: "nearest" })
-  }, [selectedId])
   return (
     <nav
-      ref={navRef}
       aria-label={labels.title}
       // Les lignes alignées sur la marge de 16 px des colonnes (comme les en-têtes et les cartes) ;
       // leur poignée apparaît dans cette marge.
@@ -225,61 +189,14 @@ export function OutlinePanel({
           </p>
         )}
       </div>
-      {all.length === 0 ? (
-        <div className="grid gap-3 px-2">
-          <p className="text-sm text-muted-foreground">{labels.empty}</p>
-          {feed.onAdd && (
-            <AddBlockButton
-              label={texts.editor.add.label}
-              onClick={feed.onAdd}
-            />
-          )}
-        </div>
-      ) : (
-        (() => {
-          const list = (
-            <ol className="grid gap-0.5">
-              {draft.blocks.map((block) => (
-                <Row
-                  key={block.id}
-                  block={block}
-                  container={ROOT}
-                  shared={shared}
-                />
-              ))}
-            </ol>
-          )
-          if (!shared.dnd) return list
-          return (
-            <DndContext {...drag.dndProps}>
-              <DraggingTypeContext value={drag.active?.type ?? null}>
-                <SortableContext
-                  id={ROOT}
-                  items={draft.blocks.map((block) => block.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {list}
-                </SortableContext>
-              </DraggingTypeContext>
-              <DragOverlay dropAnimation={null}>
-                {drag.active ? (
-                  <DragChip>
-                    <BlockSummary
-                      block={drag.active}
-                      media={
-                        drag.active.type === "image"
-                          ? feed.mediaFor(drag.active.mediaId)
-                          : null
-                      }
-                      templateName={templateName(drag.active)}
-                    />
-                  </DragChip>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-          )
-        })()
-      )}
+      <OutlineBlocks
+        draft={draft}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        templateName={templateName}
+        selection={selection}
+        feed={feed}
+      />
       {choosing && selection && (
         <div className="mt-3 border-t pt-3">
           <Button
@@ -294,6 +211,116 @@ export function OutlinePanel({
         </div>
       )}
     </nav>
+  )
+}
+
+/**
+ * Les lignes du plan des blocs : dans le plan d'un contenu (OutlinePanel), et sous la partie en
+ * cours dans le plan d'une méthode. Rangées par glisser-déposer quand le brouillon est tenu
+ * (feed.onMove) ; sans bloc, « Aucun bloc pour l'instant » et « Ajouter un bloc ».
+ */
+export function OutlineBlocks({
+  draft,
+  selectedId,
+  onSelect,
+  templateName = () => null,
+  selection,
+  feed,
+}: {
+  draft: Draft
+  selectedId: string | null
+  onSelect: (id: string) => void
+  templateName?: (block: Block) => string | null
+  selection?: OutlineSelection
+  feed: FeedOutline
+}) {
+  // Les sections repliées.
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
+  const all = flattenBlocks(draft)
+  const choosing = selection?.active ?? false
+  // Les lignes se rangent par glisser-déposer (pas pendant « Choisir des blocs »).
+  const sortable = feed.onMove !== undefined && !choosing
+  const drag = useBlockDrag({
+    draft,
+    onChange: feed.onMove ?? keep,
+    rootLimit: feed.rootLimit,
+  })
+  const shared: RowShared = {
+    // Le plan se range (brouillon tenu) : un DndContext à lui, avec son annonce.
+    dnd: feed.onMove !== undefined,
+    selectedId,
+    onSelect,
+    templateName,
+    selection,
+    choosing,
+    feed,
+    sortable,
+    collapsed,
+    toggleCollapsed: (id) =>
+      setCollapsed((current) => {
+        const next = new Set(current)
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+        return next
+      }),
+  }
+  const listRef = useRef<HTMLDivElement>(null)
+  // Le bloc choisi ailleurs (aperçu, « Prêt à publier ? ») : sa ligne vient sous les yeux.
+  useEffect(() => {
+    listRef.current
+      ?.querySelector('[aria-current="true"]')
+      ?.scrollIntoView({ block: "nearest" })
+  }, [selectedId])
+  if (all.length === 0) {
+    return (
+      <div className="grid gap-3 px-2">
+        <p className="text-sm text-muted-foreground">{labels.empty}</p>
+        {feed.onAdd && (
+          <AddBlockButton label={texts.editor.add.label} onClick={feed.onAdd} />
+        )}
+      </div>
+    )
+  }
+  const list = (
+    <ol className="grid gap-0.5">
+      {draft.blocks.map((block) => (
+        <Row key={block.id} block={block} container={ROOT} shared={shared} />
+      ))}
+    </ol>
+  )
+  return (
+    <div ref={listRef}>
+      {shared.dnd ? (
+        <DndContext {...drag.dndProps}>
+          <DraggingTypeContext value={drag.active?.type ?? null}>
+            <SortableContext
+              id={ROOT}
+              items={draft.blocks.map((block) => block.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {list}
+            </SortableContext>
+          </DraggingTypeContext>
+          <DragOverlay dropAnimation={null}>
+            {drag.active ? (
+              <DragChip>
+                <BlockSummary
+                  block={drag.active}
+                  media={
+                    drag.active.type === "image"
+                      ? feed.mediaFor(drag.active.mediaId)
+                      : null
+                  }
+                  templateName={templateName(drag.active)}
+                />
+              </DragChip>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      ) : (
+        list
+      )}
+    </div>
   )
 }
 

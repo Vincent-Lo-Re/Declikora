@@ -4,7 +4,12 @@
 // d'éléments de chaque méthode. Contrat : docs/ARCHITECTURE-CONTENUS.md, « Étape 7, partie 7b »
 // et « Exercices ».
 
-import { toContentError } from "@/lib/contents/api"
+import {
+  CONTENT_COLUMNS,
+  toContent,
+  toContentError,
+  type Content,
+} from "@/lib/contents/api"
 import type {
   MethodTree,
   OutlineChapter,
@@ -14,7 +19,6 @@ import type {
   PreviewRow,
 } from "@/lib/contents/outline"
 import { toOutlinePayload } from "@/lib/contents/outline"
-import { saveSettingsPayload } from "@/lib/contents/settings"
 import type { Json } from "@/lib/database.types"
 import { isLockAlive } from "@/lib/editor/edit-lock"
 import { displayName, type PersonName } from "@/lib/people"
@@ -27,6 +31,9 @@ export const methodKeys = {
   allTrees: ["contents", "methods", "tree"] as const,
   tree: (methodId: string) =>
     ["contents", "methods", "tree", methodId] as const,
+  allParts: ["contents", "methods", "parts"] as const,
+  parts: (methodId: string) =>
+    ["contents", "methods", "parts", methodId] as const,
   allPreviews: ["contents", "methods", "preview"] as const,
   preview: (methodId: string) =>
     ["contents", "methods", "preview", methodId] as const,
@@ -133,6 +140,30 @@ export async function getMethodTree(methodId: string): Promise<MethodTree> {
   return tree
 }
 
+/**
+ * Les brouillons de tous les chapitres, leçons et exercices d'une méthode (hors corbeille), pour
+ * sa page : un chapitre, une leçon et un exercice s'y écrivent à la suite de sa fiche. L'ordre
+ * est celui du plan (getMethodTree).
+ */
+export async function getMethodParts(methodId: string): Promise<Content[]> {
+  const parts: Content[] = []
+  let parents = [methodId]
+  for (const kind of ["chapter", "lesson", "exercise"] as const) {
+    if (parents.length === 0) break
+    const { data, error, status } = await supabase
+      .from("contents")
+      .select(CONTENT_COLUMNS)
+      .in("parent_id", parents)
+      .eq("kind", kind)
+      .is("deleted_at", null)
+    if (error) throw toContentError(error, status)
+    const rows = data.map(toContent)
+    parts.push(...rows)
+    parents = rows.map((row) => row.id)
+  }
+  return parts
+}
+
 const previewChanges = new Set<string>([
   "new",
   "modified",
@@ -194,23 +225,6 @@ export async function reorderOutline(
   if (error) throw toContentError(error, status)
 }
 
-/** Les cases d'un élément, cochées depuis le plan de la méthode. */
-export type ElementFlags = { in_app?: boolean; is_free?: boolean }
-
-/**
- * Coche ou décoche « Montrer dans l'app » ou « Leçon gratuite » depuis le plan : ce sont des
- * réglages de l'élément, enregistrés par save_draft sous SON verrou. Le verrou est pris le temps
- * de l'enregistrement, puis rendu. Refusé (verrou_tenu, avec le nom) si quelqu'un l'écrit en ce
- * moment, y compris soi-même dans un autre onglet : on ne lui retire pas la main en silence.
- */
-export function setElementFlags(
-  elementId: string,
-  flags: ElementFlags,
-  myId: string
-): Promise<void> {
-  return saveSettingsPayload(elementId, myId, texts.methods.outline, flags)
-}
-
 /**
  * La méthode (et le chapitre, et la leçon) d'un chapitre, d'une leçon ou d'un exercice. access :
  * le niveau d'accès du brouillon de la méthode, celui de l'élément à sa prochaine publication
@@ -225,24 +239,6 @@ export type ElementContext = {
   }
   chapter: { id: string; title: string } | null
   lesson: { id: string; title: string; isFree: boolean } | null
-}
-
-/**
- * En Lecture, l'écran du dessus, comme la flèche de retour de l'app (QCM du 04/10/2026) : la
- * leçon d'un exercice, la méthode d'un chapitre ou d'une leçon.
- */
-export function screenAbove(
-  kind: "chapter" | "lesson" | "exercise",
-  context: ElementContext
-): { kind: "method" | "lesson"; id: string; title: string } {
-  if (kind === "exercise" && context.lesson) {
-    return {
-      kind: "lesson",
-      id: context.lesson.id,
-      title: context.lesson.title,
-    }
-  }
-  return { kind: "method", id: context.method.id, title: context.method.title }
 }
 
 type ParentRow = {

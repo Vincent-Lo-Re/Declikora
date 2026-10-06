@@ -7,7 +7,7 @@ import { askedFileFromAddress, mediaFiltersFromAddress } from "@/lib/address"
 import type { CategorySection } from "@/lib/categories"
 import type { ContentKind } from "@/lib/contents/api"
 import { isTemplateSort } from "@/lib/contents/templates"
-import { contentProfile, isElementKind } from "@/lib/editor/profile"
+import { contentProfile, type EditorKind } from "@/lib/editor/profile"
 import { previewKey } from "@/lib/media/api"
 import type { Media } from "@/lib/media/constants"
 import { fresh, preloadImages, ready, type Prepare } from "@/lib/preparation"
@@ -27,6 +27,7 @@ import {
   mediaByIdsRead,
   mediaListRead,
   mediaRead,
+  methodPartsRead,
   methodPreviewRead,
   methodTreeRead,
   previewKeys,
@@ -182,32 +183,8 @@ async function prepareDraftFiles(queryClient: QueryClient, draft: Draft) {
   await prepareFiles(queryClient, draftMediaIds(draft, linkedBlocks))
 }
 
-/** Une méthode, ou la méthode d'un chapitre, d'une leçon ou d'un exercice. */
-async function prepareMethodSide(
-  queryClient: QueryClient,
-  kind: ContentKind,
-  contentId: string
-) {
-  if (kind === "method") {
-    await Promise.all([
-      fresh(queryClient, methodPreviewRead(contentId)),
-      ready(queryClient, methodTreeRead(contentId)),
-    ])
-    return
-  }
-  if (!isElementKind(kind)) return
-  const context = await ready(queryClient, elementContextRead(contentId))
-  if (!context) return
-  const methodId = context.method.id
-  await Promise.all([
-    !context.method.deleted && fresh(queryClient, methodPreviewRead(methodId)),
-    ready(queryClient, publicationRead(methodId)),
-    ready(queryClient, methodTreeRead(methodId)),
-  ])
-}
-
 /** L'éditeur d'un contenu : son brouillon, ses cartes et ses images. */
-export function prepareEditor(kind: ContentKind): Prepare {
+export function prepareEditor(kind: EditorKind): Prepare {
   return async ({ queryClient, params }) => {
     const contentId = params.contentId ?? ""
     const content = await fresh(
@@ -233,8 +210,46 @@ export function prepareEditor(kind: ContentKind): Prepare {
           ready(queryClient, templateUsesRead(contentId)),
           ready(queryClient, templateOutdatedRead(contentId)),
         ]),
-      prepareMethodSide(queryClient, kind, contentId),
       prepareDraftFiles(queryClient, content.draft),
     ])
   }
+}
+
+/**
+ * La page d'une méthode : sa fiche, son plan et les brouillons de toutes ses parties (relus s'ils
+ * datent), ce qui changera dans l'app, sa publication, les points de départ de ses parties, et
+ * les fichiers de chaque brouillon.
+ */
+export const prepareMethodPage: Prepare = async ({ queryClient, params }) => {
+  const methodId = params.contentId ?? ""
+  const content = await fresh(
+    queryClient,
+    contentRead(methodId),
+    DRAFT_MAX_AGE_MS
+  )
+  // Introuvable, à la corbeille ou d'une autre sorte : la page le dira.
+  if (!content || content.deleted_at || content.kind !== "method") return
+  const [parts] = await Promise.all([
+    fresh(queryClient, methodPartsRead(methodId), DRAFT_MAX_AGE_MS),
+    fresh(queryClient, methodTreeRead(methodId), DRAFT_MAX_AGE_MS),
+    fresh(queryClient, methodPreviewRead(methodId)),
+    fresh(queryClient, publicationRead(methodId)),
+    ready(queryClient, accessLevelsRead()),
+    ...(["chapter", "lesson", "exercise"] as const).map((kind) =>
+      ready(queryClient, startersRead(kind))
+    ),
+  ])
+  await Promise.all(
+    [content, ...(parts ?? [])].map((part) =>
+      prepareDraftFiles(queryClient, part.draft)
+    )
+  )
+}
+
+/** Un chapitre, une leçon ou un exercice ouvert d'ailleurs : sa méthode, où il mène. */
+export const prepareMethodElement: Prepare = async ({
+  queryClient,
+  params,
+}) => {
+  await ready(queryClient, elementContextRead(params.contentId ?? ""))
 }

@@ -1,6 +1,6 @@
 // Réglages d'un contenu enregistrés hors de l'éditeur : à la création (fenêtre « Nouvel
-// article »…), depuis la liste (« Réglages ») ou depuis le plan d'une méthode (cases). Tout passe
-// par save_draft, sous le verrou du contenu, pris le temps de l'enregistrement puis rendu.
+// article »…) ou depuis la liste (« Réglages »). Tout passe par save_draft, sous le verrou du
+// contenu, pris le temps de l'enregistrement puis rendu.
 
 import {
   ContentError,
@@ -15,7 +15,6 @@ import {
   type Content,
   type ContentKind,
   type ContentSettings,
-  type SettingsPayload,
 } from "@/lib/contents/api"
 import { texts } from "@/texts"
 
@@ -66,24 +65,6 @@ async function withBorrowedLock<T>(
   } finally {
     await lockRelease(contentId, session).catch(() => false)
   }
-}
-
-/** Enregistre le brouillon tel qu'il est, avec des réglages changés (cases du plan d'une méthode). */
-export function saveSettingsPayload(
-  contentId: string,
-  myId: string,
-  words: HeldWords,
-  payload: SettingsPayload
-): Promise<void> {
-  return withBorrowedLock(contentId, myId, words, async (content, session) => {
-    await saveDraft(
-      contentId,
-      content.draft_rev,
-      content.draft,
-      session,
-      payload
-    )
-  })
 }
 
 /**

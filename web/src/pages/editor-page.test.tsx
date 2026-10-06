@@ -147,6 +147,7 @@ function lockChange(
     heartbeat_at: new Date().toISOString(),
     draft_rev: rev,
     taken_at: holder ? new Date().toISOString() : null,
+    method_rev: 0,
   }
 }
 

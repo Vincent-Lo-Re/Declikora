@@ -126,11 +126,16 @@ export class AutosaveController<T> {
   getSnapshot = (): AutosaveState => this.current
 
   private update(changes: Partial<AutosaveState>) {
-    this.current = {
+    const next: AutosaveState = {
       ...this.current,
       ...changes,
       unsaved: this.dirty || this.inFlight !== null,
     }
+    // Rien n'a changé (une frappe de plus pendant l'attente) : personne n'est prévenu, rien n'est
+    // redessiné.
+    const keys = Object.keys(next) as (keyof AutosaveState)[]
+    if (keys.every((key) => next[key] === this.current[key])) return
+    this.current = next
     for (const listener of this.listeners) listener()
   }
 

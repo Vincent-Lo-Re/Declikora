@@ -26,9 +26,9 @@ import {
   type ComponentType,
   type CSSProperties,
   type ReactNode,
+  type Ref,
   type SVGProps,
 } from "react"
-import { Link } from "react-router"
 
 import type { BlockMedia } from "@/blocks/components/context"
 import { StaticBlock } from "@/blocks/components/static-block"
@@ -73,6 +73,8 @@ export function FeedPreview({
   appBar,
   focus,
   readers = true,
+  scrollRef,
+  onScroll,
   children,
 }: {
   preview: PreviewSettings
@@ -88,6 +90,9 @@ export function FeedPreview({
   notices: ReactNode
   // En Lecture : la barre du haut de l'app, au-dessus de ce qui défile.
   appBar?: ReactNode
+  // Ce qui défile dans l'écran (la page d'une méthode suit sa partie en cours).
+  scrollRef?: Ref<HTMLDivElement>
+  onScroll?: () => void
   children: ReactNode
 }) {
   // Écran entier (Lecture) : la hauteur disponible pour le téléphone, relue quand la fenêtre change.
@@ -162,7 +167,13 @@ export function FeedPreview({
               </span>
             </div>
             {appBar}
-            <div className="blocks-screen-scroll">{children}</div>
+            <div
+              ref={scrollRef}
+              className="blocks-screen-scroll"
+              onScroll={onScroll}
+            >
+              {children}
+            </div>
             <div aria-hidden className="blocks-home" />
           </div>
         </div>
@@ -383,8 +394,8 @@ export function ReadAppBar({
   back,
 }: {
   section: string
-  // L'écran du dessus : son adresse et son titre.
-  back: { to: string; title: string } | null
+  // L'écran du dessus : son titre, et ce qui l'ouvre dans le téléphone.
+  back: { onClick: () => void; title: string } | null
 }) {
   return (
     <div className="blocks-appbar">
@@ -392,8 +403,9 @@ export function ReadAppBar({
         <Tooltip>
           <TooltipTrigger
             render={
-              <Link
-                to={back.to}
+              <button
+                type="button"
+                onClick={back.onClick}
                 aria-label={labels.back(back.title)}
                 className="blocks-appbar-back"
               />

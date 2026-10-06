@@ -8,16 +8,17 @@ import {
 } from "@/lib/editor/library-drag"
 
 /**
- * Éditeur du Fil : un bloc des Blocs glissé dans le téléphone (glisser-déposer du navigateur). Le
+ * Un bloc des Blocs glissé dans le téléphone (éditeur du Fil, ou une partie de la page d'une
+ * méthode) (glisser-déposer du navigateur). Le
  * trait qui montre où il tombera (lineTop, par rapport au téléphone), seulement au premier niveau,
  * entre deux blocs ; au dépôt, onDrop reçoit sa place. Les gestionnaires sont en capture : le
  * texte (Tiptap) ne reçoit pas le bloc glissé.
  */
-export function usePhoneDrop(
+export function usePhoneDrop<T extends HTMLElement = HTMLDivElement>(
   enabled: boolean,
   onDrop: (drag: LibraryDrag, index: number) => void
 ) {
-  const phoneRef = useRef<HTMLDivElement>(null)
+  const phoneRef = useRef<T>(null)
   const [lineTop, setLineTop] = useState<number | null>(null)
 
   // La place sous le pointeur : l'index au premier niveau, et la hauteur du trait.
@@ -43,7 +44,7 @@ export function usePhoneDrop(
 
   const handlers = {
     onDragOverCapture: enabled
-      ? (event: DragEvent<HTMLDivElement>) => {
+      ? (event: DragEvent<T>) => {
           if (!event.dataTransfer.types.includes(LIBRARY_DRAG_TYPE)) return
           event.preventDefault()
           event.stopPropagation()
@@ -51,7 +52,7 @@ export function usePhoneDrop(
           setLineTop(placeAt(event.clientY)?.top ?? null)
         }
       : undefined,
-    onDragLeave: (event: DragEvent<HTMLDivElement>) => {
+    onDragLeave: (event: DragEvent<T>) => {
       if (
         !(event.relatedTarget instanceof Node) ||
         !event.currentTarget.contains(event.relatedTarget)
@@ -60,7 +61,7 @@ export function usePhoneDrop(
       }
     },
     onDropCapture: enabled
-      ? (event: DragEvent<HTMLDivElement>) => {
+      ? (event: DragEvent<T>) => {
           const drag = decodeLibraryDrag(
             event.dataTransfer.getData(LIBRARY_DRAG_TYPE)
           )

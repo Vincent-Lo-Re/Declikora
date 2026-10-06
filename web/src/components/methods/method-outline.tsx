@@ -22,7 +22,11 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  useMutation,
+  useQueryClient,
+  type UseQueryResult,
+} from "@tanstack/react-query"
 import { cn } from "cn"
 import {
   ArrowDown,
@@ -36,8 +40,6 @@ import {
   ListTree,
   LockOpen,
   PenLine,
-  Plus,
-  SquarePen,
   Trash2,
   TriangleAlert,
 } from "lucide-react"
@@ -45,31 +47,27 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react"
-import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
-import { AddBlockButton } from "@/components/editor/add-block-button"
 import { ColumnHeader } from "@/components/editor/column-header"
 import { InfoTip } from "@/components/info-tip"
 import { LoadState } from "@/components/load-state"
 import { ElementStateDot } from "@/components/methods/element-state-badge"
 import {
-  NewElementDialog,
-  type NewElement,
-} from "@/components/methods/new-element-dialog"
+  NewPartButton,
+  NewPartMenuItem,
+} from "@/components/methods/new-part-button"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { editorsClosed } from "@/hooks/use-edit-lock"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -93,15 +91,9 @@ import {
   ContentError,
   contentProblemText,
   contentKeys,
-  createContent,
-  lockReleaseCreated,
 } from "@/lib/contents/api"
-import {
-  methodKeys,
-  reorderOutline,
-  setElementFlags,
-  type ElementFlags,
-} from "@/lib/contents/methods"
+import { methodKeys, reorderOutline } from "@/lib/contents/methods"
+import type { ElementFlags } from "@/lib/contents/method-page"
 import {
   canDropOutline,
   elementState,
@@ -134,17 +126,12 @@ import { templateKeys } from "@/lib/contents/templates"
 import { errorMessage } from "@/lib/errors"
 import { focusSoon } from "@/lib/focus"
 import { kickFiles, mediaKeys, trashKey } from "@/lib/media/api"
-import { methodTreeRead } from "@/lib/reads"
-import type { OutlineElementValues } from "@/lib/schemas"
-import { useEditorLink } from "@/hooks/use-editor-link"
-import { contentEditorPath } from "@/navigation"
+import { sections } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.methods.outline
 const dnd = texts.methods.dnd
-
-// « Nouveau chapitre », en bas de la colonne (le focus y revient après une création annulée).
-const NEW_CHAPTER_ID = "plan-nouveau-chapitre"
+const MethodIcon = sections.methods.icon
 
 // ---------------------------------------------------------------------------------------------
 // Noms des éléments (boutons, annonces, cases à cocher)
@@ -305,18 +292,19 @@ type Confirmation = {
 /** Ce que chaque ligne sait faire, fourni par le plan. */
 type RowActions = {
   editable: boolean
-  // En Lecture, rien ne se modifie : le menu ⋯ ne fait qu'ouvrir.
+  // En Lecture, rien ne se modifie : le menu ⋯ ne fait que mener à la partie.
   reading: boolean
   myId: string
   live: ReadonlySet<string>
   preview: ReadonlyMap<string, PreviewRow> | undefined
-  // Les cases en cours d'enregistrement (valeur voulue), par élément.
-  pendingFlags: ReadonlyMap<string, ElementFlags>
-  setFlags: (element: OutlineElement, flags: ElementFlags) => void
+  // La partie en cours : sa ligne est allumée, ses blocs se déplient dessous (blocksSlot).
+  currentId: string
+  onGo: (id: string) => void
+  blocksSlot: (element: HTMLElement | null) => void
+  // « Montrer dans l'app », « Leçon gratuite » : des réglages de la partie, enregistrés avec elle.
+  setFlags: (element: OutlineElement, flags: Partial<ElementFlags>) => void
   shift: (element: OutlineElement, offset: -1 | 1) => void
   confirm: (confirmation: Confirmation) => void
-  newLesson: (chapter: OutlineChapter, label: string) => void
-  newExercise: (lesson: OutlineLesson, label: string) => void
   // Les leçons dont les exercices sont repliés.
   folded: ReadonlySet<string>
   toggleFold: (lesson: OutlineLesson) => void
@@ -331,27 +319,46 @@ function useRow(): RowActions {
 }
 
 /**
- * Le plan d'une méthode, dans la colonne de gauche de son écran (ADMIN § 4) : les chapitres, leurs
- * leçons et les exercices de chaque leçon (une flèche les replie), rangés par glisser-déposer
- * (souris et clavier, annonces en français) ou par « Monter » / « Descendre », l'état de chacun
- * dans l'app en pastille ; dans le menu ⋯ de chaque ligne, « Montrer dans l'app », « Leçon
- * gratuite », « Nouvel exercice » (une leçon), « Retirer de l'app » et « Mettre à la corbeille » ;
- * « Nouvelle leçon » dans chaque chapitre et « Nouveau chapitre » en bas. Ranger et créer
- * demandent de tenir la main sur la méthode (outline_reorder) ; les cases sont des réglages de
- * chaque élément, enregistrés sous son propre verrou.
+ * Le plan d'une méthode, dans la colonne de gauche de sa page (ADMIN § 4, « Une méthode sur une
+ * seule page ») : sa fiche, puis les chapitres, leurs leçons et les exercices de chaque leçon
+ * (une flèche les replie). Un clic sur une ligne fait défiler le téléphone jusqu'à cette partie ;
+ * la partie en cours est allumée et ses blocs se déplient dessous. Les parties se rangent par
+ * glisser-déposer (souris et clavier, annonces en français) ou par « Monter » / « Descendre »,
+ * l'état de chacune dans l'app en pastille ; dans le menu ⋯ de chaque ligne, « Montrer dans
+ * l'app », « Leçon gratuite », « Nouvel exercice » (une leçon), « Retirer de l'app » et « Mettre
+ * à la corbeille » ; « Nouvelle leçon » dans chaque chapitre et « Nouveau chapitre » en bas.
+ * Ranger demande de tenir la main sur la méthode (outline_reorder).
  */
 export function MethodOutline({
   methodId,
+  methodTitle,
+  tree,
+  treeQuery,
+  currentId,
+  onGo,
+  blocksSlot,
   editable,
   reading,
   session,
   myId,
   live,
   preview,
+  setFlags,
+  reloadPart,
+  flushAll,
   back,
 }: {
   methodId: string
-  // On tient la main sur la méthode (depuis cette ouverture de l'éditeur).
+  // Le titre de la fiche, tel qu'il est à l'écran.
+  methodTitle: string
+  // L'arbre, avec les cases telles qu'elles sont à l'écran (undefined tant qu'il n'est pas lu).
+  tree: MethodTree | undefined
+  // Sa lecture : échec, relecture.
+  treeQuery: Pick<UseQueryResult, "isError" | "error" | "refetch">
+  currentId: string
+  onGo: (id: string) => void
+  blocksSlot: (element: HTMLElement | null) => void
+  // On tient la main sur la méthode (depuis cette ouverture de la page).
   editable: boolean
   // En Lecture : on ne prend pas la main, et le plan ne se modifie pas (QCM du 04/10/2026).
   reading: boolean
@@ -361,44 +368,25 @@ export function MethodOutline({
   live: LiveOutline | null
   // publish_preview (undefined tant qu'il n'est pas lu).
   preview: PreviewRow[] | undefined
+  setFlags: (element: OutlineElement, flags: Partial<ElementFlags>) => void
+  // Après « Retirer de l'app » : la base a décoché « Montrer dans l'app » de la partie, qui se
+  // relit.
+  reloadPart: (id: string) => void
+  // Avant « Retirer de l'app » ou « Mettre à la corbeille » : tout ce qui attend est enregistré.
+  flushAll: () => Promise<boolean>
   // Le retour, dans l'en-tête du plan (la flèche vers la liste des méthodes).
   back: ReactNode
 }) {
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
-  const navigate = useNavigate()
-  const editorLink = useEditorLink()
-  const tree = useQuery({
-    ...methodTreeRead(methodId),
-    // Qui écrit quoi, et ce que les autres ont ajouté : relu régulièrement.
-    refetchInterval: 30_000,
-  })
-  // Ouvert juste après un chapitre ou une leçon (« ← méthode ») : son éditeur rend la main en se
-  // fermant ; le plan est relu ensuite, sinon il le montrerait « ouvert dans un autre onglet ».
-  useEffect(() => {
-    void editorsClosed().then((waited) => {
-      if (waited) {
-        void queryClient.invalidateQueries({
-          queryKey: methodKeys.tree(methodId),
-        })
-        void queryClient.invalidateQueries({
-          queryKey: methodKeys.preview(methodId),
-        })
-      }
-    })
-  }, [queryClient, methodId])
 
   // L'ordre affiché pendant un déplacement, puis jusqu'à la réponse de la base.
   const [local, setLocal] = useState<MethodTree | null>(null)
-  const shown = local ?? tree.data
+  const shown = local ?? tree
   const [activeId, setActiveId] = useState<string | null>(null)
   const before = useRef<MethodTree | null>(null)
   const [announcement, setAnnouncement] = useState("")
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
-  const [newTarget, setNewTarget] = useState<NewElement | null>(null)
-  const [pendingFlags, setPendingFlags] = useState<
-    ReadonlyMap<string, ElementFlags>
-  >(() => new Map())
   const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set())
 
   const liveSet = useMemo(() => liveIds(live), [live])
@@ -426,36 +414,6 @@ export function MethodOutline({
         }),
       ]),
     [queryClient, methodId]
-  )
-
-  /**
-   * « Retirer de l'app », « Supprimer », « Annuler » et les cases changent l'élément (et ce qu'il
-   * contient) sans toujours changer son brouillon : leur lecture en mémoire est marquée périmée,
-   * pour que leur éditeur, rouvert, relise les cases enregistrées.
-   */
-  const forgetDetails = useCallback(
-    (element: OutlineElement) => {
-      const lessons =
-        element.kind === "chapter"
-          ? (element as OutlineChapter).lessons
-          : element.kind === "lesson"
-            ? [element as OutlineLesson]
-            : []
-      const ids = [
-        element.id,
-        ...lessons.flatMap((lesson) => [
-          lesson.id,
-          ...lesson.exercises.map((exercise) => exercise.id),
-        ]),
-      ]
-      for (const id of ids) {
-        void queryClient.invalidateQueries({
-          queryKey: contentKeys.detail(id),
-          refetchType: "none",
-        })
-      }
-    },
-    [queryClient]
   )
 
   // --- Ranger --------------------------------------------------------------------------------
@@ -506,43 +464,6 @@ export function MethodOutline({
     focusSoon(() => movedActionsButton(next, element.id))
   }
 
-  // --- Cases « Montrer dans l'app » et « Leçon gratuite » -------------------------------------
-
-  const flags = useMutation({
-    mutationFn: ({
-      element,
-      flags: wanted,
-    }: {
-      element: OutlineElement
-      flags: ElementFlags
-    }) => setElementFlags(element.id, wanted, myId),
-    onMutate: ({ element, flags: wanted }) =>
-      setPendingFlags((current) =>
-        new Map(current).set(element.id, {
-          ...current.get(element.id),
-          ...wanted,
-        })
-      ),
-    onError: (error) => {
-      toast.error(labels.flagsFailed, {
-        description:
-          error instanceof ContentError
-            ? (error.detail ?? error.message)
-            : error.message,
-      })
-      checkAccess(error)
-    },
-    onSettled: async (_data, _error, { element }) => {
-      forgetDetails(element)
-      await refresh()
-      setPendingFlags((current) => {
-        const next = new Map(current)
-        next.delete(element.id)
-        return next
-      })
-    },
-  })
-
   // --- Retirer de l'app, supprimer -------------------------------------------------------------
 
   const undoTrash = async (element: OutlineElement, label: string) => {
@@ -552,7 +473,6 @@ export function MethodOutline({
     } catch (error) {
       toast.error(errorMessage(error))
     } finally {
-      forgetDetails(element)
       await refresh()
       void queryClient.invalidateQueries({ queryKey: trashKey })
       // Il revient en fin de liste : le focus va à son bouton « Actions ».
@@ -569,6 +489,9 @@ export function MethodOutline({
 
   const act = useMutation({
     mutationFn: async ({ action, element }: Confirmation) => {
+      // Ce qui attend d'être enregistré part d'abord : une partie mise à la corbeille ne
+      // s'enregistre plus.
+      await flushAll()
       if (action === "unpublish") {
         return { needsFileSync: await unpublishContent(element.id) }
       }
@@ -576,6 +499,7 @@ export function MethodOutline({
     },
     onSuccess: (result, { action, element, label }) => {
       if (action === "unpublish") {
+        reloadPart(element.id)
         focusAfterAct.current = () => actionsButtonOf(element.id)
       } else {
         focusAfterAct.current = shown
@@ -606,8 +530,7 @@ export function MethodOutline({
       })
       checkAccess(error)
     },
-    onSettled: async (_data, _error, { element }) => {
-      forgetDetails(element)
+    onSettled: async () => {
       void queryClient.invalidateQueries({ queryKey: trashKey })
       void queryClient.invalidateQueries({
         queryKey: mediaKeys.allUses,
@@ -616,69 +539,6 @@ export function MethodOutline({
       const find = focusAfterAct.current
       if (find) focusSoon(find)
     },
-  })
-
-  // --- Nouveau chapitre, nouvelle leçon ----------------------------------------------------------
-
-  // Vrai après une création : le focus va au nouvel élément, et non au bouton qui a ouvert la
-  // fenêtre.
-  const focusAfterCreate = useRef(false)
-  const openNew = (target: NewElement) => {
-    focusAfterCreate.current = false
-    setNewTarget(target)
-  }
-
-  const create = useMutation({
-    mutationFn: async ({
-      target,
-      values,
-      open,
-    }: {
-      target: NewElement
-      values: OutlineElementValues
-      open: boolean
-    }) => {
-      const created = await createContent(
-        target.kind,
-        values.title.trim(),
-        values.starter || null,
-        target.kind === "chapter"
-          ? methodId
-          : target.kind === "lesson"
-            ? target.chapterId
-            : target.lessonId
-      )
-      // On reste sur le plan : le verrou que content_create donne à son auteur est rendu.
-      if (!open) await lockReleaseCreated(created.id).catch(() => false)
-      return created
-    },
-    onSuccess: (created, { target, open }) => {
-      // La fenêtre ne rend pas le focus à « Nouveau chapitre » : il va au nouvel élément.
-      focusAfterCreate.current = true
-      setNewTarget(null)
-      queryClient.setQueryData(contentKeys.detail(created.id), created)
-      const createdPath = contentEditorPath(target.kind, created.id)
-      const path = createdPath ? editorLink(createdPath) : null
-      if (open && path) {
-        void navigate(path)
-        return
-      }
-      const name = created.title.trim() || texts.common.untitled
-      toast.success(texts.methods.create.created[target.kind](name), {
-        action: path
-          ? {
-              label: texts.methods.create.open,
-              onClick: () => void navigate(path),
-            }
-          : undefined,
-      })
-      // Le focus va au titre du nouvel élément, une fois le plan relu et la fenêtre fermée.
-      void queryClient
-        .invalidateQueries({ queryKey: methodKeys.tree(methodId) })
-        .then(() => focusSoon(() => titleLinkOf(created.id)))
-    },
-    onError: (error) => checkAccess(error),
-    onSettled: () => void refresh(),
   })
 
   // --- Glisser-déposer -------------------------------------------------------------------------
@@ -763,27 +623,14 @@ export function MethodOutline({
     myId,
     live: liveSet,
     preview: previewMap,
-    pendingFlags,
-    setFlags: (element, wanted) => flags.mutate({ element, flags: wanted }),
+    currentId,
+    onGo,
+    blocksSlot,
+    setFlags,
     shift,
     confirm: (wanted) => {
       focusAfterAct.current = undefined
       setConfirmation(wanted)
-    },
-    newLesson: (chapter, label) =>
-      openNew({
-        kind: "lesson",
-        chapterId: chapter.id,
-        chapterLabel: label,
-      }),
-    newExercise: (lesson, label) => {
-      // Ses exercices se déplient : le nouveau y sera visible.
-      setFolded((current) => {
-        const next = new Set(current)
-        next.delete(lesson.id)
-        return next
-      })
-      openNew({ kind: "exercise", lessonId: lesson.id, lessonLabel: label })
     },
     folded,
     toggleFold: (lesson) =>
@@ -796,6 +643,7 @@ export function MethodOutline({
 
   const lessons = shown ? lessonCount(shown) : 0
   const exercises = shown ? exerciseCount(shown) : 0
+  const ficheCurrent = currentId === methodId
   return (
     <div className="flex h-full flex-col">
       <section
@@ -830,9 +678,35 @@ export function MethodOutline({
           {announcement}
         </p>
 
+        {/* La fiche de la méthode : la première partie de la page. */}
+        <div
+          data-outline-id={methodId}
+          className={cn(
+            "mb-1 flex min-w-0 items-center rounded-md",
+            editable && "pl-5",
+            ficheCurrent ? "bg-accent" : "hover:bg-accent/60"
+          )}
+        >
+          <button
+            type="button"
+            data-outline-title
+            aria-current={ficheCurrent || undefined}
+            onClick={() => onGo(methodId)}
+            className={rowLink}
+          >
+            <MethodIcon
+              aria-hidden
+              className="size-4 shrink-0 text-muted-foreground"
+            />
+            <span className="min-w-0 flex-1 truncate font-medium">
+              {methodTitle.trim() || texts.common.untitled}
+            </span>
+          </button>
+        </div>
+
         {shown === undefined ? (
           <LoadState
-            query={tree}
+            query={treeQuery}
             failed={labels.loadFailed}
             rowClassName="h-8 w-full"
           />
@@ -840,7 +714,7 @@ export function MethodOutline({
           <p className="px-2 text-sm text-muted-foreground">{labels.empty}</p>
         ) : (
           <>
-            {tree.isError && (
+            {treeQuery.isError && (
               <p className="px-2 pb-2 text-xs text-muted-foreground">
                 {labels.refreshFailed}
               </p>
@@ -900,35 +774,15 @@ export function MethodOutline({
       {/* En bas, de la même hauteur que le bas de la colonne de droite : « Nouveau chapitre » sur
           toute la largeur (le retour est en haut, dans l'en-tête du plan). */}
       <div className="flex h-feed-footer shrink-0 items-stretch border-t">
-        <div className="flex min-w-0 flex-1 items-center px-4">
-          <AddBlockButton
-            id={NEW_CHAPTER_ID}
+        <div className="flex min-w-0 flex-1 items-center px-4" data-new-chapter>
+          <NewPartButton
+            kind="chapter"
+            parentId={methodId}
             label={labels.newChapter}
             disabled={!editable}
-            onClick={() => openNew({ kind: "chapter" })}
           />
         </div>
       </div>
-
-      <NewElementDialog
-        target={newTarget}
-        finalFocus={() => !focusAfterCreate.current}
-        onOpenChange={(open) => {
-          if (!open) {
-            setNewTarget(null)
-            create.reset()
-          }
-        }}
-        pending={create.isPending}
-        error={
-          create.error
-            ? `${texts.methods.create.failed} ${create.error.message}`
-            : null
-        }
-        onSubmit={(values, open) => {
-          if (newTarget) create.mutate({ target: newTarget, values, open })
-        }}
-      />
 
       <AlertDialog
         open={confirmation !== null}
@@ -984,13 +838,6 @@ export function MethodOutline({
 /** Le bouton « Actions pour … » d'un élément du plan. */
 function actionsButtonOf(id: string): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[data-outline-actions="${id}"]`)
-}
-
-/** Le titre (lien vers son éditeur) d'un élément du plan. */
-function titleLinkOf(id: string): HTMLElement | null {
-  return document.querySelector<HTMLElement>(
-    `[data-outline-id="${id}"] [data-outline-title]`
-  )
 }
 
 /**
@@ -1079,7 +926,7 @@ function ChapterItem({
   isFirst: boolean
   isLast: boolean
 }) {
-  const { editable, newLesson } = useRow()
+  const { editable } = useRow()
   const dragging = useContext(DraggingContext)
   const data: OutlineDropData = { type: "chapter" }
   const {
@@ -1139,6 +986,7 @@ function ChapterItem({
         isLast={isLast}
         canGoFurther={count > 1}
       />
+      <PartBlocks id={chapter.id} />
       <SortableContext
         id={chapter.id}
         items={chapter.lessons.map((lesson) => lesson.id)}
@@ -1168,12 +1016,13 @@ function ChapterItem({
             />
           ))}
           {editable && (
-            <li className="py-1 pl-5">
-              <AddBlockButton
+            <li className="py-1 pl-5" data-new-lesson={chapter.id}>
+              <NewPartButton
+                kind="lesson"
+                parentId={chapter.id}
                 label={labels.newLesson}
                 ariaLabel={labels.newLessonIn(label)}
                 className="py-1.5 text-xs"
-                onClick={() => newLesson(chapter, label)}
               />
             </li>
           )}
@@ -1192,7 +1041,7 @@ function LessonItem({
   chapter: OutlineChapter
   position: number
 }) {
-  const { editable, pendingFlags, folded, toggleFold } = useRow()
+  const { editable, folded, toggleFold } = useRow()
   const dragging = useContext(DraggingContext)
   const data: OutlineDropData = { type: "lesson", chapterId: chapter.id }
   const {
@@ -1231,8 +1080,8 @@ function LessonItem({
     tree !== null &&
     place.chapterIndex === tree.length - 1 &&
     place.lessonIndex === place.chapter.lessons.length - 1
-  const chapterInApp = pendingFlags.get(chapter.id)?.in_app ?? chapter.inApp
-  const lessonInApp = pendingFlags.get(lesson.id)?.in_app ?? lesson.inApp
+  const chapterInApp = chapter.inApp
+  const lessonInApp = lesson.inApp
   const label = labels.lessonLabel(position, titleOf(lesson))
   // Ses exercices, sauf repliés ; tous se déplient pendant qu'un exercice est déplacé (il peut
   // changer de leçon).
@@ -1286,6 +1135,7 @@ function LessonItem({
         isLast={isLast}
         canGoFurther
       />
+      <PartBlocks id={lesson.id} />
       {(open || !hasExercises) && (
         <SortableContext
           id={lesson.id}
@@ -1400,7 +1250,24 @@ function ExerciseItem({
         }
         canGoFurther
       />
+      <PartBlocks id={exercise.id} />
     </li>
+  )
+}
+
+/**
+ * Sous la ligne de la partie en cours : la place où ses blocs se déplient (la partie y met la
+ * liste de ses blocs, rangée par glisser-déposer).
+ */
+function PartBlocks({ id }: { id: string }) {
+  const { currentId, blocksSlot } = useRow()
+  if (currentId !== id) return null
+  return (
+    <div
+      ref={blocksSlot}
+      data-part-blocks={id}
+      className="mb-1 ml-5 border-l pl-1.5"
+    />
   )
 }
 
@@ -1514,21 +1381,16 @@ function ElementRow({
     myId,
     live,
     preview,
-    pendingFlags,
+    currentId,
+    onGo,
     setFlags,
     shift,
     confirm,
-    newExercise,
   } = useRow()
-  const pending = pendingFlags.get(element.id)
-  const inApp = pending?.in_app ?? element.inApp
-  const isFree = pending?.is_free ?? element.isFree
-  const state = elementState({ ...element, inApp }, parents, live, preview)
+  const { inApp, isFree } = element
+  const state = elementState(element, parents, live, preview)
   const row = preview?.get(element.id)
-  // Ouvrir l'élément garde les réglages du téléphone (en Lecture, il s'ouvre en Lecture).
-  const editorLink = useEditorLink()
-  const target = contentEditorPath(element.kind, element.id)
-  const path = target ? editorLink(target) : null
+  const current = currentId === element.id
   const editing =
     element.editingId === null
       ? null
@@ -1539,22 +1401,24 @@ function ElementRow({
   return (
     <div
       className={cn(
-        "group/row relative flex min-w-0 items-center gap-0.5 rounded-md hover:bg-accent/60",
+        "group/row relative flex min-w-0 items-center gap-0.5 rounded-md",
+        current ? "bg-accent" : "hover:bg-accent/60",
         // La place de la poignée, au début de la ligne.
         editable && "pl-5"
       )}
     >
       {handle}
       {fold}
-      {path ? (
-        <Link to={path} data-outline-title className={rowLink}>
-          <RowText number={number} title={title} kind={element.kind} />
-        </Link>
-      ) : (
-        <span data-outline-title className={rowLink}>
-          <RowText number={number} title={title} kind={element.kind} />
-        </span>
-      )}
+      {/* Un clic fait défiler le téléphone jusqu'à cette partie. */}
+      <button
+        type="button"
+        data-outline-title
+        aria-current={current || undefined}
+        onClick={() => onGo(element.id)}
+        className={rowLink}
+      >
+        <RowText number={number} title={title} kind={element.kind} />
+      </button>
       {element.kind === "lesson" && isFree && (
         <RowIcon icon={LockOpen} text={labels.free} />
       )}
@@ -1567,18 +1431,12 @@ function ElementRow({
           data-element-problem={row.problem}
         />
       )}
-      {pending ? (
-        <Spinner aria-label={texts.common.loading} className="mx-1 size-3" />
-      ) : (
-        <ElementStateDot state={state} />
-      )}
+      <ElementStateDot state={state} />
       <ElementMenu
         element={element}
         label={label}
-        path={path}
         inApp={inApp}
         isFree={isFree}
-        flagsPending={pending !== undefined}
         reading={reading}
         inLive={live.has(element.id)}
         canMoveUp={editable && canGoFurther && !isFirst}
@@ -1586,11 +1444,7 @@ function ElementRow({
         onFlags={(flags) => setFlags(element, flags)}
         onShift={(offset) => shift(element, offset)}
         onConfirm={(action) => confirm({ action, element, label })}
-        onNewExercise={
-          editable && element.kind === "lesson"
-            ? () => newExercise(element as OutlineLesson, label)
-            : undefined
-        }
+        newExercise={editable && element.kind === "lesson"}
       />
     </div>
   )
@@ -1666,10 +1520,8 @@ function RowIcon({
 function ElementMenu({
   element,
   label,
-  path,
   inApp,
   isFree,
-  flagsPending,
   reading,
   inLive,
   canMoveUp,
@@ -1677,25 +1529,22 @@ function ElementMenu({
   onFlags,
   onShift,
   onConfirm,
-  onNewExercise,
+  newExercise,
 }: {
   element: OutlineElement
   label: string
-  path: string | null
   inApp: boolean
   isFree: boolean
-  flagsPending: boolean
   reading: boolean
   inLive: boolean
   canMoveUp: boolean
   canMoveDown: boolean
-  onFlags: (flags: ElementFlags) => void
+  onFlags: (flags: Partial<ElementFlags>) => void
   onShift: (offset: -1 | 1) => void
   onConfirm: (action: "unpublish" | "trash") => void
   // Une leçon, quand on tient la main sur la méthode : « Nouvel exercice ».
-  onNewExercise?: () => void
+  newExercise: boolean
 }): ReactNode {
-  const navigate = useNavigate()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -1712,19 +1561,12 @@ function ElementMenu({
         <Ellipsis />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        {path && (
-          <DropdownMenuItem onClick={() => void navigate(path)}>
-            <SquarePen />
-            {labels.open}
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        {/* Des réglages de l'élément, enregistrés sous son propre verrou ([D29], [D43]). */}
+        {/* Des réglages de l'élément, enregistrés avec lui ([D29], [D43]). */}
         <DropdownMenuCheckboxItem
           checked={inApp}
-          disabled={flagsPending || reading}
+          disabled={reading}
           aria-label={labels.inAppFor(label)}
-          onCheckedChange={(checked) => onFlags({ in_app: checked })}
+          onCheckedChange={(checked) => onFlags({ inApp: checked })}
         >
           <Eye />
           {labels.inApp}
@@ -1732,21 +1574,22 @@ function ElementMenu({
         {element.kind === "lesson" && (
           <DropdownMenuCheckboxItem
             checked={isFree}
-            disabled={flagsPending || reading}
+            disabled={reading}
             aria-label={labels.isFreeFor(label)}
-            onCheckedChange={(checked) => onFlags({ is_free: checked })}
+            onCheckedChange={(checked) => onFlags({ isFree: checked })}
           >
             <LockOpen />
             {labels.isFree}
           </DropdownMenuCheckboxItem>
         )}
-        {onNewExercise && (
+        {newExercise && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onNewExercise} data-new-exercise>
-              <Plus />
-              {labels.newExercise}
-            </DropdownMenuItem>
+            <NewPartMenuItem
+              kind="exercise"
+              parentId={element.id}
+              label={labels.newExercise}
+            />
           </>
         )}
         <DropdownMenuSeparator />

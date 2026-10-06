@@ -1,7 +1,6 @@
 import { cn } from "cn"
 import {
   CalendarClock,
-  ChevronDown,
   ChevronRight,
   History,
   Hourglass,
@@ -9,7 +8,6 @@ import {
   TriangleAlert,
 } from "lucide-react"
 import { Fragment, useId, type ReactNode } from "react"
-import { Link } from "react-router"
 
 import type { BlockMedia } from "@/blocks/components/context"
 import type { Draft } from "@/blocks/types"
@@ -21,13 +19,7 @@ import {
   ElementStateHint,
 } from "@/components/methods/element-state-badge"
 import { PanelCard } from "@/components/panel-card"
-import { Button, buttonVariants } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import type { AccessLevel } from "@/lib/access-levels"
@@ -40,8 +32,7 @@ import {
 } from "@/lib/contents/publication"
 import { formatDateTime } from "@/lib/dates"
 import type { ElementKind } from "@/lib/editor/profile"
-import { useEditorLink } from "@/hooks/use-editor-link"
-import { editorPath, sections } from "@/navigation"
+import { sections } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.methods.element
@@ -73,6 +64,7 @@ export function ElementPanel({
   cover,
   onChooseCover,
   onRemoveCover,
+  onHistory,
 }: {
   kind: ElementKind
   draft: Draft
@@ -97,6 +89,8 @@ export function ElementPanel({
   cover: BlockMedia
   onChooseCover: () => void
   onRemoveCover: () => void
+  // Ses versions publiées (Historique), d'où l'on revient à l'une d'elles.
+  onHistory: () => void
 }) {
   return (
     <div className="space-y-3">
@@ -139,6 +133,10 @@ export function ElementPanel({
         onChooseCover={onChooseCover}
         onRemoveCover={onRemoveCover}
       />
+      <Button variant="outline" size="sm" onClick={onHistory}>
+        <History />
+        {texts.publication.actions.history}
+      </Button>
     </div>
   )
 }
@@ -432,75 +430,6 @@ function AccessCard({
         </p>
       )}
     </PanelCard>
-  )
-}
-
-/**
- * En bas de la colonne, à la place de « Publier » : « Ouvrir la méthode », d'où elle se publie
- * ([D29]) ; son menu donne l'Historique. Quand la publication programmée de la méthode attend
- * qu'on quitte l'éditeur, le bouton le dit ([D31]).
- */
-export function MethodButton({
-  method,
-  schedule,
-  holding,
-  onHistory,
-}: {
-  method: ElementContext["method"] | undefined
-  schedule: ScheduleState
-  // On tient la main sur cet élément.
-  holding: boolean
-  onHistory: () => void
-}) {
-  const editorLink = useEditorLink()
-  const label =
-    schedule.kind === "waiting" && holding
-      ? labels.schedule.leave
-      : labels.openMethod
-  const content = (
-    <>
-      <MethodIcon />
-      {label}
-    </>
-  )
-  return (
-    <div className="flex items-center">
-      {method && !method.deleted ? (
-        <Link
-          to={editorLink(editorPath("methods", method.id))}
-          className={cn(
-            buttonVariants({ variant: "outline", size: "sm" }),
-            "rounded-r-none"
-          )}
-        >
-          {content}
-        </Link>
-      ) : (
-        <Button variant="outline" size="sm" className="rounded-r-none" disabled>
-          {content}
-        </Button>
-      )}
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label={labels.more}
-          render={
-            <Button
-              variant="outline"
-              size="icon-sm"
-              className="rounded-l-none border-l-0"
-            />
-          }
-        >
-          <ChevronDown />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={onHistory}>
-            <History />
-            {texts.publication.actions.history}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
   )
 }
 

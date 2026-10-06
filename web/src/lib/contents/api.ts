@@ -288,24 +288,36 @@ export type Content = Pick<
   category_ids: string[]
 }
 
+// Les colonnes d'un contenu ouvert dans un éditeur (un seul, ou toutes les parties d'une méthode).
+export const CONTENT_COLUMNS =
+  "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, parent_id, access_chosen, access_level_id, slug, template_sort, template_for, in_app, is_free, content_categories(category_id)"
+
+type ContentRow = Omit<Content, "draft" | "title" | "category_ids"> & {
+  title: string | null
+  draft: unknown
+  content_categories: { category_id: string }[] | null
+}
+
+/** Une ligne lue avec CONTENT_COLUMNS, telle que l'éditeur la lit. */
+export function toContent(row: ContentRow): Content {
+  const { content_categories: categories, ...rest } = row
+  return {
+    ...rest,
+    title: row.title ?? "",
+    draft: row.draft as Draft,
+    category_ids: categoryIdsOf(categories),
+  }
+}
+
 /** Un contenu et son brouillon ; null s'il n'existe pas (ou plus). */
 export async function getContent(id: string): Promise<Content | null> {
   const { data, error, status } = await supabase
     .from("contents")
-    .select(
-      "id, kind, title, draft, draft_rev, draft_saved_at, deleted_at, parent_id, access_chosen, access_level_id, slug, template_sort, template_for, in_app, is_free, content_categories(category_id)"
-    )
+    .select(CONTENT_COLUMNS)
     .eq("id", id)
     .maybeSingle()
   if (error) throw toContentError(error, status)
-  if (!data) return null
-  const { content_categories: categories, ...rest } = data
-  return {
-    ...rest,
-    title: data.title ?? "",
-    draft: data.draft as unknown as Draft,
-    category_ids: categoryIdsOf(categories),
-  }
+  return data ? toContent(data) : null
 }
 
 /** Les fichiers cités par un brouillon (corbeille comprise, pour le signaler). */
@@ -520,18 +532,6 @@ export async function lockHeartbeat(
   return data
 }
 
-/**
- * Relâche le verrou que content_create donne à son auteur (sans ouverture de l'éditeur) : un
- * chapitre ou une leçon créé depuis le plan de la méthode, qu'on n'ouvre pas tout de suite.
- */
-export async function lockReleaseCreated(contentId: string): Promise<boolean> {
-  const { data, error, status } = await supabase.rpc("lock_release", {
-    content_id: contentId,
-  })
-  if (error) throw toContentError(error, status)
-  return data
-}
-
 export async function lockRelease(
   contentId: string,
   session: string
@@ -570,10 +570,18 @@ export function lockReleaseOnExit(
   }
 }
 
-/** Ce que Realtime envoie d'une ligne de edit_locks (sans le nom de la personne). */
+/**
+ * Ce que Realtime envoie d'une ligne de edit_locks (sans le nom de la personne). method_rev : la
+ * révision de toute la méthode (ligne d'une méthode seulement).
+ */
 export type LockChange = Pick<
   Tables<"edit_locks">,
-  "holder_id" | "holder_session" | "heartbeat_at" | "draft_rev" | "taken_at"
+  | "holder_id"
+  | "holder_session"
+  | "heartbeat_at"
+  | "draft_rev"
+  | "taken_at"
+  | "method_rev"
 >
 
 export type ChannelState =
@@ -610,6 +618,7 @@ export function subscribeLock(
           heartbeat_at: row.heartbeat_at,
           draft_rev: row.draft_rev,
           taken_at: row.taken_at,
+          method_rev: row.method_rev,
         })
       }
     )

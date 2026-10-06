@@ -556,6 +556,13 @@
   text-decoration: underline;
 }
 
+/* Un chapitre, une leçon ou un exercice qui ouvre son écran dans le téléphone. */
+button.blocks-plan-link {
+  width: 100%;
+  text-align: start;
+  cursor: pointer;
+}
+
 .blocks-plan-link:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent);
   outline-offset: 2px;
@@ -584,4 +591,35 @@
   background: var(--blocks-color-text);
   color: var(--blocks-color-background);
   font-weight: 600;
+}
+
+/* La page d'une méthode (ADMIN § 4, « Une méthode sur une seule page ») : sa fiche, puis chaque
+   chapitre, ses leçons et leurs exercices, à la suite, chacun avec sa place en tête. */
+.blocks-method {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--blocks-space-block-gap) * 1.5);
+}
+
+.blocks-part {
+  scroll-margin-top: var(--blocks-space-page-padding);
+}
+
+/* Un trait avant chaque chapitre. */
+.blocks-part[data-part-kind="chapter"] {
+  border-top: 2px solid var(--blocks-color-box-border);
+  padding-top: calc(var(--blocks-space-block-gap) * 1.5);
+}
+
+/* « Chapitre 1 », « Leçon 2 », « Exercice 1 » : la place de la partie, au-dessus de son titre. */
+.blocks-part-place {
+  margin-bottom: var(--blocks-space-paragraph-gap);
+  color: var(--blocks-color-text-muted);
+  font-size: calc(
+    var(--blocks-font-caption-size) * var(--blocks-text-scale, 1)
+  );
+  line-height: var(--blocks-font-caption-line-height);
+  font-weight: var(--blocks-font-bold-weight);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
