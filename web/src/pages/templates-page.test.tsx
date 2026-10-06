@@ -298,9 +298,12 @@ describe("section Modèles", () => {
       within(dialog).getByRole("link", { name: "Accueil" })
     ).toHaveAttribute("href", `/pages/${PAGE_ID}`)
     // Dans la corbeille : pas de lien, mais nommé.
-    expect(within(dialog).getByText(/Ancienne/)).toHaveTextContent(
-      labels.used.inTrash
-    )
+    // Une ligne par brouillon (l'Item de shadcn) : le nom, puis la sorte et la corbeille.
+    expect(
+      within(dialog)
+        .getByText(/Ancienne/)
+        .closest("[data-template-use]")
+    ).toHaveTextContent(labels.used.inTrash)
     expect(
       within(dialog).queryByRole("button", {
         name: labels.confirmTrash.confirm,

@@ -37,6 +37,7 @@ import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Field,
   FieldDescription,
@@ -46,8 +47,17 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item"
+import {
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
@@ -193,14 +203,12 @@ function MediaPreview({
   url: string | undefined
 }) {
   const Icon = kindIcons[media.kind]
-  // L'aperçu est posé dans une carte, comme la carte de l'article dans l'éditeur du Fil.
-  const card = "rounded-xl border bg-muted/40 p-2"
   const box =
     "flex aspect-video w-full items-center justify-center overflow-hidden rounded-lg bg-muted text-muted-foreground"
 
   if (url && (media.kind === "image" || media.kind === "svg")) {
     return (
-      <div className={card}>
+      <PreviewCard>
         <div className={box}>
           <img
             src={url}
@@ -208,40 +216,40 @@ function MediaPreview({
             className="size-full object-contain"
           />
         </div>
-      </div>
+      </PreviewCard>
     )
   }
   if (url && media.kind === "audio") {
     return (
-      <div className={card}>
+      <PreviewCard>
         <AudioPlayer
           key={url}
           src={url}
           name={media.name}
           durationHint={media.duration_s}
         />
-      </div>
+      </PreviewCard>
     )
   }
   // Une animation n'est affichée qu'une fois vérifiée par le serveur.
   if (url && media.kind === "lottie" && media.status === "ready") {
     return (
-      <div className={card}>
+      <PreviewCard>
         <div className={box}>
           <Suspense fallback={<Spinner />}>
             <LottiePreview url={url} label={media.name} />
           </Suspense>
         </div>
-      </div>
+      </PreviewCard>
     )
   }
   return (
-    <div className={card}>
+    <PreviewCard>
       <div className={box}>
         <Icon aria-hidden className="size-12 stroke-1" />
       </div>
       {url && media.kind === "pdf" ? (
-        <div className="flex justify-center pt-2">
+        <div className="flex justify-center">
           <Button
             variant="outline"
             size="sm"
@@ -254,12 +262,21 @@ function MediaPreview({
         </div>
       ) : (
         !url && (
-          <p className="px-1 pt-2 text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {texts.media.detail.noPreview}
           </p>
         )
       )}
-    </div>
+    </PreviewCard>
+  )
+}
+
+/** L'aperçu d'un fichier, dans la `Card` de shadcn (en petit). */
+function PreviewCard({ children }: { children: ReactNode }) {
+  return (
+    <Card size="sm">
+      <CardContent className="space-y-2">{children}</CardContent>
+    </Card>
   )
 }
 
@@ -532,24 +549,23 @@ function UseList({
 }) {
   return (
     <div className="space-y-1">
-      <h4 className="text-xs font-medium text-muted-foreground uppercase">
-        {title}
-      </h4>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-      <ul className="text-sm">
+      <h4 className="text-xs font-medium text-muted-foreground">{title}</h4>
+      {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
+      <ItemGroup>
         {uses.map((use) => (
-          <li
-            key={use.content_id}
-            className="-mx-1.5 flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-muted"
-          >
-            <SectionIcon kind={use.kind} />
-            <span className="min-w-0 flex-1 truncate">
-              <UseTitle use={use} />
-            </span>
-            {badge}
-          </li>
+          <Item key={use.content_id} role="listitem" size="xs">
+            <ItemMedia variant="icon">
+              <SectionIcon kind={use.kind} />
+            </ItemMedia>
+            <ItemContent className="min-w-0">
+              <ItemTitle className="block w-full truncate font-normal">
+                <UseTitle use={use} />
+              </ItemTitle>
+            </ItemContent>
+            <ItemActions>{badge}</ItemActions>
+          </Item>
         ))}
-      </ul>
+      </ItemGroup>
     </div>
   )
 }
@@ -699,7 +715,7 @@ function TrashBar({
   const inUse = uses.data ? uses.data.length > 0 : media.media_in_use
 
   return (
-    <div className="space-y-3 border-t px-4 py-3">
+    <SheetFooter className="flex-col items-stretch gap-3">
       {refusal && (
         <Alert variant="destructive">
           <TriangleAlert />
@@ -722,7 +738,7 @@ function TrashBar({
           {texts.media.detail.trash}
         </Button>
       </div>
-    </div>
+    </SheetFooter>
   )
 }
 

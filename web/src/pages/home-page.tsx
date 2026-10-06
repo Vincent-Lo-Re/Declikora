@@ -17,6 +17,14 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Empty, EmptyDescription } from "@/components/ui/empty"
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from "@/components/ui/item"
 import type { HomeItem } from "@/lib/contents/home"
 import {
   publicationStatus,
@@ -182,92 +190,97 @@ function HomeCard({
             <EmptyDescription>{empty}</EmptyDescription>
           </Empty>
         ) : (
-          <ul aria-labelledby={headingId} className="divide-y">
+          <ItemGroup aria-labelledby={headingId}>
             {query.data.map(render)}
-          </ul>
+          </ItemGroup>
         )}
       </CardContent>
     </Card>
   )
 }
 
-/** Le titre d'un contenu, avec un lien vers son éditeur. */
-function ItemTitle({ item }: { item: HomeItem }) {
+/** Le titre d'un contenu (`ItemTitle` de shadcn), avec un lien vers son éditeur. */
+function ContentTitle({ item }: { item: HomeItem }) {
   const name = item.title.trim() || texts.common.untitled
   const path = contentEditorPath(item.kind, item.id)
   return (
-    <span className="flex min-w-0 items-center gap-2">
+    <ItemTitle className="w-full min-w-0">
       {path ? (
-        <Link
-          to={path}
-          className="truncate font-medium underline-offset-4 hover:underline"
-        >
+        <Link to={path} className="truncate hover:underline">
           {name}
         </Link>
       ) : (
-        <span className="truncate font-medium">{name}</span>
+        <span className="truncate">{name}</span>
       )}
       <Badge variant="outline" className="shrink-0">
         {texts.trash.contentKinds[item.kind]}
       </Badge>
-    </span>
+    </ItemTitle>
+  )
+}
+
+/** Une ligne d'une carte de l'Accueil : l'`Item` de shadcn. */
+function Row({ item, children }: { item: HomeItem; children: ReactNode }) {
+  return (
+    <Item
+      role="listitem"
+      size="sm"
+      variant="outline"
+      data-content-row={item.id}
+    >
+      {children}
+    </Item>
   )
 }
 
 function DraftRow({ item, now }: { item: HomeItem; now: number }) {
   const status = statusOf(item, now)
   return (
-    <li
-      data-content-row={item.id}
-      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5"
-    >
-      <div className="min-w-0 space-y-0.5">
-        <ItemTitle item={item} />
-        <p className="text-xs text-muted-foreground">
+    <Row item={item}>
+      <ItemContent className="min-w-0">
+        <ContentTitle item={item} />
+        <ItemDescription>
           {labels.savedAt(formatDateTime(item.draft_saved_at))}
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
+        </ItemDescription>
+      </ItemContent>
+      <ItemActions className="flex-wrap gap-1.5">
         <LiveBadge live={status.live} />
         <ScheduleBadge schedule={status.schedule} />
-      </div>
-    </li>
+      </ItemActions>
+    </Row>
   )
 }
 
 function ScheduledRow({ item, now }: { item: HomeItem; now: number }) {
   const status = statusOf(item, now)
   return (
-    <li
-      data-content-row={item.id}
-      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5"
-    >
-      <div className="min-w-0 space-y-0.5">
-        <ItemTitle item={item} />
+    <Row item={item}>
+      <ItemContent className="min-w-0">
+        <ContentTitle item={item} />
         {item.scheduled_by_name && (
-          <p className="text-xs text-muted-foreground">
+          <ItemDescription>
             {labels.scheduled.by(item.scheduled_by_name)}
-          </p>
+          </ItemDescription>
         )}
-      </div>
-      <ScheduleBadge schedule={status.schedule} />
-    </li>
+      </ItemContent>
+      <ItemActions>
+        <ScheduleBadge schedule={status.schedule} />
+      </ItemActions>
+    </Row>
   )
 }
 
 function FailedRow({ item }: { item: HomeItem }) {
   return (
-    <li data-content-row={item.id} className="space-y-1 py-2.5">
-      <ItemTitle item={item} />
-      <p className="text-sm">
-        {labels.failed.reason(scheduleErrorText(item.schedule_error ?? ""))}
-        {item.scheduled_by_name && (
-          <span className="text-muted-foreground">
-            {" "}
-            {labels.failed.by(item.scheduled_by_name)}
-          </span>
-        )}
-      </p>
-    </li>
+    <Row item={item}>
+      <ItemContent className="min-w-0">
+        <ContentTitle item={item} />
+        <ItemDescription>
+          {labels.failed.reason(scheduleErrorText(item.schedule_error ?? ""))}
+          {item.scheduled_by_name &&
+            ` ${labels.failed.by(item.scheduled_by_name)}`}
+        </ItemDescription>
+      </ItemContent>
+    </Row>
   )
 }

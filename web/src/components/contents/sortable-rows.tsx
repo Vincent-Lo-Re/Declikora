@@ -4,6 +4,7 @@ import { cn } from "cn"
 import { GripVertical } from "lucide-react"
 import type { ComponentProps } from "react"
 
+import { Button } from "@/components/ui/button"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { texts } from "@/texts"
 
@@ -47,17 +48,18 @@ export function SortableRow({
       {...props}
     >
       <TableCell className="w-0 pr-0">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon-sm"
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
           disabled={disabled}
           aria-label={labels.handle(name)}
-          className="flex size-7 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-default disabled:opacity-40 active:cursor-grabbing"
+          className="cursor-grab text-muted-foreground disabled:cursor-default active:cursor-grabbing"
         >
-          <GripVertical aria-hidden className="size-4" />
-        </button>
+          <GripVertical aria-hidden />
+        </Button>
       </TableCell>
       {children}
     </TableRow>

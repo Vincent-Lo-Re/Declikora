@@ -20,6 +20,14 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item"
 import { Spinner } from "@/components/ui/spinner"
 import { ContentError, contentKeys } from "@/lib/contents/api"
 import {
@@ -137,9 +145,9 @@ export function TemplateUsesCard({ templateId }: { templateId: string }) {
           rowClassName="h-6 w-full"
         />
       ) : uses.data.length === 0 ? (
-        <p className="text-xs text-muted-foreground">{labels.usesNone}</p>
+        <p className="text-sm text-muted-foreground">{labels.usesNone}</p>
       ) : (
-        <ul className="text-sm" data-template-uses={uses.data.length}>
+        <ItemGroup data-template-uses={uses.data.length}>
           {uses.data.map((use) => {
             const section = contentSection(use.kind)
             const Icon = section ? sections[section].icon : FileText
@@ -148,37 +156,36 @@ export function TemplateUsesCard({ templateId }: { templateId: string }) {
               ? null
               : contentEditorPath(use.kind, use.id)
             return (
-              <li
+              <Item
                 key={use.id}
+                role="listitem"
+                size="xs"
                 data-template-use={use.id}
-                className="flex items-center gap-2 py-1"
               >
-                <Icon
-                  aria-hidden
-                  className="size-4 shrink-0 text-muted-foreground"
-                />
-                <span className="min-w-0 flex-1 truncate">
-                  {path ? (
-                    <Link
-                      to={path}
-                      className="underline-offset-4 hover:underline"
-                    >
-                      {name}
-                    </Link>
-                  ) : (
-                    name
-                  )}
-                  {use.inTrash && (
-                    <span className="text-muted-foreground">
-                      {" "}
-                      ({labels.inTrash})
-                    </span>
-                  )}
-                </span>
-              </li>
+                <ItemMedia variant="icon" className="text-muted-foreground">
+                  <Icon aria-hidden />
+                </ItemMedia>
+                <ItemContent className="min-w-0">
+                  <ItemTitle className="block w-full truncate font-normal">
+                    {path ? (
+                      <Link to={path} className="hover:underline">
+                        {name}
+                      </Link>
+                    ) : (
+                      name
+                    )}
+                    {use.inTrash && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        ({labels.inTrash})
+                      </span>
+                    )}
+                  </ItemTitle>
+                </ItemContent>
+              </Item>
             )
           })}
-        </ul>
+        </ItemGroup>
       )}
       {outdated.isError && (
         <p role="alert" className="mt-2 text-xs text-destructive">
@@ -214,22 +221,28 @@ export function TemplateUsesCard({ templateId }: { templateId: string }) {
               {labels.outdated.description(stale.length)}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <ul className="max-h-48 space-y-1 overflow-y-auto text-sm">
+          <ItemGroup className="max-h-48 overflow-y-auto">
             {stale.map((item) => (
-              <li key={item.content_id} data-outdated-content={item.content_id}>
-                {item.title?.trim() || texts.common.untitled}
-                <span className="text-muted-foreground">
-                  {" "}
-                  (
-                  {labels.outdated.version(
-                    item.version_number,
-                    formatDateTime(item.published_at)
-                  )}
-                  )
-                </span>
-              </li>
+              <Item
+                key={item.content_id}
+                role="listitem"
+                size="xs"
+                data-outdated-content={item.content_id}
+              >
+                <ItemContent className="min-w-0">
+                  <ItemTitle className="block w-full truncate font-normal">
+                    {item.title?.trim() || texts.common.untitled}
+                  </ItemTitle>
+                  <ItemDescription>
+                    {labels.outdated.version(
+                      item.version_number,
+                      formatDateTime(item.published_at)
+                    )}
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
             ))}
-          </ul>
+          </ItemGroup>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={push.isPending}>
               {texts.common.cancel}

@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
 import { Empty, EmptyDescription } from "@/components/ui/empty"
 import { Spinner } from "@/components/ui/spinner"
 import { focusSoon } from "@/lib/focus"
@@ -380,55 +381,62 @@ function SortableName<T extends Named>({
       ref={setNodeRef}
       // eslint-disable-next-line no-restricted-syntax -- position pendant un glisser-déposer (dnd-kit)
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn(
-        "flex min-h-11 items-center gap-2 rounded-lg border bg-card px-2 py-1.5",
-        isDragging && "relative z-10 shadow-md"
-      )}
+      className={cn(isDragging && "relative z-10")}
       data-item={item.name}
       data-item-id={item.id}
     >
-      <button
-        type="button"
-        ref={setActivatorNodeRef}
-        {...attributes}
-        {...listeners}
-        aria-label={labels.handle(item.name)}
-        className="flex size-7 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-default disabled:opacity-50 active:cursor-grabbing"
+      {/* L'Item de shadcn, en contour, sur fond de carte (il passe par-dessus les autres en glissant). */}
+      <Item
+        variant="outline"
+        size="xs"
+        className={cn("bg-card", isDragging && "shadow-md")}
       >
-        <GripVertical aria-hidden className="size-4" />
-      </button>
-      {before?.(item, position)}
-      {renaming ? (
-        <RenameForm {...options} item={item} onDone={() => onRename(false)} />
-      ) : (
-        <>
-          <span className="min-w-0 flex-1 truncate font-medium">
-            {item.name}
-          </span>
-          {after?.(item)}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              disabled={disabled}
-              aria-label={labels.actions(item.name)}
-              data-row-menu
-              render={<Button variant="ghost" size="icon-sm" />}
-            >
-              <Ellipsis />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onClick={() => onRename(true)}>
-                <Pencil />
-                {labels.rename}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={onRemove}>
-                <Trash2 />
-                {labels.remove}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </>
-      )}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          aria-label={labels.handle(item.name)}
+          className="cursor-grab text-muted-foreground disabled:cursor-default active:cursor-grabbing"
+        >
+          <GripVertical aria-hidden />
+        </Button>
+        {before?.(item, position)}
+        {renaming ? (
+          <RenameForm {...options} item={item} onDone={() => onRename(false)} />
+        ) : (
+          <>
+            <ItemContent className="min-w-0">
+              <ItemTitle className="block w-full truncate">
+                {item.name}
+              </ItemTitle>
+            </ItemContent>
+            {after?.(item)}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                disabled={disabled}
+                aria-label={labels.actions(item.name)}
+                data-row-menu
+                render={<Button variant="ghost" size="icon-sm" />}
+              >
+                <Ellipsis />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={() => onRename(true)}>
+                  <Pencil />
+                  {labels.rename}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={onRemove}>
+                  <Trash2 />
+                  {labels.remove}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
+      </Item>
     </li>
   )
 }
