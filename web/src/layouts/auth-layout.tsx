@@ -6,7 +6,7 @@ import { texts } from "@/texts"
 export function AuthLayout() {
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted/40 p-8">
-      <p className="text-lg font-semibold">{texts.app.name}</p>
+      <p className="text-lg font-medium">{texts.app.name}</p>
       <div className="w-full max-w-sm">
         <Outlet />
       </div>

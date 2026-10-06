@@ -1,5 +1,14 @@
+import type { LucideIcon } from "lucide-react"
 import type { ComponentProps } from "react"
 import { cn } from "cn"
+
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 
 /**
  * Une liste (tableau, grille, état vide, chargement) dans une carte blanche, posée sur le panneau
@@ -16,5 +25,31 @@ export function ListCard({ className, ...props }: ComponentProps<"div">) {
       )}
       {...props}
     />
+  )
+}
+
+/**
+ * Une liste vide, ou sans rien qui réponde à la recherche ou aux filtres : l'`Empty` de shadcn
+ * (icône, titre, précision), dans la même carte blanche qu'une liste.
+ */
+export function ListEmpty({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: LucideIcon
+  title: string
+  description?: string
+}) {
+  return (
+    <Empty className="bg-card ring-1 ring-foreground/10">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Icon />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        {description && <EmptyDescription>{description}</EmptyDescription>}
+      </EmptyHeader>
+    </Empty>
   )
 }

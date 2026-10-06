@@ -3,6 +3,7 @@ import {
   Eraser,
   FileText,
   GalleryHorizontalEnd,
+  ListFilter,
   RotateCcw,
   Trash2,
   TriangleAlert,
@@ -11,7 +12,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 import { toast } from "sonner"
 
-import { ListCard } from "@/components/list-card"
+import { ListCard, ListEmpty } from "@/components/list-card"
 import { SelectAllHead } from "@/components/bulk-selection"
 import { LoadState } from "@/components/load-state"
 import { kindIcons } from "@/components/media/media-kinds"
@@ -30,13 +31,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
@@ -213,8 +207,7 @@ export function TrashPage() {
           <>
             {selection.length > 0 && (
               <Button
-                variant="outline"
-                className="text-destructive"
+                variant="destructive"
                 disabled={busy}
                 onClick={() =>
                   setConfirmation({ scope: "selection", entries: selection })
@@ -277,21 +270,13 @@ export function TrashPage() {
             </Alert>
           )}
           {entries.length === 0 ? (
-            <Empty className="bg-card ring-1 ring-foreground/10">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Trash2 />
-                </EmptyMedia>
-                <EmptyTitle>{texts.trash.emptyState.title}</EmptyTitle>
-                <EmptyDescription>
-                  {texts.trash.emptyState.description}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <ListEmpty
+              icon={Trash2}
+              title={texts.trash.emptyState.title}
+              description={texts.trash.emptyState.description}
+            />
           ) : shown.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {texts.trash.emptyFilter}
-            </p>
+            <ListEmpty icon={ListFilter} title={texts.trash.emptyFilter} />
           ) : (
             <ListCard>
               <Table>
@@ -497,9 +482,8 @@ function TrashRow({
             <TooltipTrigger
               render={
                 <Button
-                  variant="ghost"
+                  variant="destructive"
                   size="icon-sm"
-                  className="text-destructive"
                   disabled={disabled}
                   aria-label={texts.trash.eraseItem(name)}
                   onClick={onErase}

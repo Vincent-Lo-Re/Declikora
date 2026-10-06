@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Empty, EmptyDescription } from "@/components/ui/empty"
 import { Spinner } from "@/components/ui/spinner"
 import { focusSoon } from "@/lib/focus"
 import { MAX_NAME_LENGTH } from "@/lib/schemas"
@@ -214,7 +215,9 @@ export function OrderedNames<T extends Named>({
               rowClassName="h-11 w-full"
             />
           ) : query.data.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{labels.empty}</p>
+            <Empty className="p-4">
+              <EmptyDescription>{labels.empty}</EmptyDescription>
+            </Empty>
           ) : (
             <SortableNames
               labels={labels}
