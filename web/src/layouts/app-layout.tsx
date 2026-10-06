@@ -1,12 +1,17 @@
-import { Outlet } from "react-router"
+import { Outlet, useLocation } from "react-router"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { UploadAnnouncer } from "@/components/media/upload-announcer"
 import { UploadWindow } from "@/components/media/upload-window"
 import { SidebarInset, SidebarWrapper } from "@/components/ui/sidebar"
 
-/** Les pages avec le menu à gauche. L'éditeur, lui, prendra tout l'écran. */
+/**
+ * Les pages avec le menu à gauche. L'éditeur, lui, prend tout l'écran. D'une page à l'autre, le
+ * menu ne bouge pas : le contenu seul s'ouvre à neuf (une page n'en reprend jamais une autre, par
+ * exemple la recherche du Fil dans Radio Éclaircies), en fondu.
+ */
 export function AppLayout() {
+  const { pathname } = useLocation()
   return (
     <SidebarWrapper>
       <AppSidebar />
@@ -15,7 +20,7 @@ export function AppLayout() {
       <SidebarInset className="min-w-0">
         {/* Pas de barre du haut. En bas, de la place pour la fenêtre des envois quand elle est
             ouverte (index.css). */}
-        <div className="flex-1 p-8 pb-page">
+        <div key={pathname} data-page-fade className="flex-1 p-8 pb-page">
           <Outlet />
         </div>
         {/* Envois de la médiathèque : suivis dans toute l'admin. */}

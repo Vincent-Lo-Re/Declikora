@@ -303,6 +303,24 @@
   }
 }
 
+/* Une nouvelle page apparaît en fondu, en 150 ms (layouts/root-layout.tsx, app-layout.tsx) ; rien
+   ne bouge si l'ordinateur demande moins d'animations. */
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+[data-page-fade] {
+  animation: page-fade 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-page-fade] {
+    animation: none;
+  }
+}
+
 /* En revenant à une liste, la ligne du contenu qu'on venait d'ouvrir s'allume un instant
    (lib/scroll-memory.ts, data-returned) : son fond prend la teinte du survol, puis s'efface. */
 @keyframes returned-row {
