@@ -7,8 +7,8 @@ import {
   SquarePen,
   Trash2,
   TriangleAlert,
-  Unlink,
   type LucideIcon,
+  Unlink,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
@@ -20,7 +20,7 @@ import {
   SelectAllHead,
   type SelectAll,
 } from "@/components/bulk-selection"
-import { ListCard } from "@/components/list-card"
+import { ListCard, ListEmpty } from "@/components/list-card"
 import { SavedCell } from "@/components/contents/row-cells"
 import { useContentsSelection } from "@/components/contents/use-contents-selection"
 import { LoadState } from "@/components/load-state"
@@ -50,13 +50,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
@@ -186,15 +179,11 @@ export function TemplatesPage() {
           />
         </ListCard>
       ) : list.data.length === 0 ? (
-        <Empty className="bg-card ring-1 ring-foreground/10">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <LayoutTemplate />
-            </EmptyMedia>
-            <EmptyTitle>{labels.empty.title}</EmptyTitle>
-            <EmptyDescription>{labels.empty.description}</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <ListEmpty
+          icon={LayoutTemplate}
+          title={labels.empty.title}
+          description={labels.empty.description}
+        />
       ) : (
         <div className="space-y-4">
           {list.isError && (
@@ -234,7 +223,7 @@ export function TemplatesPage() {
                 data-template-tab={value}
               >
                 {value !== ALL && (
-                  <p className="text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     {texts.templates.sorts[value].description}{" "}
                     {texts.templates.sorts[value].example}
                   </p>
@@ -325,11 +314,7 @@ function TemplateTable({
   onTrash: (item: TemplateItem) => void
 }) {
   if (items.length === 0) {
-    return (
-      <p className="rounded-lg border border-dashed p-4 text-muted-foreground">
-        {labels.emptySort}
-      </p>
-    )
+    return <ListEmpty icon={LayoutTemplate} title={labels.emptySort} />
   }
   return (
     <ListCard>

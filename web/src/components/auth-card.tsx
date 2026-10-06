@@ -23,7 +23,7 @@ export function AuthCard({
     <Card>
       <title>{`${title} — ${texts.app.name}`}</title>
       <CardHeader>
-        <CardTitle className="text-lg">
+        <CardTitle>
           <h1>{title}</h1>
         </CardTitle>
         {description && <CardDescription>{description}</CardDescription>}

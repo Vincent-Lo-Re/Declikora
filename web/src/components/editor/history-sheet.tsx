@@ -150,7 +150,7 @@ export function HistorySheet({
                         {labels.version(version.number)}
                       </span>
                       {version.id === liveVersionId && (
-                        <Badge variant="secondary" className="gap-1.5">
+                        <Badge variant="secondary">
                           <span
                             aria-hidden
                             className="size-1.5 rounded-full bg-status-live"

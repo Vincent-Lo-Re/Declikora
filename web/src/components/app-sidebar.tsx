@@ -36,7 +36,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex h-8 items-center px-2 text-sm font-semibold">
+        <div className="flex h-8 items-center px-2 text-sm font-medium">
           {texts.app.name}
         </div>
       </SidebarHeader>

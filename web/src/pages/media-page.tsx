@@ -25,7 +25,7 @@ import {
   SelectAllToggle,
   type SelectAll,
 } from "@/components/bulk-selection"
-import { ListCard } from "@/components/list-card"
+import { ListCard, ListEmpty } from "@/components/list-card"
 import { LoadState } from "@/components/load-state"
 import { acceptedFiles, kindIcons } from "@/components/media/media-kinds"
 import { MediaGrid, MediaTable } from "@/components/media/media-collection"
@@ -39,13 +39,6 @@ import { SearchInput } from "@/components/search-input"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -492,15 +485,11 @@ export function MediaPage() {
             </Alert>
           )}
           {media.data.length === 0 ? (
-            <Empty className="bg-card ring-1 ring-foreground/10">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  {filtering ? <Search /> : <UploadCloud />}
-                </EmptyMedia>
-                <EmptyTitle>{emptyText.title}</EmptyTitle>
-                <EmptyDescription>{emptyText.description}</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <ListEmpty
+              icon={filtering ? Search : UploadCloud}
+              title={emptyText.title}
+              description={emptyText.description}
+            />
           ) : (
             <>
               {kept.length > 0 && (

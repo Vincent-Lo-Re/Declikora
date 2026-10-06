@@ -27,7 +27,7 @@ export function PanelCard({
       className="scroll-mt-48 rounded-xl border p-3"
     >
       <div className="mb-2.5 flex items-center gap-1.5">
-        <h3 id={id} className="flex items-center gap-1.5 text-sm font-semibold">
+        <h3 id={id} className="flex items-center gap-1.5 text-sm font-medium">
           <Icon aria-hidden className="size-4 text-muted-foreground" />
           {title}
         </h3>

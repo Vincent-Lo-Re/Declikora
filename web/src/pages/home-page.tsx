@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Empty, EmptyDescription } from "@/components/ui/empty"
 import type { HomeItem } from "@/lib/contents/home"
 import {
   publicationStatus,
@@ -177,7 +178,9 @@ function HomeCard({
         {query.data === undefined ? (
           <LoadState query={query} failed={labels.loadFailed} />
         ) : query.data.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{empty}</p>
+          <Empty className="p-4">
+            <EmptyDescription>{empty}</EmptyDescription>
+          </Empty>
         ) : (
           <ul aria-labelledby={headingId} className="divide-y">
             {query.data.map(render)}

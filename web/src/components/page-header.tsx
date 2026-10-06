@@ -22,11 +22,13 @@ export function PageHeader({
     <header className="mb-8 flex items-start justify-between gap-4">
       <div className="space-y-1">
         <title>{`${title} — ${texts.app.name}`}</title>
-        <h1 className="flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
-          {Icon && <Icon aria-hidden className="size-6 shrink-0" />}
+        <h1 className="flex items-center gap-2 text-2xl font-medium tracking-tight">
+          {Icon && <Icon aria-hidden className="size-4 shrink-0" />}
           {title}
         </h1>
-        {description && <p className="text-muted-foreground">{description}</p>}
+        {description && (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        )}
       </div>
       {actions && <div className="flex shrink-0 gap-2">{actions}</div>}
     </header>

@@ -303,9 +303,12 @@ describe("Corbeille : contenus", () => {
         name: texts.selection.select(article.title!),
       })
     )
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.trash.eraseSelection(2) })
-    )
+    const erase = screen.getByRole("button", {
+      name: texts.trash.eraseSelection(2),
+    })
+    // Le bouton « destructif » de Nova (fond rouge pâle), pas un contour au texte rouge (ADMIN § 7).
+    expect(erase).toHaveClass("bg-destructive/10")
+    fireEvent.click(erase)
     const dialog = await screen.findByRole("alertdialog")
     expect(dialog).toHaveTextContent(
       texts.trash.confirmSelection.description(2)

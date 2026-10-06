@@ -4,6 +4,7 @@ import {
   FilePlus2,
   FileText,
   FilterX,
+  Search,
   Settings2,
   SquarePen,
   Tags,
@@ -20,7 +21,7 @@ import {
   SelectAllHead,
   type SelectAll,
 } from "@/components/bulk-selection"
-import { ListCard } from "@/components/list-card"
+import { ListCard, ListEmpty } from "@/components/list-card"
 import { CoverCell, SavedCell } from "@/components/contents/row-cells"
 import { useContentsSelection } from "@/components/contents/use-contents-selection"
 import { ListSettingsSheet } from "@/components/contents/list-settings-sheet"
@@ -49,13 +50,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import {
   Select,
   SelectContent,
@@ -367,17 +361,11 @@ export function ContentListPage({
             onClose={bulk.closeKept}
           />
           {list.data.length === 0 ? (
-            <Empty className="bg-card ring-1 ring-foreground/10">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <FileText />
-                </EmptyMedia>
-                <EmptyTitle>{kindLabels.emptyTitle}</EmptyTitle>
-                <EmptyDescription>
-                  {kindLabels.emptyDescription}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <ListEmpty
+              icon={FileText}
+              title={kindLabels.emptyTitle}
+              description={kindLabels.emptyDescription}
+            />
           ) : (
             <>
               <ListFiltersBar
@@ -389,9 +377,7 @@ export function ContentListPage({
                 onChange={setFilters}
               />
               {shown.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  {kindLabels.noResults}
-                </p>
+                <ListEmpty icon={Search} title={kindLabels.noResults} />
               ) : (
                 <>
                   {isOrderedKind(kind) && filtering && (

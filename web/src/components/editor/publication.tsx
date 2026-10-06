@@ -96,11 +96,7 @@ const liveDots: Record<LiveState, string | null> = {
 export function LiveBadge({ live }: { live: LiveState }) {
   const dot = liveDots[live]
   return (
-    <Badge
-      variant={dot ? "secondary" : "outline"}
-      data-publication={live}
-      className="gap-1.5"
-    >
+    <Badge variant={dot ? "secondary" : "outline"} data-publication={live}>
       {dot ? (
         <span aria-hidden className={`size-1.5 rounded-full ${dot}`} />
       ) : live === "withdrawn" ? (
@@ -180,15 +176,11 @@ export function PublicationBadge({ pub }: { pub: PublicationControls }) {
     <Tooltip>
       <TooltipTrigger
         render={
-          <span
+          <Badge
             tabIndex={0}
+            variant={schedule.kind === "failed" ? "destructive" : "outline"}
             data-publication={live}
-            className={cn(
-              "inline-flex min-w-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              schedule.kind === "failed"
-                ? "border-destructive/40 text-destructive"
-                : "text-muted-foreground"
-            )}
+            className="min-w-0"
           />
         }
       >
@@ -220,9 +212,8 @@ function UnknownStatus({ pub }: { pub: PublicationControls }) {
       <TooltipTrigger
         render={
           <Button
-            variant="outline"
+            variant="destructive"
             size="xs"
-            className="rounded-full border-destructive/40 text-destructive"
             aria-label={labels.status.unknownHint}
             onClick={pub.retry}
           />

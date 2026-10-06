@@ -18,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { ContentError, contentKeys } from "@/lib/contents/api"
@@ -43,13 +44,10 @@ const sorts = texts.templates.sorts
 export function TemplateSortBadge({ sort }: { sort: TemplateSort }) {
   const Icon = templateSortIcons[sort]
   return (
-    <span
-      data-template-sort={sort}
-      className="inline-flex min-w-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
-    >
-      <Icon aria-hidden className="size-3.5 shrink-0" />
+    <Badge variant="outline" data-template-sort={sort} className="min-w-0">
+      <Icon aria-hidden data-icon="inline-start" />
       <span className="truncate">{sorts[sort].title}</span>
-    </span>
+    </Badge>
   )
 }
 

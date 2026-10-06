@@ -116,12 +116,7 @@ export function BulkTrashButton({
 }) {
   if (count === 0) return null
   return (
-    <Button
-      variant="outline"
-      className="text-destructive"
-      disabled={pending}
-      onClick={onClick}
-    >
+    <Button variant="destructive" disabled={pending} onClick={onClick}>
       {pending ? <Spinner /> : <Trash2 />}
       {texts.selection.trash(count)}
     </Button>

@@ -713,8 +713,8 @@ function TrashBar({
         <MediaStatusIcon media={media} now={now} />
         <MediaUseIcon media={{ ...media, media_in_use: inUse }} />
         <Button
-          variant="outline"
-          className="ml-auto text-destructive"
+          variant="destructive"
+          className="ml-auto"
           disabled={trash.isPending}
           onClick={() => trash.mutate()}
         >

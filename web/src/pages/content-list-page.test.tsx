@@ -285,9 +285,10 @@ describe("Blog", () => {
 
     await pick(labels.filters.state, labels.filters.states.draft)
     await pick(labels.filters.category, "Sommeil")
-    expect(
-      await screen.findByText(labels.kinds.article.noResults)
-    ).toBeVisible()
+    const noResults = await screen.findByText(labels.kinds.article.noResults)
+    expect(noResults).toBeVisible()
+    // Sans résultat : l'Empty de shadcn, dans la carte blanche d'une liste (ADMIN § 7).
+    expect(noResults.closest('[data-slot="empty"]')).toHaveClass("bg-card")
   })
 
   it("la recherche et les filtres sont dans l'adresse ; les changer ne fait pas d'étape au retour (QCM du 05/10/2026)", async () => {
