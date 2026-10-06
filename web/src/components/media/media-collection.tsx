@@ -7,6 +7,13 @@ import {
   MediaThumbnail,
   MediaUseIcon,
 } from "@/components/media/media-visuals"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
@@ -76,10 +83,7 @@ export function MediaGrid({
               </div>
               <button
                 type="button"
-                className={cn(
-                  "group flex w-full flex-col overflow-hidden rounded-xl text-left ring-1 ring-foreground/10 transition-shadow outline-none hover:ring-foreground/25 focus-visible:ring-3 focus-visible:ring-ring/50",
-                  checked && "ring-2 ring-primary hover:ring-primary"
-                )}
+                className="group w-full rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                 // Pendant une sélection, la vignette entière coche ou décoche le fichier.
                 aria-label={
                   selecting
@@ -96,29 +100,39 @@ export function MediaGrid({
                   else if (!selectionDisabled) onSelect(media, !checked)
                 }}
               >
-                <MediaThumbnail
-                  media={media}
-                  url={urlFor(media)}
-                  className="aspect-square w-full"
-                />
-                <div className="space-y-1.5 p-3" id={`media-${media.id}-etat`}>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={<p className="truncate text-sm font-medium" />}
-                    >
-                      {media.name}
-                    </TooltipTrigger>
-                    <TooltipContent>{media.name}</TooltipContent>
-                  </Tooltip>
-                  <p className="text-xs text-muted-foreground">
-                    {texts.media.kinds[media.kind]} ·{" "}
-                    {formatBytes(media.size_bytes)}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
+                {/* La Card de shadcn, l'aperçu en tête ; cochée, elle prend le contour de l'accent. */}
+                <Card
+                  size="sm"
+                  id={`media-${media.id}-etat`}
+                  className={cn(
+                    "pt-0 transition-shadow group-hover:ring-foreground/25",
+                    checked && "ring-2 ring-primary group-hover:ring-primary"
+                  )}
+                >
+                  <MediaThumbnail
+                    media={media}
+                    url={urlFor(media)}
+                    className="aspect-square w-full"
+                  />
+                  <CardHeader>
+                    <CardTitle className="min-w-0">
+                      <Tooltip>
+                        <TooltipTrigger render={<p className="truncate" />}>
+                          {media.name}
+                        </TooltipTrigger>
+                        <TooltipContent>{media.name}</TooltipContent>
+                      </Tooltip>
+                    </CardTitle>
+                    <CardDescription>
+                      {texts.media.kinds[media.kind]} ·{" "}
+                      {formatBytes(media.size_bytes)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-1.5">
                     <MediaStatusIcon media={media} now={now} />
                     <MediaUseIcon media={media} />
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </button>
             </li>
           )

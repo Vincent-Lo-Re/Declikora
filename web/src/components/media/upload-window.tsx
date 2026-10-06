@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react"
 import { useEffect, useId, useRef, useState, type FocusEvent } from "react"
+import { cn } from "cn"
 
 import {
   useUploadQueue,
@@ -22,6 +23,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from "@/components/ui/item"
 import { Progress } from "@/components/ui/progress"
 import type { MediaVerdict } from "@/lib/media/api"
 import {
@@ -204,9 +213,10 @@ function OpenUploadWindow({
       <CardContent
         id={listId}
         hidden={collapsed}
-        className="max-h-72 overflow-y-auto"
+        // px-1 : le texte des lignes (Item) s'aligne sur le titre de la carte.
+        className="max-h-72 overflow-y-auto px-1"
       >
-        <ul className="divide-y">
+        <ItemGroup>
           {items.map((item) => (
             <UploadRow
               key={item.id}
@@ -216,7 +226,7 @@ function OpenUploadWindow({
               onDismiss={dismiss}
             />
           ))}
-        </ul>
+        </ItemGroup>
       </CardContent>
     </Card>
   )
@@ -276,26 +286,25 @@ function UploadRow({
   // « Réessayer » disparaît une fois l'envoi relancé : le focus passe à « Annuler ».
   const lastButton = useRef<HTMLButtonElement>(null)
   return (
-    <li className="flex items-start gap-3 py-2" data-stage={item.stage}>
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex items-baseline gap-2">
-          <span className="truncate font-medium">{item.fileName}</span>
+    <Item
+      role="listitem"
+      size="sm"
+      className="items-start"
+      data-stage={item.stage}
+    >
+      <ItemContent className="min-w-0">
+        <ItemTitle className="w-full min-w-0">
+          <span className="truncate">{item.fileName}</span>
           {item.size !== null && (
-            <span className="shrink-0 text-xs text-muted-foreground">
+            <span className="shrink-0 text-xs font-normal text-muted-foreground">
               {formatBytes(item.size)}
               {item.resumable && ` · ${texts.media.uploads.resumable}`}
             </span>
           )}
-        </div>
-        <p
-          className={
-            failed
-              ? "text-sm text-destructive"
-              : "text-sm text-muted-foreground"
-          }
-        >
+        </ItemTitle>
+        <ItemDescription className={cn(failed && "text-destructive")}>
           {stageText(item, verdict)}
-        </p>
+        </ItemDescription>
         {item.stage === "sending" && (
           <Progress
             value={item.progress === null ? null : item.progress * 100}
@@ -303,13 +312,13 @@ function UploadRow({
           />
         )}
         {item.warnings.includes("gif_anime") && (
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <ItemDescription className="flex items-center gap-1.5">
             <TriangleAlert aria-hidden className="size-4 shrink-0" />
             {texts.media.uploads.gifWarning}
-          </p>
+          </ItemDescription>
         )}
-      </div>
-      <div className="flex shrink-0 gap-1">
+      </ItemContent>
+      <ItemActions className="gap-1">
         {item.stage === "error" && item.canRetry && (
           <Button
             variant="ghost"
@@ -341,7 +350,7 @@ function UploadRow({
             <X />
           </Button>
         )}
-      </div>
-    </li>
+      </ItemActions>
+    </Item>
   )
 }

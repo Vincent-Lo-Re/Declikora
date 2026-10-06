@@ -139,6 +139,10 @@ describe("Médiathèque", () => {
     expect(
       screen.getByText(`${texts.media.kinds.audio} · 245 Ko`)
     ).toBeVisible()
+    // Chaque vignette est la Card de shadcn (ADMIN § 7, « Les composants shadcn tels quels »).
+    expect(
+      screen.getByText(photo.name).closest('[data-slot="card"]')
+    ).toHaveAttribute("data-size", "sm")
   })
 
   it("filtre par type et cherche par nom", async () => {
@@ -369,6 +373,8 @@ describe("Médiathèque", () => {
       ).toBeVisible()
     }
     const info = within(sheet).getByRole("region", { name: words.info })
+    // Les cartes de la fiche sont la Card de shadcn, en petit ; le bas, le SheetFooter.
+    expect(info).toHaveAttribute("data-size", "sm")
     expect(within(info).getByText(texts.media.kinds.image)).toBeVisible()
     expect(within(info).getByText(words.protected)).toBeVisible()
 
@@ -380,6 +386,7 @@ describe("Médiathèque", () => {
       name: texts.media.status.ready,
     })
     const trash = within(sheet).getByRole("button", { name: words.trash })
+    expect(trash.closest('[data-slot="sheet-footer"]')).not.toBeNull()
     expect(ready.parentElement).toBe(trash.parentElement)
     expect(
       ready.compareDocumentPosition(trash) & Node.DOCUMENT_POSITION_FOLLOWING

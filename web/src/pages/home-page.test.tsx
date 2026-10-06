@@ -107,6 +107,12 @@ describe("Accueil", () => {
     expect(
       within(drafts).getByText(texts.publication.status.live)
     ).toBeVisible()
+    // Une ligne par contenu : l'Item de shadcn (ADMIN § 7, « Les composants shadcn tels quels »).
+    expect(
+      within(drafts)
+        .getByRole("link", { name: "Bien dormir en été" })
+        .closest('[data-slot="item"]')
+    ).toHaveAttribute("role", "listitem")
   })
 
   it("publications programmées, dans l'ordre, dont celles en attente ([D31])", async () => {

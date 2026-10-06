@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react"
 import type { ComponentProps } from "react"
 import { cn } from "cn"
 
+import { Card } from "@/components/ui/card"
 import {
   Empty,
   EmptyDescription,
@@ -16,13 +17,11 @@ import {
  * page, la recherche et les filtres restent au-dessus, sur le gris.
  */
 export function ListCard({ className, ...props }: ComponentProps<"div">) {
+  // La `Card` de shadcn, serrée autour de la liste (comme les tableaux des exemples shadcn).
   return (
-    <div
+    <Card
       data-slot="list-card"
-      className={cn(
-        "rounded-xl bg-card p-2 text-card-foreground ring-1 ring-foreground/10",
-        className
-      )}
+      className={cn("gap-0 p-2", className)}
       {...props}
     />
   )
