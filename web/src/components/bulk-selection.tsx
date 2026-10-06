@@ -80,6 +80,7 @@ export function SelectAllToggle({
           <Toggle
             ref={buttonRef}
             variant="outline"
+            size="icon"
             aria-label={texts.selection.selectAll}
             pressed={all}
             disabled={disabled}

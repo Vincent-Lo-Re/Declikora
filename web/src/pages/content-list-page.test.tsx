@@ -209,6 +209,13 @@ describe("Blog", () => {
     expect(
       screen.getByRole("link", { name: labels.manageCategories })
     ).toHaveAttribute("href", "/blog/categories")
+    // La liste est dans une carte blanche, sur le panneau gris de la page (ADMIN § 7).
+    expect(
+      screen.getByRole("table").closest('[data-slot="list-card"]')
+    ).not.toBeNull()
+    expect(
+      screen.getByRole("table").closest('[data-slot="sidebar-inset"]')
+    ).toHaveClass("bg-panel")
   })
 
   it("montre l'image de présentation de chaque article, sinon l'icône d'une image", async () => {

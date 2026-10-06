@@ -13,6 +13,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/auth/auth-context"
+import { ListCard } from "@/components/list-card"
 import { LoadState } from "@/components/load-state"
 import { PageHeader } from "@/components/page-header"
 import { InviteDialog } from "@/components/team/invite-dialog"
@@ -112,7 +113,9 @@ export function TeamPage() {
       />
 
       {members.data === undefined ? (
-        <LoadState query={members} failed={texts.team.loadFailed} />
+        <ListCard>
+          <LoadState query={members} failed={texts.team.loadFailed} />
+        </ListCard>
       ) : (
         <div className="space-y-4">
           {/* Une mise à jour a échoué : la liste déjà chargée reste affichée. */}
@@ -137,107 +140,109 @@ export function TeamPage() {
               <AlertDescription>{texts.team.singleAdmin}</AlertDescription>
             </Alert>
           )}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{texts.team.columns.member}</TableHead>
-                <TableHead>{texts.team.columns.role}</TableHead>
-                <TableHead>{texts.team.columns.status}</TableHead>
-                <TableHead>{texts.team.columns.lastSignIn}</TableHead>
-                <TableHead>{texts.team.columns.mfa}</TableHead>
-                <TableHead className="w-12">
-                  <span className="sr-only">{texts.common.actions}</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.data.map((member) => {
-                const isMe = member.id === profile?.id
-                // Heure de la liste chargée : l'affichage ne dépend pas de l'heure du rendu.
-                const expired = isInvitationExpired(
-                  member,
-                  members.dataUpdatedAt
-                )
-                return (
-                  <TableRow key={member.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2 font-medium">
-                        {member.full_name ?? (
-                          <span className="text-muted-foreground">
-                            {texts.team.noName}
-                          </span>
-                        )}
-                        {isMe && (
-                          <Badge variant="secondary">{texts.team.you}</Badge>
-                        )}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {member.email}
-                      </div>
-                    </TableCell>
-                    <TableCell>{texts.roles[member.role]}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant={
-                            member.status === "active"
-                              ? "secondary"
-                              : expired
-                                ? "destructive"
-                                : "outline"
-                          }
-                        >
-                          {expired
-                            ? texts.team.status.expired
-                            : texts.team.status[member.status]}
-                        </Badge>
-                        {/* Lien expiré : on met le renvoi en avant. */}
-                        {expired && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto p-0"
-                            disabled={action.isPending}
-                            onClick={() =>
-                              action.mutate({
-                                action: "resend",
-                                user_id: member.id,
-                              })
+          <ListCard>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{texts.team.columns.member}</TableHead>
+                  <TableHead>{texts.team.columns.role}</TableHead>
+                  <TableHead>{texts.team.columns.status}</TableHead>
+                  <TableHead>{texts.team.columns.lastSignIn}</TableHead>
+                  <TableHead>{texts.team.columns.mfa}</TableHead>
+                  <TableHead className="w-12">
+                    <span className="sr-only">{texts.common.actions}</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {members.data.map((member) => {
+                  const isMe = member.id === profile?.id
+                  // Heure de la liste chargée : l'affichage ne dépend pas de l'heure du rendu.
+                  const expired = isInvitationExpired(
+                    member,
+                    members.dataUpdatedAt
+                  )
+                  return (
+                    <TableRow key={member.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2 font-medium">
+                          {member.full_name ?? (
+                            <span className="text-muted-foreground">
+                              {texts.team.noName}
+                            </span>
+                          )}
+                          {isMe && (
+                            <Badge variant="secondary">{texts.team.you}</Badge>
+                          )}
+                        </div>
+                        <div className="text-muted-foreground">
+                          {member.email}
+                        </div>
+                      </TableCell>
+                      <TableCell>{texts.roles[member.role]}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant={
+                              member.status === "active"
+                                ? "secondary"
+                                : expired
+                                  ? "destructive"
+                                  : "outline"
                             }
                           >
-                            {texts.team.actions.resend}
-                          </Button>
+                            {expired
+                              ? texts.team.status.expired
+                              : texts.team.status[member.status]}
+                          </Badge>
+                          {/* Lien expiré : on met le renvoi en avant. */}
+                          {expired && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto p-0"
+                              disabled={action.isPending}
+                              onClick={() =>
+                                action.mutate({
+                                  action: "resend",
+                                  user_id: member.id,
+                                })
+                              }
+                            >
+                              {texts.team.actions.resend}
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {member.last_sign_in_at
+                          ? formatDateTime(member.last_sign_in_at)
+                          : texts.team.never}
+                      </TableCell>
+                      <TableCell>
+                        {member.mfa_enabled
+                          ? texts.team.mfaOn
+                          : texts.team.mfaOff}
+                      </TableCell>
+                      <TableCell>
+                        {/* Sur son propre compte : aucune action (un autre admin s'en charge). */}
+                        {!isMe && (
+                          <MemberActions
+                            member={member}
+                            disabled={action.isPending}
+                            onAction={(request) => action.mutate(request)}
+                            onConfirm={(kind) =>
+                              setConfirmation({ action: kind, member })
+                            }
+                          />
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {member.last_sign_in_at
-                        ? formatDateTime(member.last_sign_in_at)
-                        : texts.team.never}
-                    </TableCell>
-                    <TableCell>
-                      {member.mfa_enabled
-                        ? texts.team.mfaOn
-                        : texts.team.mfaOff}
-                    </TableCell>
-                    <TableCell>
-                      {/* Sur son propre compte : aucune action (un autre admin s'en charge). */}
-                      {!isMe && (
-                        <MemberActions
-                          member={member}
-                          disabled={action.isPending}
-                          onAction={(request) => action.mutate(request)}
-                          onConfirm={(kind) =>
-                            setConfirmation({ action: kind, member })
-                          }
-                        />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </ListCard>
         </div>
       )}
 
