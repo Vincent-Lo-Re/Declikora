@@ -22,6 +22,7 @@ import {
 import {
   getElementContext,
   getMethodPreview,
+  getMethodParts,
   getMethodTree,
   methodKeys,
 } from "@/lib/contents/methods"
@@ -116,6 +117,14 @@ export const methodTreeRead = (methodId: string) =>
   queryOptions({
     queryKey: methodKeys.tree(methodId),
     queryFn: () => getMethodTree(methodId),
+  })
+
+/** Les brouillons des chapitres, leçons et exercices d'une méthode (sa page les relit seule). */
+export const methodPartsRead = (methodId: string) =>
+  queryOptions({
+    queryKey: methodKeys.parts(methodId),
+    queryFn: () => getMethodParts(methodId),
+    staleTime: Infinity,
   })
 
 export const methodPreviewRead = (methodId: string) =>

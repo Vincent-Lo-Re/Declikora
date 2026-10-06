@@ -1109,13 +1109,6 @@ export const texts = {
           "Sa leçon n'est pas montrée dans l'app : cet exercice ne part pas avec la méthode.",
       },
       problem: "À corriger avant de publier",
-      // Cases cochées depuis le plan : le réglage appartient à l'élément, sous son verrou.
-      heldBy: (name: string) =>
-        `${name} écrit cet élément en ce moment : attends la fin, ou ouvre-le pour reprendre la main.`,
-      heldSelf:
-        "Tu écris cet élément dans un autre onglet : change ce réglage dans cet onglet-là.",
-      yourselfElsewhere: "Toi (dans un autre onglet)",
-      flagsFailed: "Ce réglage n'a pas été changé.",
       reorderFailed: "Le plan n'a pas pu être rangé : il reprend son ordre.",
       stale:
         "Le plan a changé entre-temps (un élément ajouté, supprimé ou restauré) : il vient d'être relu. Range-le de nouveau.",
@@ -1177,50 +1170,27 @@ export const texts = {
       cancel: (label: string) =>
         `Déplacement annulé : ${label} reprend sa place.`,
     },
+    // Ajouter un chapitre, une leçon ou un exercice (le bouton propose les points de départ, [D42]).
     create: {
-      chapterTitle: "Nouveau chapitre",
-      lessonTitle: "Nouvelle leçon",
-      exerciseTitle: "Nouvel exercice",
-      chapterDescription:
-        "Il arrive en fin de plan, caché de l'app : coche « Montrer dans l'app » quand il est prêt.",
-      lessonDescription: (chapter: string) =>
-        `Elle arrive en fin de liste, dans ${chapter}, cachée de l'app : coche « Montrer dans l'app » quand elle est prête.`,
-      exerciseDescription: (lesson: string) =>
-        `Il arrive en fin de liste, dans ${lesson}, caché de l'app : coche « Montrer dans l'app » quand il est prêt.`,
-      name: "Titre",
-      nameRequired: "Donne-lui un titre.",
-      nameTooLong: "Le titre ne doit pas dépasser 200 caractères.",
-      start: "Point de départ",
       blank: {
         chapter: "Chapitre vide",
         lesson: "Leçon vide",
         exercise: "Exercice vide",
       },
-      submit: "Créer",
-      openAfter: "Créer et ouvrir",
-      created: {
-        chapter: (title: string) => `Chapitre « ${title} » créé.`,
-        lesson: (title: string) => `Leçon « ${title} » créée.`,
-        exercise: (title: string) => `Exercice « ${title} » créé.`,
-      },
-      open: "Ouvrir",
       failed: "L'élément n'a pas pu être créé.",
-      startersFailed:
-        "Les points de départ n'ont pas pu être chargés : l'élément sera vide.",
     },
-    // L'éditeur d'un chapitre ou d'une leçon (éditeur du Fil) : il n'a pas de bouton Publier, tout
-    // part avec la méthode ([D29]).
+    // Un chapitre, une leçon ou un exercice dans la page de sa méthode : il n'a pas de bouton
+    // Publier, tout part avec la méthode ([D29]).
     element: {
-      back: (method: string) => `Retour à la méthode « ${method} »`,
       // La carte « Dans la méthode », en tête de la colonne de droite.
       card: "Dans la méthode",
       cardHint: {
         chapter:
-          "Ce chapitre part dans l'app avec sa méthode : publie la méthode depuis son écran. Son introduction est affichée avant ses leçons.",
+          "Ce chapitre part dans l'app avec sa méthode : publie-la avec « Publier », en bas de cette colonne. Son introduction est affichée avant ses leçons.",
         lesson:
-          "Cette leçon part dans l'app avec sa méthode : publie la méthode depuis son écran. Ses exercices sont montrés en bas, dans l'ordre du plan.",
+          "Cette leçon part dans l'app avec sa méthode : publie-la avec « Publier », en bas de cette colonne. Ses exercices sont montrés en bas, dans l'ordre du plan.",
         exercise:
-          "Cet exercice part dans l'app avec sa méthode : publie la méthode depuis son écran. Il a son propre écran, ouvert depuis le bas de sa leçon.",
+          "Cet exercice part dans l'app avec sa méthode : publie-la avec « Publier », en bas de cette colonne. Il a son propre écran, ouvert depuis le bas de sa leçon.",
       },
       // Sa place : « Respirer en conscience › Chapitre 1 « Les bases » › Leçon 2 ».
       place: {
@@ -1253,32 +1223,30 @@ export const texts = {
         lesson: (level: string) => `Comme sa leçon : ${level}`,
         exerciseHint:
           "Un exercice suit sa leçon : gratuit si elle est gratuite, sinon le niveau de la méthode. « Leçon gratuite » se règle dans la leçon.",
-        change: "Le niveau d'accès se choisit dans l'écran de la méthode.",
+        change:
+          "Le niveau d'accès se choisit sur la fiche de la méthode, en tête de la page.",
       },
-      openMethod: "Ouvrir la méthode",
-      more: "Autres actions",
       // La programmation de la méthode, vue depuis un chapitre ou une leçon ([D31]).
       schedule: {
         scheduled: (date: string) => `La méthode est programmée le ${date}.`,
         scheduledHint:
-          "Si « Montrer dans l'app » est coché, c'est le dernier brouillon enregistré à cette heure-là qui partira. Si tu as modifié cet élément depuis la programmation et que ton éditeur est encore ouvert à ce moment-là, la publication attend que tu le quittes, une heure au plus.",
+          "Si « Montrer dans l'app » est coché, c'est le dernier brouillon enregistré à cette heure-là qui partira. Si quelqu'un a modifié la méthode depuis la programmation et l'écrit encore à ce moment-là, la publication attend qu'il rende la main, une heure au plus.",
         due: (date: string) =>
           `La méthode est programmée le ${date} : sa publication part dans un instant.`,
         dueHint:
-          "Si quelqu'un a modifié la méthode, un chapitre ou une leçon depuis la programmation et a encore son éditeur ouvert, la publication attendra que cette personne quitte l'éditeur, une heure au plus.",
+          "Si quelqu'un a modifié la méthode depuis la programmation et l'écrit encore, la publication attendra que cette personne rende la main, une heure au plus.",
         waiting: (date: string) =>
-          `La publication de la méthode, programmée le ${date}, attend : quelqu'un écrit la méthode, un chapitre ou une leçon.`,
+          `La publication de la méthode, programmée le ${date}, attend : quelqu'un écrit la méthode.`,
         waitingHint:
-          "Elle partira dès que cette personne aura quitté son éditeur. Au bout d'une heure, elle échouera.",
-        // La personne devant l'écran tient le verrou de cet élément.
+          "Elle partira dès que cette personne aura rendu la main. Au bout d'une heure, elle échouera.",
+        // La personne devant l'écran tient la main sur la méthode.
         waitingMine: (date: string) =>
-          `La méthode est programmée le ${date} : sa publication attend peut-être que tu quittes l'éditeur.`,
+          `La méthode est programmée le ${date} : sa publication attend peut-être que tu rendes la main.`,
         waitingMineHint:
-          "Si tu as modifié cet élément depuis la programmation, elle ne part pas tant que ton éditeur reste ouvert, même sans écrire. Au bout d'une heure, elle échouera.",
+          "Si tu as modifié la méthode depuis la programmation, elle ne part pas tant que tu tiens la main, même sans écrire : passe en Lecture ou quitte la page. Au bout d'une heure, elle échouera.",
         failed: "La publication programmée de la méthode a échoué.",
         failedHint: (reason: string) =>
-          `Raison : ${reason} Tu peux la programmer de nouveau depuis la méthode.`,
-        leave: "Quitter l'éditeur",
+          `Raison : ${reason} Tu peux la programmer de nouveau avec « Publier », en bas de cette colonne.`,
       },
       methodInTrash:
         "Sa méthode est dans la corbeille : restaure-la pour publier cet élément.",
@@ -1300,14 +1268,39 @@ export const texts = {
         count === 1 ? "1 exercice" : `${count} exercices`,
       // En bas d'une leçon, comme dans l'app : ses exercices montrés.
       lessonExercises: "Exercices",
-      lessonExercisesEmpty:
-        "Aucun exercice montré dans l'app pour l'instant. Ajoute-en depuis le plan de la méthode (menu ⋯ de la leçon).",
       // Sous l'introduction d'un chapitre, comme dans l'app : ses leçons montrées.
       chapterLessons: "Leçons",
-      chapterLessonsEmpty:
-        "Aucune leçon montrée dans l'app pour l'instant. Ajoute-en depuis le plan de la méthode (menu ⋯ du chapitre).",
       // En bas d'un chapitre ou d'une leçon : l'écran d'après dans l'ordre du plan.
       next: "Suivant",
+    },
+    // La page d'une méthode (ADMIN § 4, « Une méthode sur une seule page ») : la fiche, puis
+    // chaque chapitre, ses leçons et leurs exercices, à la suite.
+    page: {
+      // « Chapitre 1 · Les bases » : en tête de la colonne de droite et pour les lecteurs d'écran.
+      part: (place: string, title: string) => `${place} · ${title}`,
+      titleOf: (place: string) => `Titre : ${place}`,
+      addBlockIn: (place: string) => `Ajouter un bloc : ${place}`,
+      options: (part: string) => `Options : ${part}`,
+      fiche: "Fiche de la méthode",
+      // Le nom complet d'une partie, unique dans la méthode (lecteurs d'écran).
+      path: {
+        chapter: (chapter: number) => `Chapitre ${chapter}`,
+        lesson: (chapter: number, lesson: number) =>
+          `Chapitre ${chapter}, leçon ${lesson}`,
+        exercise: (chapter: number, lesson: number, exercise: number) =>
+          `Chapitre ${chapter}, leçon ${lesson}, exercice ${exercise}`,
+      },
+      // Dans le téléphone, à la fin de chaque leçon et de chaque chapitre.
+      newExerciseIn: (lesson: number, title: string) =>
+        `Nouvel exercice dans la leçon ${lesson} « ${title} »`,
+      newLessonIn: (chapter: number) =>
+        `Nouvelle leçon dans le chapitre ${chapter}`,
+      // Annoncé quand la partie ajoutée arrive à sa place (le curseur est dans son titre).
+      added: {
+        chapter: "Nouveau chapitre ajouté : écris son titre.",
+        lesson: "Nouvelle leçon ajoutée : écris son titre.",
+        exercise: "Nouvel exercice ajouté : écris son titre.",
+      },
     },
     // Avant de publier ou de programmer une méthode : la liste de ce qui va changer ([D29]).
     changes: {
@@ -2334,20 +2327,21 @@ export const texts = {
       waitingMineHint:
         "Tu as modifié le brouillon depuis la programmation : tant que ton éditeur reste ouvert, même sans écrire, elle ne part pas. Au bout d'une heure, elle échouera.",
       leave: "Quitter l'éditeur",
-      // Une méthode : l'attente peut venir de sa fiche, d'un chapitre ou d'une leçon ([D31]).
+      // Une méthode : une seule personne l'écrit à la fois, fiche, chapitres, leçons et exercices
+      // compris ([D31]).
       method: {
         scheduledHint:
-          "Ce sont les derniers brouillons enregistrés à cette heure-là (fiche, chapitres et leçons) qui seront publiés. Si quelqu'un a modifié l'un d'eux depuis la programmation et a encore son éditeur ouvert à ce moment-là, la publication attend que cette personne quitte l'éditeur, une heure au plus.",
+          "Ce sont les derniers brouillons enregistrés à cette heure-là (fiche, chapitres, leçons et exercices) qui seront publiés. Si quelqu'un a modifié la méthode depuis la programmation et l'écrit encore à ce moment-là, la publication attend que cette personne rende la main, une heure au plus.",
         dueHint:
-          "Si quelqu'un a modifié la fiche, un chapitre ou une leçon depuis la programmation et a encore son éditeur ouvert, la publication attendra que cette personne quitte l'éditeur, une heure au plus.",
+          "Si quelqu'un a modifié la méthode depuis la programmation et l'écrit encore, la publication attendra que cette personne rende la main, une heure au plus.",
         waiting: (date: string) =>
-          `Programmation en attente depuis le ${date} : quelqu'un écrit la méthode, un chapitre ou une leçon.`,
+          `Programmation en attente depuis le ${date} : quelqu'un écrit la méthode.`,
         waitingHint:
-          "La publication partira dès que cette personne aura quitté son éditeur. Au bout d'une heure, elle échouera.",
+          "La publication partira dès que cette personne aura rendu la main. Au bout d'une heure, elle échouera.",
         waitingMine: (date: string) =>
-          `Programmé le ${date} : la publication attend que la personne qui écrit quitte son éditeur, peut-être toi.`,
+          `Programmé le ${date} : la publication attend que tu rendes la main.`,
         waitingMineHint:
-          "Si tu as modifié la fiche depuis la programmation, elle ne part pas tant que ton éditeur reste ouvert, même sans écrire. Si c'est un chapitre ou une leçon, elle attend que la personne qui l'écrit le quitte. Au bout d'une heure, elle échouera.",
+          "Tu as modifié la méthode depuis la programmation : tant que tu tiens la main, même sans écrire, elle ne part pas. Passe en Lecture ou quitte la page. Au bout d'une heure, elle échouera.",
       },
       failed: "La publication programmée a échoué.",
       failedReason: (reason: string) => `Raison : ${reason}`,

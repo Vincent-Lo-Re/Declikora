@@ -1,11 +1,12 @@
 import { cn } from "cn"
 import { Plus } from "lucide-react"
+import type { ComponentProps, MouseEventHandler } from "react"
 
 /**
  * Éditeur du Fil : « Ajouter un bloc » (ou « Ajouter dans la section »), en pointillés, à la
  * largeur de ce qui l'entoure : dans le téléphone, le plan vide et le bas de la colonne de gauche.
- * Il ouvre les Blocs (ADMIN § 4). Le plan d'une méthode s'en sert pour « Nouveau chapitre » et
- * « Nouvelle leçon ».
+ * Il ouvre les Blocs (ADMIN § 4). La page d'une méthode s'en sert pour ajouter un chapitre, une
+ * leçon ou un exercice.
  */
 export function AddBlockButton({
   label,
@@ -15,11 +16,14 @@ export function AddBlockButton({
   large = false,
   disabled = false,
   className,
-}: {
+  ...rest
+}: Omit<ComponentProps<"button">, "children" | "onClick"> & {
   label: string
   // Le nom complet, s'il en dit plus que le texte (« Nouvelle leçon dans le chapitre 1 … »).
   ariaLabel?: string
-  onClick: () => void
+  // Absent quand un menu l'ouvre (les points de départ d'une partie de méthode) : le menu donne
+  // alors le sien.
+  onClick?: MouseEventHandler<HTMLButtonElement>
   id?: string
   disabled?: boolean
   // Le téléphone vide : plus haut.
@@ -29,6 +33,7 @@ export function AddBlockButton({
   return (
     <button
       type="button"
+      {...rest}
       id={id}
       aria-label={ariaLabel}
       disabled={disabled}

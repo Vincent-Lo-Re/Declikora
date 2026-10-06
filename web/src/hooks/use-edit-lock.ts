@@ -33,16 +33,6 @@ function lockApiFor(contentId: string, session: string): LockApi {
 const closing = new Map<string, Promise<void>>()
 
 /**
- * Attend que les éditeurs de cet onglet en train de se fermer aient rendu la main (vrai s'il y
- * en avait) : le plan d'une méthode, ouvert juste après une leçon, relit alors qui écrit quoi.
- */
-export async function editorsClosed(): Promise<boolean> {
-  if (closing.size === 0) return false
-  await Promise.allSettled([...closing.values()])
-  return true
-}
-
-/**
  * Le verrou d'un brouillon, pendant que l'éditeur est ouvert (voir lib/editor/edit-lock.ts).
  * editorSession identifie cette ouverture de l'éditeur (la même que pour save_draft).
  * beforeRelease est appelé avant de relâcher le verrou (onglet caché 30 minutes, fermeture de

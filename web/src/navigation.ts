@@ -92,7 +92,7 @@ export const methodElementSegments = {
   exercise: "exercices",
 } as const
 
-export type MethodElementKind = keyof typeof methodElementSegments
+type MethodElementKind = keyof typeof methodElementSegments
 
 function isMethodElementKind(kind: string): kind is MethodElementKind {
   return kind in methodElementSegments

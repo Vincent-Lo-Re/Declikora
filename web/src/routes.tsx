@@ -6,13 +6,15 @@ import { LoadingScreen } from "@/components/loading-screen"
 import { AppLayout } from "@/layouts/app-layout"
 import { AuthLayout } from "@/layouts/auth-layout"
 import { RootLayout } from "@/layouts/root-layout"
-import type { ContentKind } from "@/lib/contents/api"
+import type { EditorKind } from "@/lib/editor/profile"
 import {
   prepareCategories,
   prepareContentList,
   prepareEditor,
   prepareHome,
   prepareMedia,
+  prepareMethodElement,
+  prepareMethodPage,
   prepareSettings,
   prepareTeam,
   prepareTemplates,
@@ -29,7 +31,6 @@ import {
   categoriesPath,
   menuRouteId,
   methodElementSegments,
-  type MethodElementKind,
   sections,
   type SectionKey,
 } from "@/navigation"
@@ -72,35 +73,21 @@ function authPage<M>(
 }
 
 const editorCode = () => import("@/pages/editor-page")
+const methodCode = () => import("@/pages/method-page")
 const listCode = () => import("@/pages/content-list-page")
 const categoriesCode = () => import("@/pages/categories-page")
 // Les éditeurs plein écran : la section (pour « ← Blog »), la sorte de contenu et l'adresse.
-type EditorRoute = { section: SectionKey; kind: ContentKind; path: string }
+type EditorRoute = { section: SectionKey; kind: EditorKind; path: string }
 
-const sectionEditor = (
-  section: SectionKey,
-  kind: ContentKind
-): EditorRoute => ({
+const sectionEditor = (section: SectionKey, kind: EditorKind): EditorRoute => ({
   section,
   kind,
   path: `${sections[section].path}/:contentId`,
 })
 
-const methodElementEditor = (kind: MethodElementKind): EditorRoute => ({
-  section: "methods",
-  kind,
-  path: `${sections.methods.path}/${methodElementSegments[kind]}/:contentId`,
-})
-
 const editorRoutes: EditorRoute[] = [
   sectionEditor("blog", "article"),
   sectionEditor("podcasts", "episode"),
-  // Une méthode : sa fiche et son plan (« ← Méthodes »).
-  sectionEditor("methods", "method"),
-  // Un chapitre, une leçon et un exercice : l'éditeur de blocs, « ← nom de la méthode ».
-  methodElementEditor("chapter"),
-  methodElementEditor("lesson"),
-  methodElementEditor("exercise"),
   sectionEditor("pages", "page"),
   // L'éditeur d'un modèle : le même éditeur plein écran, « ← Modèles ».
   sectionEditor("templates", "template"),
@@ -153,6 +140,28 @@ export const routes: RouteObject[] = [
               (m) => <m.EditorPage section={section} kind={kind} />,
               prepareEditor(kind),
               { warm: true }
+            ),
+            errorElement: <ErrorPage />,
+          })),
+          // Une méthode : une seule page, sa fiche puis ses chapitres, leçons et exercices à la
+          // suite (ADMIN § 4) ; son code se télécharge aussi dès l'ouverture de l'admin.
+          {
+            ...page(
+              `${sections.methods.path}/:contentId`,
+              methodCode,
+              (m) => <m.MethodPage />,
+              prepareMethodPage,
+              { warm: true }
+            ),
+            errorElement: <ErrorPage />,
+          },
+          // Un chapitre, une leçon ou un exercice : la page de sa méthode, sur cette partie.
+          ...(["chapter", "lesson", "exercise"] as const).map((kind) => ({
+            ...page(
+              `${sections.methods.path}/${methodElementSegments[kind]}/:contentId`,
+              () => import("@/pages/method-element-page"),
+              (m) => <m.MethodElementPage />,
+              prepareMethodElement
             ),
             errorElement: <ErrorPage />,
           })),

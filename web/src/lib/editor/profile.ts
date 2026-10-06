@@ -71,6 +71,12 @@ export type PublishedKind = Extract<
 export type ElementKind = Extract<FeedKind, "chapter" | "lesson" | "exercise">
 
 /**
+ * Celles qui ont leur propre éditeur : une méthode, ses chapitres, ses leçons et ses exercices
+ * s'écrivent tous dans la page de la méthode (ADMIN § 4, « Une méthode sur une seule page »).
+ */
+export type EditorKind = Exclude<FeedKind, ElementKind>
+
+/**
  * Celles qui ont un niveau d'accès (le leur, ou celui de leur méthode) : la Lecture peut les
  * montrer à une personne sans la formule.
  */

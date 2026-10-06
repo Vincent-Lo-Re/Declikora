@@ -58,6 +58,7 @@ function change(
     heartbeat_at: new Date(NOW - secondsAgo * 1000).toISOString(),
     draft_rev: rev,
     taken_at: holder ? new Date(NOW).toISOString() : null,
+    method_rev: 0,
   }
 }
 
@@ -285,6 +286,34 @@ describe("machine d'états du verrou", () => {
     expect(
       lockReducer(released, { type: "row", row: mineRow, source: "take" }).phase
     ).toBe("mine")
+  })
+
+  it("une méthode : suit la révision de toute la méthode, nos changements compris", () => {
+    const own = { ...change(ME, 0, 3), method_rev: 7 }
+    const afterOwn = lockReducer(mine, {
+      type: "change",
+      change: own,
+      myId: ME,
+      mySession: SESSION,
+      now: NOW,
+    })
+    // Notre propre enregistrement : la main ne change pas, la révision de la méthode si.
+    expect(afterOwn).toMatchObject({ phase: "mine", methodRev: 7 })
+    const late = lockReducer(afterOwn, {
+      type: "change",
+      change: { ...change(ME, 0, 3), method_rev: 5 },
+      myId: ME,
+      mySession: SESSION,
+      now: NOW,
+    })
+    // Un changement plus ancien, livré en retard : la révision ne recule pas.
+    expect(late.methodRev).toBe(7)
+    const relu = lockReducer(late, {
+      type: "row",
+      row: mineRow,
+      source: "status",
+    })
+    expect(relu.methodRev).toBe(7)
   })
 
   it("contenu dans la corbeille : erreur", () => {

@@ -5,7 +5,6 @@ import {
   defaultPreview,
   devices,
   fullScreenScale,
-  keepPreview,
   previewFromSearch,
   previewLocked,
   showsFullScreen,
@@ -103,12 +102,5 @@ describe("les réglages du téléphone dans l'adresse (QCM du 04/10/2026)", () =
       theme: "dark",
     })
     expect(params.toString()).toBe("fichier=42&theme=sombre")
-  })
-
-  it("un lien d'un éditeur à l'autre garde ces réglages, et eux seuls", () => {
-    expect(keepPreview("/methodes/lecons/1", "?mode=lecture&fichier=42")).toBe(
-      "/methodes/lecons/1?mode=lecture"
-    )
-    expect(keepPreview("/methodes/1", "")).toBe("/methodes/1")
   })
 })

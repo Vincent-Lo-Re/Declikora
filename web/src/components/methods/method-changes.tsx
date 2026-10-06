@@ -8,9 +8,9 @@ import {
 } from "lucide-react"
 import { cn } from "cn"
 import { useId, useState, type ReactNode } from "react"
-import { Link } from "react-router"
 
 import type { MethodPublication } from "@/components/editor/use-publication"
+import { useGoToPart } from "@/components/methods/go-to-part"
 import { PanelCard } from "@/components/panel-card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -27,8 +27,6 @@ import {
   type PreviewRow,
 } from "@/lib/contents/outline"
 import { formatDateTime } from "@/lib/dates"
-import { useEditorLink } from "@/hooks/use-editor-link"
-import { contentEditorPath } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.methods.changes
@@ -300,11 +298,8 @@ function ChangeRow({
   compact: boolean
 }) {
   const label = rowLabel(row)
-  // Ouvrir l'élément garde les réglages du téléphone (en Lecture, il s'ouvre en Lecture).
-  const editorLink = useEditorLink()
-  const target =
-    row.kind === "method" ? null : contentEditorPath(row.kind, row.elementId)
-  const path = target ? editorLink(target) : null
+  // Dans la page de la méthode : la partie à corriger, sur place.
+  const goTo = useGoToPart()
   const problem = shownProblem(row)
   return (
     <li
@@ -350,15 +345,18 @@ function ChangeRow({
             <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
             <span>{contentProblemText(problem, row.problemDetail)}</span>
           </span>
-          {path && (
-            <Link
-              to={path}
-              onClick={onOpen}
+          {goTo && (
+            <button
+              type="button"
+              onClick={() => {
+                onOpen?.()
+                goTo(row.elementId)
+              }}
               className="font-medium text-foreground underline underline-offset-4"
               aria-label={labels.open(label)}
             >
               {texts.methods.outline.open}
-            </Link>
+            </button>
           )}
         </div>
       )}

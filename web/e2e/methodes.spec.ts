@@ -1,30 +1,32 @@
-// Parcours des méthodes (étape 7, partie 7b), contre le Supabase local. Ce que voit l'app est lu
-// par app_method et app_content, avec la clé publishable, comme un anonyme.
+// Parcours des méthodes, contre le Supabase local, sur la page d'une méthode (ADMIN § 4, « Une
+// méthode sur une seule page ») : sa fiche, puis ses chapitres, leçons et exercices à la suite,
+// écrits sur place sous un seul verrou. Ce que voit l'app est lu par app_method et app_content,
+// avec la clé publishable, comme un anonyme.
 //
 // 1. Une méthode réservée à une formule : sa fiche (titre, image de présentation), deux chapitres
-//    et trois leçons créés depuis le plan, cachés de l'app à la création. Tout est coché
-//    « Montrer dans l'app » sauf une leçon ; une leçon est gratuite. Un chapitre est rangé au
-//    clavier, puis la méthode est publiée d'un seul geste : la fenêtre liste ce qui part ([D29]).
-//    L'app ne voit que les éléments cochés ; la leçon gratuite est lisible par un anonyme, les
-//    autres verrouillées ; l'introduction du chapitre de la leçon gratuite aussi ([D43]).
-// 2. Une leçon modifiée dans son éditeur et deux leçons échangées : rien ne change dans l'app
-//    avant la publication ; la fenêtre liste la leçon modifiée et le rangement ; après la
-//    publication, ce qui n'a pas changé garde sa version.
+//    et trois leçons ajoutés depuis le plan (le curseur va dans leur titre), cachés de l'app à la
+//    création. Tout est coché « Montrer dans l'app » sauf une leçon ; une leçon est gratuite. Un
+//    chapitre est rangé au clavier, puis la méthode est publiée d'un seul geste : la fenêtre
+//    liste ce qui part ([D29]). L'app ne voit que les éléments cochés ; la leçon gratuite est
+//    lisible par un anonyme, les autres verrouillées ; l'introduction du chapitre de la leçon
+//    gratuite aussi ([D43]).
+// 2. Une leçon modifiée sur place et deux leçons échangées : rien ne change dans l'app avant la
+//    publication ; la fenêtre liste la leçon modifiée et le rangement ; après la publication, ce
+//    qui n'a pas changé garde sa version.
 // 3. Une leçon retirée de l'app ([D26]), puis un chapitre mis à la corbeille ([D36]) : à chaque
 //    fois, une nouvelle version de la méthode (origin « outline »). Le chapitre restauré depuis la
-//    Corbeille revient en fin de liste, « Montrer dans l'app » décoché, sans rien republier.
-// 4. Un lien de l'Accueil ouvre l'éditeur d'une leçon.
-// 5. Les exercices (04/10/2026) : créés depuis le menu ⋯ d'une leçon, cachés de l'app à la
-//    création ; ceux qui sont cochés partent avec la méthode. Dans l'app, une leçon donne ses
-//    exercices (à montrer en bas), le plan leur nombre, et chacun a l'accès de sa leçon. Un
-//    exercice qui change de leçon prend l'accès de sa nouvelle leçon ; un exercice mis à la
-//    corbeille quitte l'app (nouvelle version de la méthode).
-// 6. La Lecture, comme dans l'app (QCM du 04/10/2026) : gardée dans l'adresse, elle se parcourt
-//    par le téléphone (une leçon, ses exercices, la flèche de retour, « Suivant »), tient après un
-//    rechargement, et ne prend pas la main : un autre membre écrit la leçon qu'on lit, puis la
-//    rend (une personne à la fois sur toute la méthode, 06/10/2026).
+//    Corbeille revient en fin de liste, « Montrer dans l'app » décoché, sans rien republier, et
+//    « Ouvrir » mène à la page de la méthode, sur lui.
+// 4. Un lien de l'Accueil mène à la page de la méthode, sur la leçon.
+// 5. Les exercices : ajoutés depuis le menu ⋯ d'une leçon, cachés de l'app à la création ; ceux
+//    qui sont cochés partent avec la méthode. Dans l'app, une leçon donne ses exercices, le plan
+//    leur nombre, et chacun a l'accès de sa leçon. Un exercice qui change de leçon prend l'accès
+//    de sa nouvelle leçon ; un exercice mis à la corbeille quitte l'app.
+// 6. La Lecture : les écrans de l'app, dans le téléphone (une leçon, ses exercices, la flèche de
+//    retour, « Suivant »), gardés dans l'adresse ; elle ne prend pas la main : un autre membre
+//    écrit la méthode pendant qu'on la lit, puis la rend.
 
-import type { Browser, Page } from "@playwright/test"
+import type { Browser, Locator, Page } from "@playwright/test"
 
 import { texts } from "../src/texts.ts"
 import type { Account } from "./support/accounts.ts"
@@ -47,8 +49,8 @@ import {
 const editor = texts.editor
 const publication = texts.publication
 const outline = texts.methods.outline
-const create = texts.methods.create
 const changes = texts.methods.changes
+const methodPage = texts.methods.page
 
 function uniqueId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
@@ -61,18 +63,23 @@ async function open(page: Page, path: string, account: Account) {
 }
 
 async function saved(page: Page) {
-  await expect(page.locator('[data-save-status="saved"]')).toBeVisible({
+  await expect(page.locator('[data-save-status="saved"]').first()).toBeVisible({
     timeout: 15_000,
   })
 }
 
 type ElementKind = "chapter" | "lesson" | "exercise"
 
+/** La colonne de gauche de la page d'une méthode : son plan. */
+function plan(page: Page) {
+  return page.getByRole("complementary", { name: outline.title })
+}
+
 /** La ligne d'un élément du plan, par son titre. */
 function outlineRow(page: Page, kind: ElementKind, title: string) {
   return page
     .locator(`[data-outline-kind="${kind}"]`)
-    .filter({ has: page.getByRole("link", { name: title, exact: true }) })
+    .filter({ has: page.getByRole("button", { name: title, exact: true }) })
 }
 
 /** L'identifiant d'un élément du plan, par son titre. */
@@ -86,14 +93,11 @@ async function elementId(
   return id
 }
 
-/** La colonne de gauche de l'écran d'une méthode : son plan. */
-function plan(page: Page) {
-  return page.getByRole("complementary", { name: outline.title })
-}
-
-/** L'état affiché d'une leçon (« new », « modified »…). */
+/** L'état affiché d'une leçon (« new », « modified »…), sans celui de ses exercices. */
 function lessonState(page: Page, title: string) {
-  return outlineRow(page, "lesson", title).locator("[data-element-state]")
+  return outlineRow(page, "lesson", title).locator(
+    ":scope > div [data-element-state]"
+  )
 }
 
 /** Ouvre le menu ⋯ d'une ligne du plan, et donne l'une de ses cases. */
@@ -102,12 +106,11 @@ async function flagItem(page: Page, label: string, name: string) {
   return page.getByRole("menuitemcheckbox", { name })
 }
 
-/** Coche une case du menu ⋯ d'une ligne du plan, et attend la fin de son enregistrement. */
+/** Coche une case du menu ⋯ d'une ligne du plan. */
 async function check(page: Page, label: string, name: string) {
   const item = await flagItem(page, label, name)
   await item.click()
   await expect(item).toBeChecked()
-  await expect(item).toBeEnabled()
   await closeMenu(page)
 }
 
@@ -130,56 +133,64 @@ async function closeMenu(page: Page) {
   await expect(page.getByRole("menu")).toHaveCount(0)
 }
 
-/** Crée un chapitre ou une leçon depuis le plan (on reste sur le plan). */
-async function createElement(
+/**
+ * Ajoute une partie (opener : le bouton qui l'ajoute) : elle arrive à sa place, le curseur dans
+ * son titre, qu'on écrit ; le plan la montre aussitôt.
+ */
+async function addPart(
   page: Page,
-  kind: "chapter" | "lesson",
+  kind: ElementKind,
   title: string,
-  opener: string
+  opener: Locator
 ) {
-  await page.getByRole("button", { name: opener }).first().click()
-  const dialog = page.getByRole("dialog", {
-    name: kind === "chapter" ? create.chapterTitle : create.lessonTitle,
-  })
-  await dialog.getByLabel(create.name).fill(title)
-  await dialog.getByRole("button", { name: create.submit, exact: true }).click()
-  await expect(dialog).toHaveCount(0)
+  await opener.click()
+  await expect(page.locator(":focus")).toHaveAttribute(
+    "aria-label",
+    new RegExp(`^${methodPage.titleOf("")}`)
+  )
+  await page.keyboard.type(title)
   await expect(outlineRow(page, kind, title)).toBeVisible()
 }
 
+/** Ajoute un exercice dans une leçon, depuis son menu ⋯ dans le plan. */
+async function addExercise(page: Page, lessonLabel: string, title: string) {
+  await page.getByRole("button", { name: outline.actions(lessonLabel) }).click()
+  await addPart(
+    page,
+    "exercise",
+    title,
+    page.getByRole("menuitem", { name: outline.newExercise })
+  )
+}
+
 /**
- * Ajoute un paragraphe dans l'éditeur ouvert (« Ajouter un bloc » en bas de la colonne de gauche,
- * puis Texte dans les Blocs), et attend son enregistrement.
+ * Ajoute un paragraphe dans une partie (« Ajouter un bloc » de la partie, puis Texte dans les
+ * Blocs), attend son enregistrement, et referme les Blocs.
  */
-async function addText(page: Page, text: string) {
-  await expect(page.getByLabel(editor.title.label)).toBeEditable()
-  await page.locator("#colonne-gauche-ajouter").click()
+async function addText(page: Page, path: string, text: string) {
+  await page.getByRole("button", { name: methodPage.addBlockIn(path) }).click()
   await page
     .getByRole("region", { name: editor.columns.blocks })
     .getByRole("button", { name: editor.library.addLabel(editor.blocks.text) })
     .click()
   await expect(
-    page.locator('[data-block-type="text"] [contenteditable]').last()
-  ).toBeFocused()
+    page.locator('[data-block-type="text"] [contenteditable]:focus')
+  ).toBeVisible()
   await page.keyboard.type(text)
   await saved(page)
+  await page.getByRole("button", { name: editor.library.close }).click()
 }
 
-/** La carte « Dans la méthode » d'un élément, en tête de la colonne de droite. */
+/** Va à une partie par sa ligne du plan. */
+async function goTo(page: Page, title: string) {
+  const line = plan(page).getByRole("button", { name: title, exact: true })
+  await line.click()
+  await expect(line).toHaveAttribute("aria-current", "true")
+}
+
+/** La carte « Dans la méthode » de la partie en cours, en tête de la colonne de droite. */
 function elementCard(page: Page, kind: ElementKind) {
   return page.locator(`[data-element-card="${kind}"]`)
-}
-
-/** Depuis l'éditeur d'un chapitre ou d'une leçon : le retour à la méthode, jusqu'au plan. */
-async function backToMethod(page: Page, methodTitle: string) {
-  await page
-    .getByRole("link", { name: texts.methods.element.back(methodTitle) })
-    .click()
-  await expect(
-    page.getByRole("complementary", { name: outline.title })
-  ).toBeVisible()
-  // La main sur la méthode est reprise : le plan se range de nouveau.
-  await expect(page.getByLabel(editor.title.label)).toBeEditable()
 }
 
 type Change = {
@@ -221,8 +232,8 @@ async function publish(
 }
 
 /**
- * « Nouvelle méthode » depuis la liste : sa fiche (titre, image de présentation envoyée depuis
- * l'aperçu), puis son écran, avec la main. Donne son identifiant.
+ * « Nouvelle méthode » depuis la liste : sa page, avec la main ; sa fiche (titre, image de
+ * présentation envoyée depuis le téléphone). Donne son identifiant.
  */
 async function createMethod(
   page: Page,
@@ -230,9 +241,7 @@ async function createMethod(
   id: string
 ): Promise<string> {
   await createFromDialog(page, "method", title)
-  await expect(
-    page.getByRole("complementary", { name: outline.title })
-  ).toBeVisible()
+  await expect(plan(page)).toBeVisible()
   const methodId = contentIdFromUrl(page.url())
   await expect(page.getByLabel(editor.title.label)).toBeEditable()
   await page.getByLabel(editor.title.label).fill(title)
@@ -269,7 +278,7 @@ async function elementAction(
   await expect(confirm).toHaveCount(0)
 }
 
-test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux réels dans l'app, versions gardées, retrait, corbeille et restauration", async ({
+test("Méthodes : une seule page, plan rangé au clavier, publication d'un seul geste, niveaux réels dans l'app, versions gardées, retrait, corbeille et restauration", async ({
   page,
   team,
 }) => {
@@ -290,22 +299,32 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     await open(page, "/methodes", admin)
     const methodId = await createMethod(page, title, id)
 
-    // --- Le plan : deux chapitres, trois leçons, cachés de l'app à la création ------------
-    await createElement(page, "chapter", breathe, outline.newChapter)
-    await createElement(page, "chapter", move, outline.newChapter)
+    // --- Deux chapitres, trois leçons, ajoutés à leur place, cachés de l'app ----------------
+    const newChapter = plan(page).getByRole("button", {
+      name: outline.newChapter,
+    })
+    await addPart(page, "chapter", breathe, newChapter)
+    await addPart(page, "chapter", move, newChapter)
+    const breatheLabel = outline.chapterLabel(1, breathe)
+    const moveLabel2 = outline.chapterLabel(2, move)
     for (const lesson of ["Le souffle", "Expirer"]) {
-      await createElement(
+      await addPart(
         page,
         "lesson",
         lesson,
-        outline.newLessonIn(outline.chapterLabel(1, breathe))
+        plan(page).getByRole("button", {
+          name: outline.newLessonIn(breatheLabel),
+        })
       )
     }
-    await createElement(
+    // Une leçon ajoutée depuis le téléphone, à la fin du chapitre 2.
+    await addPart(
       page,
       "lesson",
       "Marcher",
-      outline.newLessonIn(outline.chapterLabel(2, move))
+      page.getByRole("main").getByRole("button", {
+        name: outline.newLessonIn(moveLabel2),
+      })
     )
     const ids = {
       breathe: await elementId(page, "chapter", breathe),
@@ -314,6 +333,12 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
       expirer: await elementId(page, "lesson", "Expirer"),
       marcher: await elementId(page, "lesson", "Marcher"),
     }
+    // Le téléphone montre toute la méthode, à la suite.
+    await expect(
+      page.getByRole("region", {
+        name: methodPage.part("Chapitre 2, leçon 1", "Marcher"),
+      })
+    ).toBeVisible()
     for (const lesson of ["Le souffle", "Expirer", "Marcher"]) {
       await expect(lessonState(page, lesson)).toHaveAttribute(
         "data-element-state",
@@ -322,8 +347,6 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     }
 
     // Tout est montré dans l'app, sauf « Marcher » ; « Le souffle » est gratuite.
-    const breatheLabel = outline.chapterLabel(1, breathe)
-    const moveLabel2 = outline.chapterLabel(2, move)
     const souffleLabel = outline.lessonLabel(1, "Le souffle")
     const expirerLabel = outline.lessonLabel(2, "Expirer")
     await check(page, breatheLabel, outline.inAppFor(breatheLabel))
@@ -340,41 +363,38 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
       "hidden"
     )
 
-    // --- Le texte de la leçon gratuite, dans son éditeur (« ← méthode ») -----------------
-    await plan(page)
-      .getByRole("link", { name: "Le souffle", exact: true })
-      .click()
-    await expect(page).toHaveURL(/\/methodes\/lecons\//)
+    // --- Le texte de la leçon gratuite, écrit sur place --------------------------------------
+    await goTo(page, "Le souffle")
     await expect(elementCard(page, "lesson")).toContainText(
       texts.methods.element.place.lesson(1)
     )
-    // Un chapitre ou une leçon part avec sa méthode : pas de bouton Publier ([D29]).
-    await expect(
-      page.getByRole("button", {
-        name: publication.actions.publish,
-        exact: true,
-      })
-    ).toHaveCount(0)
-    await addText(page, "Inspire par le nez.")
-    await backToMethod(page, title)
+    await addText(page, "Chapitre 1, leçon 1", "Inspire par le nez.")
 
     // --- Ranger au clavier : « Bouger » passe avant « Respirer » -----------------------------
     const moveLabel = outline.chapterLabel(2, move)
-    const announced = page.locator('[id^="DndLiveRegion"]')
+    // Les annonces du plan (les blocs de la partie en cours ont les leurs).
+    const announced = (text: string) =>
+      page.locator('[id^="DndLiveRegion"]').filter({ hasText: text })
     await page.getByRole("button", { name: outline.handle(moveLabel) }).focus()
     await page.keyboard.press("Space")
-    await expect(announced).toContainText(texts.methods.dnd.start(moveLabel))
+    await expect(announced(texts.methods.dnd.start(moveLabel))).toHaveCount(1)
     // dnd-kit n'écoute les flèches qu'au tour suivant de la boucle d'événements.
     await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)))
     await page.keyboard.press("ArrowUp")
-    await expect(announced).toContainText(
-      texts.methods.dnd.over(moveLabel, outline.chapterLabel(1, breathe))
-    )
+    await expect(
+      announced(
+        texts.methods.dnd.over(moveLabel, outline.chapterLabel(1, breathe))
+      )
+    ).toHaveCount(1)
     await page.keyboard.press("Space")
-    await expect(announced).toContainText(
-      texts.methods.dnd.end(moveLabel, outline.chapterPlace(1, 2))
-    )
+    await expect(
+      announced(texts.methods.dnd.end(moveLabel, outline.chapterPlace(1, 2)))
+    ).toHaveCount(1)
     await expect.poll(() => chapterOrder(methodId)).toEqual([move, breathe])
+    // Le téléphone suit : « Bouger » est le chapitre 1.
+    await expect(
+      page.getByRole("region", { name: methodPage.part("Chapitre 1", move) })
+    ).toBeVisible()
     await expectFlag(
       page,
       outline.chapterLabel(1, move),
@@ -454,10 +474,8 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     // 2. Modifier une leçon, en ranger deux : l'app ne change qu'à la publication
     // =========================================================================================
 
-    await plan(page).getByRole("link", { name: "Expirer", exact: true }).click()
-    await expect(page).toHaveURL(/\/methodes\/lecons\//)
-    await addText(page, "Souffle lent.")
-    await backToMethod(page, title)
+    await goTo(page, "Expirer")
+    await addText(page, "Chapitre 2, leçon 2", "Souffle lent.")
     await expect(lessonState(page, "Expirer")).toHaveAttribute(
       "data-element-state",
       "modified"
@@ -553,6 +571,9 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
       outline.confirmTrash.confirm
     )
     await expect(outlineRow(page, "chapter", move)).toHaveCount(0)
+    await expect(
+      page.getByRole("region", { name: methodPage.part("Chapitre 1", move) })
+    ).toHaveCount(0)
     await expect
       .poll(async () => appOutline(await appMethod(methodId)))
       .toEqual([`${breathe} : Le souffle (gratuite)`])
@@ -589,9 +610,11 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     await restored
       .getByRole("button", { name: texts.trash.open, exact: true })
       .click()
-    await expect(page).toHaveURL(new RegExp(`/methodes/chapitres/${ids.move}$`))
+    // « Ouvrir » mène à la page de la méthode, sur le chapitre.
+    await expect(page).toHaveURL(
+      new RegExp(`/methodes/${methodId}\\?partie=${ids.move}$`)
+    )
     await expect(elementCard(page, "chapter")).toBeVisible()
-    await backToMethod(page, title)
     await expect.poll(() => chapterOrder(methodId)).toEqual([breathe, move])
     await expectFlag(
       page,
@@ -606,7 +629,7 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
     expect(await appMethod(methodId)).toEqual(third)
 
     // =========================================================================================
-    // 4. Un lien de l'Accueil ouvre l'éditeur d'une leçon
+    // 4. Un lien de l'Accueil mène à la page de la méthode, sur la leçon
     // =========================================================================================
 
     await page.getByRole("link", { name: editor.back("Méthodes") }).click()
@@ -620,24 +643,20 @@ test("Méthodes : plan rangé au clavier, publication d'un seul geste, niveaux r
       .filter({ has: page.getByRole("link", { name: "Expirer", exact: true }) })
     await expect(draft).toContainText(texts.home.inMethod(title))
     await draft.getByRole("link", { name: "Expirer", exact: true }).click()
-    await expect(page).toHaveURL(new RegExp(`/methodes/lecons/${ids.expirer}$`))
+    await expect(page).toHaveURL(
+      new RegExp(`/methodes/${methodId}\\?partie=${ids.expirer}$`)
+    )
+    await expect(
+      plan(page).getByRole("button", { name: "Expirer", exact: true })
+    ).toHaveAttribute("aria-current", "true")
     await expect(elementCard(page, "lesson")).toBeVisible()
-    await expect(page.getByLabel(editor.title.label)).toHaveValue("Expirer")
+    await expect(
+      page.getByLabel(methodPage.titleOf("Chapitre 1, leçon 1"))
+    ).toHaveValue("Expirer")
   } finally {
     await deleteAccessLevels(id)
   }
 })
-
-/** Crée un exercice depuis le menu ⋯ d'une leçon (on reste sur le plan). */
-async function createExercise(page: Page, lessonLabel: string, title: string) {
-  await elementAction(page, lessonLabel, outline.newExercise)
-  const dialog = page.getByRole("dialog", { name: create.exerciseTitle })
-  await expect(dialog).toContainText(create.exerciseDescription(lessonLabel))
-  await dialog.getByLabel(create.name).fill(title)
-  await dialog.getByRole("button", { name: create.submit, exact: true }).click()
-  await expect(dialog).toHaveCount(0)
-  await expect(outlineRow(page, "exercise", title)).toBeVisible()
-}
 
 /** Les exercices d'une leçon dans l'app : « Titre » ou « Titre (réservé) », dans l'ordre. */
 async function appExercises(lessonId: string): Promise<string[]> {
@@ -662,21 +681,28 @@ test("Méthodes : les exercices d'une leçon, publiés avec la méthode, à l'ac
     // --- Une méthode, un chapitre, deux leçons, trois exercices --------------------------
     await open(page, "/methodes", admin)
     const methodId = await createMethod(page, title, id)
-    await createElement(page, "chapter", chapter, outline.newChapter)
+    await addPart(
+      page,
+      "chapter",
+      chapter,
+      plan(page).getByRole("button", { name: outline.newChapter })
+    )
     const chapterLabel = outline.chapterLabel(1, chapter)
     for (const lesson of ["Le souffle", "Expirer"]) {
-      await createElement(
+      await addPart(
         page,
         "lesson",
         lesson,
-        outline.newLessonIn(chapterLabel)
+        plan(page).getByRole("button", {
+          name: outline.newLessonIn(chapterLabel),
+        })
       )
     }
     const souffleLabel = outline.lessonLabel(1, "Le souffle")
     const expirerLabel = outline.lessonLabel(2, "Expirer")
-    await createExercise(page, souffleLabel, "Inspirer")
-    await createExercise(page, souffleLabel, "Compter")
-    await createExercise(page, expirerLabel, "Souffler")
+    await addExercise(page, souffleLabel, "Inspirer")
+    await addExercise(page, souffleLabel, "Compter")
+    await addExercise(page, expirerLabel, "Souffler")
     const ids = {
       souffle: await elementId(page, "lesson", "Le souffle"),
       expirer: await elementId(page, "lesson", "Expirer"),
@@ -684,6 +710,12 @@ test("Méthodes : les exercices d'une leçon, publiés avec la méthode, à l'ac
       compter: await elementId(page, "exercise", "Compter"),
       souffler: await elementId(page, "exercise", "Souffler"),
     }
+    // Chaque exercice suit sa leçon dans le téléphone.
+    await expect(
+      page.getByRole("region", {
+        name: methodPage.part("Chapitre 1, leçon 1, exercice 2", "Compter"),
+      })
+    ).toBeVisible()
     await expect(
       outlineRow(page, "exercise", "Inspirer").locator("[data-element-state]")
     ).toHaveAttribute("data-element-state", "hidden")
@@ -698,19 +730,19 @@ test("Méthodes : les exercices d'une leçon, publiés avec la méthode, à l'ac
     await check(page, inspirerLabel, outline.inAppFor(inspirerLabel))
     await check(page, soufflerLabel, outline.inAppFor(soufflerLabel))
 
-    // --- L'éditeur d'un exercice : sa place, l'accès de sa leçon -------------------------
-    await plan(page)
-      .getByRole("link", { name: "Inspirer", exact: true })
-      .click()
-    await expect(page).toHaveURL(/\/methodes\/exercices\//)
+    // --- La colonne d'un exercice : sa place, l'accès de sa leçon ------------------------
+    await goTo(page, "Inspirer")
     await expect(elementCard(page, "exercise")).toContainText(
       texts.methods.element.place.exercise(1)
     )
     await expect(page.locator("[data-element-access]")).toHaveText(
       texts.methods.element.access.lessonFree
     )
-    await addText(page, "Inspire en comptant jusqu'à quatre.")
-    await backToMethod(page, title)
+    await addText(
+      page,
+      "Chapitre 1, leçon 1, exercice 1",
+      "Inspire en comptant jusqu'à quatre."
+    )
 
     // --- Publication : la méthode entre dans l'app avec ses exercices cochés -------------
     await publish(page, changes.entry(1, 2, 2), level)
@@ -789,7 +821,7 @@ async function secondBrowser(
   return { context, page: await context.newPage() }
 }
 
-test("Méthodes : la Lecture se parcourt comme l'app, sans prendre la main", async ({
+test("Méthodes : la Lecture montre les écrans de l'app dans le téléphone, sans prendre la main", async ({
   page,
   team,
   browser,
@@ -799,6 +831,7 @@ test("Méthodes : la Lecture se parcourt comme l'app, sans prendre la main", asy
 }) => {
   test.setTimeout(180_000)
   const preview = editor.preview
+  const words = texts.methods.preview
   const id = uniqueId()
   const title = `Lecture ${id}`
   const chapter = `Respirer ${id}`
@@ -808,19 +841,26 @@ test("Méthodes : la Lecture se parcourt comme l'app, sans prendre la main", asy
   // --- Une méthode, un chapitre, deux leçons et un exercice, tous montrés -------------------
   await open(page, "/methodes", admin)
   const methodId = await createMethod(page, title, id)
-  await createElement(page, "chapter", chapter, outline.newChapter)
+  await addPart(
+    page,
+    "chapter",
+    chapter,
+    plan(page).getByRole("button", { name: outline.newChapter })
+  )
   const chapterLabel = outline.chapterLabel(1, chapter)
   for (const lesson of ["Le souffle", "Expirer"]) {
-    await createElement(
+    await addPart(
       page,
       "lesson",
       lesson,
-      outline.newLessonIn(chapterLabel)
+      plan(page).getByRole("button", {
+        name: outline.newLessonIn(chapterLabel),
+      })
     )
   }
   const souffleLabel = outline.lessonLabel(1, "Le souffle")
   const expirerLabel = outline.lessonLabel(2, "Expirer")
-  await createExercise(page, souffleLabel, "Inspirer")
+  await addExercise(page, souffleLabel, "Inspirer")
   const souffleId = await elementId(page, "lesson", "Le souffle")
   for (const label of [
     chapterLabel,
@@ -830,28 +870,34 @@ test("Méthodes : la Lecture se parcourt comme l'app, sans prendre la main", asy
   ]) {
     await check(page, label, outline.inAppFor(label))
   }
+  await saved(page)
 
-  // --- En Lecture, le téléphone ouvre une leçon, toujours en Lecture --------------------------
+  // --- En Lecture : l'écran de la méthode, puis celui d'une leçon, dans le téléphone ----------
   const tools = page.getByRole("toolbar", { name: preview.tools })
   const phone = page.getByRole("region", { name: preview.screen.ios })
+  await goTo(page, title)
   await tools.getByRole("button", { name: preview.mode.read }).click()
   await expect(page).toHaveURL(
     new RegExp(`/methodes/${methodId}\\?mode=lecture$`)
   )
-  await phone.getByRole("link", { name: /Le souffle/ }).click()
-  await expect(page).toHaveURL(
-    new RegExp(`/methodes/lecons/${souffleId}\\?mode=lecture$`)
-  )
+  await phone.getByRole("button", { name: /Le souffle/ }).click()
   await expect(
     phone.getByRole("heading", { level: 1, name: "Le souffle" })
   ).toBeVisible()
+  await expect(page).toHaveURL(
+    new RegExp(`/methodes/${methodId}\\?mode=lecture&partie=${souffleId}$`)
+  )
+  // Le plan suit l'écran ; rien ne s'écrit.
+  await expect(
+    plan(page).getByRole("button", { name: "Le souffle", exact: true })
+  ).toHaveAttribute("aria-current", "true")
   await expect(page.getByLabel(editor.title.label)).toHaveCount(0)
 
-  // Oscar ouvre la leçon qu'on lit : personne ne la tient, il l'écrit. Il passe ensuite en
-  // Lecture et rend la main : une personne à la fois sur toute la méthode.
+  // Oscar ouvre la méthode qu'on lit : personne ne la tient, il l'écrit, puis passe en Lecture
+  // et rend la main.
   const second = await secondBrowser(browser, { baseURL, locale, timezoneId })
   try {
-    await second.page.goto(`/methodes/lecons/${souffleId}`)
+    await second.page.goto(`/methodes/${methodId}`)
     await signIn(second.page, oscar)
     await expect(second.page.getByLabel(editor.title.label)).toBeEditable()
     const released = second.page.waitForResponse(
@@ -868,17 +914,22 @@ test("Méthodes : la Lecture se parcourt comme l'app, sans prendre la main", asy
   }
 
   // Un exercice de la leçon, puis la flèche du téléphone : retour à la leçon.
-  await phone.getByRole("link", { name: /Inspirer/ }).click()
-  await expect(page).toHaveURL(/\/methodes\/exercices\/[^?]+\?mode=lecture$/)
-  await phone.getByRole("link", { name: preview.back("Le souffle") }).click()
-  await expect(page).toHaveURL(
-    new RegExp(`/methodes/lecons/${souffleId}\\?mode=lecture$`)
-  )
-
-  // « Suivant » : la leçon d'après ; rechargée, elle reste en Lecture.
   await phone
-    .getByRole("navigation", { name: texts.methods.preview.next })
-    .getByRole("link")
+    .getByRole("region", { name: words.lessonExercises })
+    .getByRole("button", { name: /Inspirer/ })
+    .click()
+  await expect(
+    phone.getByRole("heading", { level: 1, name: "Inspirer" })
+  ).toBeVisible()
+  await phone.getByRole("button", { name: preview.back("Le souffle") }).click()
+  await expect(
+    phone.getByRole("heading", { level: 1, name: "Le souffle" })
+  ).toBeVisible()
+
+  // « Suivant » : la leçon d'après ; rechargée, la page reste en Lecture, sur elle.
+  await phone
+    .getByRole("navigation", { name: words.next })
+    .getByRole("button")
     .click()
   await expect(
     phone.getByRole("heading", { level: 1, name: "Expirer" })
@@ -889,11 +940,11 @@ test("Méthodes : la Lecture se parcourt comme l'app, sans prendre la main", asy
   ).toBeVisible()
   await expect(page.getByLabel(editor.title.label)).toHaveCount(0)
 
-  // La flèche : la méthode, en Lecture ; « Édition » y reprend la main.
-  await phone.getByRole("link", { name: preview.back(title) }).click()
-  await expect(page).toHaveURL(
-    new RegExp(`/methodes/${methodId}\\?mode=lecture$`)
-  )
+  // La flèche : la méthode ; « Édition » y reprend la main.
+  await phone.getByRole("button", { name: preview.back(title) }).click()
+  await expect(
+    phone.getByRole("heading", { level: 1, name: title })
+  ).toBeVisible()
   await tools.getByRole("button", { name: preview.mode.edit }).click()
   await expect(page.getByLabel(editor.title.label)).toBeEditable()
   await expect(page).toHaveURL(new RegExp(`/methodes/${methodId}$`))
