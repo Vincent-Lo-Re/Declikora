@@ -7,7 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { texts } from "@/texts"
+import { useBrandName } from "@/hooks/use-brand-name"
+import { tabTitle } from "@/lib/admin-identity"
 
 /** Cadre commun aux pages de connexion, avec le titre de l'onglet. */
 export function AuthCard({
@@ -19,9 +20,10 @@ export function AuthCard({
   description?: ReactNode
   children: ReactNode
 }) {
+  const brand = useBrandName()
   return (
     <Card>
-      <title>{`${title} — ${texts.app.name}`}</title>
+      <title>{tabTitle(title, brand)}</title>
       <CardHeader>
         <CardTitle>
           <h1>{title}</h1>

@@ -14,6 +14,7 @@ import { fiche as fichiersNonUtilises } from "@/help/fiches/fichiers-non-utilise
 import { fiche as utiliserLesModelesDeBloc } from "@/help/fiches/utiliser-les-modeles-de-bloc"
 import { fiche as utiliserLaCorbeille } from "@/help/fiches/utiliser-la-corbeille"
 import { fiche as inviterUnMembre } from "@/help/fiches/inviter-un-membre"
+import { fiche as changerLeNomDeLaMarque } from "@/help/fiches/changer-le-nom-de-la-marque"
 
 // Les fiches de l'aide, rangées par thème : contenus, publication, médiathèque, modèles,
 // corbeille, équipe.
@@ -33,4 +34,5 @@ export const helpFiches: HelpFiche[] = [
   utiliserLesModelesDeBloc,
   utiliserLaCorbeille,
   inviterUnMembre,
+  changerLeNomDeLaMarque,
 ]

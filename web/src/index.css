@@ -27,6 +27,10 @@
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
   --color-panel: var(--panel);
+  --color-brand-light: var(--brand-light);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-light-muted: var(--brand-light-muted);
+  --color-brand-dark-muted: var(--brand-dark-muted);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -86,6 +90,12 @@
      gauche de la page du preset) et le contenu un panneau gris léger (--panel : muted à 50 %),
      sur lequel le gris d'une barre de progression reste visible ; les cartes sont blanches. */
   --panel: color-mix(in oklab, var(--muted) 50%, transparent);
+  /* Les fonds des aperçus du logotype et du monogramme (Paramètres) : blanc et presque noir, les
+     mêmes en clair et en sombre, pour juger chaque version sur le fond auquel elle est destinée. */
+  --brand-light: oklch(1 0 0);
+  --brand-dark: oklch(0.145 0 0);
+  --brand-light-muted: oklch(0.556 0 0);
+  --brand-dark-muted: oklch(0.708 0 0);
   --sidebar: var(--muted);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-accent: var(--card);

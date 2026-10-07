@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router"
 
 import { AccountMenu } from "@/components/account-menu"
+import { BrandLogo } from "@/components/brand-logo"
 import {
   Sidebar,
   SidebarContent,
@@ -22,7 +23,8 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <div className="flex h-8 items-center px-2 text-sm font-medium">
-          {texts.app.name}
+          {/* Le menu est une carte sombre : la version pour fond sombre. */}
+          <BrandLogo kind="logotype" surface="dark" className="h-6" />
         </div>
       </SidebarHeader>
 

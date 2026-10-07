@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
+import { BrandLogo } from "@/components/brand-logo"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,7 +53,9 @@ export function PalettePreview() {
         data-slot="sidebar-inner"
         className="dark flex w-28 shrink-0 flex-col gap-0.5 rounded-lg bg-card/90 p-1.5 text-sidebar-foreground ring-1 ring-foreground/10"
       >
-        <p className="px-1.5 py-1 font-medium">{labels.brand}</p>
+        <p className="flex px-1.5 py-1 font-medium">
+          <BrandLogo kind="monogram" surface="dark" className="h-5" />
+        </p>
         {labels.nav.map((name, index) => {
           const Icon = navIcons[index]
           return (

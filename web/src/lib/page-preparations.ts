@@ -13,6 +13,7 @@ import type { Media } from "@/lib/media/constants"
 import { fresh, preloadImages, ready, type Prepare } from "@/lib/preparation"
 import {
   accessLevelsRead,
+  adminBrandRead,
   auditRead,
   categoriesRead,
   contentListRead,
@@ -131,7 +132,11 @@ export const prepareTeam: Prepare = async ({ queryClient, member }) => {
 }
 
 export const prepareSettings: Prepare = async ({ queryClient, member }) => {
-  if (member.role === "admin") await ready(queryClient, accessLevelsRead())
+  if (member.role !== "admin") return
+  await Promise.all([
+    ready(queryClient, adminBrandRead()),
+    ready(queryClient, accessLevelsRead()),
+  ])
 }
 
 /** Les fichiers d'un brouillon : ceux des blocs partagés d'abord (leurs modèles), puis les siens. */

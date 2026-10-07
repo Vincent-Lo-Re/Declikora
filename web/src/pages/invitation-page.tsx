@@ -10,6 +10,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { acceptInvitation } from "@/lib/auth"
 import { authPaths } from "@/navigation"
 import { texts } from "@/texts"
+import { useBrandName } from "@/hooks/use-brand-name"
 
 /**
  * Lien reçu dans l'e-mail d'invitation. L'invitation n'est acceptée qu'au clic :
@@ -18,6 +19,7 @@ import { texts } from "@/texts"
 export function InvitationPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const brand = useBrandName()
   const [accepting, setAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,7 +40,7 @@ export function InvitationPage() {
   return (
     <AuthCard
       title={texts.invitation.title}
-      description={complete ? texts.invitation.description : undefined}
+      description={complete ? texts.invitation.description(brand) : undefined}
     >
       {complete ? (
         <FieldGroup>

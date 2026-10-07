@@ -1,7 +1,8 @@
 import type { LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
 
-import { texts } from "@/texts"
+import { useBrandName } from "@/hooks/use-brand-name"
+import { tabTitle } from "@/lib/admin-identity"
 
 /**
  * Titre de la page (et de l'onglet du navigateur), précédé de l'icône de sa section, avec sa
@@ -18,10 +19,11 @@ export function PageHeader({
   description?: string
   actions?: ReactNode
 }) {
+  const brand = useBrandName()
   return (
     <header className="mb-8 flex items-start justify-between gap-4">
       <div className="space-y-1">
-        <title>{`${title} — ${texts.app.name}`}</title>
+        <title>{tabTitle(title, brand)}</title>
         <h1 className="flex items-center gap-2 text-2xl font-medium tracking-tight">
           {Icon && <Icon aria-hidden className="size-4 shrink-0" />}
           {title}

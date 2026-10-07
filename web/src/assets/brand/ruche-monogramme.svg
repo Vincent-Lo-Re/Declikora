@@ -1,14 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
-  <!-- Le monogramme de Ruche (src/assets/brand/), montré pendant le chargement ; en sombre, le brun passe en blanc. -->
-  <style>
-    .trait { stroke: #1F1E1B; }
-    .plein { fill: #1F1E1B; }
-    @media (prefers-color-scheme: dark) {
-      .trait { stroke: #FAFAFA; }
-      .plein { fill: #FAFAFA; }
-    }
-  </style>
-  <g class="trait" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="160" height="160" viewBox="0 0 160 160"
+     preserveAspectRatio="xMidYMid meet"
+     role="img" aria-labelledby="ruche-mark-title ruche-mark-desc">
+  <title id="ruche-mark-title">Symbole Ruche</title>
+  <desc id="ruche-mark-desc">Cellule hexagonale ouverte contenant le monogramme R.</desc>
+  <g fill="none" stroke="#1F1E1B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
       <line x1="22.000" y1="80.000" x2="51.000" y2="30.000" class="ring"/>
       <line x1="51.000" y1="30.000" x2="109.000" y2="30.000" class="ring"/>
       <line x1="109.000" y1="30.000" x2="138.000" y2="80.000" class="ring"/>
@@ -19,7 +16,7 @@
   <g fill="none" stroke="#F4CD48" stroke-width="6" stroke-linecap="round">
       <line x1="138.000" y1="80.000" x2="109.000" y2="130.000" class="accent"/>
   </g>
-  <g class="plein" transform="translate(50.8 47)">
+  <g transform="translate(50.8 47)" fill="#1F1E1B">
     <path d="M5.492617449664429 66.0H17.186577181208055V41.991946308724835H30.475167785234902C30.60805369127517 41.991946308724835 30.696644295302015 41.991946308724835 30.78523489932886 41.991946308724835L43.18791946308725 66.0H56.07785234899329L42.302013422818796 39.86577181208054C50.142281879194634 36.676510067114094 54.83758389261745 30.076510067114093 54.83758389261745 21.08456375838926C54.83758389261745 8.1503355704698 45.75704697986577 0.0 31.22818791946309 0.0H5.492617449664429ZM17.186577181208055 32.335570469798654V9.92214765100671H30.563758389261746C38.448322147651005 9.92214765100671 43.32080536912752 14.21879194630872 43.32080536912752 21.08456375838926C43.32080536912752 27.99463087248322 38.448322147651005 32.335570469798654 30.65234899328859 32.335570469798654Z"/>
   </g>
 </svg>

@@ -6,8 +6,8 @@ import {
   isNotAMemberError,
   isRateLimitError,
 } from "@/lib/auth-errors"
+import { brandName, getAdminBrand } from "@/lib/admin-identity"
 import { supabase } from "@/lib/supabase"
-import { texts } from "@/texts"
 
 // « Code envoyé », « code déjà envoyé il y a moins d'une minute » (le code précédent reste
 // valable), ou message d'erreur à afficher.
@@ -74,7 +74,8 @@ export async function startMfaEnrollment(): Promise<Enrollment> {
 
   const { data, error: enrollError } = await supabase.auth.mfa.enroll({
     factorType: "totp",
-    issuer: texts.app.name,
+    // Le nom que l'app du téléphone affiche : la marque, sinon « Ruche ».
+    issuer: brandName((await getAdminBrand().catch(() => null))?.name),
   })
   if (enrollError) throw enrollError
   // qr_code est déjà une image (data:image/svg+xml…), affichable telle quelle.

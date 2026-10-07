@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query"
 
 import { accessLevelsKey, listAccessLevels } from "@/lib/access-levels"
+import { adminBrandKey, getAdminBrand } from "@/lib/admin-identity"
 import {
   categoryKeys,
   listCategories,
@@ -50,6 +51,17 @@ import { listMembers, teamQueryKey } from "@/lib/team"
  * la refait pas aussitôt.
  */
 export const REREAD_MS = 3_000
+
+/**
+ * L'identité de l'admin (nom, logotype, monogramme : menu, connexion, titres, favicon) : lue une
+ * fois à l'ouverture de l'admin, puis relue seulement après un changement dans Paramètres.
+ */
+export const adminBrandRead = () =>
+  queryOptions({
+    queryKey: adminBrandKey,
+    queryFn: getAdminBrand,
+    staleTime: Infinity,
+  })
 
 export const contentListRead = (kind: ContentKind) =>
   queryOptions({

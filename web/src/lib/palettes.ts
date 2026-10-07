@@ -1204,6 +1204,44 @@ export const palettePresets = [
   accent: AccentColor
 }[]
 
+export type PresetId = (typeof palettePresets)[number]["id"]
+
+/** Les couleurs d'un logo décliné pour une palette (lib/brand-colors.ts), par fond. */
+export type LogoColors = Record<
+  "light" | "dark",
+  { main: string; accent: string }
+>
+
+/**
+ * Les couleurs d'une palette pour un logo : sur fond clair, la couleur principale prend l'encre de
+ * la base (celle des boutons sans accent) et l'accent la couleur des boutons de l'accent ; sur fond
+ * sombre, le texte clair de la base et l'accent plus clair du menu sombre. Sans accent : l'encre de
+ * la base.
+ */
+export function presetLogoColors(id: PresetId): LogoColors {
+  const preset = palettePresets.find((one) => one.id === id)!
+  const base = basePalettes[preset.base]
+  const accent = preset.accent === "none" ? base : accentPalettes[preset.accent]
+  return {
+    light: { main: base.light.primary, accent: accent.light.primary },
+    // Sur fond sombre, l'accent plus clair du menu sombre de shadcn (sidebar-primary) : celui des
+    // boutons sombres se lirait mal sur un fond presque noir.
+    dark: {
+      main: base.dark.foreground,
+      accent: accent.dark["sidebar-primary"] ?? accent.dark.primary,
+    },
+  }
+}
+
+/** La palette prête à l'emploi qui correspond à ce choix, ou null (une association libre). */
+export function presetOf(palette: Palette): PresetId | null {
+  return (
+    palettePresets.find(
+      (one) => one.base === palette.base && one.accent === palette.accent
+    )?.id ?? null
+  )
+}
+
 /** Les couleurs choisies par un membre (sur ce navigateur). */
 export type Palette = { base: BaseColor; accent: AccentColor }
 
