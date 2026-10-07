@@ -43,9 +43,9 @@ function linkedBlock(page: Page) {
 
 /** Ouvre la section Modèles (après la connexion). */
 async function openTemplates(page: Page, account: Account) {
-  await page.goto("/modeles")
+  await page.goto("/templates")
   await signIn(page, account)
-  await expect(page).toHaveURL(/\/modeles$/)
+  await expect(page).toHaveURL(/\/templates$/)
 }
 
 /** Crée une page vide avec ce titre ; renvoie son identifiant. */
@@ -119,7 +119,7 @@ test("bloc partagé : deux pages, correction, mise à jour de l'app, détacher, 
   await create.getByLabel(labels.create.name).fill(name)
   await create.getByRole("radio", { name: labels.sorts.shared.title }).check()
   await create.getByRole("button", { name: labels.create.submit }).click()
-  await expect(page).toHaveURL(/\/modeles\/[0-9a-f-]{36}$/)
+  await expect(page).toHaveURL(/\/templates\/[0-9a-f-]{36}$/)
   const templateId = contentIdFromUrl(page.url())
   // L'éditeur du Fil : la sorte à droite, la règle d'un seul bloc à gauche ([D11]).
   await expect(

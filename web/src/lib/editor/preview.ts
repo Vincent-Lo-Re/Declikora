@@ -40,23 +40,23 @@ export const defaultPreview: PreviewSettings = {
 }
 
 // Les réglages gardés dans l'adresse de l'éditeur, d'un écran à l'autre (QCM du 04/10/2026) :
-// seulement ceux qui diffèrent de defaultPreview, en mots français comme les adresses de
-// navigation.ts (« ?mode=lecture&telephone=android&theme=sombre »).
+// seulement ceux qui diffèrent de defaultPreview, en mots anglais courants comme les adresses de
+// navigation.ts (« ?mode=read&device=android&theme=dark »).
 type ChoiceKey = Exclude<keyof PreviewSettings, "largeText">
 const searchWords: {
   [K in ChoiceKey]: { name: string; values: Record<PreviewSettings[K], string> }
 } = {
-  mode: { name: "mode", values: { edit: "edition", read: "lecture" } },
-  device: { name: "telephone", values: { ios: "iphone", android: "android" } },
-  theme: { name: "theme", values: { light: "clair", dark: "sombre" } },
+  mode: { name: "mode", values: { edit: "edit", read: "read" } },
+  device: { name: "device", values: { ios: "ios", android: "android" } },
+  theme: { name: "theme", values: { light: "light", dark: "dark" } },
   reader: {
-    name: "lecteur",
-    values: { subscriber: "abonne", visitor: "sans-formule" },
+    name: "reader",
+    values: { subscriber: "subscriber", visitor: "visitor" },
   },
-  fit: { name: "ecran", values: { adjust: "ajuste", full: "entier" } },
+  fit: { name: "fit", values: { adjust: "adjust", full: "full" } },
 }
 const choiceKeys = Object.keys(searchWords) as ChoiceKey[]
-const largeTextWord = { name: "texte", value: "grand" }
+const largeTextWord = { name: "text", value: "large" }
 
 /** Les réglages du téléphone lus dans l'adresse ; un mot inconnu vaut le réglage de départ. */
 export function previewFromSearch(

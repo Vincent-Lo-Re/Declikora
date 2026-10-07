@@ -38,15 +38,20 @@ describe("menu de l'avatar", () => {
     expect(within(menu).getByText("anne@exemple.test")).toBeVisible()
   })
 
-  it("« Se déconnecter » ferme la session ; Mon compte et le thème sont dans le header", async () => {
+  it("« Mon compte » ouvre la page du compte ; le thème reste dans le header", async () => {
     const { router } = await renderApp("/", fakeAuth({ role: "editor" }))
 
     const menu = await openMenu()
-    expect(
-      within(menu).queryByRole("menuitem", {
-        name: texts.sections.account.title,
-      })
-    ).toBeNull()
+    fireEvent.click(
+      within(menu).getByRole("menuitem", { name: texts.sections.account.title })
+    )
+    await waitFor(() => expect(router.state.location.pathname).toBe("/account"))
+  })
+
+  it("« Se déconnecter » ferme la session ; le thème est dans le header", async () => {
+    const { router } = await renderApp("/", fakeAuth({ role: "editor" }))
+
+    const menu = await openMenu()
     expect(
       within(menu).queryByRole("menuitem", { name: texts.theme.title })
     ).toBeNull()
@@ -54,7 +59,7 @@ describe("menu de l'avatar", () => {
       within(menu).getByRole("menuitem", { name: texts.common.signOut })
     )
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe("/deconnexion")
+      expect(router.state.location.pathname).toBe("/sign-out")
     )
   })
 })

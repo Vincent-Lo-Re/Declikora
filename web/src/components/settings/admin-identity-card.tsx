@@ -1,22 +1,16 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Save } from "lucide-react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
 
 import { LoadState } from "@/components/load-state"
 import { Button } from "@/components/ui/button"
-import { ButtonGroup } from "@/components/ui/button-group"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
-import { adminBrandKey, saveAdminName } from "@/lib/admin-identity"
+import { adminBrandKey, saveBrandDetails } from "@/lib/admin-identity"
 import { adminBrandRead } from "@/lib/reads"
 import { adminNameSchema } from "@/lib/schemas"
 import { texts } from "@/texts"
@@ -24,78 +18,105 @@ import { texts } from "@/texts"
 const labels = texts.settings.adminIdentity
 
 /**
- * Le nom de la marque (onglet « Identité de l'admin » des Paramètres, admins) : le même pour toute
- * l'équipe, en haut du menu, à la connexion et dans l'onglet du navigateur. Vide : « Ruche ».
+ * Le nom de la marque et son adresse de contact (onglet « Identité de l'admin » des Paramètres,
+ * admins), carte de la section « Marque » (son titre et son explication sont à gauche,
+ * SettingsSection) : les deux champs côte à côte, « Enregistrer » dans le pied gris. Le nom
+ * s'affiche dans l'admin (vide : le nom à défaut) ; l'adresse aide sur l'écran de connexion.
  */
 export function AdminIdentityCard() {
   const brand = useQuery(adminBrandRead())
-  return (
+  return brand.isSuccess ? (
+    <BrandDetailsForm
+      name={brand.data.name}
+      contactEmail={brand.data.contactEmail}
+    />
+  ) : (
     <Card>
-      <CardHeader>
-        <CardTitle role="heading" aria-level={2}>
-          {labels.title}
-        </CardTitle>
-        <CardDescription>{labels.description}</CardDescription>
-      </CardHeader>
       <CardContent>
-        {brand.isSuccess ? (
-          <AdminNameForm saved={brand.data.name} />
-        ) : (
-          <LoadState query={brand} rows={1} failed={labels.loadFailed} />
-        )}
+        <LoadState query={brand} rows={2} failed={labels.loadFailed} />
       </CardContent>
     </Card>
   )
 }
 
-function AdminNameForm({ saved }: { saved: string | null }) {
+function BrandDetailsForm({
+  name,
+  contactEmail,
+}: {
+  name: string | null
+  contactEmail: string | null
+}) {
   const queryClient = useQueryClient()
   const form = useForm({
     resolver: zodResolver(adminNameSchema),
-    defaultValues: { name: saved ?? "" },
+    defaultValues: { name: name ?? "", contactEmail: contactEmail ?? "" },
   })
 
   const save = useMutation({
-    // Vide : la base garde null, et l'admin revient à « Ruche ».
-    mutationFn: (name: string) => saveAdminName(name || null),
-    onSuccess: async (_, name) => {
-      form.reset({ name })
+    // Vides : la base garde null (le nom à défaut, pas d'adresse).
+    mutationFn: (values: { name: string; contactEmail: string }) =>
+      saveBrandDetails(values.name || null, values.contactEmail || null),
+    onSuccess: async (_, values) => {
+      form.reset(values)
       await queryClient.invalidateQueries({ queryKey: adminBrandKey })
       toast.success(labels.saved)
     },
     onError: () => toast.error(texts.common.unexpected),
   })
 
-  const onSubmit = form.handleSubmit(({ name }) => save.mutate(name))
+  const onSubmit = form.handleSubmit((values) => save.mutate(values))
 
   return (
     <form onSubmit={onSubmit} noValidate>
-      <Controller
-        name="name"
-        control={form.control}
-        render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor="admin-name">{labels.name}</FieldLabel>
-            <ButtonGroup className="w-full">
-              <Input
-                {...field}
-                id="admin-name"
-                placeholder={labels.placeholder}
-                aria-invalid={fieldState.invalid}
-              />
-              <Button
-                type="submit"
-                variant="outline"
-                disabled={save.isPending || !form.formState.isDirty}
-              >
-                {save.isPending && <Spinner />}
-                {texts.common.save}
-              </Button>
-            </ButtonGroup>
-            <FieldError errors={[fieldState.error]} />
-          </Field>
-        )}
-      />
+      <Card className="@container pb-0">
+        <CardContent className="grid gap-4 @lg:grid-cols-2">
+          <Controller
+            name="name"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="admin-name">{labels.name}</FieldLabel>
+                <Input
+                  {...field}
+                  id="admin-name"
+                  placeholder={labels.placeholder}
+                  aria-invalid={fieldState.invalid}
+                />
+                <FieldError errors={[fieldState.error]} />
+              </Field>
+            )}
+          />
+          <Controller
+            name="contactEmail"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="admin-email">{labels.email}</FieldLabel>
+                <Input
+                  {...field}
+                  id="admin-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder={labels.emailPlaceholder}
+                  aria-invalid={fieldState.invalid}
+                />
+                <FieldError errors={[fieldState.error]} />
+              </Field>
+            )}
+          />
+        </CardContent>
+        {/* « Enregistrer » à droite dans le pied gris ; sur toute la largeur dans une carte étroite. */}
+        <CardFooter>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={save.isPending || !form.formState.isDirty}
+          >
+            {save.isPending ? <Spinner /> : <Save aria-hidden />}
+            {labels.save}
+          </Button>
+        </CardFooter>
+      </Card>
     </form>
   )
 }

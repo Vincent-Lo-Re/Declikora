@@ -1,5 +1,6 @@
 import { cn } from "cn"
 import { ArrowRight, type LucideIcon } from "lucide-react"
+import type { ReactNode } from "react"
 import { Link } from "react-router"
 
 import {
@@ -24,7 +25,7 @@ export function AuthNote({
 }: {
   icon: LucideIcon
   title: string
-  text: string
+  text: ReactNode
   to?: string
   danger?: boolean
 }) {

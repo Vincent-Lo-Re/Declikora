@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Identité de l'admin</title>
+<script src="https://cdn.tailwindcss.com?plugins=container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  body { font-family: Inter, system-ui, sans-serif; background: #f5f5f5; color: #0a0a0a; }
+  .card { background: #fff; border-radius: 0.75rem; box-shadow: 0 0 0 1px rgb(10 10 10 / 0.1); }
+  .muted { color: #737373; }
+  .field { height: 2.5rem; width: 100%; border: 1px solid #e5e5e5; border-radius: 0.5rem; padding: 0 0.75rem; font-size: 0.875rem; color: #a3a3a3; display: flex; align-items: center; }
+  .btn { height: 2.5rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; padding: 0 0.75rem; }
+  .btn-primary { background: #171717; color: #fafafa; }
+  .btn-outline { border: 1px solid #e5e5e5; background: #fff; }
+  .switch { width: 2rem; height: 1.15rem; border-radius: 999px; background: #171717; position: relative; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 2px; right: 2px; width: 0.85rem; height: 0.85rem; border-radius: 999px; background: #fff; }
+  .slot { border: 1px dashed #d4d4d4; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; }
+  .ink { background: #111; }
+  .size-btn[aria-pressed="true"] { background: #171717; color: #fafafa; }
+</style>
+</head>
+<body class="p-4 md:p-8">
+  <!-- Choix de la largeur, pour voir la mise en page sur chaque écran. -->
+  <div class="mb-4 flex flex-wrap items-center gap-2 text-sm">
+    <span class="muted">Largeur :</span>
+    <button class="size-btn btn btn-outline" data-w="1100" aria-pressed="true">Ordinateur</button>
+    <button class="size-btn btn btn-outline" data-w="760" aria-pressed="false">Tablette</button>
+    <button class="size-btn btn btn-outline" data-w="390" aria-pressed="false">Téléphone</button>
+  </div>
+
+  <div id="frame" class="@container mx-auto transition-all duration-300" style="max-width:1100px">
+    <h1 class="text-2xl font-semibold">Paramètres</h1>
+    <p class="muted mb-4 text-sm">L'identité de l'admin et de l'app, les formules d'abonnement et les réglages avancés.</p>
+    <div class="mb-6 inline-flex rounded-lg bg-neutral-100 p-1 text-sm">
+      <span class="rounded-md bg-white px-3 py-1 shadow-sm">Identité de l'admin</span>
+      <span class="muted px-3 py-1">Identité de l'app</span>
+      <span class="muted px-3 py-1">Formules</span>
+      <span class="muted px-3 py-1">Avancé</span>
+    </div>
+
+    <!-- Chaque section : à gauche son titre et sa phrase, à droite sa carte (comme les pages de
+         réglages des exemples de shadcn) ; sur téléphone, le titre passe au-dessus. -->
+    <div class="space-y-8">
+
+      <!-- 1. Marque -->
+      <section class="grid gap-4 @3xl:grid-cols-[16rem_1fr] @3xl:gap-8">
+        <div>
+          <h2 class="font-medium">Marque</h2>
+          <p class="muted text-sm">Le nom s'affiche dans l'administration, le menu, l'écran de connexion et l'onglet du navigateur. L'adresse aide sur l'écran de connexion.</p>
+        </div>
+        <div class="card">
+          <div class="grid gap-4 p-4 @lg:grid-cols-2">
+            <label class="grid gap-2 text-sm font-medium">Nom<span class="field">Ruche</span></label>
+            <label class="grid gap-2 text-sm font-medium">Adresse e-mail<span class="field">contact@exemple.fr</span></label>
+          </div>
+          <div class="flex justify-end rounded-b-xl border-t border-neutral-200 bg-neutral-50 p-4">
+            <span class="btn btn-primary w-full @lg:w-auto">Enregistrer</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Écran de connexion : l'image et le monogramme animé, ensemble -->
+      <section class="grid gap-4 @3xl:grid-cols-[16rem_1fr] @3xl:gap-8">
+        <div>
+          <h2 class="font-medium">Écran de connexion</h2>
+          <p class="muted text-sm">L'image à droite du formulaire, et le monogramme posé dessus.</p>
+        </div>
+        <div class="card overflow-hidden">
+          <div class="grid @lg:grid-cols-[1fr_14rem]">
+            <!-- L'aperçu : l'image, le voile et le monogramme -->
+            <div class="relative aspect-video bg-neutral-800 @lg:aspect-auto @lg:min-h-56">
+              <div class="absolute inset-0 bg-[linear-gradient(135deg,#3f3f46,#18181b)]"></div>
+              <div class="absolute inset-0 bg-neutral-900/70"></div>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <svg viewBox="0 0 160 160" class="h-16 w-16"><g fill="none" stroke="#fafafa" stroke-width="10" stroke-linecap="round"><path d="M22 80 51 30h58l29 50-29 50H51z"/></g><path d="M138 80l-29 50" stroke="#F4CD48" stroke-width="6" stroke-linecap="round"/><text x="80" y="104" fill="#fafafa" font-size="64" font-weight="600" text-anchor="middle" font-family="Inter">R</text></svg>
+              </div>
+              <span class="absolute right-2 top-2 rounded-md bg-white px-2 py-1 text-xs shadow">Remplacer</span>
+            </div>
+            <!-- Les réglages, à droite de l'aperçu (dessous sur téléphone) -->
+            <div class="flex flex-col divide-y divide-neutral-200 text-sm">
+              <div class="flex items-center justify-between gap-3 p-4">
+                <div>
+                  <div class="font-medium">Image</div>
+                  <div class="muted text-xs">JPEG, PNG ou WebP, 1 Mo au plus</div>
+                </div>
+                <span class="btn btn-outline">Choisir</span>
+              </div>
+              <div class="flex items-center justify-between gap-3 p-4">
+                <div>
+                  <div class="font-medium">Monogramme animé</div>
+                  <div class="muted text-xs">Tracé, lueur, respiration</div>
+                </div>
+                <span class="switch" aria-hidden="true"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Logos : une carte, quatre cases compactes -->
+      <section class="grid gap-4 @3xl:grid-cols-[16rem_1fr] @3xl:gap-8">
+        <div>
+          <h2 class="font-medium">Logos</h2>
+          <p class="muted text-sm">SVG, PNG ou WebP, 1 Mo au plus. Une seule version suffit : elle sert sur les deux fonds. Sans logo, le nom de la marque ; sans nom ni logo, les logos à défaut.</p>
+        </div>
+        <div class="card p-4">
+          <div class="grid gap-4 @md:grid-cols-2">
+            <div>
+              <div class="mb-2 text-sm font-medium">Logotype <span class="muted font-normal">· menu et connexion</span></div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="slot aspect-[3/2] bg-white text-xs muted">Fond clair</div>
+                <div class="slot ink aspect-[3/2] text-xs text-neutral-400">Fond sombre</div>
+              </div>
+            </div>
+            <div>
+              <div class="mb-2 text-sm font-medium">Monogramme <span class="muted font-normal">· onglet et aperçu</span></div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="slot aspect-[3/2] bg-white text-xs muted">Fond clair</div>
+                <div class="slot ink aspect-[3/2] text-xs text-neutral-400">Fond sombre</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+  const frame = document.getElementById("frame")
+  document.querySelectorAll(".size-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      frame.style.maxWidth = button.dataset.w + "px"
+      document.querySelectorAll(".size-btn").forEach((b) => b.setAttribute("aria-pressed", String(b === button)))
+    })
+  })
+</script>
+</body>
+</html>

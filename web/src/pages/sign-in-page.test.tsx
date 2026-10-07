@@ -13,7 +13,7 @@ afterEach(() => {
 })
 
 async function askCode(email: string) {
-  await renderApp("/connexion", fakeAuth("signed-out"))
+  await renderApp("/sign-in", fakeAuth("signed-out"))
   fireEvent.change(screen.getByLabelText(texts.signIn.email), {
     target: { value: email },
   })
@@ -25,7 +25,7 @@ const noSession = { user: null, session: null, messageId: null }
 describe("connexion", () => {
   it("garde le bouton inactif tant que l'adresse est mal écrite", async () => {
     const signIn = vi.spyOn(supabase.auth, "signInWithOtp")
-    await renderApp("/connexion", fakeAuth("signed-out"))
+    await renderApp("/sign-in", fakeAuth("signed-out"))
     const field = screen.getByLabelText(texts.signIn.email)
     const button = screen.getByRole("button", { name: texts.signIn.sendCode })
     expect(button).toBeDisabled()
@@ -93,7 +93,7 @@ describe("connexion", () => {
     const signIn = vi.spyOn(supabase.auth, "signInWithOtp")
     savePendingSignIn("anne@exemple.test")
 
-    await renderApp("/connexion", fakeAuth("signed-out"))
+    await renderApp("/sign-in", fakeAuth("signed-out"))
 
     expect(
       screen.getByText(texts.signIn.codeStillValid("anne@exemple.test"))
@@ -112,7 +112,7 @@ describe("connexion", () => {
   it("oublie une demande de plus de 10 minutes", async () => {
     savePendingSignIn("anne@exemple.test", Date.now() - 11 * 60 * 1000)
 
-    await renderApp("/connexion", fakeAuth("signed-out"))
+    await renderApp("/sign-in", fakeAuth("signed-out"))
 
     expect(screen.getByLabelText(texts.signIn.email)).toBeVisible()
   })

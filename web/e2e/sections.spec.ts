@@ -212,13 +212,13 @@ test("Le Fil : un article neuf arrive en tête ; rangé au clavier, l'ordre tien
 
   // La recherche est dans l'adresse : ouvrir un article puis revenir la garde, et la ligne de
   // l'article s'allume un instant (QCM du 05/10/2026).
-  await expect(page).toHaveURL(new RegExp(`/blog\\?recherche=${id}$`))
+  await expect(page).toHaveURL(new RegExp(`/blog\\?q=${id}$`))
   await page.getByRole("link", { name: first }).click()
   await expect(page.getByLabel(editor.title.label)).toBeEditable()
   await page
     .getByRole("link", { name: editor.back(texts.sections.blog.title) })
     .click()
-  await expect(page).toHaveURL(new RegExp(`/blog\\?recherche=${id}$`))
+  await expect(page).toHaveURL(new RegExp(`/blog\\?q=${id}$`))
   await expect(
     page.getByRole("searchbox", { name: list.kinds.article.search })
   ).toHaveValue(id)
@@ -591,7 +591,7 @@ test("Podcasts : épisode refusé sans audio, audio de la médiathèque, durée,
   const duration = texts.media.units.minutesSeconds(1, "05")
 
   // L'audio arrive d'abord dans la Médiathèque ; le navigateur y lit sa durée.
-  await open(page, "/mediatheque", admin)
+  await open(page, "/media", admin)
   await page
     .getByLabel(texts.media.uploadInput)
     .setInputFiles([
@@ -690,7 +690,7 @@ test("Podcasts : épisode refusé sans audio, audio de la médiathèque, durée,
       .getByRole("link", { name: new RegExp(words.openInLibrary) })
       .click(),
   ])
-  await expect(file).toHaveURL(/\/mediatheque\?fichier=/)
+  await expect(file).toHaveURL(/\/media\?file=/)
   const sheet = file.getByRole("dialog")
   await expect(sheet).toContainText(audioName)
   await sheet

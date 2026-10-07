@@ -67,9 +67,9 @@ async function openMediaLibrary(
   page: Page,
   account: Parameters<typeof signIn>[1]
 ) {
-  await page.goto("/mediatheque")
+  await page.goto("/media")
   await signIn(page, account)
-  await expect(page).toHaveURL(/\/mediatheque$/)
+  await expect(page).toHaveURL(/\/media$/)
   await expect(
     page.getByRole("heading", { name: texts.sections.media.title })
   ).toBeVisible()
@@ -198,7 +198,7 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
   expect(await storedIn(photo!.path)).toEqual([PROTECTED])
 
   // Restauration depuis la page Corbeille : le fichier revient, prêt, avec son texte.
-  await page.goto("/corbeille")
+  await page.goto("/trash")
   const row = page.getByRole("row").filter({ hasText: photoName })
   await expect(row).toContainText("Fichier · Image")
   await expect(row).toContainText(admin.fullName)
@@ -208,7 +208,7 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
   await expect(page.getByText(texts.trash.restored(photoName))).toBeVisible()
   await expect(row).toHaveCount(0)
 
-  await page.goto("/mediatheque")
+  await page.goto("/media")
   await expect(
     card(page, photoName).getByRole("img", { name: texts.media.status.ready })
   ).toBeVisible()
@@ -219,7 +219,7 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
 
   // Corbeille de nouveau, puis « Vider la corbeille » : la ligne ET l'objet disparaissent.
   await trashFromSheet(page, photoName)
-  await page.goto("/corbeille")
+  await page.goto("/trash")
   await expect(
     page.getByRole("row").filter({ hasText: photoName })
   ).toBeVisible()
@@ -238,7 +238,7 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
   expect(await readMedia(photoName)).toBeNull()
   // Le SVG, lui, n'était pas à la corbeille : il est toujours là.
   expect(await storedIn(svg!.path)).toEqual([PROTECTED])
-  await page.goto("/mediatheque")
+  await page.goto("/media")
   await expect(card(page, svgName)).toBeVisible()
   await expect(card(page, photoName)).toHaveCount(0)
 })
@@ -426,7 +426,7 @@ test("un membre envoie les autres formats, filtre, cherche, en met deux à la co
   // Effacement d'un seul fichier depuis la corbeille : les autres restent.
   const pdf = await readMedia(names.pdf)
   await trashFromSheet(page, names.pdf)
-  await page.goto("/corbeille")
+  await page.goto("/trash")
   for (const name of [names.gif, names.lottie]) {
     await expect(page.getByRole("row").filter({ hasText: name })).toHaveCount(1)
   }

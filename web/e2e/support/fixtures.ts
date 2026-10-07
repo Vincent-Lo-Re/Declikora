@@ -71,7 +71,7 @@ export async function signIn(page: Page, account: Account) {
 
 /** Première moitié de la connexion : e-mail et code reçu (session « aal1 »). */
 export async function signInWithEmailCode(page: Page, account: Account) {
-  await expect(page).toHaveURL(/\/connexion$/)
+  await expect(page).toHaveURL(/\/sign-in$/)
   await page.getByLabel(texts.signIn.email).fill(account.email)
   const before = await receivedIds(account.email)
   await page.getByRole("button", { name: texts.signIn.sendCode }).click()
@@ -131,7 +131,7 @@ export async function openAccountPage(page: Page) {
   await headerMenu(page)
     .getByRole("link", { name: texts.sections.account.title })
     .click()
-  await expect(page).toHaveURL(/\/mon-compte$/)
+  await expect(page).toHaveURL(/\/account$/)
 }
 
 /**

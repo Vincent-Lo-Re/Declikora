@@ -14,6 +14,7 @@ import {
 import { redirectTarget } from "@/auth/session"
 import { AuthForm } from "@/components/auth-form"
 import { AuthNote } from "@/components/auth/auth-note"
+import { ContactText } from "@/components/auth/contact-text"
 import { toastFirstError } from "@/components/auth/form-errors"
 import { AuthSlides } from "@/components/auth/auth-slides"
 import { MfaStep } from "@/components/auth/mfa-step"
@@ -276,7 +277,12 @@ function CodeStep({
           <AuthNote
             icon={MailOpen}
             title={texts.signIn.invitedHint.title}
-            text={texts.signIn.invitedHint.text}
+            text={
+              <ContactText
+                plain={texts.signIn.invitedHint.text}
+                withContact={texts.signIn.invitedHint.withContact}
+              />
+            }
           />
         </FieldGroup>
       </form>

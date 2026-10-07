@@ -13,13 +13,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { displayName, initial } from "@/lib/people"
-import { authPaths } from "@/navigation"
+import { authPaths, sections } from "@/navigation"
 import { texts } from "@/texts"
 
 /**
  * Le membre, en bas du menu de gauche : son avatar (initiale du prénom), son nom et, dessous, son
- * rôle ; le tout ouvre son menu (nom et e-mail, et « Se déconnecter » ; Mon compte et le thème sont
- * dans le header).
+ * rôle ; le tout ouvre son menu (nom et e-mail, « Mon compte », puis « Se déconnecter » ; Mon compte
+ * est aussi dans le header, avec le thème).
  * L'avatar commence avec les icônes du menu (les marges d'une ligne du menu).
  */
 export function AccountMenu() {
@@ -27,6 +27,7 @@ export function AccountMenu() {
   const navigate = useNavigate()
   if (!profile) return null
   const name = displayName(profile)
+  const AccountIcon = sections.account.icon
 
   return (
     <DropdownMenu>
@@ -59,6 +60,11 @@ export function AccountMenu() {
             )}
           </DropdownMenuLabel>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => void navigate(sections.account.path)}>
+          <AccountIcon />
+          {texts.sections.account.title}
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => void navigate(authPaths.signOut)}>
           <LogOut />

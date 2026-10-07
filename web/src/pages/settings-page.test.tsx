@@ -23,13 +23,15 @@ vi.mock("@/lib/admin-identity", async (importOriginal) => {
   return {
     ...actual,
     getAdminBrand: vi.fn(),
-    saveAdminName: vi.fn(),
+    saveBrandDetails: vi.fn(),
     saveBrandFile: vi.fn(),
     saveBrandVariants: vi.fn(),
     removeBrandFile: vi.fn(),
     prepareLoginImage: vi.fn(),
     saveLoginImage: vi.fn(),
     removeLoginImage: vi.fn(),
+    saveMonogramMotion: vi.fn(),
+    saveMonogramMotions: vi.fn(),
   }
 })
 
@@ -61,25 +63,30 @@ const brand = (name: string | null): identityApi.AdminBrand => ({
   "monogram-light": null,
   "monogram-dark": null,
   loginImage: null,
+  monogramMotion: true,
+  monogramMotions: ["trace", "glint", "breathe"],
+  contactEmail: null,
   variants: {},
 })
 
 beforeEach(() => {
   vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([essentiel, premium])
   vi.mocked(identityApi.getAdminBrand).mockResolvedValue(brand(null))
-  vi.mocked(identityApi.saveAdminName).mockResolvedValue()
+  vi.mocked(identityApi.saveBrandDetails).mockResolvedValue()
   vi.mocked(identityApi.saveBrandFile).mockResolvedValue()
   vi.mocked(identityApi.saveBrandVariants).mockResolvedValue()
   vi.mocked(identityApi.removeBrandFile).mockResolvedValue()
   vi.mocked(identityApi.saveLoginImage).mockResolvedValue()
   vi.mocked(identityApi.removeLoginImage).mockResolvedValue()
+  vi.mocked(identityApi.saveMonogramMotion).mockResolvedValue()
+  vi.mocked(identityApi.saveMonogramMotions).mockResolvedValue()
 })
 
 afterEach(() => vi.clearAllMocks())
 
 describe("Paramètres : les onglets", () => {
   it("quatre onglets ; le premier s'ouvre au départ, l'onglet choisi va dans l'adresse", async () => {
-    const { router } = await renderApp("/parametres")
+    const { router } = await renderApp("/settings")
 
     const tabs = await screen.findByRole("tablist", {
       name: texts.settings.tabs.label,
@@ -106,9 +113,7 @@ describe("Paramètres : les onglets", () => {
       within(tabs).getByRole("tab", { name: texts.settings.tabs.plans })
     )
     expect(await screen.findByText(labels.title)).toBeVisible()
-    await waitFor(() =>
-      expect(router.state.location.search).toBe("?onglet=formules")
-    )
+    await waitFor(() => expect(router.state.location.search).toBe("?tab=plans"))
   })
 })
 
@@ -118,7 +123,7 @@ describe("Paramètres : le nom de la marque", () => {
     document.querySelector('[data-slot="sidebar-header"]') as HTMLElement
 
   it("par défaut « Ruche » ; un admin le change, et le menu comme l'onglet le prennent", async () => {
-    await renderApp("/parametres")
+    await renderApp("/settings")
     const field = await screen.findByLabelText(identity.name)
     expect(field).toHaveValue("")
     expect(field).toHaveAttribute("placeholder", "Ruche")
@@ -130,11 +135,13 @@ describe("Paramètres : le nom de la marque", () => {
 
     vi.mocked(identityApi.getAdminBrand).mockResolvedValue(brand("Essaim"))
     fireEvent.change(field, { target: { value: "  Essaim " } })
-    fireEvent.click(screen.getByRole("button", { name: texts.common.save }))
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.settings.adminIdentity.save })
+    )
 
     // Sans les espaces autour ; puis relu pour toute l'admin.
     await waitFor(() =>
-      expect(identityApi.saveAdminName).toHaveBeenCalledWith("Essaim")
+      expect(identityApi.saveBrandDetails).toHaveBeenCalledWith("Essaim", null)
     )
     expect(await screen.findByText(identity.saved)).toBeVisible()
     // Une autre marque sans logo : son nom en texte, plus le logotype de Ruche.
@@ -145,19 +152,49 @@ describe("Paramètres : le nom de la marque", () => {
 
   it("vide revient à « Ruche » ; un nom trop long est refusé sans rien envoyer", async () => {
     vi.mocked(identityApi.getAdminBrand).mockResolvedValue(brand("Essaim"))
-    await renderApp("/parametres")
+    await renderApp("/settings")
     const field = await screen.findByLabelText(identity.name)
     expect(field).toHaveValue("Essaim")
 
     fireEvent.change(field, { target: { value: "a".repeat(41) } })
-    fireEvent.click(screen.getByRole("button", { name: texts.common.save }))
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.settings.adminIdentity.save })
+    )
     expect(await screen.findByText(identity.nameTooLong)).toBeVisible()
-    expect(identityApi.saveAdminName).not.toHaveBeenCalled()
+    expect(identityApi.saveBrandDetails).not.toHaveBeenCalled()
 
     fireEvent.change(field, { target: { value: "   " } })
-    fireEvent.click(screen.getByRole("button", { name: texts.common.save }))
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.settings.adminIdentity.save })
+    )
     await waitFor(() =>
-      expect(identityApi.saveAdminName).toHaveBeenCalledWith(null)
+      expect(identityApi.saveBrandDetails).toHaveBeenCalledWith(null, null)
+    )
+  })
+})
+
+describe("Paramètres : l'adresse de contact de la marque", () => {
+  const identity = texts.settings.adminIdentity
+
+  it("une adresse mal écrite est refusée ; une bonne part avec le nom", async () => {
+    await renderApp("/settings")
+    const field = await screen.findByLabelText(identity.email)
+    fireEvent.change(field, { target: { value: "pas-une-adresse" } })
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.settings.adminIdentity.save })
+    )
+    expect(await screen.findByText(identity.invalidEmail)).toBeVisible()
+    expect(identityApi.saveBrandDetails).not.toHaveBeenCalled()
+
+    fireEvent.change(field, { target: { value: "aide@exemple.fr" } })
+    fireEvent.click(
+      screen.getByRole("button", { name: texts.settings.adminIdentity.save })
+    )
+    await waitFor(() =>
+      expect(identityApi.saveBrandDetails).toHaveBeenCalledWith(
+        null,
+        "aide@exemple.fr"
+      )
     )
   })
 })
@@ -169,17 +206,17 @@ describe("Paramètres : le logotype et le monogramme", () => {
     url: "https://cdn.test/logo.svg",
   }
 
-  it("une carte par fichier ; le logotype remplace le nom en haut du menu", async () => {
+  it("une case par fichier ; le logotype remplace le nom en haut du menu", async () => {
     vi.mocked(identityApi.getAdminBrand).mockResolvedValue({
       ...brand("Essaim"),
       "logotype-dark": logo,
     })
-    await renderApp("/parametres")
+    await renderApp("/settings")
     const light = files.label(files.logotype.title, files.light)
     const dark = files.label(files.logotype.title, files.dark)
     const cardOf = (label: string) =>
-      screen.getByText(label).closest('[data-slot="card"]') as HTMLElement
-    await screen.findByText(light)
+      document.querySelector(`[data-file-slot="${label}"]`) as HTMLElement
+    await screen.findByLabelText(light)
 
     // Le fond sombre a son fichier (« Remplacer », « Retirer ») ; le fond clair n'en a pas.
     expect(
@@ -226,10 +263,11 @@ describe("Paramètres : déposer un fichier de la marque", () => {
   const files = texts.settings.adminIdentity.files
 
   it("un fichier glissé sur une carte l'allume, puis part comme s'il avait été choisi", async () => {
-    await renderApp("/parametres")
+    await renderApp("/settings")
     const label = files.label(files.monogram.title, files.dark)
-    const card = (await screen.findByText(label)).closest(
-      '[data-slot="card"]'
+    await screen.findByLabelText(label)
+    const card = document.querySelector(
+      `[data-file-slot="${label}"]`
     ) as HTMLElement
     const png = new File(["x"], "monogramme.png", { type: "image/png" })
     const dataTransfer = { types: ["Files"], files: [png], dropEffect: "" }
@@ -253,7 +291,7 @@ describe("Paramètres : décliner un logo aux couleurs des palettes", () => {
   const files = texts.settings.adminIdentity.files
 
   it("un SVG aux couleurs modifiables demande s'il faut le décliner", async () => {
-    await renderApp("/parametres")
+    await renderApp("/settings")
     const light = files.label(files.monogram.title, files.light)
     const logo = new File(
       [
@@ -299,7 +337,7 @@ describe("Paramètres : décliner un logo aux couleurs des palettes", () => {
 
 describe("Paramètres : formules d'abonnement", () => {
   it("liste les formules de la moins complète à la plus complète", async () => {
-    await renderApp("/parametres?onglet=formules")
+    await renderApp("/settings?tab=plans")
     const list = await screen.findByRole("list", { name: labels.listLabel })
     expect(
       within(list)
@@ -317,7 +355,7 @@ describe("Paramètres : formules d'abonnement", () => {
     vi.mocked(levelsApi.createAccessLevel)
       .mockRejectedValueOnce(new levelsApi.AccessLevelError("nom_en_double"))
       .mockResolvedValue({ id: "n", name: "Intégral", rank: 3 })
-    await renderApp("/parametres?onglet=formules")
+    await renderApp("/settings?tab=plans")
     await screen.findByRole("list", { name: labels.listLabel })
     const name = screen.getByLabelText(labels.name)
     const add = screen.getByRole("button", { name: labels.add })
@@ -345,7 +383,7 @@ describe("Paramètres : formules d'abonnement", () => {
       ...premium,
       name: "Premium+",
     })
-    await renderApp("/parametres?onglet=formules")
+    await renderApp("/settings?tab=plans")
     await chooseAction("Premium", labels.rename)
     const input = screen.getByLabelText(labels.renameLabel("Premium"))
     fireEvent.change(input, { target: { value: "Premium+" } })
@@ -364,7 +402,7 @@ describe("Paramètres : formules d'abonnement", () => {
       ...premium,
       name: "Premium+",
     })
-    await renderApp("/parametres?onglet=formules")
+    await renderApp("/settings?tab=plans")
     await chooseAction("Premium", labels.rename)
     const input = screen.getByLabelText(labels.renameLabel("Premium"))
     fireEvent.keyDown(input, { key: "Escape" })
@@ -392,7 +430,7 @@ describe("Paramètres : formules d'abonnement", () => {
 
   it("après une suppression, le focus va à la formule suivante, puis au champ du nom", async () => {
     vi.mocked(levelsApi.deleteAccessLevel).mockResolvedValue(undefined)
-    await renderApp("/parametres?onglet=formules")
+    await renderApp("/settings?tab=plans")
     await chooseAction("Essentiel", labels.remove)
     vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([premium])
     fireEvent.click(
@@ -425,7 +463,7 @@ describe("Paramètres : formules d'abonnement", () => {
     vi.mocked(levelsApi.deleteAccessLevel).mockRejectedValue(
       new levelsApi.AccessLevelError("formule_utilisee")
     )
-    await renderApp("/parametres?onglet=formules")
+    await renderApp("/settings?tab=plans")
     await chooseAction("Essentiel", labels.remove)
     const dialog = await screen.findByRole("alertdialog")
     expect(dialog).toHaveTextContent(
@@ -443,7 +481,7 @@ describe("Paramètres : formules d'abonnement", () => {
   })
 
   it("reste réservé aux admins", async () => {
-    await renderApp("/parametres", fakeAuth({ role: "editor" }))
+    await renderApp("/settings", fakeAuth({ role: "editor" }))
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       texts.adminOnly.title
     )
@@ -465,22 +503,25 @@ describe("Paramètres : l'image de l'écran de connexion", () => {
     })
     const reduced = new Blob(["x"], { type: "image/webp" })
     vi.mocked(identityApi.prepareLoginImage).mockResolvedValue(reduced)
-    await renderApp("/parametres")
+    await renderApp("/settings")
 
-    const title = files.loginImage.title
-    const card = (await screen.findByText(title)).closest(
-      '[data-slot="card"]'
-    ) as HTMLElement
-    expect(within(card).getByRole("img", { name: title })).toHaveAttribute(
-      "src",
-      image.url
+    // L'aperçu montre l'image choisie, sous le voile et le monogramme.
+    const preview = await screen.findByRole("img", {
+      name: files.loginScreen.preview,
+    })
+    const card = preview.closest('[data-slot="card"]') as HTMLElement
+    await waitFor(() =>
+      expect(preview.querySelector('img[alt=""]')).toHaveAttribute(
+        "src",
+        image.url
+      )
     )
     expect(
-      screen.getByText(files.loginImage.hint, { exact: false })
+      within(card).getByText(files.loginImage.formats, { exact: false })
     ).toBeVisible()
 
     const photo = new File(["x"], "photo.jpg", { type: "image/jpeg" })
-    fireEvent.change(screen.getByLabelText(title), {
+    fireEvent.change(screen.getByLabelText(files.loginScreen.title), {
       target: { files: [photo] },
     })
     await waitFor(() =>
@@ -495,5 +536,69 @@ describe("Paramètres : l'image de l'écran de connexion", () => {
     await waitFor(() =>
       expect(identityApi.removeLoginImage).toHaveBeenCalledWith(image.path)
     )
+  })
+})
+
+describe("Paramètres : le monogramme animé de l'écran de connexion", () => {
+  const motion = texts.settings.adminIdentity.files.monogramMotion
+
+  it("l'interrupteur l'active ou le désactive pour toute l'équipe", async () => {
+    await renderApp("/settings")
+    const toggle = await screen.findByRole("switch", { name: motion.toggle })
+    expect(toggle).toHaveAttribute("aria-checked", "true")
+    fireEvent.click(toggle)
+    await waitFor(() =>
+      expect(identityApi.saveMonogramMotion).toHaveBeenCalledWith(false)
+    )
+    expect(await screen.findByText(motion.off)).toBeVisible()
+  })
+
+  it("ses animations se cochent, dans l'ordre fixe, une au moins", async () => {
+    await renderApp("/settings")
+    const group = await screen.findByRole("list", { name: motion.group })
+    fireEvent.click(
+      within(group).getByRole("checkbox", { name: motion.motions.shine })
+    )
+    await waitFor(() =>
+      expect(identityApi.saveMonogramMotions).toHaveBeenCalledWith([
+        "trace",
+        "glint",
+        "shine",
+        "breathe",
+      ])
+    )
+    expect(await screen.findByText(motion.saved)).toBeVisible()
+  })
+
+  it("grise, avec la raison, les animations que le monogramme ne permet pas", async () => {
+    vi.mocked(identityApi.getAdminBrand).mockResolvedValue({
+      ...brand(null),
+      "monogram-dark": { path: "m.png", url: "https://exemple.fr/m.png" },
+    })
+    await renderApp("/settings")
+    const group = await screen.findByRole("list", { name: motion.group })
+    await waitFor(() =>
+      expect(
+        within(group).getByRole("checkbox", { name: motion.motions.trace })
+      ).toHaveAttribute("aria-disabled", "true")
+    )
+    expect(
+      within(group).getByRole("checkbox", { name: motion.motions.shine })
+    ).not.toHaveAttribute("aria-disabled")
+    expect(
+      within(group).getAllByRole("button", { name: motion.blocked.svg })
+    ).toHaveLength(3)
+  })
+
+  it("la dernière animation cochée ne se décoche pas", async () => {
+    vi.mocked(identityApi.getAdminBrand).mockResolvedValue({
+      ...brand(null),
+      monogramMotions: ["sway"],
+    })
+    await renderApp("/settings")
+    const group = await screen.findByRole("list", { name: motion.group })
+    expect(
+      within(group).getByRole("checkbox", { name: motion.motions.sway })
+    ).toHaveAttribute("aria-disabled", "true")
   })
 })

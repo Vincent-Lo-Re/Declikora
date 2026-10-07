@@ -56,7 +56,7 @@ describe("menu", () => {
 
     expect(screen.getByRole("link", { name: "Médiathèque" })).toHaveAttribute(
       "href",
-      "/mediatheque"
+      "/media"
     )
   })
 
@@ -88,7 +88,7 @@ describe("pages", () => {
 
 describe("thème", () => {
   it("passe en sombre et garde le choix", async () => {
-    await renderAt("/mon-compte")
+    await renderAt("/account")
 
     fireEvent.click(screen.getByRole("button", { name: texts.theme.dark }))
 
@@ -101,7 +101,7 @@ describe("accès", () => {
   it("envoie vers la connexion sans session, en gardant la page demandée", async () => {
     const { router } = await renderApp("/blog?page=2", fakeAuth("signed-out"))
 
-    expect(router.state.location.pathname).toBe("/connexion")
+    expect(router.state.location.pathname).toBe("/sign-in")
     expect(router.state.location.state).toEqual({ from: "/blog?page=2" })
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       texts.signIn.title
@@ -113,21 +113,18 @@ describe("accès", () => {
   })
 
   it("demande le code de l'app après le code reçu par e-mail", async () => {
-    const { router } = await renderApp(
-      "/mon-compte",
-      fakeAuth({ level: "aal1" })
-    )
+    const { router } = await renderApp("/account", fakeAuth({ level: "aal1" }))
 
     // La connexion reprend à son étape de double vérification (AuthSlides).
-    expect(router.state.location.pathname).toBe("/connexion")
-    expect(router.state.location.state).toEqual({ from: "/mon-compte" })
+    expect(router.state.location.pathname).toBe("/sign-in")
+    expect(router.state.location.state).toEqual({ from: "/account" })
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       texts.mfa.verifyTitle
     )
   })
 
   it("ne rouvre pas la connexion quand on est déjà connecté", async () => {
-    const { router } = await renderApp("/connexion")
+    const { router } = await renderApp("/sign-in")
 
     expect(router.state.location.pathname).toBe("/")
   })
@@ -135,9 +132,9 @@ describe("accès", () => {
 
 describe("déconnexion", () => {
   it("ouvre la connexion sans garder la page d'où l'on vient", async () => {
-    const { router } = await renderApp("/deconnexion", fakeAuth("signed-out"))
+    const { router } = await renderApp("/sign-out", fakeAuth("signed-out"))
 
-    expect(router.state.location.pathname).toBe("/connexion")
+    expect(router.state.location.pathname).toBe("/sign-in")
     expect(router.state.location.state).toBeNull()
   })
 })
@@ -156,7 +153,7 @@ describe("rôles", () => {
     expect(screen.queryByRole("link", { name: "Équipe" })).toBeNull()
   })
 
-  it.each(["/equipe", "/parametres"])(
+  it.each(["/team", "/settings"])(
     "affiche « Réservé aux admins » à un éditeur sur %s",
     async (path) => {
       await renderApp(path, fakeAuth({ role: "editor" }))
@@ -168,7 +165,7 @@ describe("rôles", () => {
   )
 
   it("ouvre les Paramètres à un admin", async () => {
-    await renderApp("/parametres")
+    await renderApp("/settings")
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       texts.sections.settings.title
@@ -183,12 +180,12 @@ describe("éditeurs", () => {
     expect(contentEditorPath("article", "a")).toBe("/blog/a")
     expect(contentEditorPath("episode", "e")).toBe("/podcasts/e")
     expect(contentEditorPath("page", "p")).toBe("/pages/p")
-    expect(contentEditorPath("template", "t")).toBe("/modeles/t")
+    expect(contentEditorPath("template", "t")).toBe("/templates/t")
     // Une sorte sans éditeur (les anciennes méthodes, en cours de refonte).
     expect(contentEditorPath("method", "m")).toBeNull()
     expect(contentEditorPath("inconnu", "x")).toBeNull()
     expect(categoriesPath("podcasts")).toBe("/podcasts/categories")
-    expect(mediaFilePath("f")).toBe("/mediatheque?fichier=f")
+    expect(mediaFilePath("f")).toBe("/media?file=f")
   })
 })
 
@@ -199,7 +196,7 @@ describe("pages chargées à part et préparées (ADMIN § 7)", () => {
       ...(route.path ? [[route, auth] as [RouteObject, boolean]] : []),
       ...pages(
         route.children ?? [],
-        auth || route.children?.some((child) => child.path === "/connexion")
+        auth || route.children?.some((child) => child.path === "/sign-in")
       ),
     ])
   }

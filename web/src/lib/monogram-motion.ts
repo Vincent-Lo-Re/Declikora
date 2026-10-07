@@ -1,19 +1,49 @@
-// Le monogramme animé de l'écran de connexion (ADMIN § 2, « La connexion en slides ») : trois
-// animations qui s'enchaînent, séparées par des pauses (le tracé, la lueur de l'accent, la
-// respiration). Un SVG aux couleurs modifiables (lib/brand-colors.ts) est préparé pour être
-// montré en ligne, ses formes marquées pour le CSS (index.css, data-motion) ; un autre fichier
-// (PNG, WebP, SVG non modifiable) ne fait que respirer. Sans React.
+// Le monogramme animé de l'écran de connexion (ADMIN § 2, « La connexion en slides ») : les
+// animations cochées par un admin (Paramètres, section « Écran de connexion ») s'enchaînent dans
+// un ordre fixe, séparées par des pauses. Un SVG aux couleurs modifiables (lib/brand-colors.ts)
+// est préparé pour être montré en ligne, ses formes marquées pour le CSS (index.css, data-motion) ;
+// un autre fichier (PNG, WebP, SVG non modifiable) ne joue que les animations de tout le
+// monogramme. Sans React.
 
 import { analyzeSvgColors, normalizeColor } from "@/lib/brand-colors"
 import { cleanSvg } from "@/lib/media/svg"
 
+/**
+ * Les animations, dans l'ordre où elles se jouent : le tracé, la cascade, la lueur de l'accent,
+ * le reflet, le halo, le balancement, la respiration (colonne login_monogram_motions).
+ */
+export const MOTIONS = [
+  "trace",
+  "cascade",
+  "glint",
+  "shine",
+  "halo",
+  "sway",
+  "breathe",
+] as const
+
+export type Motion = (typeof MOTIONS)[number]
+
+/** Celles qui animent les formes une à une : il leur faut un SVG compatible. */
+const SVG_MOTIONS: readonly Motion[] = ["trace", "cascade", "glint"]
+
+/** Le départ, et le repli quand aucune animation cochée ne convient au fichier. */
+export const DEFAULT_MOTIONS: Motion[] = ["trace", "glint", "breathe"]
+
+export const isMotion = (value: string): value is Motion =>
+  (MOTIONS as readonly string[]).includes(value)
+
 /** Une étape de la boucle : une animation, ou une pause. */
-export type MotionPhase = "trace" | "glint" | "breathe" | "rest"
+export type MotionPhase = Motion | "rest"
 
 /** La durée de chaque animation (index.css) et des pauses, en millisecondes. */
 const PHASE_MS: Record<MotionPhase, number> = {
   trace: 2_800,
+  cascade: 2_400,
   glint: 2_400,
+  shine: 2_000,
+  halo: 2_400,
+  sway: 3_000,
   breathe: 3_000,
   rest: 4_000,
 }
@@ -91,19 +121,39 @@ export function prepareAnimatedSvg(text: string): AnimatedSvg | null {
 }
 
 /**
- * La boucle des animations : le tracé (SVG compatible), la lueur (s'il a un accent), la
- * respiration, chacune suivie d'une pause. Un fichier non compatible ne fait que respirer.
+ * Ce qui empêche l'animation de se jouer sur ce fichier (null : pas un SVG compatible) : « svg »
+ * (il faut un SVG compatible), « accent » (la lueur, sans couleur d'accent), ou null si rien.
+ */
+export function motionBlocker(
+  motion: Motion,
+  svg: AnimatedSvg | null
+): "svg" | "accent" | null {
+  if (!SVG_MOTIONS.includes(motion)) return null
+  if (svg === null) return "svg"
+  return motion === "glint" && !svg.glint ? "accent" : null
+}
+
+const playable = (motion: Motion, svg: AnimatedSvg | null) =>
+  motionBlocker(motion, svg) === null
+
+/**
+ * La boucle des animations : celles qui sont cochées et que le fichier sait jouer (la lueur
+ * demande un accent), dans l'ordre de MOTIONS, chacune suivie d'une pause. Si aucune ne convient,
+ * la respiration.
  */
 export function motionLoop(
-  svg: AnimatedSvg | null
+  svg: AnimatedSvg | null,
+  chosen: readonly Motion[]
 ): { phase: MotionPhase; ms: number }[] {
-  const animations: MotionPhase[] = svg
-    ? ["trace", ...(svg.glint ? (["glint"] as const) : []), "breathe"]
-    : ["breathe"]
-  return animations.flatMap((phase) => [
-    { phase, ms: PHASE_MS[phase] },
-    { phase: "rest" as const, ms: PHASE_MS.rest },
-  ])
+  const animations = MOTIONS.filter(
+    (motion) => chosen.includes(motion) && playable(motion, svg)
+  )
+  return (animations.length > 0 ? animations : (["breathe"] as const)).flatMap(
+    (phase) => [
+      { phase, ms: PHASE_MS[phase] },
+      { phase: "rest" as const, ms: PHASE_MS.rest },
+    ]
+  )
 }
 
 /** Le texte d'un SVG à son adresse (data: des logos de Ruche, ou fichier de l'espace « marque »). */

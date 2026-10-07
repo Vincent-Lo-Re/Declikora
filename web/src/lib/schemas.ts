@@ -52,6 +52,11 @@ export const adminNameSchema = z.object({
     .string()
     .trim()
     .max(ADMIN_NAME_MAX, texts.settings.adminIdentity.nameTooLong),
+  // Vide : pas d'adresse de contact.
+  contactEmail: z.union([
+    z.literal(""),
+    email(texts.settings.adminIdentity.invalidEmail),
+  ]),
 })
 
 export const inviteSchema = z.object({

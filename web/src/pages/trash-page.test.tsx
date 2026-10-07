@@ -56,7 +56,7 @@ afterEach(() => vi.clearAllMocks())
 
 describe("Corbeille", () => {
   it("liste ce qui a été supprimé, avec la date d'effacement automatique", async () => {
-    await renderApp("/corbeille", fakeAuth({ role: "editor" }))
+    await renderApp("/trash", fakeAuth({ role: "editor" }))
 
     const row = (await screen.findByText(photoName)).closest("tr")!
     expect(within(row).getByText("Fichier · Image")).toBeVisible()
@@ -70,14 +70,14 @@ describe("Corbeille", () => {
   })
 
   it("signale un effacement refusé parce que le fichier est encore utilisé", async () => {
-    await renderApp("/corbeille")
+    await renderApp("/trash")
 
     const row = (await screen.findByText(usedName)).closest("tr")!
     expect(within(row).getByText(texts.trash.purgeRefused)).toBeVisible()
   })
 
   it("filtre par type", async () => {
-    await renderApp("/corbeille")
+    await renderApp("/trash")
     await screen.findByText(photoName)
 
     fireEvent.click(
@@ -87,7 +87,7 @@ describe("Corbeille", () => {
   })
 
   it("le filtre est dans l'adresse (QCM du 05/10/2026)", async () => {
-    const { router } = await renderApp("/corbeille?type=fichier")
+    const { router } = await renderApp("/trash?type=file")
     await screen.findByText(photoName)
     expect(
       screen.getByRole("button", { name: texts.trash.filters.file })
@@ -102,7 +102,7 @@ describe("Corbeille", () => {
     vi.mocked(api.restoreTrashItem).mockResolvedValue({
       addressRemoved: false,
     })
-    await renderApp("/corbeille")
+    await renderApp("/trash")
 
     fireEvent.click(
       await screen.findByRole("button", {
@@ -118,7 +118,7 @@ describe("Corbeille", () => {
 
   it("vide la corbeille après confirmation, puis appelle la fonction « files »", async () => {
     vi.mocked(api.emptyTrash).mockResolvedValue(2)
-    await renderApp("/corbeille", fakeAuth({ role: "editor" }))
+    await renderApp("/trash", fakeAuth({ role: "editor" }))
     await screen.findByText(photoName)
 
     fireEvent.click(screen.getByRole("button", { name: texts.trash.empty }))
@@ -146,7 +146,7 @@ describe("Corbeille", () => {
     vi.mocked(api.emptyTrash).mockResolvedValue(2)
     // La fonction « files » ne répond pas (démarrage à froid, vérifications en cours…).
     vi.mocked(api.kickFiles).mockReturnValue(new Promise(() => {}))
-    await renderApp("/corbeille")
+    await renderApp("/trash")
     await screen.findByText(photoName)
 
     fireEvent.click(screen.getByRole("button", { name: texts.trash.empty }))
@@ -170,7 +170,7 @@ describe("Corbeille", () => {
 
   it("efface un seul élément après confirmation", async () => {
     vi.mocked(api.emptyTrash).mockResolvedValue(1)
-    await renderApp("/corbeille")
+    await renderApp("/trash")
 
     fireEvent.click(
       await screen.findByRole("button", {
@@ -193,7 +193,7 @@ describe("Corbeille", () => {
 
   it("dit quand la corbeille est vide", async () => {
     vi.mocked(api.listTrash).mockResolvedValue([])
-    await renderApp("/corbeille")
+    await renderApp("/trash")
 
     expect(await screen.findByText(texts.trash.emptyState.title)).toBeVisible()
     expect(
@@ -236,7 +236,7 @@ describe("Corbeille : contenus", () => {
   })
 
   it("filtre par type, avec les seuls types présents ; un lot reste sous sa tête", async () => {
-    await renderApp("/corbeille")
+    await renderApp("/trash")
     await screen.findByText(page.title!)
     const filters = screen.getByRole("group", {
       name: texts.trash.filters.label,
@@ -260,7 +260,7 @@ describe("Corbeille : contenus", () => {
 
   it("restaure un article, et « Ouvrir » dans le message mène à son éditeur", async () => {
     vi.mocked(api.restoreTrashItem).mockResolvedValue({ addressRemoved: false })
-    const { router } = await renderApp("/corbeille")
+    const { router } = await renderApp("/trash")
     fireEvent.click(
       await screen.findByRole("button", {
         name: texts.trash.restoreItem(article.title!),
@@ -277,7 +277,7 @@ describe("Corbeille : contenus", () => {
 
   it("restaure une page en brouillon, et prévient quand son adresse a été reprise", async () => {
     vi.mocked(api.restoreTrashItem).mockResolvedValue({ addressRemoved: true })
-    await renderApp("/corbeille")
+    await renderApp("/trash")
     fireEvent.click(
       await screen.findByRole("button", {
         name: texts.trash.restoreItem(page.title!),
@@ -291,7 +291,7 @@ describe("Corbeille : contenus", () => {
 
   it("efface la sélection, et seulement elle (têtes de lot)", async () => {
     vi.mocked(api.emptyTrash).mockResolvedValue(3)
-    await renderApp("/corbeille")
+    await renderApp("/trash")
     await screen.findByText(page.title!)
     fireEvent.click(
       screen.getByRole("checkbox", {
@@ -328,7 +328,7 @@ describe("Corbeille : contenus", () => {
 
   it("« Vider » envoie la liste explicite de tout ce qui est affiché", async () => {
     vi.mocked(api.emptyTrash).mockResolvedValue(4)
-    await renderApp("/corbeille")
+    await renderApp("/trash")
     await screen.findByText(page.title!)
     fireEvent.click(screen.getByRole("button", { name: texts.trash.empty }))
     const dialog = await screen.findByRole("alertdialog")

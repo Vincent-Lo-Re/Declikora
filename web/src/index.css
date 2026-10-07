@@ -169,6 +169,12 @@
   grid-template-columns: auto 1fr;
 }
 
+/* Une section de réglages (Paramètres) : à gauche son titre et sa phrase (16 rem), à droite sa
+   carte ; utilisé sous un conteneur assez large (@3xl), sinon tout s'empile. */
+@utility grid-cols-settings {
+  grid-template-columns: 16rem minmax(0, 1fr);
+}
+
 /* Une liste au centre et, à droite, sa colonne d'ajout de 20 rem (Catégories, Formules). */
 @utility grid-cols-list-aside {
   grid-template-columns: minmax(0, 1fr) --spacing(80);
@@ -451,8 +457,10 @@
 
 /* Le monogramme de l'écran de connexion (components/auth/animated-monogram.tsx, boucle de
    lib/monogram-motion.ts) : le tracé (les contours se dessinent l'un après l'autre, puis les
-   formes pleines apparaissent), la lueur de l'accent, la respiration ; entre deux, il est
-   immobile. Rien ne bouge si l'ordinateur demande moins d'animations. */
+   formes pleines apparaissent), la cascade (les formes remontent l'une après l'autre), la lueur
+   de l'accent, le reflet (une bande de lumière passe sur une copie blanche), le halo, le
+   balancement, la respiration ; entre deux, il est immobile. Rien ne bouge si l'ordinateur
+   demande moins d'animations. */
 [data-monogram] svg {
   height: 100%;
   width: auto;
@@ -481,6 +489,34 @@
   animation: monogram-breathe 3s ease-in-out;
 }
 
+[data-motion-phase="cascade"] [data-motion] {
+  transform-box: fill-box;
+  animation: monogram-cascade 0.9s ease-out both;
+  animation-delay: calc(var(--motion-order, 0) * 120ms);
+}
+
+/* La copie blanche du monogramme, montrée par une bande en biais qui la traverse. */
+[data-shine] {
+  filter: brightness(0) invert(1);
+  opacity: 0.8;
+  mask-image: linear-gradient(
+    105deg,
+    transparent 40%,
+    black 50%,
+    transparent 60%
+  );
+  mask-size: 300% 100%;
+  animation: monogram-shine 2s ease-in-out both;
+}
+
+[data-motion-phase="halo"] {
+  animation: monogram-halo 2.4s ease-in-out;
+}
+
+[data-motion-phase="sway"] {
+  animation: monogram-sway 3s ease-in-out;
+}
+
 @keyframes monogram-trace {
   from {
     stroke-dashoffset: 1;
@@ -499,6 +535,39 @@
 @keyframes monogram-glint {
   50% {
     opacity: 0.4;
+  }
+}
+
+@keyframes monogram-cascade {
+  from {
+    opacity: 0;
+    transform: translateY(20%);
+  }
+}
+
+@keyframes monogram-shine {
+  from {
+    mask-position: 100% 0;
+  }
+  to {
+    mask-position: 0 0;
+  }
+}
+
+@keyframes monogram-halo {
+  50% {
+    filter: drop-shadow(
+      0 0 0.75rem color-mix(in oklab, currentColor 60%, transparent)
+    );
+  }
+}
+
+@keyframes monogram-sway {
+  25% {
+    transform: rotate(-4deg);
+  }
+  75% {
+    transform: rotate(4deg);
   }
 }
 

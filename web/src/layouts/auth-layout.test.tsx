@@ -1,6 +1,7 @@
 import { screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import { clearPendingSignIn, savePendingSignIn } from "@/auth/pending-sign-in"
 import * as identityApi from "@/lib/admin-identity"
 import { fakeAuth, renderApp } from "@/test/render"
 import { texts } from "@/texts"
@@ -19,6 +20,9 @@ const brand = (
   "monogram-light": null,
   "monogram-dark": null,
   loginImage,
+  monogramMotion: true,
+  monogramMotions: ["trace", "glint", "breathe"],
+  contactEmail: null,
   variants: {},
 })
 
@@ -36,7 +40,7 @@ describe("pages de connexion (modèle login-04)", () => {
     vi.mocked(identityApi.getAdminBrand).mockResolvedValue(
       brand({ path: "connexion/photo.webp", url })
     )
-    await renderApp("/connexion", fakeAuth("signed-out"))
+    await renderApp("/sign-in", fakeAuth("signed-out"))
 
     expect(
       await screen.findByRole("heading", { name: texts.signIn.title })
@@ -50,7 +54,7 @@ describe("pages de connexion (modèle login-04)", () => {
 
   it("sans image, met celle de Ruche, sous le voile et le monogramme", async () => {
     vi.mocked(identityApi.getAdminBrand).mockResolvedValue(brand(null))
-    await renderApp("/connexion", fakeAuth("signed-out"))
+    await renderApp("/sign-in", fakeAuth("signed-out"))
 
     // Sans fichier ni nom de marque : le logotype de Ruche en haut, son monogramme à droite.
     await waitFor(() => expect(animatedMonogram()).not.toBeNull())
@@ -69,5 +73,18 @@ describe("pages de connexion (modèle login-04)", () => {
         texts.copyright(new Date().getFullYear(), texts.app.name)
       )
     ).toBeVisible()
+  })
+
+  it("avec l'adresse de contact de la marque, l'aide de l'étape du code y mène", async () => {
+    vi.mocked(identityApi.getAdminBrand).mockResolvedValue({
+      ...brand(null),
+      contactEmail: "aide@exemple.fr",
+    })
+    savePendingSignIn("anne@exemple.test")
+    await renderApp("/sign-in", fakeAuth("signed-out"))
+
+    const link = await screen.findByRole("link", { name: "aide@exemple.fr" })
+    expect(link).toHaveAttribute("href", "mailto:aide@exemple.fr")
+    clearPendingSignIn()
   })
 })

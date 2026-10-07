@@ -141,7 +141,7 @@ const labels = texts.templates.list
 describe("section Modèles", () => {
   it("montre tous les modèles avec leur type, puis un onglet par sorte", async () => {
     const sorts = texts.templates.sorts
-    await renderApp("/modeles")
+    await renderApp("/templates")
 
     // « Tous les blocs » : chaque modèle, avec sa sorte, et la date seule.
     expect(
@@ -153,7 +153,7 @@ describe("section Modèles", () => {
     expect(row).not.toHaveTextContent("Anne Admin")
     expect(screen.getByRole("link", { name: "Contact" })).toHaveAttribute(
       "href",
-      `/modeles/${CONTACT}`
+      `/templates/${CONTACT}`
     )
     expect(
       screen.getAllByRole("link", { name: /À retenir|Interview/ })
@@ -174,7 +174,7 @@ describe("section Modèles", () => {
 
   it("l'onglet est dans l'adresse (QCM du 05/10/2026)", async () => {
     const sorts = texts.templates.sorts
-    const { router } = await renderApp("/modeles?onglet=points-de-depart")
+    const { router } = await renderApp("/templates?tab=starter")
     expect(
       await screen.findByRole("tab", {
         name: sorts.starter.tab,
@@ -183,13 +183,13 @@ describe("section Modèles", () => {
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole("tab", { name: sorts.shared.tab }))
     await waitFor(() =>
-      expect(router.state.location.search).toBe("?onglet=partages")
+      expect(router.state.location.search).toBe("?tab=shared")
     )
   })
 
   it("« Nouveau modèle » : nom et sorte, puis l'éditeur du modèle s'ouvre", async () => {
     vi.mocked(templatesApi.createTemplate).mockResolvedValue(created)
-    const { router } = await renderApp("/modeles")
+    const { router } = await renderApp("/templates")
     fireEvent.click(await screen.findByRole("button", { name: labels.create }))
     const dialog = await screen.findByRole("dialog", {
       name: texts.templates.create.title,
@@ -218,7 +218,7 @@ describe("section Modèles", () => {
       })
     )
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe(`/modeles/${CONTACT}`)
+      expect(router.state.location.pathname).toBe(`/templates/${CONTACT}`)
     )
   })
 
@@ -228,7 +228,7 @@ describe("section Modèles", () => {
       template_sort: "starter",
       template_for: "page",
     })
-    await renderApp("/modeles")
+    await renderApp("/templates")
     fireEvent.click(await screen.findByRole("button", { name: labels.create }))
     const dialog = await screen.findByRole("dialog", {
       name: texts.templates.create.title,
@@ -285,7 +285,7 @@ describe("section Modèles", () => {
       trashed: 1,
       needsFileSync: false,
     })
-    await renderApp("/modeles")
+    await renderApp("/templates")
     fireEvent.click(
       await screen.findByRole("button", { name: labels.actions("Contact") })
     )
@@ -341,7 +341,7 @@ describe("section Modèles", () => {
       restored: 1,
       addressRemoved: false,
     })
-    await renderApp("/modeles")
+    await renderApp("/templates")
     fireEvent.click(
       await screen.findByRole("button", { name: labels.actions("À retenir") })
     )
@@ -381,7 +381,7 @@ describe("section Modèles", () => {
       restored: 1,
       addressRemoved: false,
     })
-    await renderApp("/modeles")
+    await renderApp("/templates")
 
     fireEvent.click(
       await screen.findByRole("checkbox", { name: texts.selection.selectAll })

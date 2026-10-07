@@ -16,7 +16,7 @@ const headerNav = () =>
 
 describe("header (ADMIN § 7, « Un header sur toute la largeur »)", () => {
   it("à gauche : « Site web » dans un nouvel onglet, puis Mon compte, Équipe et Paramètres", async () => {
-    await renderApp("/mon-compte", fakeAuth({ role: "admin" }))
+    await renderApp("/account", fakeAuth({ role: "admin" }))
 
     const site = await within(headerNav()).findByRole("link", {
       name: new RegExp(`^${texts.header.website}`),

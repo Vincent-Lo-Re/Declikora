@@ -70,7 +70,7 @@ describe("page où revenir après la connexion", () => {
     { from: "https://exemple.test" },
     { from: "//exemple.test" },
     { from: "/\\exemple.test" },
-    { from: "/connexion" },
+    { from: "/sign-in" },
     { from: "/invitation?token_hash=abc" },
   ])("revient à l'accueil pour %j", (state) => {
     expect(redirectTarget(state)).toBe("/")

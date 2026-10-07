@@ -449,9 +449,9 @@ test("page réservée à une formule : verrouillée dans l'app, image de présen
   const innerName = `dedans-${id}.png`
   try {
     // Une formule, créée dans Paramètres (onglet Formules).
-    await page.goto("/parametres?onglet=formules")
+    await page.goto("/settings?tab=plans")
     await signIn(page, admin)
-    await expect(page).toHaveURL(/\/parametres\?onglet=formules$/)
+    await expect(page).toHaveURL(/\/settings\?tab=plans$/)
     const accessLevels = texts.settings.accessLevels
     await page.getByLabel(accessLevels.name).fill(level)
     await page.getByRole("button", { name: accessLevels.add }).click()
@@ -660,9 +660,9 @@ test("formules d'abonnement : réservées aux admins ; ajouter, ranger au clavie
     // Un éditeur : pas de Paramètres dans le menu, « Réservé aux admins » par l'adresse, et la
     // base refuse elle-même qu'il range les formules.
     const editorPage = await editorContext.newPage()
-    await editorPage.goto("/parametres")
+    await editorPage.goto("/settings")
     await signIn(editorPage, editor)
-    await expect(editorPage).toHaveURL(/\/parametres$/)
+    await expect(editorPage).toHaveURL(/\/settings$/)
     await expect(
       editorPage.getByRole("heading", { name: texts.adminOnly.title })
     ).toBeVisible()
@@ -690,11 +690,11 @@ test("formules d'abonnement : réservées aux admins ; ajouter, ranger au clavie
     })
 
     // Un admin, dans l'onglet Formules (ouvert par un clic : le premier onglet s'ouvre au départ).
-    await page.goto("/parametres")
+    await page.goto("/settings")
     await signIn(page, admin)
-    await expect(page).toHaveURL(/\/parametres$/)
+    await expect(page).toHaveURL(/\/settings$/)
     await page.getByRole("tab", { name: texts.settings.tabs.plans }).click()
-    await expect(page).toHaveURL(/\/parametres\?onglet=formules$/)
+    await expect(page).toHaveURL(/\/settings\?tab=plans$/)
     await expect(
       headerMenu(page).getByRole("link", {
         name: texts.sections.settings.title,
@@ -774,9 +774,9 @@ test("texte alternatif figé dans l'app, puis mis à jour depuis la fiche du fic
   const slug = `plage-${id}`
 
   // Une image dans la Médiathèque, avec son texte alternatif.
-  await page.goto("/mediatheque")
+  await page.goto("/media")
   await signIn(page, admin)
-  await expect(page).toHaveURL(/\/mediatheque$/)
+  await expect(page).toHaveURL(/\/media$/)
   await page
     .getByLabel(texts.media.uploadInput)
     .setInputFiles([

@@ -79,7 +79,7 @@ function mockTeam(...responses: InvokeResult[]) {
 describe("Équipe", () => {
   it("liste les membres avec leur état", async () => {
     mockTeam()
-    await renderApp("/equipe")
+    await renderApp("/team")
 
     const nina = (await screen.findByText(invited.email)).closest("tr")!
     expect(within(nina).getByText(texts.team.noName)).toBeVisible()
@@ -94,7 +94,7 @@ describe("Équipe", () => {
 
   it("met en avant le renvoi d'une invitation expirée", async () => {
     const invoke = mockTeam()
-    await renderApp("/equipe")
+    await renderApp("/team")
 
     // Invitée la veille : le lien (10 minutes) a expiré.
     const nina = (await screen.findByText(invited.email)).closest("tr")!
@@ -111,7 +111,7 @@ describe("Équipe", () => {
 
   it("ne propose aucune action sur son propre compte", async () => {
     mockTeam()
-    await renderApp("/equipe")
+    await renderApp("/team")
 
     const nina = (await screen.findByText(invited.email)).closest("tr")!
     expect(
@@ -125,14 +125,14 @@ describe("Équipe", () => {
 
   it("conseille un deuxième admin quand il n'y en a qu'un", async () => {
     mockTeam()
-    await renderApp("/equipe")
+    await renderApp("/team")
 
     expect(await screen.findByText(texts.team.singleAdmin)).toBeVisible()
   })
 
   it("garde la liste si une mise à jour échoue", async () => {
     mockTeam()
-    const { queryClient } = await renderApp("/equipe")
+    const { queryClient } = await renderApp("/team")
     await screen.findByText(invited.email)
 
     listFails = true
@@ -148,7 +148,7 @@ describe("Équipe", () => {
   it("remplace la liste par l'erreur si rien n'a pu être chargé", async () => {
     mockTeam()
     listFails = true
-    await renderApp("/equipe")
+    await renderApp("/team")
 
     expect(
       await screen.findByText(texts.team.loadFailed, { exact: false })
@@ -160,7 +160,7 @@ describe("Équipe", () => {
 
   it("relit sa fiche quand la fonction répond « réservé aux admins »", async () => {
     mockTeam(teamFailure("reserve_aux_admins", 403))
-    const { queryClient } = await renderApp("/equipe")
+    const { queryClient } = await renderApp("/team")
     const invalidate = vi.spyOn(queryClient, "invalidateQueries")
 
     const nina = (await screen.findByText(invited.email)).closest("tr")!
@@ -178,7 +178,7 @@ describe("Équipe", () => {
 
   it("vérifie l'adresse de la personne invitée", async () => {
     const invoke = mockTeam()
-    await renderApp("/equipe")
+    await renderApp("/team")
 
     fireEvent.click(
       await screen.findByRole("button", { name: texts.team.invite })
@@ -196,7 +196,7 @@ describe("Équipe", () => {
 
   it("invite un membre, affiche l'erreur de la fonction et relit la liste", async () => {
     const invoke = mockTeam(teamFailure("deja_membre", 409))
-    await renderApp("/equipe")
+    await renderApp("/team")
 
     fireEvent.click(
       await screen.findByRole("button", { name: texts.team.invite })

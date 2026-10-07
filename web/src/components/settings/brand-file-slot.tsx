@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { cn } from "cn"
 import { useState } from "react"
 import { toast } from "sonner"
 
 import { BrandVariantsDialog } from "@/components/settings/brand-variants-dialog"
-import { FileCoverCard } from "@/components/settings/file-cover-card"
+import { FileSlot } from "@/components/settings/file-slot"
 import {
   adminBrandKey,
   BrandFileError,
@@ -13,7 +12,6 @@ import {
   removeBrandFile,
   saveBrandFile,
   saveBrandVariants,
-  variantPresets,
   type PreparedBrandFile,
 } from "@/lib/admin-identity"
 import { adminBrandRead } from "@/lib/reads"
@@ -22,11 +20,11 @@ import { texts } from "@/texts"
 const labels = texts.settings.adminIdentity.files
 
 /**
- * Un fichier de la marque (FileCoverCard, « Logotype · fond clair »), montré sur ce fond. Un SVG
+ * Un fichier de la marque (FileSlot, « Logotype · fond clair »), montré sur ce fond. Un SVG
  * aux couleurs modifiables demande s'il faut le décliner aux couleurs des palettes
  * (BrandVariantsDialog).
  */
-export function BrandFileCard({
+export function BrandFileSlot({
   kind,
   surface,
 }: {
@@ -39,9 +37,6 @@ export function BrandFileCard({
   const file = brand?.[slot] ?? null
   const otherSlot = `${kind}-${surface === "light" ? "dark" : "light"}` as const
   const other = brand?.[otherSlot]
-  const varied = Object.keys(brand?.variants ?? {}).some((key) =>
-    key.startsWith(`${kind}:`)
-  )
   const label = labels.label(labels[kind].title, labels[surface])
   // Un SVG aux couleurs modifiables, en attente de la réponse : le décliner ou non.
   const [asking, setAsking] = useState<PreparedBrandFile | null>(null)
@@ -93,37 +88,22 @@ export function BrandFileCard({
 
   return (
     <>
-      <FileCoverCard
+      <FileSlot
         label={label}
+        caption={labels[surface]}
         url={file?.url ?? null}
         busy={busy}
         accept={brandFileAccept}
         onChoose={(chosen) => void choose(chosen)}
         onRemove={() => file && remove.mutate(file.path)}
         // L'aperçu sur le fond auquel la version est destinée, pas sur celui du thème.
-        frameClassName={cn(
-          "aspect-video",
+        frameClassName={
           surface === "light" ? "bg-brand-light" : "bg-brand-dark"
-        )}
-        zoneClassName={cn(
-          "p-4",
+        }
+        zoneClassName={
           surface === "light"
             ? "text-brand-light-muted"
             : "text-brand-dark-muted"
-        )}
-        imageClassName="max-h-full max-w-full object-contain"
-        footer={
-          <>
-            {labels[kind].use}
-            <br />
-            {labels.formats}
-            {varied && (
-              <>
-                <br />
-                {labels.variants.status(variantPresets.length)}
-              </>
-            )}
-          </>
         }
       />
       <BrandVariantsDialog

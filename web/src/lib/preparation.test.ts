@@ -132,12 +132,12 @@ describe("la préparation de l'admin", () => {
     const preparation = startPreparation(queryClient, routes)
     preparation.setMember(member)
 
-    await preparation.arrive(prepare, { id: "1" }, url("/blog?etat=brouillon"))
+    await preparation.arrive(prepare, { id: "1" }, url("/blog?status=draft"))
     expect(prepare).toHaveBeenCalledWith({
       queryClient,
       member,
       params: { id: "1" },
-      search: new URLSearchParams("etat=brouillon"),
+      search: new URLSearchParams("status=draft"),
     })
 
     // Une lecture qui n'en finit pas : la page s'affiche quand même au bout de 2 secondes.
@@ -156,17 +156,17 @@ describe("la préparation de l'admin", () => {
     const preparation = startPreparation(client(), routes)
     preparation.setMember(member)
 
-    preparation.ahead(`${window.location.origin}/blog?recherche=pluie`)
+    preparation.ahead(`${window.location.origin}/blog?q=pluie`)
     expect(code).toHaveBeenCalledTimes(1)
     expect(prepare).toHaveBeenCalledWith(
       expect.objectContaining({
         member,
         params: {},
-        search: new URLSearchParams("recherche=pluie"),
+        search: new URLSearchParams("q=pluie"),
       })
     )
     // Survolé de nouveau peu après : rien de plus.
-    preparation.ahead("/blog?recherche=pluie")
+    preparation.ahead("/blog?q=pluie")
     expect(prepare).toHaveBeenCalledTimes(1)
     // Une adresse inconnue, ou la page affichée : rien.
     preparation.ahead("/ailleurs")
@@ -220,7 +220,7 @@ describe("la préparation de l'admin", () => {
     preparation.shown("/blog")
 
     // Un lien survolé, puis cliqué : la page suivante se prépare (sans composant qui la lise).
-    preparation.ahead("/blog?recherche=pluie")
+    preparation.ahead("/blog?q=pluie")
     await preparation.arrive(
       ({ queryClient }) =>
         ready(queryClient, { queryKey: ["suivante"], queryFn: async () => 1 }),
@@ -262,9 +262,7 @@ describe("la préparation de l'admin", () => {
         currentUrl: url(from),
         nextUrl: url(to),
       }) as Parameters<typeof preparedOnArrival>[0]
-    expect(preparedOnArrival(args("/blog", "/blog?recherche=pluie"))).toBe(
-      false
-    )
+    expect(preparedOnArrival(args("/blog", "/blog?q=pluie"))).toBe(false)
     expect(preparedOnArrival(args("/blog/1", "/blog/2"))).toBe(true)
   })
 })

@@ -10,7 +10,7 @@ const positions = new Map<string, number>()
 const searches = new Map<string, string>()
 let opened: string | null = null
 
-/** Les réglages de la page de ce chemin (« ?etat=brouillon »), relevés à chaque changement. */
+/** Les réglages de la page de ce chemin (« ?status=draft »), relevés à chaque changement. */
 export function rememberSearch(path: string, search: string) {
   searches.set(path, search)
 }
