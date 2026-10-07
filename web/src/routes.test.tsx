@@ -118,17 +118,12 @@ describe("accès", () => {
       fakeAuth({ level: "aal1" })
     )
 
-    expect(router.state.location.pathname).toBe("/double-verification")
+    // La connexion reprend à son étape de double vérification (AuthSlides).
+    expect(router.state.location.pathname).toBe("/connexion")
     expect(router.state.location.state).toEqual({ from: "/mon-compte" })
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       texts.mfa.verifyTitle
     )
-  })
-
-  it("ramène à la page demandée quand la double vérification est faite", async () => {
-    const { router } = await renderApp("/double-verification")
-
-    expect(router.state.location.pathname).toBe("/")
   })
 
   it("ne rouvre pas la connexion quand on est déjà connecté", async () => {
@@ -211,7 +206,7 @@ describe("pages chargées à part et préparées (ADMIN § 7)", () => {
 
   it("chaque page est chargée à part et dit ce qu'elle prépare : une nouvelle page aussi", () => {
     const found = pages(routes)
-    expect(found.length).toBeGreaterThan(20)
+    expect(found.length).toBeGreaterThanOrEqual(20)
     for (const [route, auth] of found) {
       const handle = route.handle as PageHandle | undefined
       expect(route.lazy, route.path).toBeTypeOf("function")

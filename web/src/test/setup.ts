@@ -58,3 +58,20 @@ window.scrollTo = ((first?: number | ScrollToOptions, second?: number) => {
     typeof first === "number" ? (second ?? 0) : (first?.top ?? window.scrollY)
   Object.defineProperty(window, "scrollY", { value: top, configurable: true })
 }) as typeof window.scrollTo
+
+// jsdom n'observe ni la taille ni la visibilité des éléments : le carrousel des étapes de la
+// connexion (Embla, components/auth/auth-slides.tsx) s'en sert.
+class SilentObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return []
+  }
+}
+if (!("IntersectionObserver" in window)) {
+  Object.assign(window, { IntersectionObserver: SilentObserver })
+}
+if (!("ResizeObserver" in window)) {
+  Object.assign(window, { ResizeObserver: SilentObserver })
+}

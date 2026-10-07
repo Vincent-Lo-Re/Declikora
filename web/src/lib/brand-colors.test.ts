@@ -21,6 +21,10 @@ describe("les couleurs d'un logo SVG", () => {
     expect(normalizeColor("#111")).toBe("#111111")
     expect(normalizeColor("rgb(17, 17, 17)")).toBe("#111111")
     expect(normalizeColor("white")).toBe("#ffffff")
+    // Les thèmes de shadcn (les logos déclinés par palette) : oklch.
+    expect(normalizeColor("oklch(0.985 0 0)")).toBe("#fafafa")
+    expect(normalizeColor("oklch(0% 0 0)")).toBe("#000000")
+    expect(normalizeColor("oklch(0.646 0.222 41.116)")).toBe("#f54900")
     expect(normalizeColor("hsl(30 100% 50%)")).toBeNull()
   })
 

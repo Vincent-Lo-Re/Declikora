@@ -92,6 +92,29 @@ export function isInvitationExpired(member: Member, now = Date.now()): boolean {
 }
 
 /**
+ * L'état d'un membre dans la liste de l'équipe : invité (lien encore valable ou expiré), invitation
+ * acceptée mais double vérification à faire, ou actif. Accepter l'invitation ouvre une première
+ * session, le temps de configurer l'app du téléphone : ce n'est pas encore une connexion à
+ * l'admin (la base refuse tout avant la double vérification).
+ */
+export type MemberState = "invited" | "expired" | "mfaPending" | "active"
+
+export function memberState(member: Member, now = Date.now()): MemberState {
+  if (member.status === "invited") {
+    return isInvitationExpired(member, now) ? "expired" : "invited"
+  }
+  return member.mfa_enabled ? "active" : "mfaPending"
+}
+
+/**
+ * La dernière connexion à montrer : aucune tant que la double vérification n'est pas configurée
+ * (l'acceptation de l'invitation n'en est pas une).
+ */
+export function shownLastSignIn(member: Member): string | null {
+  return member.mfa_enabled ? member.last_sign_in_at : null
+}
+
+/**
  * Nombre d'admins capables d'agir : invitation acceptée et double vérification
  * configurée (même règle que la base, voir has_other_active_admin).
  */

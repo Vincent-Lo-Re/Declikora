@@ -27,6 +27,9 @@ vi.mock("@/lib/admin-identity", async (importOriginal) => {
     saveBrandFile: vi.fn(),
     saveBrandVariants: vi.fn(),
     removeBrandFile: vi.fn(),
+    prepareLoginImage: vi.fn(),
+    saveLoginImage: vi.fn(),
+    removeLoginImage: vi.fn(),
   }
 })
 
@@ -57,6 +60,7 @@ const brand = (name: string | null): identityApi.AdminBrand => ({
   "logotype-dark": null,
   "monogram-light": null,
   "monogram-dark": null,
+  loginImage: null,
   variants: {},
 })
 
@@ -67,6 +71,8 @@ beforeEach(() => {
   vi.mocked(identityApi.saveBrandFile).mockResolvedValue()
   vi.mocked(identityApi.saveBrandVariants).mockResolvedValue()
   vi.mocked(identityApi.removeBrandFile).mockResolvedValue()
+  vi.mocked(identityApi.saveLoginImage).mockResolvedValue()
+  vi.mocked(identityApi.removeLoginImage).mockResolvedValue()
 })
 
 afterEach(() => vi.clearAllMocks())
@@ -442,5 +448,52 @@ describe("Paramètres : formules d'abonnement", () => {
       texts.adminOnly.title
     )
     expect(levelsApi.listAccessLevels).not.toHaveBeenCalled()
+  })
+})
+
+describe("Paramètres : l'image de l'écran de connexion", () => {
+  const files = texts.settings.adminIdentity.files
+
+  it("une photo choisie est réduite puis envoyée ; l'image enregistrée se retire", async () => {
+    const image = {
+      path: "connexion/00000000-0000-4000-8000-000000000006.webp",
+      url: "https://exemple.test/marque/connexion/photo.webp",
+    }
+    vi.mocked(identityApi.getAdminBrand).mockResolvedValue({
+      ...brand(null),
+      loginImage: image,
+    })
+    const reduced = new Blob(["x"], { type: "image/webp" })
+    vi.mocked(identityApi.prepareLoginImage).mockResolvedValue(reduced)
+    await renderApp("/parametres")
+
+    const title = files.loginImage.title
+    const card = (await screen.findByText(title)).closest(
+      '[data-slot="card"]'
+    ) as HTMLElement
+    expect(within(card).getByRole("img", { name: title })).toHaveAttribute(
+      "src",
+      image.url
+    )
+    expect(
+      screen.getByText(files.loginImage.hint, { exact: false })
+    ).toBeVisible()
+
+    const photo = new File(["x"], "photo.jpg", { type: "image/jpeg" })
+    fireEvent.change(screen.getByLabelText(title), {
+      target: { files: [photo] },
+    })
+    await waitFor(() =>
+      expect(identityApi.saveLoginImage).toHaveBeenCalledWith(
+        reduced,
+        image.path
+      )
+    )
+    expect(identityApi.prepareLoginImage).toHaveBeenCalledWith(photo)
+
+    fireEvent.click(within(card).getByRole("button", { name: files.remove }))
+    await waitFor(() =>
+      expect(identityApi.removeLoginImage).toHaveBeenCalledWith(image.path)
+    )
   })
 })

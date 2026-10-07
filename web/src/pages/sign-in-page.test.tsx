@@ -23,12 +23,22 @@ async function askCode(email: string) {
 const noSession = { user: null, session: null, messageId: null }
 
 describe("connexion", () => {
-  it("vérifie l'adresse avant de l'envoyer", async () => {
+  it("garde le bouton inactif tant que l'adresse est mal écrite", async () => {
     const signIn = vi.spyOn(supabase.auth, "signInWithOtp")
+    await renderApp("/connexion", fakeAuth("signed-out"))
+    const field = screen.getByLabelText(texts.signIn.email)
+    const button = screen.getByRole("button", { name: texts.signIn.sendCode })
+    expect(button).toBeDisabled()
 
-    await askCode("pas-une-adresse")
-
+    fireEvent.change(field, { target: { value: "pas-une-adresse" } })
+    expect(button).toBeDisabled()
+    // En quittant le champ : la notification, et le champ en rouge.
+    fireEvent.blur(field)
     expect(await screen.findByText(texts.signIn.invalidEmail)).toBeVisible()
+    await waitFor(() => expect(field).toHaveAttribute("aria-invalid", "true"))
+
+    fireEvent.change(field, { target: { value: "anne@exemple.test" } })
+    expect(button).toBeEnabled()
     expect(signIn).not.toHaveBeenCalled()
   })
 
@@ -119,10 +129,10 @@ describe("connexion", () => {
 
     await askCode("invitee@exemple.test")
 
-    expect(await screen.findByText(texts.signIn.invitedHint)).toBeVisible()
+    expect(await screen.findByText(texts.signIn.invitedHint.text)).toBeVisible()
   })
 
-  it("signale un code faux ou expiré", async () => {
+  it("se connecte dès le 6e chiffre, puis signale un code faux ou expiré", async () => {
     vi.spyOn(supabase.auth, "signInWithOtp").mockResolvedValue({
       data: noSession,
       error: null,
@@ -138,12 +148,21 @@ describe("connexion", () => {
     await askCode("anne@exemple.test")
 
     const code = await screen.findByLabelText(texts.signIn.code)
+    // Pas de clic : le 6e chiffre lance la connexion ; le bouton attend, grisé, avec ses points.
     fireEvent.change(code, { target: { value: "123456" } })
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.signIn.submitCode })
-    )
+    const button = screen.getByRole("button", { name: texts.common.loading })
+    expect(button).toBeDisabled()
 
-    expect(await screen.findByText(texts.signIn.wrongCode)).toBeVisible()
+    // La vérification dure au moins une seconde (CODE_CHECK_MIN_MS).
+    expect(
+      await screen.findByText(texts.signIn.wrongCode, {}, { timeout: 3000 })
+    ).toBeVisible()
+    // Refusé : les cases se vident, et le bouton revient, inactif jusqu'au prochain code.
+    expect(code).toHaveValue("")
+    expect(
+      screen.getByRole("button", { name: texts.signIn.submitCode })
+    ).toBeDisabled()
+    expect(verify).toHaveBeenCalledTimes(1)
     expect(verify).toHaveBeenCalledWith({
       email: "anne@exemple.test",
       token: "123456",
@@ -151,7 +170,7 @@ describe("connexion", () => {
     })
   })
 
-  it("refuse un code incomplet", async () => {
+  it("garde « Se connecter » inactif tant que le code est incomplet", async () => {
     vi.spyOn(supabase.auth, "signInWithOtp").mockResolvedValue({
       data: noSession,
       error: null,
@@ -160,14 +179,10 @@ describe("connexion", () => {
     await askCode("anne@exemple.test")
 
     const code = await screen.findByLabelText(texts.signIn.code)
+    const button = screen.getByRole("button", { name: texts.signIn.submitCode })
+    expect(button).toBeDisabled()
     fireEvent.change(code, { target: { value: "123" } })
-    fireEvent.click(
-      screen.getByRole("button", { name: texts.signIn.submitCode })
-    )
-
-    await waitFor(() =>
-      expect(screen.getByText(texts.signIn.invalidCode)).toBeVisible()
-    )
+    expect(button).toBeDisabled()
     expect(verify).not.toHaveBeenCalled()
   })
 })
@@ -189,9 +204,13 @@ describe("invitation", () => {
     )
 
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe("/double-verification")
+      expect(verify).toHaveBeenCalledWith({
+        token_hash: "abc",
+        type: "invite",
+      })
     )
-    expect(verify).toHaveBeenCalledWith({ token_hash: "abc", type: "invite" })
+    // La double vérification glisse sur la même page (la session simulée, elle, ne change pas).
+    expect(router.state.location.pathname).toBe("/invitation")
   })
 
   it("explique quoi faire si le lien a expiré", async () => {

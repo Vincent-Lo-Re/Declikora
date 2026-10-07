@@ -50,6 +50,8 @@ function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return (
     <TabsPrimitive.Panel
       data-slot="tabs-content"
+      // Un onglet ouvert apparaît en fondu, comme une page (index.css).
+      data-page-fade
       className={cn("flex-1 text-sm outline-none", className)}
       {...props}
     />

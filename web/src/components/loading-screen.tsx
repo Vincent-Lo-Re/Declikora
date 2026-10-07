@@ -1,10 +1,14 @@
-import { Spinner } from "@/components/ui/spinner"
+import { texts } from "@/texts"
 
-/** Affiché pendant la lecture de la session ou de la fiche du membre. */
+/**
+ * Affiché pendant la lecture de la session ou de la fiche du membre, et le temps de charger le
+ * code d'une page : un écran vide, sans icône qui tourne (une administration douce) ; la page
+ * apparaît ensuite en fondu. Les lecteurs d'écran entendent « Chargement… ».
+ */
 export function LoadingScreen() {
   return (
-    <div className="flex min-h-svh items-center justify-center">
-      <Spinner className="size-6 text-muted-foreground" />
+    <div role="status" className="min-h-svh">
+      <span className="sr-only">{texts.common.loading}</span>
     </div>
   )
 }

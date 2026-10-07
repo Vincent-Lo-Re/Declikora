@@ -22,6 +22,27 @@ const hex2 = (value: number) =>
     .toString(16)
     .padStart(2, "0")
 
+/**
+ * Une couleur oklch (celles des thèmes de shadcn, que portent les logos déclinés par palette) en
+ * sRGB, chaque canal de 0 à 255.
+ */
+function oklchToRgb(l: number, c: number, h: number): [number, number, number] {
+  const a = c * Math.cos((h * Math.PI) / 180)
+  const b = c * Math.sin((h * Math.PI) / 180)
+  const l1 = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3
+  const m1 = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3
+  const s1 = (l - 0.0894841775 * a - 1.291485548 * b) ** 3
+  const linear = [
+    4.0767416621 * l1 - 3.3077115913 * m1 + 0.2309699292 * s1,
+    -1.2684380046 * l1 + 2.6097574011 * m1 - 0.3413193965 * s1,
+    -0.0041960863 * l1 - 0.7034186147 * m1 + 1.707614701 * s1,
+  ]
+  return linear.map((value) => {
+    const v = Math.min(1, Math.max(0, value))
+    return (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055) * 255
+  }) as [number, number, number]
+}
+
 /** Une couleur CSS en #rrggbb ; null si on ne la reconnaît pas (le SVG n'est alors pas modifiable). */
 export function normalizeColor(value: string): string | null {
   const color = value.trim().toLowerCase()
@@ -33,6 +54,12 @@ export function normalizeColor(value: string): string | null {
   if (long) return `#${long[1]}`
   const rgb = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/.exec(color)
   if (rgb) return `#${hex2(+rgb[1])}${hex2(+rgb[2])}${hex2(+rgb[3])}`
+  const oklch = /^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)/.exec(color)
+  if (oklch) {
+    const lightness = +oklch[1] / (oklch[2] ? 100 : 1)
+    const [r, g, b] = oklchToRgb(lightness, +oklch[3], +oklch[4])
+    return `#${hex2(r)}${hex2(g)}${hex2(b)}`
+  }
   return null
 }
 

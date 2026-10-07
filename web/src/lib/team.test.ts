@@ -5,6 +5,8 @@ import {
   countActiveAdmins,
   isAccessLost,
   isInvitationExpired,
+  memberState,
+  shownLastSignIn,
   TeamError,
   toTeamError,
   type Member,
@@ -65,6 +67,23 @@ describe("état des membres", () => {
     expect(
       isInvitationExpired({ ...member, status: "active" }, at("13:00:00"))
     ).toBe(false)
+  })
+
+  it("ne dit « Actif » qu'une fois la double vérification configurée", () => {
+    const at = (time: string) => new Date(`2026-09-27T${time}Z`).getTime()
+    expect(memberState(member, at("12:09:00"))).toBe("invited")
+    expect(memberState(member, at("12:11:00"))).toBe("expired")
+    // Invitation acceptée : une première session, pas encore une connexion à l'admin.
+    const accepted = {
+      ...member,
+      status: "active",
+      last_sign_in_at: "2026-09-27T12:05:00Z",
+    } as const
+    expect(memberState(accepted)).toBe("mfaPending")
+    expect(shownLastSignIn(accepted)).toBeNull()
+    const active = { ...accepted, mfa_enabled: true }
+    expect(memberState(active)).toBe("active")
+    expect(shownLastSignIn(active)).toBe("2026-09-27T12:05:00Z")
   })
 
   it("ne compte que les admins capables d'agir", () => {

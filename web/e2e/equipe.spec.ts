@@ -67,7 +67,6 @@ test("un admin invite un éditeur, qui rejoint l'équipe sans voir Équipe", asy
   await editorPage
     .getByRole("button", { name: texts.invitation.accept })
     .click()
-  await expect(editorPage).toHaveURL(/\/double-verification$/)
   await verifySecondFactor(editorPage, editor)
 
   // L'éditeur arrive sur l'accueil, sans Équipe ni Paramètres dans le menu.

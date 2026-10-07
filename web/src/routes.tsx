@@ -108,11 +108,6 @@ export const routes: RouteObject[] = [
             (m) => <m.SignInPage />
           ),
           authPage(
-            authPaths.mfa,
-            () => import("@/pages/mfa-page"),
-            (m) => <m.MfaPage />
-          ),
-          authPage(
             authPaths.invitation,
             () => import("@/pages/invitation-page"),
             (m) => <m.InvitationPage />

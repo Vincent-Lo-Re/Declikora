@@ -8,6 +8,7 @@ import {
   headerMenu,
   expect,
   openAccountPage,
+  secondFactorHeading,
   signIn,
   test,
 } from "./support/fixtures.ts"
@@ -79,8 +80,8 @@ test("un code faux est refusé", async ({ page, team }) => {
   await page.getByRole("button", { name: texts.signIn.sendCode }).click()
   await expect(page.getByText(texts.signIn.codeSent(admin.email))).toBeVisible()
 
+  // Le 6e chiffre lance la connexion, sans clic.
   await page.getByLabel(texts.signIn.code).fill("000000")
-  await page.getByRole("button", { name: texts.signIn.submitCode }).click()
   await expect(page.getByText(texts.signIn.wrongCode)).toBeVisible()
   await expect(page).toHaveURL(/\/connexion$/)
 })
@@ -105,7 +106,6 @@ test("après un rechargement, la connexion reprend à l'étape du code", async (
     page.getByText(texts.signIn.codeStillValid(admin.email))
   ).toBeVisible()
   await page.getByLabel(texts.signIn.code).fill(signInCode(email))
-  await page.getByRole("button", { name: texts.signIn.submitCode }).click()
-  await expect(page).toHaveURL(/\/double-verification$/)
+  await expect(secondFactorHeading(page)).toBeVisible()
   expect((await receivedIds(admin.email)).size).toBe(before.size + 1)
 })

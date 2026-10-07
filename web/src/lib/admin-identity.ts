@@ -1,7 +1,7 @@
 // Identité de l'admin (table admin_identity, une seule ligne ; Paramètres, onglet « Identité de
 // l'admin », ADMIN § 7), la même pour toute l'équipe : le nom de la marque (vide : « Ruche »), le
 // logotype et le monogramme, chacun pour fond clair et pour fond sombre (espace public
-// « marque »), et leurs déclinaisons aux couleurs de chaque palette (table
+// « marque »), l'image de l'écran de connexion, et les déclinaisons du logo aux couleurs de chaque palette (table
 // admin_brand_variants). admin_brand() et admin_brand_variants() les donnent à tout le monde,
 // page de connexion comprise ; seul un admin les change.
 
@@ -14,6 +14,7 @@ import {
   type SvgColors,
 } from "@/lib/brand-colors"
 import type { Tables, TablesInsert } from "@/lib/database.types"
+import { decodeImage, reduceImage } from "@/lib/media/image"
 import { cleanSvg } from "@/lib/media/svg"
 import { palettePresets, presetLogoColors, type PresetId } from "@/lib/palettes"
 import { supabase } from "@/lib/supabase"
@@ -45,16 +46,25 @@ type BrandColumn = (typeof brandSlots)[BrandSlot]["column"]
 export type BrandKind = "logotype" | "monogram"
 export type BrandSurface = "light" | "dark"
 
+type BrandFile = { path: string; url: string }
+
 /**
- * L'identité enregistrée : le nom (ou null), les adresses publiques des fichiers (ou null) et
- * celles de leurs déclinaisons par palette (« logotype:stone-orange:dark »).
+ * L'identité enregistrée : le nom (ou null), les adresses publiques des fichiers (ou null), celles
+ * des déclinaisons du logo par palette (« logotype:stone-orange:dark ») et l'image de l'écran de
+ * connexion (ou null).
  */
 export type AdminBrand = { name: string | null } & Record<
   BrandSlot,
-  { path: string; url: string } | null
-> & { variants: Partial<Record<string, string>> }
+  BrandFile | null
+> & {
+    variants: Partial<Record<string, string>>
+    loginImage: BrandFile | null
+  }
 
-type BrandRow = Pick<Tables<"admin_identity">, "name" | BrandColumn>
+type BrandRow = Pick<
+  Tables<"admin_identity">,
+  "name" | BrandColumn | "login_image"
+>
 
 const variantKey = (kind: BrandKind, palette: string, surface: BrandSurface) =>
   `${kind}:${palette}:${surface}`
@@ -71,7 +81,7 @@ const ORIGIN: PresetId = "neutral-none"
 /** Les palettes pour lesquelles un logo est décliné : toutes, Neutrine comprise. */
 export const variantPresets = palettePresets
 
-function fileOf(path: string | null) {
+function fileOf(path: string | null): BrandFile | null {
   if (!path) return null
   return {
     path,
@@ -93,6 +103,7 @@ export async function getAdminBrand(): Promise<AdminBrand> {
     "logotype-dark": fileOf(row.logotype_dark),
     "monogram-light": fileOf(row.monogram_light),
     "monogram-dark": fileOf(row.monogram_dark),
+    loginImage: fileOf(row.login_image),
     variants: Object.fromEntries(
       variants.data.map((variant) => [
         variantKey(
@@ -192,6 +203,52 @@ export async function removeBrandFile(
 ): Promise<void> {
   await updateIdentity({ [brandSlots[slot].column]: null })
   if (last) await clearBrandVariants(slotKind(slot))
+  await supabase.storage.from(BUCKET).remove([previous])
+}
+
+// L'image de l'écran de connexion : une photo, réduite dans le navigateur comme celles de la
+// Médiathèque (environ 300 Ko, 2 000 px au plus, en WebP ou en JPEG avec Safari).
+const loginImageTypes = ["image/jpeg", "image/png", "image/webp"]
+export const loginImageAccept = loginImageTypes.join(",")
+const LOGIN_FOLDER = "connexion"
+
+/** Réduit l'image de l'écran de connexion avant l'envoi. */
+export async function prepareLoginImage(file: File): Promise<Blob> {
+  const words = texts.settings.adminIdentity.files.errors
+  if (!loginImageTypes.includes(file.type)) {
+    throw new BrandFileError(words.photoType)
+  }
+  let image
+  try {
+    image = await decodeImage(file)
+  } catch {
+    throw new BrandFileError(words.photo)
+  }
+  try {
+    return (await reduceImage(image, image.encode)).blob
+  } finally {
+    image.close()
+  }
+}
+
+/** Envoie l'image de l'écran de connexion (admins) sous un nouveau nom, puis retire l'ancienne. */
+export async function saveLoginImage(
+  image: Blob,
+  previous: string | null
+): Promise<void> {
+  const mime = image.type === "image/webp" ? "image/webp" : "image/jpeg"
+  const path = `${LOGIN_FOLDER}/${crypto.randomUUID()}.${mime === "image/webp" ? "webp" : "jpg"}`
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, image, { contentType: mime })
+  if (error) throw error
+  await updateIdentity({ login_image: path })
+  if (previous) await supabase.storage.from(BUCKET).remove([previous])
+}
+
+/** Retire l'image de l'écran de connexion (admins) : le monogramme reprend sa place. */
+export async function removeLoginImage(previous: string): Promise<void> {
+  await updateIdentity({ login_image: null })
   await supabase.storage.from(BUCKET).remove([previous])
 }
 
