@@ -78,8 +78,11 @@ export type Database = {
       }
       admin_identity: {
         Row: {
+          contact_email: string | null
           id: boolean
           login_image: string | null
+          login_monogram_motion: boolean
+          login_monogram_motions: string[]
           logotype_dark: string | null
           logotype_light: string | null
           monogram_dark: string | null
@@ -87,8 +90,11 @@ export type Database = {
           name: string | null
         }
         Insert: {
+          contact_email?: string | null
           id?: boolean
           login_image?: string | null
+          login_monogram_motion?: boolean
+          login_monogram_motions?: string[]
           logotype_dark?: string | null
           logotype_light?: string | null
           monogram_dark?: string | null
@@ -96,8 +102,11 @@ export type Database = {
           name?: string | null
         }
         Update: {
+          contact_email?: string | null
           id?: boolean
           login_image?: string | null
+          login_monogram_motion?: boolean
+          login_monogram_motions?: string[]
           logotype_dark?: string | null
           logotype_light?: string | null
           monogram_dark?: string | null
@@ -624,7 +633,10 @@ export type Database = {
       admin_brand: {
         Args: Record<PropertyKey, never>
         Returns: {
+          contact_email: string
           login_image: string
+          login_monogram_motion: boolean
+          login_monogram_motions: string[]
           logotype_dark: string
           logotype_light: string
           monogram_dark: string

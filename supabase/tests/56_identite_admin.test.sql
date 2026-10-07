@@ -6,7 +6,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(39);
+select plan(53);
 
 select pg_temp.create_people();
 
@@ -202,6 +202,73 @@ select is(
   'connexion/00000000-0000-4000-8000-000000000006.jpg',
   'anon : le chemin de l''image de connexion'
 );
+select pg_temp.as_person('admin');
+
+-- Le monogramme animé de l'écran de connexion : activé au départ ; un admin le désactive, un
+-- éditeur non ; tout le monde le lit par admin_brand().
+select pg_temp.as_anon();
+select is((select login_monogram_motion from public.admin_brand()), true, 'monogramme animé au départ');
+select pg_temp.as_person('editor');
+select is(
+  pg_temp.affected('update public.admin_identity set login_monogram_motion = false'), 0,
+  'éditeur : ne change pas le monogramme animé'
+);
+select pg_temp.as_person('admin');
+select is(
+  pg_temp.affected('update public.admin_identity set login_monogram_motion = false'), 1,
+  'admin : désactive le monogramme animé'
+);
+select pg_temp.as_anon();
+select is((select login_monogram_motion from public.admin_brand()), false, 'anon : monogramme immobile');
+select pg_temp.as_person('admin');
+
+-- Ses animations : le tracé, la lueur et la respiration au départ ; un admin en coche d'autres,
+-- parmi les sept connues, une au moins.
+select is(
+  pg_temp.affected('update public.admin_identity set login_monogram_motions = default'), 1,
+  'admin : revient aux animations du départ'
+);
+select is(
+  (select login_monogram_motions from public.admin_brand()), array['trace', 'glint', 'breathe'],
+  'les animations du départ'
+);
+select is(
+  pg_temp.affected($$update public.admin_identity set login_monogram_motions = array['shine', 'sway']$$), 1,
+  'admin : coche le reflet et le balancement'
+);
+select throws_ok(
+  $$update public.admin_identity set login_monogram_motions = array['spin']$$, '23514', null,
+  'une animation inconnue est refusée'
+);
+select throws_ok(
+  $$update public.admin_identity set login_monogram_motions = array[]::text[]$$, '23514', null,
+  'au moins une animation'
+);
+select pg_temp.as_anon();
+select is(
+  (select login_monogram_motions from public.admin_brand()), array['shine', 'sway'],
+  'anon : les animations cochées'
+);
+select pg_temp.as_person('admin');
+
+-- L'adresse de contact : vide au départ ; un admin l'enregistre (une adresse bien écrite), un
+-- éditeur non ; tout le monde la lit par admin_brand().
+select pg_temp.as_person('editor');
+select is(
+  pg_temp.affected($$update public.admin_identity set contact_email = 'aide@exemple.fr'$$), 0,
+  'éditeur : ne change pas l''adresse de contact'
+);
+select pg_temp.as_person('admin');
+select throws_ok(
+  $$update public.admin_identity set contact_email = 'pas-une-adresse'$$, '23514', null,
+  'une adresse de contact mal écrite est refusée'
+);
+select is(
+  pg_temp.affected($$update public.admin_identity set contact_email = 'aide@exemple.fr'$$), 1,
+  'admin : enregistre l''adresse de contact'
+);
+select pg_temp.as_anon();
+select is((select contact_email from public.admin_brand()), 'aide@exemple.fr', 'anon : l''adresse de contact');
 select pg_temp.as_person('admin');
 
 -- Une seule ligne : ni ajout ni suppression, même pour un admin.
