@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest"
 import {
   listFiltersFromAddress,
   mediaFiltersFromAddress,
+  settingsTabFromAddress,
   templateTabFromAddress,
   trashFilterFromAddress,
   writeListFilters,
   writeMediaFilters,
+  writeSettingsTab,
   writeTemplateTab,
   writeTrashFilter,
 } from "@/lib/address"
@@ -85,6 +87,17 @@ describe("les réglages des listes dans l'adresse (QCM du 05/10/2026)", () => {
       search: "",
       unused: false,
     })
+  })
+
+  it("l'onglet de Paramètres : le premier par défaut, absent de l'adresse", () => {
+    expect(written((p) => writeSettingsTab(p, "plans"))).toBe("onglet=formules")
+    expect(settingsTabFromAddress(new URLSearchParams("onglet=avance"))).toBe(
+      "advanced"
+    )
+    expect(settingsTabFromAddress(new URLSearchParams())).toBe("admin")
+    expect(
+      written((p) => writeSettingsTab(p, "admin"), "onglet=formules")
+    ).toBe("")
   })
 
   it("l'onglet des Modèles de bloc et le filtre de la Corbeille", () => {

@@ -173,6 +173,33 @@ export function writeTemplateTab(
   writeChoice(params, tabChoice, tab)
 }
 
+// --- Paramètres -----------------------------------------------------------------------------
+
+/** Les onglets de Paramètres, dans l'ordre (ADMIN § 7). */
+export const settingsTabs = ["admin", "app", "plans", "advanced"] as const
+export type SettingsTab = (typeof settingsTabs)[number]
+
+const settingsTabChoice: Choice<SettingsTab> = {
+  name: "onglet",
+  words: {
+    admin: "identite-admin",
+    app: "identite-app",
+    plans: "formules",
+    advanced: "avance",
+  },
+  fallback: "admin",
+}
+
+/** L'onglet de Paramètres, lu dans l'adresse (le premier, l'identité de l'admin, par défaut). */
+export function settingsTabFromAddress(params: URLSearchParams): SettingsTab {
+  return readChoice(params, settingsTabChoice)
+}
+
+/** Écrit l'onglet de Paramètres dans l'adresse. */
+export function writeSettingsTab(params: URLSearchParams, tab: SettingsTab) {
+  writeChoice(params, settingsTabChoice, tab)
+}
+
 // --- Corbeille ------------------------------------------------------------------------------
 
 const trashChoice: Choice<TrashFilter> = {

@@ -43,9 +43,42 @@ beforeEach(() => {
 
 afterEach(() => vi.clearAllMocks())
 
+describe("Paramètres : les onglets", () => {
+  it("quatre onglets ; le premier s'ouvre au départ, l'onglet choisi va dans l'adresse", async () => {
+    const { router } = await renderApp("/parametres")
+
+    const tabs = await screen.findByRole("tablist", {
+      name: texts.settings.tabs.label,
+    })
+    expect(
+      within(tabs)
+        .getAllByRole("tab")
+        .map((tab) => tab.textContent)
+    ).toEqual([
+      texts.settings.tabs.admin,
+      texts.settings.tabs.app,
+      texts.settings.tabs.plans,
+      texts.settings.tabs.advanced,
+    ])
+    expect(
+      within(tabs).getByRole("tab", { name: texts.settings.tabs.admin })
+    ).toHaveAttribute("aria-selected", "true")
+    // Pas encore rempli : il le dit.
+    expect(screen.getByText(texts.settings.empty.title)).toBeVisible()
+
+    fireEvent.click(
+      within(tabs).getByRole("tab", { name: texts.settings.tabs.plans })
+    )
+    expect(await screen.findByText(labels.title)).toBeVisible()
+    await waitFor(() =>
+      expect(router.state.location.search).toBe("?onglet=formules")
+    )
+  })
+})
+
 describe("Paramètres : formules d'abonnement", () => {
   it("liste les formules de la moins complète à la plus complète", async () => {
-    await renderApp("/parametres")
+    await renderApp("/parametres?onglet=formules")
     const list = await screen.findByRole("list", { name: labels.listLabel })
     expect(
       within(list)
@@ -63,7 +96,7 @@ describe("Paramètres : formules d'abonnement", () => {
     vi.mocked(levelsApi.createAccessLevel)
       .mockRejectedValueOnce(new levelsApi.AccessLevelError("nom_en_double"))
       .mockResolvedValue({ id: "n", name: "Intégral", rank: 3 })
-    await renderApp("/parametres")
+    await renderApp("/parametres?onglet=formules")
     await screen.findByRole("list", { name: labels.listLabel })
     const name = screen.getByLabelText(labels.name)
     const add = screen.getByRole("button", { name: labels.add })
@@ -91,7 +124,7 @@ describe("Paramètres : formules d'abonnement", () => {
       ...premium,
       name: "Premium+",
     })
-    await renderApp("/parametres")
+    await renderApp("/parametres?onglet=formules")
     await chooseAction("Premium", labels.rename)
     const input = screen.getByLabelText(labels.renameLabel("Premium"))
     fireEvent.change(input, { target: { value: "Premium+" } })
@@ -110,7 +143,7 @@ describe("Paramètres : formules d'abonnement", () => {
       ...premium,
       name: "Premium+",
     })
-    await renderApp("/parametres")
+    await renderApp("/parametres?onglet=formules")
     await chooseAction("Premium", labels.rename)
     const input = screen.getByLabelText(labels.renameLabel("Premium"))
     fireEvent.keyDown(input, { key: "Escape" })
@@ -138,7 +171,7 @@ describe("Paramètres : formules d'abonnement", () => {
 
   it("après une suppression, le focus va à la formule suivante, puis au champ du nom", async () => {
     vi.mocked(levelsApi.deleteAccessLevel).mockResolvedValue(undefined)
-    await renderApp("/parametres")
+    await renderApp("/parametres?onglet=formules")
     await chooseAction("Essentiel", labels.remove)
     vi.mocked(levelsApi.listAccessLevels).mockResolvedValue([premium])
     fireEvent.click(
@@ -171,7 +204,7 @@ describe("Paramètres : formules d'abonnement", () => {
     vi.mocked(levelsApi.deleteAccessLevel).mockRejectedValue(
       new levelsApi.AccessLevelError("formule_utilisee")
     )
-    await renderApp("/parametres")
+    await renderApp("/parametres?onglet=formules")
     await chooseAction("Essentiel", labels.remove)
     const dialog = await screen.findByRole("alertdialog")
     expect(dialog).toHaveTextContent(
