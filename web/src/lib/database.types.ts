@@ -79,6 +79,7 @@ export type Database = {
       admin_identity: {
         Row: {
           id: boolean
+          login_image: string | null
           logotype_dark: string | null
           logotype_light: string | null
           monogram_dark: string | null
@@ -87,6 +88,7 @@ export type Database = {
         }
         Insert: {
           id?: boolean
+          login_image?: string | null
           logotype_dark?: string | null
           logotype_light?: string | null
           monogram_dark?: string | null
@@ -95,6 +97,7 @@ export type Database = {
         }
         Update: {
           id?: boolean
+          login_image?: string | null
           logotype_dark?: string | null
           logotype_light?: string | null
           monogram_dark?: string | null
@@ -621,6 +624,7 @@ export type Database = {
       admin_brand: {
         Args: Record<PropertyKey, never>
         Returns: {
+          login_image: string
           logotype_dark: string
           logotype_light: string
           monogram_dark: string

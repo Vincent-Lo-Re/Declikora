@@ -1,11 +1,12 @@
--- Identité de l'admin : le nom de la marque, le logotype et le monogramme (fond clair et sombre).
+-- Identité de l'admin : le nom de la marque, le logotype et le monogramme (fond clair et sombre),
+-- l'image de l'écran de connexion.
 -- Lecture par l'équipe en aal2, modification par un admin, une seule ligne (ni ajout ni
 -- suppression) ; admin_brand() la donne à tout le monde. Les fichiers : l'espace public
 -- « marque », où seul un admin envoie et retire, au chemin attendu.
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(33);
+select plan(39);
 
 select pg_temp.create_people();
 
@@ -26,12 +27,12 @@ select is(
   '(,,,,)', 'vide au départ'
 );
 
--- L'espace « marque » : public, 1 Mo, SVG, PNG ou WebP.
+-- L'espace « marque » : public, 1 Mo, SVG, PNG, WebP ou JPEG (une photo réduite par Safari).
 select is(
   (select row(public, file_size_limit, allowed_mime_types)::text
    from storage.buckets where id = 'marque'),
-  row(true, 1048576::bigint, array['image/svg+xml', 'image/png', 'image/webp'])::text,
-  'espace « marque » : public, 1 Mo, SVG, PNG ou WebP'
+  row(true, 1048576::bigint, array['image/svg+xml', 'image/png', 'image/webp', 'image/jpeg'])::text,
+  'espace « marque » : public, 1 Mo, SVG, PNG, WebP ou JPEG'
 );
 
 -- anon : l'identité par admin_brand(), rien de la table.
@@ -97,7 +98,7 @@ select lives_ok(
 );
 select throws_ok(
   $$select pg_temp.upload('autre/00000000-0000-4000-8000-000000000002.svg')$$,
-  '23514', null, 'admin : pas d''envoi hors des quatre dossiers'
+  '23514', null, 'admin : pas d''envoi hors de ses dossiers'
 );
 select throws_ok(
   $$select pg_temp.upload('monogramme-sombre/logo.svg')$$,
@@ -167,6 +168,41 @@ select is(
   pg_temp.affected('delete from public.admin_brand_variants'), 2,
   'admin : retire les déclinaisons'
 );
+
+-- L'image de l'écran de connexion : un admin l'envoie dans « connexion/ » et l'enregistre, un
+-- éditeur non ; tout le monde la reçoit par admin_brand(). Le JPEG n'y est permis que là.
+select pg_temp.as_person('editor');
+select is(
+  pg_temp.affected($$update public.admin_identity
+    set login_image = 'connexion/00000000-0000-4000-8000-000000000006.webp'$$), 0,
+  'éditeur : ne change pas l''image de connexion'
+);
+select pg_temp.as_person('admin');
+select lives_ok(
+  $$select pg_temp.upload('connexion/00000000-0000-4000-8000-000000000006.jpg')$$,
+  'admin : envoie l''image de connexion'
+);
+select is(
+  pg_temp.affected($$update public.admin_identity
+    set login_image = 'connexion/00000000-0000-4000-8000-000000000006.jpg'$$), 1,
+  'admin : enregistre l''image de connexion'
+);
+select throws_ok(
+  $$update public.admin_identity
+    set logotype_dark = 'logotype-sombre/00000000-0000-4000-8000-000000000007.jpg'$$,
+  '23514', null, 'un logotype en JPEG est refusé'
+);
+select throws_ok(
+  $$update public.admin_identity set login_image = 'connexion/photo.jpg'$$,
+  '23514', null, 'une image de connexion sous un autre nom est refusée'
+);
+select pg_temp.as_anon();
+select is(
+  (select login_image from public.admin_brand()),
+  'connexion/00000000-0000-4000-8000-000000000006.jpg',
+  'anon : le chemin de l''image de connexion'
+);
+select pg_temp.as_person('admin');
 
 -- Une seule ligne : ni ajout ni suppression, même pour un admin.
 select throws_ok(
