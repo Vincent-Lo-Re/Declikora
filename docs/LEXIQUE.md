@@ -14,6 +14,7 @@
 | Messages | Ce qui s'est passé, puis ce qu'on peut faire | What happened, then what you can do |
 | Ponctuation | Espace insécable (U+00A0) avant « : ; ! ? » et à l'intérieur des guillemets « », vérifiée par `web/src/texts.test.ts` ; « … » | No space before punctuation; curly quotes “ ” in texts |
 | Majuscules | Les noms de section (Médiathèque, Corbeille) et de l'éditeur (Plan, Blocs, Lecture, Édition, Concentration) ; le geste en minuscule (« mettre à la corbeille ») | Same nouns capitalized (Media library, Trash, Outline…) |
+| Anglais : règles fixées le 07/10/2026 (QCM) | — | “the Trash” with a capital when it names the place (buttons stay “Move to trash”, “Empty trash”); Oxford comma in every list (“images, audio, and PDFs”); “e.g.” in placeholders; straight apostrophes ' |
 
 ## Lieux de l'admin
 
@@ -112,7 +113,7 @@
 | Concentration | Focus mode | Cache les deux colonnes de l'éditeur. | mode zen / Zen mode |
 | Écran entier / Ajuster | Full screen / Fit | Tout l'écran du téléphone, ou tenir dans la fenêtre. | — |
 | Grand texte | Large text | Aperçu avec le texte agrandi du téléphone. | — / Big text |
-| prendre, reprendre la main | take over | Devenir la seule personne qui écrit un brouillon. | verrou (à l'écran) / lock, claim |
+| prendre, reprendre la main | take over (quelqu'un écrit) / start editing (personne n'écrit) | Devenir la seule personne qui écrit un brouillon. | verrou (à l'écran) / lock, claim |
 | lecture seule | read-only | Un brouillon qu'un autre membre écrit. | — / view only |
 | libéré (brouillon) | released | Rendu à l'équipe après 30 minutes d'onglet caché. | déverrouillé / unlocked |
 
@@ -194,3 +195,4 @@
 | palette | palette | Une base et un accent, propres à chaque membre. Les noms des palettes (Neutrine, Pierrange…) ne se traduisent pas, comme Ruche. | couleurs / color scheme |
 | décliner (un logo) | adapt | Faire un logo aux couleurs de chaque palette. | — / generate variants |
 | langue | language | La langue de l'admin. | — / locale |
+| adresse (d'un lien) | URL | Ce vers quoi mène un lien du texte. | — / address |
