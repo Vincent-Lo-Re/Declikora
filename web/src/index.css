@@ -230,10 +230,10 @@
   --feed-footer-space: 0px;
   /* L'écart blanc autour du menu et du contenu (le preset de shadcn : 24 px). */
   --page-gap: --spacing(6);
-  /* Le header des pages avec le menu (ADMIN § 7) : sa hauteur et l'espace sous lui, comme sur la
-     page du preset de shadcn (64 px, puis 6 px avant les panneaux). */
+  /* Le header des pages avec le menu (ADMIN § 7) : 64 px, les panneaux juste dessous (sans les
+     6 px du preset de shadcn, retirés le 07/10/2026 : ses liens ont autant d'espace au-dessus,
+     jusqu'au haut de la fenêtre, qu'en dessous, jusqu'aux panneaux). */
   --header-height: --spacing(16);
-  --header-gap: --spacing(1.5);
 }
 
 :root[data-upload-window] {
@@ -368,7 +368,7 @@
   }
 }
 
-/* Une administration douce, jamais brutale : une nouvelle page apparaît en fondu, en 300 ms, même
+/* Une administration douce, jamais brutale : une nouvelle page apparaît en fondu, en 500 ms, même
    déjà chargée (layouts/root-layout.tsx, app-layout.tsx), comme un onglet (TabsContent de
    components/ui/tabs.tsx) et chaque étape de la connexion (components/auth-form.tsx) ; rien ne
    bouge si l'ordinateur demande moins d'animations. */
@@ -379,7 +379,7 @@
 }
 
 [data-page-fade] {
-  animation: page-fade 300ms ease-out;
+  animation: page-fade 500ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
