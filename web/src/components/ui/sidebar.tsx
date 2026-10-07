@@ -7,7 +7,7 @@ import { cn } from "cn"
 
 // Le menu de gauche est toujours ouvert (docs/ADMINISTRATION.md § 7) : ni repli en icônes, ni
 // raccourci, ni version mobile (l'admin est faite pour 1 024 px de large au moins). Sous le header
-// (--header-height, puis --header-gap), le menu et le contenu sont deux panneaux arrondis sur la
+// (--header-height, sans écart), le menu et le contenu sont deux panneaux arrondis sur la
 // page blanche, séparés par --page-gap : le contenu gris, le menu toujours sombre, comme la
 // colonne de gauche de la page du preset de shadcn.
 const SIDEBAR_WIDTH = "16rem"
@@ -50,7 +50,7 @@ function Sidebar({
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed top-(--header-height) bottom-0 left-0 z-10 flex w-[calc(var(--sidebar-width)+var(--page-gap))] pt-(--header-gap) pb-(--page-gap) pl-(--page-gap)",
+          "fixed top-(--header-height) bottom-0 left-0 z-10 flex w-[calc(var(--sidebar-width)+var(--page-gap))] pb-(--page-gap) pl-(--page-gap)",
           className
         )}
         {...props}
@@ -77,7 +77,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
       // Le contenu défile seul, dans son panneau (lib/scroll-memory.ts).
       data-page-scroll
       className={cn(
-        "relative m-(--page-gap) mt-(--header-gap) flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto rounded-2xl bg-panel ring-1 ring-muted dark:ring-foreground/10",
+        "relative m-(--page-gap) mt-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto rounded-2xl bg-panel ring-1 ring-muted dark:ring-foreground/10",
         className
       )}
       {...props}
