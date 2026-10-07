@@ -12,7 +12,7 @@
     "functions:integration": "cd supabase/functions/files && npx --yes deno@2.9.6 test --allow-all integration/files_integration.ts"
   },
   "devDependencies": {
-    "supabase": "2.118.0"
+    "supabase": "2.120.0"
   },
   "engines": {
     "node": "24.x"

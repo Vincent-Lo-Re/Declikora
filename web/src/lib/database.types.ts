@@ -41,6 +41,7 @@ export type Database = {
           name: string
           rank: number
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -62,6 +63,7 @@ export type Database = {
           path: string
           surface: string
         }
+        ComputedFields: never
         Insert: {
           kind: string
           palette: string
@@ -89,6 +91,7 @@ export type Database = {
           monogram_light: string | null
           name: string | null
         }
+        ComputedFields: never
         Insert: {
           contact_email?: string | null
           id?: boolean
@@ -123,6 +126,7 @@ export type Database = {
           position: number
           section: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -144,6 +148,7 @@ export type Database = {
           category_id: string
           content_id: string
         }
+        ComputedFields: never
         Insert: {
           category_id: string
           content_id: string
@@ -199,6 +204,7 @@ export type Database = {
           title: string | null
           trash_batch: string | null
         }
+        ComputedFields: never
         Insert: {
           access_chosen?: boolean
           access_level_id?: string | null
@@ -311,6 +317,7 @@ export type Database = {
           holder_session: string | null
           taken_at: string | null
         }
+        ComputedFields: never
         Insert: {
           content_id: string
           draft_rev?: number
@@ -372,6 +379,7 @@ export type Database = {
           width: number | null
           media_in_use: boolean | null
         }
+        ComputedFields: "media_in_use"
         Insert: {
           alt?: string | null
           check_attempts?: number
@@ -447,6 +455,7 @@ export type Database = {
           id: number
           orphan_paths: string[]
         }
+        ComputedFields: never
         Insert: {
           checked_at?: string
           id?: never
@@ -468,6 +477,7 @@ export type Database = {
           role: Database["public"]["Enums"]["team_role"]
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           email: string
@@ -494,6 +504,7 @@ export type Database = {
           user_id: string
           valid_until: string | null
         }
+        ComputedFields: never
         Insert: {
           access_level_id: string
           created_at?: string
@@ -539,6 +550,7 @@ export type Database = {
           slug: string | null
           template_ids: string[]
         }
+        ComputedFields: never
         Insert: {
           access_level_id?: string | null
           block_types?: string[]
@@ -611,6 +623,7 @@ export type Database = {
           title: string | null
           trash_batch: string | null
         }
+        ComputedFields: never
         Relationships: []
       }
     }
