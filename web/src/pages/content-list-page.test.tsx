@@ -297,7 +297,7 @@ describe("Blog", () => {
 
   it("la recherche et les filtres sont dans l'adresse ; les changer ne fait pas d'étape au retour (QCM du 05/10/2026)", async () => {
     vi.mocked(api.listContents).mockResolvedValue(articles)
-    const { router } = await renderApp("/blog?recherche=travail&etat=brouillon")
+    const { router } = await renderApp("/blog?q=travail&status=draft")
     await waitFor(() => expect(shownTitles()).toEqual(["Le stress au travail"]))
     expect(
       screen.getByRole("searchbox", { name: labels.kinds.article.search })
@@ -309,7 +309,7 @@ describe("Blog", () => {
     await pick(labels.filters.category, "Stress")
     expect(router.state.historyAction).toBe("REPLACE")
     expect(
-      new URLSearchParams(router.state.location.search).get("categorie")
+      new URLSearchParams(router.state.location.search).get("category")
     ).toBe(STRESS)
     fireEvent.click(screen.getByRole("button", { name: labels.filters.reset }))
     await waitFor(() => expect(router.state.location.search).toBe(""))
@@ -320,7 +320,7 @@ describe("Blog", () => {
     vi.mocked(api.getContent).mockResolvedValue(newArticle)
     vi.mocked(api.lockTake).mockResolvedValue(lockRow({ mine: true }))
     vi.mocked(api.lockStatus).mockResolvedValue(lockRow({ mine: true }))
-    await renderApp("/blog?etat=en-ligne")
+    await renderApp("/blog?status=live")
     const link = await screen.findByRole("link", { name: "Bien dormir en été" })
     // C'est le contenu qui défile, dans son panneau (le header et le menu restent en place).
     pageScroll().scrollTop = 420
@@ -437,7 +437,7 @@ describe("Blog", () => {
 
   it("d'une liste à l'autre, le menu ne bouge pas : le contenu s'ouvre à neuf, en fondu, sans la recherche de l'autre", async () => {
     vi.mocked(api.listContents).mockResolvedValue(articles)
-    const { router } = await renderApp("/blog?recherche=dormir")
+    const { router } = await renderApp("/blog?q=dormir")
     await waitFor(() => expect(shownTitles()).toEqual(["Bien dormir en été"]))
     const menu = screen.getByRole("navigation", { name: texts.nav.label })
     const content = screen

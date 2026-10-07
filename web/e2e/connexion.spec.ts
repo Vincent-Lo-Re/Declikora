@@ -21,7 +21,7 @@ test("un admin se connecte avec les deux codes, se déconnecte, puis revient", a
 
   // Une page de l'admin sans session mène à la connexion.
   await page.goto("/")
-  await expect(page).toHaveURL(/\/connexion$/)
+  await expect(page).toHaveURL(/\/sign-in$/)
   await expect(
     page.getByRole("navigation", { name: texts.nav.label })
   ).toHaveCount(0)
@@ -45,13 +45,13 @@ test("un admin se connecte avec les deux codes, se déconnecte, puis revient", a
   // Déconnexion, par le menu de l'avatar : retour à la connexion, et la session est bien fermée.
   await accountMenuButton(page).click()
   await page.getByRole("menuitem", { name: texts.common.signOut }).click()
-  await expect(page).toHaveURL(/\/connexion$/)
-  await page.goto("/equipe")
-  await expect(page).toHaveURL(/\/connexion$/)
+  await expect(page).toHaveURL(/\/sign-in$/)
+  await page.goto("/team")
+  await expect(page).toHaveURL(/\/sign-in$/)
 
   // Reconnexion : cette fois, le code de l'app suffit, et la page demandée s'ouvre.
   await signIn(page, admin)
-  await expect(page).toHaveURL(/\/equipe$/)
+  await expect(page).toHaveURL(/\/team$/)
   await expect(
     page.getByRole("heading", { name: texts.sections.team.title })
   ).toBeVisible()
@@ -62,7 +62,7 @@ test("une adresse inconnue reçoit le même message, sans e-mail", async ({
 }) => {
   const stranger = uniqueEmail("inconnu")
 
-  await page.goto("/connexion")
+  await page.goto("/sign-in")
   await page.getByLabel(texts.signIn.email).fill(stranger)
   await page.getByRole("button", { name: texts.signIn.sendCode }).click()
 
@@ -75,7 +75,7 @@ test("une adresse inconnue reçoit le même message, sans e-mail", async ({
 test("un code faux est refusé", async ({ page, team }) => {
   const admin = await team.createAdmin("Bruno Admin")
 
-  await page.goto("/connexion")
+  await page.goto("/sign-in")
   await page.getByLabel(texts.signIn.email).fill(admin.email)
   await page.getByRole("button", { name: texts.signIn.sendCode }).click()
   await expect(page.getByText(texts.signIn.codeSent(admin.email))).toBeVisible()
@@ -83,7 +83,7 @@ test("un code faux est refusé", async ({ page, team }) => {
   // Le 6e chiffre lance la connexion, sans clic.
   await page.getByLabel(texts.signIn.code).fill("000000")
   await expect(page.getByText(texts.signIn.wrongCode)).toBeVisible()
-  await expect(page).toHaveURL(/\/connexion$/)
+  await expect(page).toHaveURL(/\/sign-in$/)
 })
 
 test("après un rechargement, la connexion reprend à l'étape du code", async ({
@@ -92,7 +92,7 @@ test("après un rechargement, la connexion reprend à l'étape du code", async (
 }) => {
   const admin = await team.createAdmin("Chloé Admin")
 
-  await page.goto("/connexion")
+  await page.goto("/sign-in")
   await page.getByLabel(texts.signIn.email).fill(admin.email)
   const before = await receivedIds(admin.email)
   await page.getByRole("button", { name: texts.signIn.sendCode }).click()

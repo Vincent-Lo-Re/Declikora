@@ -81,26 +81,26 @@ describe("les réglages du téléphone dans l'adresse (QCM du 04/10/2026)", () =
     expect(withPreview("", defaultPreview).toString()).toBe("")
     expect(
       withPreview("", { ...defaultPreview, mode: "read" }).toString()
-    ).toBe("mode=lecture")
+    ).toBe("mode=read")
     expect(withPreview("", everything).toString()).toBe(
-      "mode=lecture&telephone=android&theme=sombre&lecteur=sans-formule&ecran=entier&texte=grand"
+      "mode=read&device=android&theme=dark&reader=visitor&fit=full&text=large"
     )
   })
 
   it("se relit tel quel ; un mot inconnu vaut le réglage de départ", () => {
     expect(previewFromSearch(withPreview("", everything))).toEqual(everything)
     expect(previewFromSearch("")).toEqual(defaultPreview)
-    expect(previewFromSearch("?mode=plein&theme=sombre&texte=petit")).toEqual({
+    expect(previewFromSearch("?mode=plein&theme=dark&text=small")).toEqual({
       ...defaultPreview,
       theme: "dark",
     })
   })
 
   it("garde les autres paramètres, et retire ceux qui reviennent au départ", () => {
-    const params = withPreview("?fichier=42&mode=lecture&theme=sombre", {
+    const params = withPreview("?file=42&mode=read&theme=dark", {
       ...defaultPreview,
       theme: "dark",
     })
-    expect(params.toString()).toBe("fichier=42&theme=sombre")
+    expect(params.toString()).toBe("file=42&theme=dark")
   })
 })

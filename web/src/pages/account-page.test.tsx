@@ -13,7 +13,7 @@ afterEach(() => {
 
 describe("Mon compte", () => {
   it("montre le profil et la date de la double vérification", async () => {
-    await renderApp("/mon-compte", fakeAuth({ role: "editor" }))
+    await renderApp("/account", fakeAuth({ role: "editor" }))
 
     expect(screen.getByLabelText(texts.account.profile.name)).toHaveValue(
       testProfile.full_name
@@ -34,7 +34,7 @@ describe("Mon compte", () => {
 
   it("refuse un nom trop long sans rien envoyer", async () => {
     const from = vi.spyOn(supabase, "from")
-    await renderApp("/mon-compte")
+    await renderApp("/account")
 
     fireEvent.change(screen.getByLabelText(texts.account.profile.name), {
       target: { value: "a".repeat(101) },
@@ -48,7 +48,7 @@ describe("Mon compte", () => {
   })
 
   it("les couleurs : une palette d'une base et d'un accent, appliquée et gardée sur ce navigateur", async () => {
-    await renderApp("/mon-compte", fakeAuth({ role: "editor" }))
+    await renderApp("/account", fakeAuth({ role: "editor" }))
     const colors = texts.colors
     const presets = screen.getByRole("group", { name: colors.presets.title })
     const preset = (id: keyof typeof colors.presets.names) =>

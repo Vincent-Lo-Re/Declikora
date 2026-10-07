@@ -28,19 +28,19 @@ export const sections = {
   blog: { path: "/blog", icon: Rss },
   podcasts: { path: "/podcasts", icon: MicAudioLines },
   pages: { path: "/pages", icon: SquareText },
-  templates: { path: "/modeles", icon: Layers },
-  media: { path: "/mediatheque", icon: Images },
-  trash: { path: "/corbeille", icon: ArchiveX },
-  team: { path: "/equipe", icon: UserGroup },
-  settings: { path: "/parametres", icon: SlidersVertical },
-  account: { path: "/mon-compte", icon: CircleUser },
+  templates: { path: "/templates", icon: Layers },
+  media: { path: "/media", icon: Images },
+  trash: { path: "/trash", icon: ArchiveX },
+  team: { path: "/team", icon: UserGroup },
+  settings: { path: "/settings", icon: SlidersVertical },
+  account: { path: "/account", icon: CircleUser },
 } satisfies Record<SectionKey, { path: string; icon: LucideIcon }>
 
 // Pages de connexion, sans le menu.
 export const authPaths = {
-  signIn: "/connexion",
+  signIn: "/sign-in",
   invitation: "/invitation",
-  signOut: "/deconnexion",
+  signOut: "/sign-out",
 } as const
 
 // Sections réservées aux admins : cachées dans le menu d'un éditeur.
@@ -104,9 +104,9 @@ export function categoriesPath(section: "blog" | "podcasts"): string {
   return `${sections[section].path}/categories`
 }
 
-/** La fiche d'un fichier dans la Médiathèque : « /mediatheque?fichier=<id> ». */
+/** La fiche d'un fichier dans la Médiathèque : « /media?file=<id> ». */
 export function mediaFilePath(mediaId: string): string {
-  return `${sections.media.path}?fichier=${encodeURIComponent(mediaId)}`
+  return `${sections.media.path}?file=${encodeURIComponent(mediaId)}`
 }
 
 /** Vrai si l'adresse affichée appartient à la section (ou à l'une de ses pages). */

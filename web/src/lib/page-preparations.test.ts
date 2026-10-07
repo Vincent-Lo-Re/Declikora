@@ -239,7 +239,7 @@ describe("les listes", () => {
   })
 
   it("la Médiathèque : les filtres de l'adresse, et la fiche demandée", async () => {
-    await prepareMedia(args({}, `type=image&recherche=plage&fichier=${PHOTO}`))
+    await prepareMedia(args({}, `type=image&q=plage&file=${PHOTO}`))
     expect(mediaApi.listMedia).toHaveBeenCalledWith({
       kind: "image",
       search: "plage",

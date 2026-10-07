@@ -229,7 +229,7 @@ describe("bloc lié dans un contenu", () => {
       within(bar).getByRole("link", {
         name: texts.templates.linked.editLabel("Contact"),
       })
-    ).toHaveAttribute("href", `/modeles/${TEMPLATE_ID}`)
+    ).toHaveAttribute("href", `/templates/${TEMPLATE_ID}`)
     expect(
       within(bar).getByRole("button", {
         name: texts.templates.linked.detachLabel("Contact"),
@@ -505,7 +505,7 @@ describe("« Enregistrer comme modèle »", () => {
       within(toast.closest("li")!).getByRole("button", { name: saveAs.open })
     )
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe(`/modeles/${STYLE_ID}`)
+      expect(router.state.location.pathname).toBe(`/templates/${STYLE_ID}`)
     )
   })
 
@@ -627,7 +627,7 @@ describe("éditeur d'un modèle", () => {
       },
     ])
     vi.mocked(templatesApi.pushTemplate).mockResolvedValue(1)
-    await renderApp(`/modeles/${TEMPLATE_ID}`)
+    await renderApp(`/templates/${TEMPLATE_ID}`)
     await editable()
 
     // « ← Modèles de bloc » en bas à gauche ; pas de barre du haut.
@@ -636,7 +636,7 @@ describe("éditeur d'un modèle", () => {
       within(left).getByRole("link", {
         name: texts.editor.back(texts.sections.templates.title),
       })
-    ).toHaveAttribute("href", "/modeles")
+    ).toHaveAttribute("href", "/templates")
     expect(screen.queryByRole("banner")).toBeNull()
 
     // À droite : la sorte, pas de publication (ni « Prêt à publier ? », ni niveau d'accès).
@@ -760,7 +760,7 @@ describe("éditeur d'un modèle", () => {
     vi.mocked(api.getContent).mockResolvedValue(
       template("shared", [contactBox])
     )
-    await renderApp(`/modeles/${TEMPLATE_ID}`)
+    await renderApp(`/templates/${TEMPLATE_ID}`)
     await editable()
     const plan = screen.getByRole("navigation", {
       name: texts.editor.outline.title,
@@ -808,7 +808,7 @@ describe("éditeur d'un modèle", () => {
   it("bloc partagé vide : « Ajouter un bloc » ouvre les Blocs, sans « Mes blocs » ; la règle est dite", async () => {
     vi.mocked(api.getContent).mockResolvedValue(template("shared", []))
     vi.mocked(templatesApi.listTemplateUses).mockResolvedValue([])
-    await renderApp(`/modeles/${TEMPLATE_ID}`)
+    await renderApp(`/templates/${TEMPLATE_ID}`)
     await editable()
     const left = screen.getByRole("complementary", { name: columns.left })
     expect(
@@ -842,7 +842,7 @@ describe("éditeur d'un modèle", () => {
     vi.mocked(api.getContent).mockResolvedValue(
       template("starter", [textBlock(TEXT_ID, "Question")])
     )
-    await renderApp(`/modeles/${TEMPLATE_ID}`)
+    await renderApp(`/templates/${TEMPLATE_ID}`)
     await editable()
     const card = screen.getByRole("region", { name: sorts.starter.title })
     expect(card).toHaveTextContent(

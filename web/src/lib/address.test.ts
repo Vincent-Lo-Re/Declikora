@@ -37,9 +37,7 @@ describe("les réglages des listes dans l'adresse (QCM du 05/10/2026)", () => {
         category: CATEGORY,
       })
     )
-    expect(address).toBe(
-      `recherche=bien+dormir&etat=modifie&categorie=${CATEGORY}`
-    )
+    expect(address).toBe(`q=bien+dormir&status=modified&category=${CATEGORY}`)
     expect(listFiltersFromAddress(new URLSearchParams(address))).toEqual({
       search: "bien dormir",
       state: "modified",
@@ -50,33 +48,28 @@ describe("les réglages des listes dans l'adresse (QCM du 05/10/2026)", () => {
       written((p) =>
         writeListFilters(p, { ...noFilters, category: NO_CATEGORY })
       )
-    ).toBe("categorie=aucune")
+    ).toBe("category=none")
     expect(
-      listFiltersFromAddress(new URLSearchParams("categorie=aucune")).category
+      listFiltersFromAddress(new URLSearchParams("category=none")).category
     ).toBe(NO_CATEGORY)
   })
 
   it("un mot inconnu vaut le réglage de départ ; revenir au départ retire le réglage", () => {
     expect(
-      listFiltersFromAddress(new URLSearchParams("etat=perdu&autre=1"))
+      listFiltersFromAddress(new URLSearchParams("status=lost&autre=1"))
     ).toEqual({ ...noFilters, category: ALL_CATEGORIES })
     expect(
-      written(
-        (p) => writeListFilters(p, noFilters),
-        "recherche=x&etat=brouillon&fichier=42"
-      )
-    ).toBe("fichier=42")
+      written((p) => writeListFilters(p, noFilters), "q=x&status=draft&file=42")
+    ).toBe("file=42")
   })
 
   it("la Médiathèque : type, recherche et « Non utilisés », à côté de la fiche ouverte", () => {
     const address = written(
       (p) =>
         writeMediaFilters(p, { kind: "audio", search: "pluie", unused: true }),
-      "fichier=42"
+      "file=42"
     )
-    expect(address).toBe(
-      "fichier=42&type=audio&recherche=pluie&non-utilises=oui"
-    )
+    expect(address).toBe("file=42&type=audio&q=pluie&unused=true")
     expect(mediaFiltersFromAddress(new URLSearchParams(address))).toEqual({
       kind: "audio",
       search: "pluie",
@@ -90,31 +83,27 @@ describe("les réglages des listes dans l'adresse (QCM du 05/10/2026)", () => {
   })
 
   it("l'onglet de Paramètres : le premier par défaut, absent de l'adresse", () => {
-    expect(written((p) => writeSettingsTab(p, "plans"))).toBe("onglet=formules")
-    expect(settingsTabFromAddress(new URLSearchParams("onglet=avance"))).toBe(
+    expect(written((p) => writeSettingsTab(p, "plans"))).toBe("tab=plans")
+    expect(settingsTabFromAddress(new URLSearchParams("tab=advanced"))).toBe(
       "advanced"
     )
     expect(settingsTabFromAddress(new URLSearchParams())).toBe("admin")
-    expect(
-      written((p) => writeSettingsTab(p, "admin"), "onglet=formules")
-    ).toBe("")
+    expect(written((p) => writeSettingsTab(p, "admin"), "tab=plans")).toBe("")
   })
 
   it("l'onglet des Modèles de bloc et le filtre de la Corbeille", () => {
-    expect(written((p) => writeTemplateTab(p, "shared"))).toBe(
-      "onglet=partages"
+    expect(written((p) => writeTemplateTab(p, "shared"))).toBe("tab=shared")
+    expect(templateTabFromAddress(new URLSearchParams("tab=starter"))).toBe(
+      "starter"
     )
-    expect(
-      templateTabFromAddress(new URLSearchParams("onglet=points-de-depart"))
-    ).toBe("starter")
-    expect(written((p) => writeTemplateTab(p, "all"), "onglet=partages")).toBe(
-      ""
+    expect(written((p) => writeTemplateTab(p, "all"), "tab=shared")).toBe("")
+    expect(written((p) => writeTrashFilter(p, "template"))).toBe(
+      "type=template"
     )
-    expect(written((p) => writeTrashFilter(p, "template"))).toBe("type=modele")
-    expect(trashFilterFromAddress(new URLSearchParams("type=fichier"))).toBe(
+    expect(trashFilterFromAddress(new URLSearchParams("type=file"))).toBe(
       "file"
     )
-    expect(trashFilterFromAddress(new URLSearchParams("type=autre"))).toBe(
+    expect(trashFilterFromAddress(new URLSearchParams("type=other"))).toBe(
       "all"
     )
   })

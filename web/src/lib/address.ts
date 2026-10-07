@@ -1,6 +1,6 @@
 /**
  * Les réglages des listes gardés dans leur adresse (ADMIN § 7, « Une navigation sans à-coups ») :
- * la recherche, les filtres et l'onglet, en mots français comme les adresses de navigation.ts,
+ * la recherche, les filtres et l'onglet, en mots anglais courants comme les adresses de navigation.ts,
  * et seulement quand ils diffèrent de leur valeur de départ. On peut ainsi recharger ou partager
  * une liste telle quelle, et la retrouver en y revenant. Sans React.
  */
@@ -47,25 +47,25 @@ function writeText(params: URLSearchParams, name: string, value: string) {
   else params.set(name, value)
 }
 
-const SEARCH = "recherche"
+const SEARCH = "q"
 
 // --- Le Fil, Radio Éclaircies, Pages ------------------------------------------------------
 
 const stateChoice: Choice<StateFilter> = {
-  name: "etat",
+  name: "status",
   words: {
-    all: "tous",
-    draft: "brouillon",
-    live: "en-ligne",
-    modified: "modifie",
-    withdrawn: "retire",
-    scheduled: "programme",
-    failed: "echec",
+    all: "all",
+    draft: "draft",
+    live: "live",
+    modified: "modified",
+    withdrawn: "unpublished",
+    scheduled: "scheduled",
+    failed: "failed",
   },
   fallback: "all",
 }
-const CATEGORY = "categorie"
-const NO_CATEGORY_WORD = "aucune"
+const CATEGORY = "category"
+const NO_CATEGORY_WORD = "none"
 
 /** La recherche et les filtres d'une liste de contenus, lus dans l'adresse. */
 export function listFiltersFromAddress(params: URLSearchParams): ListFilters {
@@ -103,7 +103,7 @@ export function writeListFilters(
 const kindChoice: Choice<MediaFilters["kind"]> = {
   name: "type",
   words: {
-    all: "tous",
+    all: "all",
     image: "image",
     svg: "svg",
     lottie: "lottie",
@@ -112,7 +112,7 @@ const kindChoice: Choice<MediaFilters["kind"]> = {
   },
   fallback: "all",
 }
-const UNUSED = "non-utilises"
+const UNUSED = "unused"
 
 /** La recherche et les filtres de la Médiathèque, lus dans l'adresse. */
 export function mediaFiltersFromAddress(params: URLSearchParams): MediaFilters {
@@ -123,9 +123,9 @@ export function mediaFiltersFromAddress(params: URLSearchParams): MediaFilters {
   }
 }
 
-// « /mediatheque?fichier=<id> » ouvre la fiche de ce fichier (lien depuis l'éditeur : la
+// « /media?file=<id> » ouvre la fiche de ce fichier (lien depuis l'éditeur : la
 // transcription d'un audio, le texte alternatif d'une image de présentation).
-export const FILE_PARAM = "fichier"
+export const FILE_PARAM = "file"
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** Le fichier dont l'adresse demande la fiche (null : aucun, ou un id qui n'en est pas un). */
@@ -141,19 +141,19 @@ export function writeMediaFilters(
 ) {
   writeChoice(params, kindChoice, filters.kind)
   writeText(params, SEARCH, filters.search)
-  if (filters.unused) params.set(UNUSED, "oui")
+  if (filters.unused) params.set(UNUSED, "true")
   else params.delete(UNUSED)
 }
 
 // --- Modèles de bloc ------------------------------------------------------------------------
 
 const tabChoice: Choice<"all" | TemplateSort> = {
-  name: "onglet",
+  name: "tab",
   words: {
-    all: "tous",
-    style: "mise-en-forme",
-    shared: "partages",
-    starter: "points-de-depart",
+    all: "all",
+    style: "style",
+    shared: "shared",
+    starter: "starter",
   },
   fallback: "all",
 }
@@ -180,12 +180,12 @@ export const settingsTabs = ["admin", "app", "plans", "advanced"] as const
 export type SettingsTab = (typeof settingsTabs)[number]
 
 const settingsTabChoice: Choice<SettingsTab> = {
-  name: "onglet",
+  name: "tab",
   words: {
-    admin: "identite-admin",
-    app: "identite-app",
-    plans: "formules",
-    advanced: "avance",
+    admin: "admin",
+    app: "app",
+    plans: "plans",
+    advanced: "advanced",
   },
   fallback: "admin",
 }
@@ -205,12 +205,12 @@ export function writeSettingsTab(params: URLSearchParams, tab: SettingsTab) {
 const trashChoice: Choice<TrashFilter> = {
   name: "type",
   words: {
-    all: "tous",
+    all: "all",
     article: "article",
     episode: "episode",
     page: "page",
-    template: "modele",
-    file: "fichier",
+    template: "template",
+    file: "file",
   },
   fallback: "all",
 }

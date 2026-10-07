@@ -603,7 +603,7 @@ describe("éditeur d'un article (Le Fil)", () => {
         .sort()
         .join("&")
     expect(search()).toBe(
-      "lecteur=sans-formule&mode=lecture&telephone=android&texte=grand&theme=sombre"
+      "device=android&mode=read&reader=visitor&text=large&theme=dark"
     )
 
     // Un bloc choisi dans le plan : on reste en Lecture, le téléphone défile jusqu'à lui.
@@ -632,7 +632,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     expect(
       within(tools).queryByRole("button", { name: preview.reader.visitor })
     ).toBeNull()
-    expect(search()).toBe("telephone=android&texte=grand&theme=sombre")
+    expect(search()).toBe("device=android&text=large&theme=dark")
   })
 
   it("le plan montre le contenu : l'intertitre qui ouvre un texte (sans les suivants), le fichier d'une image, le bloc partagé", async () => {
@@ -1860,7 +1860,7 @@ describe("éditeur d'un épisode (Radio Éclaircies, dans l'éditeur du Fil)", (
     const link = within(audioCard()).getByRole("link", {
       name: `${words.openInLibrary} ${words.openFileHint}`,
     })
-    expect(link).toHaveAttribute("href", `/mediatheque?fichier=${SON}`)
+    expect(link).toHaveAttribute("href", `/media?file=${SON}`)
     expect(link).toHaveAttribute("target", "_blank")
 
     // Conseillée, pas obligatoire : « Publier » reste possible, avec le conseil.
@@ -2306,7 +2306,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
     const link = await screen.findByRole("link", {
       name: `${words.openInLibrary} ${words.openFileHint}`,
     })
-    expect(link).toHaveAttribute("href", `/mediatheque?fichier=${PLAGE}`)
+    expect(link).toHaveAttribute("href", `/media?file=${PLAGE}`)
     expect(link).toHaveAttribute("target", "_blank")
   })
 
@@ -2329,7 +2329,7 @@ describe("éditeur du Fil : le builder relu sur un article complet (03/10/2026)"
     })
     expect(
       within(bar).getByRole("link", { name: linked.editLabel(name) })
-    ).toHaveAttribute("href", `/modeles/${TEMPLATE}`)
+    ).toHaveAttribute("href", `/templates/${TEMPLATE}`)
     // Des icônes seules, leur nom dans l'infobulle.
     expect(bar.textContent).toBe("")
     fireEvent.click(

@@ -119,7 +119,7 @@ afterEach(() => {
 
 describe("Médiathèque", () => {
   it("montre chaque fichier avec son état", async () => {
-    await renderApp("/mediatheque", fakeAuth({ role: "editor" }))
+    await renderApp("/media", fakeAuth({ role: "editor" }))
 
     // L'état en pastille : une coche ou une croix, l'état exact dans l'infobulle.
     expect(await screen.findByText(photo.name)).toBeVisible()
@@ -146,7 +146,7 @@ describe("Médiathèque", () => {
   })
 
   it("filtre par type et cherche par nom", async () => {
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     await screen.findByText(photo.name)
 
     // « Tout » garde son texte ; les types n'ont qu'une icône, nommée pour les lecteurs d'écran.
@@ -183,9 +183,7 @@ describe("Médiathèque", () => {
   })
 
   it("le type, la recherche et « Non utilisés » sont dans l'adresse (QCM du 05/10/2026)", async () => {
-    const { router } = await renderApp(
-      "/mediatheque?type=audio&recherche=pluie"
-    )
+    const { router } = await renderApp("/media?type=audio&q=pluie")
     await waitFor(() =>
       expect(api.listMedia).toHaveBeenLastCalledWith({
         kind: "audio",
@@ -199,7 +197,7 @@ describe("Médiathèque", () => {
     )
     await waitFor(() =>
       expect(router.state.location.search).toBe(
-        "?type=audio&recherche=pluie&non-utilises=oui"
+        "?type=audio&q=pluie&unused=true"
       )
     )
     expect(router.state.historyAction).toBe("REPLACE")
@@ -210,7 +208,7 @@ describe("Médiathèque", () => {
       { ...photo, media_in_use: true },
       { ...voice, media_in_use: false },
     ])
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     await screen.findByText(photo.name)
 
     // Une pastille « Non utilisé » pour le fichier qui ne sert nulle part, « Utilisé » sinon.
@@ -246,7 +244,7 @@ describe("Médiathèque", () => {
       { ...photo, media_in_use: true },
       { ...voice, media_in_use: false },
     ])
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     await screen.findByText(photo.name)
 
     // Une icône seule : son nom s'affiche dans une infobulle au survol.
@@ -283,13 +281,13 @@ describe("Médiathèque", () => {
 
   it("dit quand la médiathèque est vide", async () => {
     vi.mocked(api.listMedia).mockResolvedValue([])
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     expect(await screen.findByText(texts.media.empty.title)).toBeVisible()
   })
 
   it("alerte quand le stockage dépasse 800 Mo", async () => {
     vi.mocked(api.getStorageUsed).mockResolvedValue(850 * MB)
-    await renderApp("/mediatheque")
+    await renderApp("/media")
 
     expect(
       await screen.findByText(texts.media.storage.alertTitle)
@@ -309,7 +307,7 @@ describe("Médiathèque", () => {
       removed: 1,
       orphans: 0,
     })
-    await renderApp("/mediatheque", fakeAuth({ role: "editor" }))
+    await renderApp("/media", fakeAuth({ role: "editor" }))
 
     expect(await screen.findByText(texts.media.orphans.title(1))).toBeVisible()
     fireEvent.click(
@@ -327,7 +325,7 @@ describe("Médiathèque", () => {
       ...photo,
       alt: "Un chat au soleil",
     })
-    await renderApp("/mediatheque")
+    await renderApp("/media")
 
     fireEvent.click(
       await screen.findByRole("button", { name: texts.media.open(photo.name) })
@@ -356,7 +354,7 @@ describe("Médiathèque", () => {
   })
 
   it("la fiche : des cartes avec leur icône, et l'état et l'utilisation en pastilles en bas", async () => {
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     fireEvent.click(
       await screen.findByRole("button", { name: texts.media.open(photo.name) })
     )
@@ -404,7 +402,7 @@ describe("Médiathèque", () => {
         in_app: false,
       },
     ])
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     fireEvent.click(
       await screen.findByRole("button", { name: texts.media.open(photo.name) })
     )
@@ -456,7 +454,7 @@ describe("Médiathèque", () => {
       ])
       .mockResolvedValue([])
     vi.mocked(api.pushMediaTexts).mockResolvedValue(1)
-    await renderApp("/mediatheque")
+    await renderApp("/media")
 
     fireEvent.click(
       await screen.findByRole("button", { name: texts.media.open(photo.name) })
@@ -489,7 +487,7 @@ describe("Médiathèque", () => {
   })
 
   it("propose la transcription pour un audio", async () => {
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     fireEvent.click(
       await screen.findByRole("button", { name: texts.media.open(voice.name) })
     )
@@ -519,7 +517,7 @@ describe("Médiathèque", () => {
         in_app: false,
       },
     ])
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     fireEvent.click(
       await screen.findByRole("button", { name: texts.media.open(photo.name) })
     )
@@ -532,9 +530,9 @@ describe("Médiathèque", () => {
     ).toHaveAttribute("href", `/podcasts/${EPISODE}`)
   })
 
-  it("« /mediatheque?fichier=<id> » ouvre la fiche de ce fichier (lien de l'éditeur, [D46])", async () => {
+  it("« /media?file=<id> » ouvre la fiche de ce fichier (lien de l'éditeur, [D46])", async () => {
     vi.mocked(api.getMedia).mockResolvedValue(voice)
-    const { router } = await renderApp(`/mediatheque?fichier=${voice.id}`)
+    const { router } = await renderApp(`/media?file=${voice.id}`)
     const sheet = await screen.findByRole("dialog")
     expect(within(sheet).getByText(voice.name)).toBeVisible()
     expect(
@@ -549,7 +547,7 @@ describe("Médiathèque", () => {
   it("un fichier introuvable dans l'adresse est signalé", async () => {
     vi.mocked(api.getMedia).mockResolvedValue(null)
     const { router } = await renderApp(
-      "/mediatheque?fichier=00000000-0000-4000-8000-0000000000ff"
+      "/media?file=00000000-0000-4000-8000-0000000000ff"
     )
     expect(
       await screen.findByText(texts.media.errors.fichier_introuvable)
@@ -563,7 +561,7 @@ describe("Médiathèque", () => {
       ...photo,
       deleted_at: "2026-09-27T13:00:00Z",
     })
-    await renderApp("/mediatheque")
+    await renderApp("/media")
 
     fireEvent.click(
       await screen.findByRole("button", { name: texts.media.open(photo.name) })
@@ -582,7 +580,7 @@ describe("Médiathèque", () => {
       ...photo,
       deleted_at: "2026-09-27T13:00:00Z",
     })
-    await renderApp("/mediatheque")
+    await renderApp("/media")
 
     const opener = await screen.findByRole("button", {
       name: texts.media.open(photo.name),
@@ -614,7 +612,7 @@ describe("Médiathèque", () => {
         "Ce fichier est utilisé dans : Recette du pain."
       )
     )
-    await renderApp("/mediatheque")
+    await renderApp("/media")
 
     fireEvent.click(
       await screen.findByRole("button", { name: texts.media.open(photo.name) })
@@ -637,7 +635,7 @@ describe("Sélection en masse", () => {
     screen.getByRole("checkbox", { name: selection.select(name) })
 
   it("coche en grille : un clic sur une vignette coche au lieu d'ouvrir la fiche", async () => {
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     await screen.findByText(photo.name)
     expect(
       screen.queryByRole("button", { name: selection.trash(1) })
@@ -671,7 +669,7 @@ describe("Sélection en masse", () => {
   })
 
   it("« Tout sélectionner » ne coche que les fichiers affichés", async () => {
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     await screen.findByText(photo.name)
 
     vi.mocked(api.listMedia).mockResolvedValue([voice])
@@ -686,7 +684,7 @@ describe("Sélection en masse", () => {
   })
 
   it("« Tout sélectionner » est un bouton avant Grille et Liste, sans case au-dessus des vignettes", async () => {
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     await screen.findByText(photo.name)
 
     const selectAll = screen.getByRole("button", { name: selection.selectAll })
@@ -729,7 +727,7 @@ describe("Sélection en masse", () => {
     vi.mocked(api.restoreMedia).mockResolvedValue(photo)
     // En liste : les mêmes cases, dans la première colonne.
     localStorage.setItem("declikora:mediatheque:affichage", "list")
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     await screen.findByText(photo.name)
 
     fireEvent.click(box(photo.name))
@@ -783,7 +781,7 @@ describe("Sélection en masse", () => {
       ...photo,
       deleted_at: "2026-09-27T13:00:00Z",
     })
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     await screen.findByText(photo.name)
 
     fireEvent.click(box(photo.name))
@@ -835,7 +833,7 @@ describe("Remplacer un fichier", () => {
       status: "ready",
     })
     vi.mocked(api.getMedia).mockResolvedValue({ ...newPdf, status: "ready" })
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     fireEvent.click(
       await screen.findByRole("button", { name: texts.media.open(oldPdf.name) })
     )
@@ -942,7 +940,7 @@ describe("Envoi", () => {
         reject_reason: "svg_element_interdit",
       },
     ])
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     await screen.findByText(photo.name)
     // Zone d'annonce présente AVANT l'envoi (sinon les lecteurs d'écran ne la lisent pas).
     const announcer = screen.getByRole("status", {
@@ -1010,7 +1008,7 @@ describe("Envoi", () => {
   })
 
   it("refuse un format inconnu avec un message clair", async () => {
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     await screen.findByText(photo.name)
 
     fireEvent.change(input(), {
@@ -1034,7 +1032,7 @@ describe("Envoi", () => {
       ...created,
       status: "ready",
     })
-    await renderApp("/mediatheque")
+    await renderApp("/media")
     await screen.findByText(photo.name)
     const listCalls = vi.mocked(api.listMedia).mock.calls.length
 
@@ -1076,7 +1074,7 @@ describe("Envoi", () => {
       ...createdPdf,
       status: "ready",
     })
-    const { router } = await renderApp("/mediatheque")
+    const { router } = await renderApp("/media")
     await screen.findByText(photo.name)
 
     fireEvent.change(input(), {
@@ -1091,7 +1089,7 @@ describe("Envoi", () => {
       within(uploads).getByText(texts.media.uploads.summary.failed(1))
     ).toBeVisible()
 
-    await act(() => router.navigate("/corbeille"))
+    await act(() => router.navigate("/trash"))
 
     const elsewhere = await screen.findByRole("region", {
       name: texts.media.uploads.title,

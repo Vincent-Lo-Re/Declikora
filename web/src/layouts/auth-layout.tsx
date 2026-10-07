@@ -60,7 +60,10 @@ function AuthAside() {
       />
       <div aria-hidden className="absolute inset-0 bg-card/70" />
       <div className="relative">
-        <AnimatedMonogram />
+        <AnimatedMonogram
+          motions={brand.monogramMotion ? brand.monogramMotions : []}
+          className="h-32"
+        />
       </div>
     </div>
   )

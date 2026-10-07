@@ -9,6 +9,7 @@ import { Link } from "react-router"
 import { useAuth } from "@/auth/auth-context"
 import { AuthForm } from "@/components/auth-form"
 import { AuthNote } from "@/components/auth/auth-note"
+import { ContactText } from "@/components/auth/contact-text"
 import { AuthSlides } from "@/components/auth/auth-slides"
 import { toastFirstError } from "@/components/auth/form-errors"
 import { CodeInput } from "@/components/code-input"
@@ -218,7 +219,10 @@ function CodeForm({
         </Button>
         {showLostPhone && (
           <FieldDescription className="text-center text-xs">
-            {texts.mfa.lostPhone}
+            <ContactText
+              plain={texts.mfa.lostPhone}
+              withContact={texts.mfa.lostPhoneContact}
+            />
           </FieldDescription>
         )}
         {onBack && (

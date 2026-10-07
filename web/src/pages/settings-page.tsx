@@ -10,8 +10,9 @@ import { ListEmpty } from "@/components/list-card"
 import { PageHeader } from "@/components/page-header"
 import { AccessLevelsCard } from "@/components/settings/access-levels-card"
 import { AdminIdentityCard } from "@/components/settings/admin-identity-card"
-import { BrandFileCard } from "@/components/settings/brand-file-card"
-import { LoginImageCard } from "@/components/settings/login-image-card"
+import { BrandLogosCard } from "@/components/settings/brand-logos-card"
+import { LoginScreenCard } from "@/components/settings/login-screen-card"
+import { SettingsSection } from "@/components/settings/settings-section"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAddressState } from "@/hooks/use-address-state"
 import {
@@ -35,7 +36,7 @@ const tabIcons: Record<SettingsTab, LucideIcon> = {
 /**
  * Paramètres (admins seulement, ADMIN § 7) : quatre onglets, l'identité de l'admin, l'identité de
  * l'app, les formules d'abonnement et les réglages avancés. L'onglet ouvert est dans l'adresse
- * (« ?onglet=formules »). Sont remplis : le nom de la marque, le logotype et le monogramme (Identité de l'admin) et les
+ * (« ?tab=plans »). Sont remplis : le nom de la marque, le logotype et le monogramme (Identité de l'admin) et les
  * formules.
  */
 export function SettingsPage() {
@@ -66,32 +67,29 @@ export function SettingsPage() {
         {settingsTabs.map((value) => (
           <TabsContent key={value} value={value} data-settings-tab={value}>
             {value === "admin" ? (
-              <div className="grid items-start gap-6 xl:grid-cols-2">
-                {/* Le nom sur toute la largeur, puis les deux fichiers côte à côte. */}
-                <div className="xl:col-span-2">
+              // Des sections de réglages : le titre à gauche, la carte à droite ; empilées
+              // sur un écran étroit (conteneur, maquette docs/maquettes/parametres-identite.html).
+              <div className="@container space-y-8 pt-4">
+                <SettingsSection
+                  title={labels.adminIdentity.title}
+                  description={labels.adminIdentity.description}
+                >
                   <AdminIdentityCard />
-                </div>
-                {/* Une carte par fichier (le modèle « Cover Art » de shadcn). */}
-                <div className="space-y-3 xl:col-span-2">
-                  <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-                    <BrandFileCard kind="logotype" surface="light" />
-                    <BrandFileCard kind="logotype" surface="dark" />
-                    <BrandFileCard kind="monogram" surface="light" />
-                    <BrandFileCard kind="monogram" surface="dark" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {labels.adminIdentity.files.hint}
-                  </p>
-                </div>
-                {/* L'image de l'écran de connexion, de la largeur d'un logo. */}
-                <div className="space-y-3 xl:col-span-2">
-                  <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-                    <LoginImageCard />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {labels.adminIdentity.files.loginImage.hint}
-                  </p>
-                </div>
+                </SettingsSection>
+                <SettingsSection
+                  title={labels.adminIdentity.files.loginScreen.title}
+                  description={
+                    labels.adminIdentity.files.loginScreen.description
+                  }
+                >
+                  <LoginScreenCard />
+                </SettingsSection>
+                <SettingsSection
+                  title={labels.adminIdentity.files.title}
+                  description={labels.adminIdentity.files.description}
+                >
+                  <BrandLogosCard />
+                </SettingsSection>
               </div>
             ) : value === "plans" ? (
               <AccessLevelsCard />

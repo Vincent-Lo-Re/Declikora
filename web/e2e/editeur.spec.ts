@@ -324,9 +324,9 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
   const title = `Le vitrail ${id}`
 
   // Une photo envoyée par la Médiathèque.
-  await page.goto("/mediatheque")
+  await page.goto("/media")
   await signIn(page, admin)
-  await expect(page).toHaveURL(/\/mediatheque$/)
+  await expect(page).toHaveURL(/\/media$/)
   await page
     .getByLabel(texts.media.uploadInput)
     .setInputFiles([

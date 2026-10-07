@@ -38,9 +38,9 @@ test("un admin invite un éditeur, qui rejoint l'équipe sans voir Équipe", asy
     fullName: "Nina Nouvelle",
   })
 
-  await page.goto("/equipe")
+  await page.goto("/team")
   await signIn(page, admin)
-  await expect(page).toHaveURL(/\/equipe$/)
+  await expect(page).toHaveURL(/\/team$/)
 
   // Invitation : e-mail, nom, rôle (Éditeur par défaut).
   const before = await receivedIds(editor.email)
@@ -84,7 +84,7 @@ test("un admin invite un éditeur, qui rejoint l'équipe sans voir Équipe", asy
   ).toHaveCount(0)
 
   // Et s'il tape l'adresse : « Réservé aux admins ».
-  await editorPage.goto("/equipe")
+  await editorPage.goto("/team")
   await expect(
     editorPage.getByRole("heading", { name: texts.adminOnly.title })
   ).toBeVisible()
@@ -126,7 +126,7 @@ test("un admin invite un éditeur, qui rejoint l'équipe sans voir Équipe", asy
 
   // Sans fiche, l'éditeur retiré est déconnecté à son prochain passage.
   await editorPage.goto("/")
-  await expect(editorPage).toHaveURL(/\/connexion$/)
+  await expect(editorPage).toHaveURL(/\/sign-in$/)
   await editorContext.close()
 })
 
@@ -140,9 +140,9 @@ test("un admin ne change pas son propre rôle, et un admin invité ne compte pas
     fullName: "Paul Pending",
   })
 
-  await page.goto("/equipe")
+  await page.goto("/team")
   await signIn(page, admin)
-  await expect(page).toHaveURL(/\/equipe$/)
+  await expect(page).toHaveURL(/\/team$/)
 
   // Sur sa propre ligne : aucune action (ni « Passer éditeur », ni « Retirer »).
   const myRow = page.getByRole("row").filter({ hasText: admin.email })
@@ -197,7 +197,7 @@ test("la fonction « equipe » refuse un admin avant la double vérification, et
   })
 
   // Admin qui n'a saisi que le code reçu par e-mail (session aal1) : 403.
-  await page.goto("/connexion")
+  await page.goto("/sign-in")
   await signInWithEmailCode(page, admin)
   const me = await readProfile(admin.email)
   const token = await accessToken(page)

@@ -16,6 +16,7 @@ import {
 import type { Tables, TablesInsert } from "@/lib/database.types"
 import { decodeImage, reduceImage } from "@/lib/media/image"
 import { cleanSvg } from "@/lib/media/svg"
+import { DEFAULT_MOTIONS, isMotion, type Motion } from "@/lib/monogram-motion"
 import { palettePresets, presetLogoColors, type PresetId } from "@/lib/palettes"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
@@ -59,11 +60,22 @@ export type AdminBrand = { name: string | null } & Record<
 > & {
     variants: Partial<Record<string, string>>
     loginImage: BrandFile | null
+    /** Le monogramme de l'écran de connexion est animé (faux : immobile). */
+    monogramMotion: boolean
+    /** Ses animations cochées (lib/monogram-motion.ts). */
+    monogramMotions: Motion[]
+    /** L'adresse de contact de la marque, sur l'écran de connexion (ou null). */
+    contactEmail: string | null
   }
 
 type BrandRow = Pick<
   Tables<"admin_identity">,
-  "name" | BrandColumn | "login_image"
+  | "name"
+  | BrandColumn
+  | "login_image"
+  | "login_monogram_motion"
+  | "login_monogram_motions"
+  | "contact_email"
 >
 
 const variantKey = (kind: BrandKind, palette: string, surface: BrandSurface) =>
@@ -104,6 +116,11 @@ export async function getAdminBrand(): Promise<AdminBrand> {
     "monogram-light": fileOf(row.monogram_light),
     "monogram-dark": fileOf(row.monogram_dark),
     loginImage: fileOf(row.login_image),
+    monogramMotion: row.login_monogram_motion ?? true,
+    monogramMotions: (row.login_monogram_motions ?? DEFAULT_MOTIONS).filter(
+      isMotion
+    ),
+    contactEmail: row.contact_email ?? null,
     variants: Object.fromEntries(
       variants.data.map((variant) => [
         variantKey(
@@ -125,9 +142,15 @@ async function updateIdentity(values: Partial<BrandRow>): Promise<void> {
   if (error) throw error
 }
 
-/** Change le nom de la marque (admins) ; null revient à « Ruche ». */
-export function saveAdminName(name: string | null): Promise<void> {
-  return updateIdentity({ name })
+/**
+ * Change le nom de la marque et son adresse de contact (admins) ; null : le nom à défaut, ou pas
+ * d'adresse.
+ */
+export function saveBrandDetails(
+  name: string | null,
+  contactEmail: string | null
+): Promise<void> {
+  return updateIdentity({ name, contact_email: contactEmail })
 }
 
 /** Un fichier refusé avant l'envoi : son message est dans texts. */
@@ -244,6 +267,16 @@ export async function saveLoginImage(
   if (error) throw error
   await updateIdentity({ login_image: path })
   if (previous) await supabase.storage.from(BUCKET).remove([previous])
+}
+
+/** Active ou désactive le monogramme animé de l'écran de connexion (admins). */
+export function saveMonogramMotion(enabled: boolean): Promise<void> {
+  return updateIdentity({ login_monogram_motion: enabled })
+}
+
+/** Les animations cochées du monogramme de l'écran de connexion (admins ; une au moins). */
+export function saveMonogramMotions(motions: Motion[]): Promise<void> {
+  return updateIdentity({ login_monogram_motions: motions })
 }
 
 /** Retire l'image de l'écran de connexion (admins) : le monogramme reprend sa place. */

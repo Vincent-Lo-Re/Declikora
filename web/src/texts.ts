@@ -87,7 +87,7 @@ export const texts = {
     settings: {
       title: "Paramètres",
       description:
-        "L'identité de l'admin et de l'app, les formules d'abonnement et les réglages avancés.",
+        "Donne un visage à ton admin et à ton app, compose tes formules d'abonnement et ajuste les réglages avancés.",
     },
     account: {
       title: "Mon compte",
@@ -124,6 +124,8 @@ export const texts = {
     invitedHint: {
       title: "Tu as reçu une invitation ?",
       text: "Ouvre plutôt le lien de l'e-mail d'invitation, ou demande à un admin de te le renvoyer.",
+      // Avec l'adresse de contact de la marque (Paramètres), suivie de l'adresse en lien.
+      withContact: "Ouvre plutôt le lien de l'e-mail d'invitation, ou écris à",
     },
     code: "Code reçu par e-mail",
     invalidCode: "Le code contient 6 chiffres.",
@@ -161,6 +163,8 @@ export const texts = {
     submit: "Valider",
     // Sous le bouton « Valider », en une ligne (assez court pour la largeur du formulaire).
     lostPhone: "Téléphone perdu ? Demande à un admin de la réinitialiser.",
+    // Avec l'adresse de contact de la marque, suivie de l'adresse en lien.
+    lostPhoneContact: "Téléphone perdu ? Écris à",
     // Sous « Se déconnecter », en bas de la carte.
     signOutText: "Reviens à la connexion.",
   },
@@ -2084,33 +2088,40 @@ export const texts = {
     },
     // Onglet « Identité de l'admin » : le nom de la marque, pour toute l'équipe.
     adminIdentity: {
-      title: "Nom de la marque",
+      // La carte de la marque : son nom et son adresse de contact.
+      title: "Marque",
       description:
-        "Personnalise l'expérience de ton équipe avec le nom de ta marque, affiché dans l'administration, le menu, l'écran de connexion et l'onglet du navigateur.",
-      name: "Nom",
+        "Le nom que ton équipe retrouve partout : dans le menu, l'onglet du navigateur et l'écran de connexion. L'adresse e-mail s'affiche à la connexion, pour qui a perdu son téléphone ou son invitation.",
+      name: "Le nom de ta marque",
+      save: "Enregistre tes choix",
       placeholder: "Ruche",
       nameTooLong: "Le nom ne doit pas dépasser 40 caractères.",
-      saved: "Nom de la marque enregistré.",
-      loadFailed: "Le nom de la marque n'a pas pu être chargé.",
+      // L'adresse de contact, montrée sur l'écran de connexion à qui a besoin d'aide.
+      email: "Adresse e-mail de contact",
+      emailPlaceholder: "contact@exemple.fr",
+      invalidEmail: "Saisis une adresse e-mail valide.",
+      saved: "Marque enregistrée.",
+      loadFailed: "La marque n'a pas pu être chargée.",
       // Le logotype et le monogramme, chacun pour fond clair et pour fond sombre : une carte
       // par fichier (le modèle « Cover Art » de shadcn).
       files: {
+        // La section des logos : une carte, deux groupes de deux cases (fond clair, fond sombre).
+        title: "Logos",
+        description:
+          "Ta signature, sur fond clair comme sur fond sombre. SVG, PNG ou WebP, 1 Mo au plus, à choisir ou à glisser dans une case. Une seule version suffit : elle s'adapte aux deux fonds. Pas de logo ? Le nom de ta marque prend le relais ; sans nom non plus, les logos à défaut.",
         logotype: {
           title: "Logotype",
-          use: "En haut du menu et à la connexion",
+          use: "menu et connexion",
         },
         monogram: {
           title: "Monogramme",
-          use: "Dans l'onglet du navigateur et l'aperçu",
+          use: "onglet et aperçu",
         },
         light: "Fond clair",
         dark: "Fond sombre",
         // L'étiquette d'une carte, et le nom de son champ : « Logotype · fond clair ».
         label: (what: string, surface: string) =>
           `${what} · ${surface.toLowerCase()}`,
-        formats: "SVG, PNG ou WebP, 1 Mo au plus, à choisir ou à déposer",
-        // Une seule version : elle sert aussi sur l'autre fond.
-        hint: "Une seule version sert pour les deux fonds. Sans fichier, le nom de la marque (ou son initiale) s'affiche ; sans fichier ni nom de marque, les logos de Ruche, aux couleurs de chaque palette.",
         choose: "Choisir un fichier",
         // Un fichier glissé au-dessus d'une carte.
         drop: "Dépose le fichier ici",
@@ -2122,7 +2133,7 @@ export const texts = {
         variants: {
           title: "Décliner ce logo aux couleurs des palettes ?",
           description: (count: number) =>
-            `Ses couleurs peuvent changer : chaque membre le verra aux couleurs de la palette qu'il a choisie, sur fond clair et sur fond sombre. ${count} palettes ; Neutrine, la palette d'origine, garde ses couleurs.`,
+            `Ce logo sait changer de couleurs : chacun le verra aux teintes de sa palette, sur fond clair comme sur fond sombre. ${count} palettes en tout ; Neutrine, la palette d'origine, garde les couleurs du fichier.`,
           detected: "Couleurs détectées",
           main: "Principale",
           accent: "Accent",
@@ -2138,33 +2149,65 @@ export const texts = {
           photoType: "Choisis un JPEG, un PNG ou un WebP.",
           photo: "Cette image n'a pas pu être lue.",
         },
-        // L'image à droite du formulaire de connexion (modèle « login-04 » de shadcn).
-        loginImage: {
+        // La section de l'écran de connexion : l'aperçu (l'image, le voile et le monogramme) et,
+        // à côté, l'image et le monogramme animé.
+        loginScreen: {
           title: "Écran de connexion",
-          use: "À droite du formulaire de connexion, sur grand écran",
-          formats:
-            "JPEG, PNG ou WebP, réduite à l'envoi, à choisir ou à déposer",
-          hint: "Un voile sombre et le monogramme passent par-dessus l'image. Sans image, celle de Ruche s'affiche.",
+          description:
+            "Le premier regard de ton équipe sur l'admin. Choisis l'image de fond (JPEG, PNG ou WebP, 1 Mo au plus), à sélectionner ou à glisser sur l'aperçu, puis donne vie au monogramme posé dessus.",
+          preview: "Aperçu de l'écran de connexion",
+        },
+        loginImage: {
+          title: "Image de fond",
+          formats: "JPEG, PNG ou WebP",
+          // Une photo plus lourde est réduite à l'envoi : elle tient toujours dans 1 Mo.
+          maxSize: "1 Mo au plus",
+          choose: "Choisir",
+        },
+        monogramMotion: {
+          title: "Monogramme animé",
+          description: "Coche tes préférées : elles s'enchaînent en douceur.",
+          toggle: "Animer le monogramme",
+          on: "Monogramme animé.",
+          off: "Monogramme immobile.",
+          // Les animations, dans l'ordre où elles se jouent (lib/monogram-motion.ts).
+          motions: {
+            trace: "Tracé",
+            cascade: "Cascade",
+            glint: "Lueur",
+            shine: "Reflet",
+            halo: "Halo",
+            sway: "Balancement",
+            breathe: "Respiration",
+          },
+          group: "Animations du monogramme",
+          // Une animation grisée : ce que le monogramme pour fond sombre ne permet pas.
+          blocked: {
+            svg: "Tracé, cascade et lueur : seulement avec un monogramme en SVG simple (couleurs pleines, sans dégradé ni image).",
+            accent:
+              "Lueur : seulement avec un monogramme qui a une couleur d'accent (une couleur vive à côté du noir, du blanc ou du gris).",
+          },
+          saved: "Animations enregistrées.",
         },
       },
     },
     // Un onglet pas encore rempli.
     empty: {
       title: "Rien ici pour l'instant",
-      description: "Cette rubrique sera remplie prochainement.",
+      description: "Cette rubrique arrive bientôt.",
     },
     accessLevels: {
       title: "Formules d'abonnement",
       description:
-        "Rangées de la moins complète (en haut) à la plus complète (en bas). Un abonné lit les contenus de sa formule et ceux des formules placées au-dessus d'elle (moins complètes). Changer l'ordre change tout de suite ce que chaque abonné peut lire.",
+        "De la plus légère, en haut, à la plus complète, en bas. Chaque abonné lit les contenus de sa formule et de toutes celles placées au-dessus. Change l'ordre : ce que chacun peut lire suit aussitôt.",
       listLabel: "Formules, de la moins complète à la plus complète",
       empty:
-        "Aucune formule pour l'instant. Sans formule, un contenu ne peut être que gratuit.",
+        "Pas encore de formule. Tant qu'il n'y en a pas, tous les contenus restent gratuits.",
       name: "Nom de la nouvelle formule",
       namePlaceholder: "Par exemple : Essentiel",
       addTitle: "Ajouter une formule",
       addDescription:
-        "Elle arrive en bas de la liste, comme la plus complète ; range-la ensuite à sa place.",
+        "Elle se place en bas, comme la plus complète. Glisse-la ensuite à sa juste place.",
       nameRequired: "Donne un nom à la formule.",
       nameTooLong: "Le nom ne doit pas dépasser 100 caractères.",
       add: "Ajouter",
@@ -2178,7 +2221,7 @@ export const texts = {
       confirmRemove: {
         title: "Supprimer cette formule ?",
         description: (name: string) =>
-          `La formule « ${name} » sera supprimée. C'est possible seulement si aucun contenu, aucune version publiée et aucun abonné ne s'en sert.`,
+          `« ${name} » disparaîtra pour de bon. Seule une formule qu'aucun contenu, aucune version publiée et aucun abonné n'utilise peut partir.`,
         confirm: "Supprimer définitivement",
       },
       removed: (name: string) => `Formule « ${name} » supprimée.`,
