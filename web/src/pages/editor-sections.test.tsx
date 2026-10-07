@@ -885,7 +885,7 @@ describe("éditeur d'un article (Le Fil)", () => {
     // Des icônes seules : leur nom est dans l'infobulle.
     expect(bar).not.toHaveTextContent(texts.editor.settings.remove)
     // Le plan dit « Section » (anciennement « Encadré »).
-    expect(within(plan).getByText(/Section avec fond/)).toBeVisible()
+    expect(within(plan).getByText(/Encadré avec fond/)).toBeVisible()
   })
 
   it("une section choisie dans le plan reste choisie (pas son premier texte), et « Dupliquer » la copie", async () => {

@@ -55,11 +55,11 @@ export const texts = {
       description: "Bienvenue",
     },
     blog: {
-      title: "Le Fil",
+      title: "Blog",
       description: "Les articles et leurs catégories.",
     },
     podcasts: {
-      title: "Radio Éclaircies",
+      title: "Podcasts",
       description: "Les épisodes et leurs catégories.",
     },
     pages: {
@@ -87,7 +87,7 @@ export const texts = {
     settings: {
       title: "Paramètres",
       description:
-        "Donne un visage à ton admin et à ton app, compose tes formules d'abonnement et ajuste les réglages avancés.",
+        "Donne un visage à ton admin et à ton app, compose tes formules et ajuste les réglages avancés.",
     },
     account: {
       title: "Mon compte",
@@ -143,13 +143,13 @@ export const texts = {
     // mobile device » de shadcn), puis le premier code de l'app.
     setupTitle: "Scanne pour relier ton téléphone",
     setupDescription:
-      "Ouvre une app de double vérification (Google Authenticator, 1Password…), ajoute un compte et scanne ce code. Tu ne le fais qu'une fois.",
+      "Ouvre une app de double vérification (Google Authenticator, 1Password…), ajoute un compte et scanne ce QR code. Tu ne le fais qu'une fois.",
     qrCode: "QR code à scanner avec l'app de ton téléphone",
     secret: "Pas de caméra ? Saisis plutôt cette clé dans l'app :",
     scanned: "C'est fait",
     firstCodeTitle: "Saisis le code de l'app",
     firstCodeDescription:
-      "Le code à 6 chiffres que l'app affiche maintenant pour l'administration.",
+      "Le code à 6 chiffres que l'app affiche maintenant pour l'admin.",
     backToQr: "Revoir le QR code",
     setupFailed:
       "La configuration n'a pas pu démarrer. Recharge la page pour réessayer.",
@@ -172,7 +172,7 @@ export const texts = {
   invitation: {
     title: "Rejoindre l'équipe",
     description: (brand: string) =>
-      `Un admin t'invite à rejoindre l'administration de ${brand}. Ensuite, tu configureras la double vérification.`,
+      `Un admin t'invite à rejoindre l'admin de ${brand}. Ensuite, tu configureras la double vérification.`,
     accept: "Accepter l'invitation",
     expired:
       "Ce lien a expiré ou a déjà servi. Demande à un admin de te renvoyer l'invitation.",
@@ -185,7 +185,7 @@ export const texts = {
     title: "Réservé aux admins",
     description:
       "Cette section est réservée aux admins de l'équipe. Demande à un admin si tu as besoin d'y accéder.",
-    back: "Retour au tableau de bord",
+    back: "Retour au Tableau de bord",
   },
 
   account: {
@@ -203,7 +203,7 @@ export const texts = {
       title: "Double vérification",
       description:
         "Le code de l'app de ton téléphone, demandé à chaque connexion.",
-      active: "Activée",
+      active: "Configurée",
       configured: "Configurée",
       configuredOn: (date: string) => `le ${date}`,
       lostPhone: {
@@ -268,18 +268,18 @@ export const texts = {
     confirmRemove: {
       title: "Retirer ce membre ?",
       description: (member: string) =>
-        `${member} n'aura plus accès à l'administration et son compte sera supprimé.`,
+        `${member} n'aura plus accès à l'admin et son compte sera supprimé.`,
       confirm: "Retirer",
     },
     confirmResetMfa: {
       title: "Réinitialiser la double vérification ?",
       description: (member: string) =>
-        `La session de ${member} sera fermée : il faudra configurer à nouveau la double vérification avec son téléphone.`,
+        `${member} sera déconnecté et devra configurer à nouveau la double vérification avec son téléphone.`,
       confirm: "Réinitialiser",
     },
     // Erreurs renvoyées par la fonction serveur « equipe », selon leur code.
     errors: {
-      non_connecte: "Ta session a expiré. Reconnecte-toi pour continuer.",
+      non_connecte: "Tu as été déconnecté. Reconnecte-toi pour continuer.",
       reserve_aux_admins: "Cette action est réservée aux admins.",
       soi_meme:
         "Tu ne peux pas faire ça sur ton propre compte. Demande à un autre admin.",
@@ -371,7 +371,7 @@ export const texts = {
       inconnue: "le fichier n'a pas été accepté.",
     },
     rejectedCleanup:
-      "Il sera retiré automatiquement de la médiathèque dans les 24 heures.",
+      "Il sera retiré automatiquement de la Médiathèque dans les 24 heures.",
     columns: {
       preview: "Aperçu",
       name: "Nom",
@@ -414,9 +414,9 @@ export const texts = {
     },
     tooMany: (count: number) =>
       `Seuls les ${count} fichiers les plus récents sont affichés. Affine ta recherche pour trouver les autres.`,
-    loadFailed: "La médiathèque n'a pas pu être chargée.",
+    loadFailed: "La Médiathèque n'a pas pu être chargée.",
     refreshFailed:
-      "La médiathèque n'a pas pu être mise à jour : elle date peut-être un peu.",
+      "La Médiathèque n'a pas pu être mise à jour : elle date peut-être un peu.",
     storage: {
       label: "Place occupée",
       value: (used: string, total: string) => `${used} sur ${total}`,
@@ -430,7 +430,7 @@ export const texts = {
           ? "1 fichier sans fiche dans le stockage"
           : `${count} fichiers sans fiche dans le stockage`,
       description: (date: string) =>
-        `Trouvés au contrôle du ${date}. Ce sont des restes d'envois interrompus : ils occupent de la place sans apparaître dans la médiathèque.`,
+        `Trouvés au contrôle du ${date}. Ce sont des restes d'envois interrompus : ils occupent de la place sans apparaître dans la Médiathèque.`,
       show: "Voir la liste",
       hide: "Masquer la liste",
       more: (count: number) => `… et ${count} de plus`,
@@ -494,7 +494,7 @@ export const texts = {
       type_refuse:
         "Format refusé. Envoie une image (JPEG, PNG, WebP, GIF, HEIC, AVIF), un SVG, une animation Lottie (.json), un audio (MP3, M4A) ou un PDF.",
       video_refusee:
-        "Les vidéos ne sont pas acceptées. Pour un son, envoie un MP3 ou un M4A.",
+        "Les vidéos ne sont pas acceptées. Pour un audio, envoie un MP3 ou un M4A.",
       fichier_vide: "Ce fichier est vide.",
       fichier_trop_lourd: "Fichier trop lourd : 50 Mo au plus.",
       fichier_a_verifier_trop_lourd:
@@ -504,13 +504,13 @@ export const texts = {
       heic_illisible:
         "Ton navigateur ne sait pas lire les photos HEIC (iPhone). Ouvre la photo avec Safari, ou enregistre-la en JPEG, puis envoie-la de nouveau.",
       svg_illisible:
-        "Ce SVG est illisible, ou il déclare des entités (refusées par sécurité).",
+        "Ce SVG est illisible, ou il contient du code refusé par sécurité.",
       svg_element_interdit:
         "Ce SVG contient un élément qui ne peut pas être retiré sans l'abîmer.",
       svg_attribut_interdit:
         "Ce SVG contient un attribut qui ne peut pas être retiré sans l'abîmer.",
       svg_lien_externe:
-        "Ce SVG charge une ressource extérieure qui ne peut pas être retirée.",
+        "Ce SVG charge une image, une police ou un style extérieur qui ne peut pas être retiré.",
       lottie_illisible:
         "Ce fichier .json est illisible : ce n'est pas du JSON valide.",
       lottie_invalide:
@@ -563,7 +563,7 @@ export const texts = {
           ? "1 contenu mis à jour dans l'app."
           : `${count} contenus mis à jour dans l'app.`,
       oldTrashed:
-        "Plus rien n'utilise l'ancien fichier : il est dans la corbeille.",
+        "Plus rien n'utilise l'ancien fichier : il est dans la Corbeille.",
       openNew: "Ouvrir le nouveau fichier",
       rejected: (reason: string) => `Le nouveau fichier est refusé : ${reason}`,
       failed: "L'envoi du nouveau fichier a échoué.",
@@ -595,17 +595,17 @@ export const texts = {
       visibility: "Accès",
       public: "Public",
       publicHint:
-        "Utilisé par un contenu gratuit en ligne, ou image de présentation.",
+        "Utilisé par un contenu gratuit en ligne, ou comme image de présentation.",
       protected: "Protégé",
       uses: "Utilisé dans",
       usesCount: (count: number) =>
         count === 1 ? "1 contenu" : `${count} contenus`,
       usesLoading: "Recherche des contenus…",
       notUsed:
-        "Ce fichier n'est utilisé dans aucun contenu pour l'instant. Tu peux l'insérer dans un contenu depuis l'éditeur (bloc Image).",
+        "Ce fichier n'est utilisé dans aucun contenu pour l'instant. Tu peux l'ajouter à un contenu depuis l'éditeur.",
       usesFailed: "La liste des contenus n'a pas pu être chargée.",
       inDraft: "Brouillon",
-      inApp: "Dans l'app",
+      inApp: "En ligne",
       usesLive: "En ligne dans l'app",
       usesDrafts: "Dans les brouillons",
       usesLiveHint:
@@ -642,8 +642,8 @@ export const texts = {
     // Erreurs de la base (RPC) et de la fonction « files », selon leur code.
     errors: {
       reserve_a_l_equipe:
-        "Ta session ne donne plus accès à la médiathèque. Reconnecte-toi.",
-      non_connecte: "Ta session a expiré. Reconnecte-toi pour continuer.",
+        "Tu n'as plus accès à la Médiathèque. Reconnecte-toi.",
+      non_connecte: "Tu as été déconnecté. Reconnecte-toi pour continuer.",
       type_refuse: "Ce type de fichier n'est pas accepté.",
       nom_invalide: "Le nom du fichier doit faire entre 1 et 255 caractères.",
       fichier_vide: "Ce fichier est vide.",
@@ -651,7 +651,7 @@ export const texts = {
         "Fichier trop lourd : 50 Mo au plus, 5 Mo pour un SVG ou une animation Lottie.",
       fichier_invalide: "Les informations du fichier ne sont pas valides.",
       fichier_introuvable:
-        "Ce fichier n'existe plus ou est dans la corbeille. Recharge la page.",
+        "Ce fichier n'existe plus ou il est dans la Corbeille. Recharge la page.",
       fichier_absent:
         "Le fichier n'est pas arrivé dans le stockage. Réessaie dans un instant.",
       envoi_expire: "Cet envoi a expiré. Envoie le fichier de nouveau.",
@@ -660,7 +660,8 @@ export const texts = {
       fichier_pas_pret:
         "Le nouveau fichier n'est pas encore prêt : attends la fin de sa vérification.",
       type_different: "Le nouveau fichier doit être du même type que l'ancien.",
-      effacement_demande: "L'effacement de ce fichier est déjà en cours.",
+      effacement_demande:
+        "Ce fichier est en cours de suppression définitive : il ne peut plus être restauré.",
       demande_invalide: "La demande n'est pas valide. Recharge la page.",
       reserve_aux_admins: "Cette action est réservée aux admins.",
       methode_refusee: "La demande n'est pas valide. Recharge la page.",
@@ -677,8 +678,8 @@ export const texts = {
       all: "Tout",
       file: "Médiathèque",
       page: "Pages",
-      article: "Le Fil",
-      episode: "Radio Éclaircies",
+      article: "Blog",
+      episode: "Podcasts",
       template: "Modèles de bloc",
     },
     itemTypes: {
@@ -696,17 +697,17 @@ export const texts = {
     batch: (count: number) =>
       count === 1 ? "avec 1 élément" : `avec ${count} éléments`,
     batchList: (names: string) => `Dans le même lot : ${names}.`,
-    eraseSelection: (count: number) => `Effacer définitivement (${count})`,
+    eraseSelection: (count: number) => `Supprimer définitivement (${count})`,
     confirmSelection: {
       title: (count: number) =>
         count === 1
-          ? "Effacer définitivement cet élément ?"
-          : "Effacer définitivement ces éléments ?",
+          ? "Supprimer définitivement cet élément ?"
+          : "Supprimer définitivement ces éléments ?",
       description: (count: number) =>
         count === 1
-          ? "L'élément sélectionné sera effacé définitivement. Tu ne pourras pas revenir en arrière."
-          : `Les ${count} éléments sélectionnés seront effacés définitivement. Tu ne pourras pas revenir en arrière.`,
-      confirm: "Effacer définitivement",
+          ? "L'élément sélectionné sera supprimé définitivement. Tu ne pourras pas revenir en arrière."
+          : `Les ${count} éléments sélectionnés seront supprimés définitivement. Tu ne pourras pas revenir en arrière.`,
+      confirm: "Supprimer définitivement",
     },
     // Seules les pages ont une adresse.
     restoredWithoutAddress: (name: string) =>
@@ -721,33 +722,33 @@ export const texts = {
     },
     deletedBy: (name: string) => `par ${name}`,
     purgeOn: (date: string) => `le ${date}`,
-    purgeRefused: "Effacement impossible : encore utilisé",
+    purgeRefused: "Suppression impossible : encore utilisé",
     purgeRefusedHint:
       "Ce fichier a été inséré dans un contenu entre-temps. Restaure-le, ou retire-le du contenu avant de vider la corbeille.",
     restore: "Restaurer",
     restoreItem: (name: string) => `Restaurer ${name}`,
     // Sans accord : l'élément peut être un fichier, une page, un article…
     restored: (name: string) => `« ${name} » est de retour.`,
-    eraseItem: (name: string) => `Effacer définitivement ${name}`,
-    erase: "Effacer définitivement",
+    eraseItem: (name: string) => `Supprimer définitivement ${name}`,
+    erase: "Supprimer définitivement",
     empty: "Vider la corbeille",
     emptied: (count: number) =>
       count === 0
         ? "La corbeille était déjà vide."
         : count === 1
-          ? "1 élément est en cours d'effacement."
-          : `${count} éléments sont en cours d'effacement.`,
+          ? "1 élément est en cours de suppression."
+          : `${count} éléments sont en cours de suppression.`,
     confirmEmpty: {
       title: "Vider la corbeille ?",
       description: (count: number) =>
-        `${count === 1 ? "L'élément de la corbeille sera effacé" : `Les ${count} éléments de la corbeille seront effacés`} définitivement. Tu ne pourras pas revenir en arrière.`,
+        `${count === 1 ? "L'élément de la corbeille sera supprimé" : `Les ${count} éléments de la corbeille seront supprimés`} définitivement. Tu ne pourras pas revenir en arrière.`,
       confirm: "Vider la corbeille",
     },
     confirmErase: {
-      title: "Effacer définitivement ?",
+      title: "Supprimer définitivement ?",
       description: (name: string) =>
-        `Effacement définitif de « ${name} » : tu ne pourras pas revenir en arrière.`,
-      confirm: "Effacer définitivement",
+        `Suppression définitive de « ${name} » : tu ne pourras pas revenir en arrière.`,
+      confirm: "Supprimer définitivement",
     },
     emptyState: {
       title: "La corbeille est vide",
@@ -872,7 +873,7 @@ export const texts = {
       title: "Titre",
       publication: "Publication",
       categories: "Catégories",
-      savedAt: "Dernière modification",
+      savedAt: "Enregistré le",
     },
     searchPlaceholder: "Rechercher par titre…",
     filters: {
@@ -910,7 +911,7 @@ export const texts = {
     // Fenêtre « Nouvel article » (…) : le titre, un point de départ, les réglages ([D42]).
     newContent: {
       description:
-        "Le titre suffit pour commencer : tout se modifie ensuite dans les réglages.",
+        "Le titre suffit pour commencer : tout se modifie ensuite dans l'éditeur.",
       // Un article : ses réglages sont dans la colonne « Article » de l'éditeur.
       articleDescription:
         "Le titre suffit pour commencer : tout se modifie ensuite dans l'éditeur, colonne « Article ».",
@@ -976,12 +977,12 @@ export const texts = {
       podcasts:
         "Elles servent à filtrer les épisodes dans l'app. Un épisode peut en avoir une, plusieurs ou aucune.",
     },
-    back: (section: string) => `Retour à la section ${section}`,
+    back: (section: string) => `Retour : ${section}`,
     orderTitle: "Ordre dans l'app",
     order:
       "L'app les montre dans cet ordre. Range-les avec la poignée, à la souris ou au clavier.",
     listLabel: (section: string) =>
-      `Catégories de la section ${section}, dans l'ordre de l'app`,
+      `Catégories : ${section}, dans l'ordre de l'app`,
     empty:
       "Aucune catégorie pour l'instant. Les catégories sont facultatives : ajoutes-en si tu veux que l'app puisse filtrer.",
     name: "Nom de la nouvelle catégorie",
@@ -996,7 +997,7 @@ export const texts = {
     rename: "Renommer",
     renameLabel: (name: string) => `Nouveau nom pour ${name}`,
     renamed: "Catégorie renommée.",
-    remove: "Supprimer",
+    remove: "Supprimer définitivement",
     actions: (name: string) => `Actions pour ${name}`,
     // Pastille de chaque catégorie : le nombre de brouillons qui la citent, dans l'infobulle.
     uses: (count: number) =>
@@ -1037,8 +1038,7 @@ export const texts = {
       demande_invalide:
         "La liste a changé entre-temps. Recharge la page, puis réessaie.",
       categorie_invalide: "La section d'une catégorie ne change pas.",
-      reserve_a_l_equipe:
-        "Ta session ne donne plus accès aux catégories. Reconnecte-toi.",
+      reserve_a_l_equipe: "Tu n'as plus accès aux catégories. Reconnecte-toi.",
     },
   },
 
@@ -1050,16 +1050,16 @@ export const texts = {
         title: "Mise en forme",
         tab: "Mises en forme",
         description:
-          "On insère une copie déjà mise en forme, puis on y écrit son propre texte. Modifier le modèle ne change pas les contenus déjà écrits.",
-        example: "Exemple : une section « À retenir ».",
+          "Tu insères une copie déjà mise en forme, puis tu y écris ton propre texte. Modifier le modèle ne change pas les contenus déjà écrits.",
+        example: "Exemple : un encadré « À retenir ».",
       },
       shared: {
         title: "Bloc partagé",
         tab: "Blocs partagés",
         description:
-          "Le même bloc, avec le même texte, dans plusieurs contenus. On le corrige une seule fois dans le modèle, et il est corrigé dans tous les brouillons qui l'utilisent.",
+          "Le même bloc, avec le même texte, dans plusieurs contenus. Tu le corriges une seule fois dans le modèle, et il est corrigé dans tous les brouillons qui l'utilisent.",
         example:
-          "Exemple : une section « Contact ». Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans une section.",
+          "Exemple : un encadré « Contact ». Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
       },
       starter: {
         title: "Point de départ",
@@ -1071,8 +1071,8 @@ export const texts = {
     },
     // La section d'un point de départ ([D42]) : la sorte de contenu qu'il sert à créer.
     sections: {
-      article: "Le Fil (article)",
-      episode: "Radio Éclaircies (épisode)",
+      article: "Blog (article)",
+      episode: "Podcasts (épisode)",
       chapter: "Méthodes (chapitre)",
       lesson: "Méthodes (leçon)",
       exercise: "Méthodes (exercice)",
@@ -1094,7 +1094,7 @@ export const texts = {
       empty: {
         title: "Aucun modèle pour l'instant",
         description:
-          "Crée un modèle ici, ou depuis un contenu : choisis des blocs dans le plan, puis « Enregistrer comme modèle ».",
+          "Crée un modèle ici, ou depuis un contenu : choisis des blocs dans le Plan, puis « Enregistrer comme modèle ».",
       },
       emptySort: "Aucun modèle de ce type pour l'instant.",
       usesLoading: "Recherche des brouillons…",
@@ -1133,14 +1133,14 @@ export const texts = {
       used: {
         title: "Ce modèle est encore utilisé",
         description:
-          "Un bloc partagé ne se supprime pas tant qu'un brouillon l'utilise. « Détacher partout » en fait une copie ordinaire dans chacun d'eux, corbeille comprise : ils ne suivront plus le modèle. Ce qui est en ligne dans l'app ne change pas.",
+          "Un bloc partagé ne peut pas aller à la corbeille tant qu'un brouillon l'utilise. « Détacher partout » en fait une copie ordinaire dans chacun d'eux, même ceux de la corbeille : ils ne suivront plus le modèle. Ce qui est en ligne dans l'app ne change pas.",
         list: "Brouillons qui l'utilisent",
         inTrash: "dans la corbeille",
         detachAll: "Détacher partout",
         detached: (count: number) =>
           count === 1
-            ? "Détaché dans 1 brouillon : tu peux maintenant supprimer le modèle."
-            : `Détaché dans ${count} brouillons : tu peux maintenant supprimer le modèle.`,
+            ? "Détaché dans 1 brouillon : tu peux maintenant mettre le modèle à la corbeille."
+            : `Détaché dans ${count} brouillons : tu peux maintenant mettre le modèle à la corbeille.`,
         checkFailed:
           "Les brouillons qui utilisent ce modèle n'ont pas pu être relus.",
       },
@@ -1169,7 +1169,7 @@ export const texts = {
       // quelle section il sert.
       starterFor: (section: string) => `Pour créer : ${section}`,
       sharedLimit:
-        "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans une section.",
+        "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
       usedIn: (count: number) =>
         count === 0
           ? "Utilisé dans aucun brouillon"
@@ -1183,7 +1183,7 @@ export const texts = {
         "La liste des brouillons qui l'utilisent n'a pas pu être chargée.",
       inTrash: "dans la corbeille",
       keepBlock:
-        "Ce modèle est utilisé : il garde son bloc. Pour le retirer, détache-le d'abord partout (page Modèles de bloc).",
+        "Ce modèle est utilisé : il garde son bloc. Pour le supprimer, détache-le d'abord partout (page Modèles de bloc).",
       outdated: {
         push: (count: number) =>
           count === 1
@@ -1225,7 +1225,7 @@ export const texts = {
       settings: (name: string) =>
         `Ce bloc vient du modèle « ${name} ». Corrige-le dans le modèle : tous les brouillons qui l'utilisent suivront.`,
       detachHint:
-        "« Détacher » en fait une copie modifiable ici, qui ne suit plus le modèle ; les autres contenus restent liés.",
+        "« Détacher » en fait une copie modifiable ici, qui ne suit plus le modèle ; les autres contenus le suivent toujours.",
     },
     // « Mes blocs », dans les Blocs de l'éditeur.
     insert: {
@@ -1247,9 +1247,9 @@ export const texts = {
           ? "Le bloc choisi devient un nouveau modèle."
           : `Les ${count} blocs choisis deviennent un nouveau modèle, dans l'ordre du contenu.`,
       sharedOne:
-        "Pour un bloc partagé, choisis un seul bloc (une section peut en regrouper plusieurs).",
+        "Pour un bloc partagé, choisis un seul bloc (un encadré peut en regrouper plusieurs).",
       sharedReplaced:
-        "Le bloc est maintenant lié au modèle : le corriger dans le modèle le corrigera ici aussi.",
+        "Le bloc suit maintenant le modèle : le corriger dans le modèle le corrigera ici aussi.",
       submit: "Enregistrer le modèle",
       saved: (name: string) => `Modèle « ${name} » enregistré.`,
       open: "Ouvrir",
@@ -1258,12 +1258,12 @@ export const texts = {
 
   // Éditeur de blocs (plein écran) : docs/ARCHITECTURE-CONTENUS.md, § 2.7 et § 3.3.
   editor: {
-    back: (section: string) => `Retour à la section ${section}`,
+    back: (section: string) => `Retour à ${section}`,
     loading: "Ouverture du brouillon…",
     notFound: {
       title: "Contenu introuvable",
       description:
-        "Ce contenu n'existe plus, ou il est dans la corbeille. Retourne à la liste.",
+        "Ce contenu n'existe plus, ou il est dans la Corbeille. Retourne à la liste.",
     },
     title: {
       label: "Titre du contenu",
@@ -1272,7 +1272,7 @@ export const texts = {
     blocks: {
       text: "Texte",
       image: "Image",
-      box: "Section",
+      box: "Encadré",
     },
     // Nom d'un bloc dans le plan, les annonces et les boutons.
     blockLabel: {
@@ -1292,11 +1292,11 @@ export const texts = {
     textPlaceholder: "Écris ici…",
     add: {
       label: "Ajouter un bloc",
-      inBox: "Ajouter dans la section",
+      inBox: "Ajouter dans l'encadré",
     },
     // Rien ne se dépose dans une section du téléphone (« Ajouter dans la section » est juste
     // dessous) ; ce que dit aussi le plan.
-    emptyBox: "Section vide : elle n'apparaîtra pas dans l'app.",
+    emptyBox: "Encadré vide : il n'apparaîtra pas dans l'app.",
     handle: (label: string) => `Déplacer : ${label}`,
     // Glisser-déposer : annonces lues par les lecteurs d'écran.
     dnd: {
@@ -1304,7 +1304,7 @@ export const texts = {
       instructions:
         "Pour déplacer un bloc, appuie sur Espace ou Entrée sur sa poignée. Déplace-le avec les flèches, puis appuie de nouveau sur Espace ou Entrée pour le déposer, ou sur Échap pour annuler.",
       page: "la page",
-      box: (position: number) => `la section (bloc n° ${position})`,
+      box: (position: number) => `l'encadré (bloc n° ${position})`,
       start: (label: string) => `Tu as pris ${label}.`,
       over: (label: string, target: string, container: string) =>
         `${label} est au niveau de ${target}, dans ${container}.`,
@@ -1326,25 +1326,25 @@ export const texts = {
       // Le plan de l'éditeur du Fil (ADMIN § 4, « Les finitions »).
       count: (count: number) => (count === 1 ? "1 bloc" : `${count} blocs`),
       // Une ligne de section : son aspect, puis le nombre de ses blocs.
-      box: { fill: "Section avec fond", border: "Section avec bordure" },
+      box: { fill: "Encadré avec fond", border: "Encadré avec bordure" },
       collapse: (label: string) => `Replier ${label}`,
       expand: (label: string) => `Déplier ${label}`,
       actions: (label: string) => `Actions pour ${label}`,
       duplicate: "Dupliquer",
       duplicated: (label: string) => `${label} : copie ajoutée juste après.`,
-      leaveBox: "Sortir de la section",
+      leaveBox: "Sortir de l'encadré",
       left: (label: string) =>
-        `${label} : sorti de la section, juste après elle.`,
+        `Bloc sorti de l'encadré, juste après lui : ${label}.`,
       remove: "Supprimer",
       warnings: {
         noFile: "Pas encore d'image",
-        unavailable: "Le fichier ne s'affiche plus",
+        unavailable: "Fichier indisponible",
         missingTemplate: "Le modèle n'existe plus",
         emptyBox: "Vide : n'apparaîtra pas dans l'app",
       },
     },
     toolbar: {
-      label: "Mise en forme",
+      label: "Barre de mise en forme",
       unavailable: "Clique dans un texte pour le mettre en forme.",
       paragraph: "Paragraphe",
       h2: "Intertitre",
@@ -1371,19 +1371,19 @@ export const texts = {
       choose: "Choisir une image",
       replace: "Changer d'image",
       none: "Pas encore d'image",
-      missing: "Image supprimée : choisis-en une autre.",
+      missing: "Image indisponible : choisis-en une autre.",
       loadFailed: "L'image n'a pas pu être chargée.",
       notReady: "Cette image n'est pas prête : choisis-en une autre.",
     },
     picker: {
       title: "Choisir une image",
       description:
-        "Les images prêtes de la médiathèque, ou une nouvelle image à envoyer.",
+        "Les images prêtes de la Médiathèque, ou une nouvelle image à envoyer.",
       search: "Rechercher une image",
       searchPlaceholder: "Rechercher par nom…",
       choose: (name: string) => `Choisir ${name}`,
       empty:
-        "Aucune image dans la médiathèque. Envoies-en une avec « Envoyer une image ».",
+        "Aucune image dans la Médiathèque. Envoies-en une avec « Envoyer une image ».",
       noResults: "Aucune image trouvée. Essaie un autre nom.",
       loadFailed: "Les images n'ont pas pu être chargées.",
       upload: "Envoyer une image",
@@ -1394,23 +1394,23 @@ export const texts = {
       uploadFailed: (name: string, error: string) =>
         `Échec de l'envoi de « ${name} ». ${error}`,
       notImage: (name: string) =>
-        `« ${name} » est dans la médiathèque, mais le bloc Image n'accepte que les images (JPEG, PNG, WebP, GIF, HEIC, AVIF).`,
+        `« ${name} » est dans la Médiathèque, mais le bloc Image n'accepte que les images (JPEG, PNG, WebP, GIF, HEIC, AVIF).`,
     },
     // Le choix de l'audio d'un épisode : mêmes libellés que le choix d'une image, sauf ceux-ci.
     audioPicker: {
       title: "Choisir l'audio",
       description:
-        "Les audios prêts de la médiathèque, ou un nouveau fichier à envoyer (MP3 ou M4A).",
+        "Les audios prêts de la Médiathèque, ou un nouveau fichier à envoyer (MP3 ou M4A).",
       search: "Rechercher un audio",
       choose: (name: string) => `Choisir ${name}`,
       empty:
-        "Aucun audio dans la médiathèque. Envoies-en un avec « Envoyer un audio ».",
+        "Aucun audio dans la Médiathèque. Envoies-en un avec « Envoyer un audio ».",
       noResults: "Aucun audio trouvé. Essaie un autre nom.",
       loadFailed: "Les audios n'ont pas pu être chargés.",
       upload: "Envoyer un audio",
       uploadInput: "Audio à envoyer",
       notImage: (name: string) =>
-        `« ${name} » est dans la médiathèque, mais un épisode n'accepte qu'un audio (MP3 ou M4A).`,
+        `« ${name} » est dans la Médiathèque, mais un épisode n'accepte qu'un audio (MP3 ou M4A).`,
       noTranscript: "Sans transcription",
     },
     // Présentation d'un article ou d'un épisode (étape 7) : image de présentation, audio,
@@ -1421,24 +1421,24 @@ export const texts = {
         remove: "Retirer l'image",
         removed: "Image de présentation retirée.",
         none: "Pas encore d'image de présentation",
-        missing: "Image supprimée : choisis-en une autre.",
+        missing: "Image indisponible : choisis-en une autre.",
         notReady: "Cette image n'est pas prête : choisis-en une autre.",
-        alt: (alt: string) => `Texte alternatif (médiathèque) : « ${alt} »`,
+        alt: (alt: string) => `Texte alternatif (Médiathèque) : « ${alt} »`,
       },
       audio: {
         label: "Audio",
-        hint: "Obligatoire pour publier : un fichier MP3 ou M4A de la médiathèque. L'app le lit sous le titre de l'épisode.",
+        hint: "Obligatoire pour publier : un fichier MP3 ou M4A de la Médiathèque. L'app le lit sous le titre de l'épisode.",
         choose: "Choisir l'audio",
         replace: "Changer d'audio",
         remove: "Retirer l'audio",
         removed: "Audio retiré.",
         none: "Pas encore d'audio",
-        missing: "Audio supprimé : choisis-en un autre.",
+        missing: "Audio indisponible : choisis-en un autre.",
         notReady: "Cet audio n'est pas prêt : choisis-en un autre.",
         loadFailed: "L'audio n'a pas pu être chargé.",
         duration: (duration: string) => `Durée : ${duration}`,
         noDuration: "Durée inconnue",
-        transcriptOk: "Transcription renseignée dans la médiathèque.",
+        transcriptOk: "Transcription renseignée dans la Médiathèque.",
         transcriptMissing:
           "Pas de transcription : ajoute-la dans la fiche du fichier, pour les personnes qui ne peuvent pas écouter. Elle est conseillée, pas obligatoire.",
       },
@@ -1449,7 +1449,7 @@ export const texts = {
     // Éditeur du Fil (ADMIN § 4) : le nom des deux colonnes (lecteurs d'écran), le titre de la
     // glissière des Blocs, et celui de la colonne de droite (l'Article, l'Épisode).
     columns: {
-      left: "Plan et blocs",
+      left: "Plan et Blocs",
       right: {
         article: "Article et réglages du bloc",
         episode: "Épisode et réglages du bloc",
@@ -1535,25 +1535,25 @@ export const texts = {
       basics: "Blocs de base",
       addLabel: (label: string) => `Ajouter un bloc ${label}`,
       // La glissière des Blocs, par-dessus le Plan (éditeur du Fil).
-      close: "Fermer les blocs",
+      close: "Fermer les Blocs",
       // La cible d'un ajout : « Ajouter dans la section ».
       target: {
-        box: "Ajout dans la section : texte ou image.",
-        cancel: "Annuler l'ajout dans la section",
+        box: "Ajout dans l'encadré : texte ou image.",
+        cancel: "Annuler l'ajout dans l'encadré",
       },
       mine: {
         title: "Mes blocs",
         count: (count: number) =>
           count === 0
-            ? "Aucun bloc enregistré"
+            ? "Aucun modèle"
             : count === 1
-              ? "1 bloc enregistré"
-              : `${count} blocs enregistrés`,
-        back: "Revenir aux blocs",
+              ? "1 modèle"
+              : `${count} modèles`,
+        back: "Revenir aux Blocs",
         search: "Rechercher un bloc",
         searchLabel: "Rechercher dans Mes blocs",
         filters: {
-          label: "Type de bloc",
+          label: "Type de modèle",
           all: "Tous",
           style: "Mises en forme",
           shared: "Partagés",
@@ -1567,7 +1567,7 @@ export const texts = {
               : `Bloc partagé : suit son modèle · dans ${count} contenus`,
         insertLabel: (name: string) => `Ajouter « ${name} »`,
         empty:
-          "Aucun bloc enregistré pour l'instant : dans un contenu, utilise « Enregistrer comme modèle… », ou crée-le dans Modèles de bloc.",
+          "Aucun modèle pour l'instant : dans un contenu, utilise « Enregistrer comme modèle… », ou crées-en un dans Modèles de bloc.",
         // Un bloc de « Mes blocs » ajouté au contenu.
         added: (name: string) => `« ${name} » ajouté.`,
         noResult: "Aucun bloc ne correspond.",
@@ -1590,13 +1590,13 @@ export const texts = {
         // Les points à vérifier du plan : ils n'empêchent pas de publier.
         warnings: (count: number) =>
           count === 1
-            ? "1 point à vérifier dans le plan"
-            : `${count} points à vérifier dans le plan`,
+            ? "1 point à vérifier dans le Plan"
+            : `${count} points à vérifier dans le Plan`,
       },
       feed: {
         title: {
-          article: "Dans la liste du Fil",
-          episode: "Dans la liste de Radio Éclaircies",
+          article: "Dans la liste du Blog",
+          episode: "Dans la liste des Podcasts",
         },
         choose: "Choisir",
         chooseLabel: "Choisir l'image de présentation",
@@ -1609,8 +1609,8 @@ export const texts = {
         },
       },
       categories: {
-        add: "Nouvelle",
-        addLabel: "Nouvelle catégorie",
+        add: "Ajouter",
+        addLabel: "Ajouter une catégorie",
       },
       stats: {
         words: (count: string) =>
@@ -1628,8 +1628,8 @@ export const texts = {
         noAudio: "Pas d'audio",
         noAudioTip: (words: string) => `Pas encore d'audio, ${words}`,
         unknownDuration: "inconnue",
-        savedAt: (time: string) => `Modifié à ${time}`,
-        savedOn: (day: string) => `Modifié le ${day}`,
+        savedAt: (time: string) => `Enregistré à ${time}`,
+        savedOn: (day: string) => `Enregistré le ${day}`,
       },
     },
     settings: {
@@ -1642,10 +1642,10 @@ export const texts = {
       image: {
         file: "Fichier",
         alt: "Texte alternatif",
-        altFromLibrary: "Reprendre celui de la médiathèque",
+        altFromLibrary: "Reprendre celui de la Médiathèque",
         libraryAlt: (alt: string) => `Médiathèque : « ${alt} »`,
         noLibraryAlt:
-          "La médiathèque n'a pas de texte alternatif pour cette image.",
+          "La Médiathèque n'a pas de texte alternatif pour cette image.",
         altHint:
           "Décris l'image en une phrase pour les personnes qui ne la voient pas.",
       },
@@ -1653,20 +1653,20 @@ export const texts = {
         look: "Apparence",
         fill: "Fond",
         border: "Bordure",
-        hint: "Une section contient des textes et des images, pas d'autre section.",
+        hint: "Un encadré contient des textes et des images, pas d'autre encadré.",
       },
       moveUp: "Monter",
       moveDown: "Descendre",
       // Le premier (ou le dernier) bloc d'une section en sort.
-      moveUpOut: "Monter hors de la section",
-      moveDownOut: "Descendre hors de la section",
+      moveUpOut: "Monter hors de l'encadré",
+      moveDownOut: "Descendre hors de l'encadré",
       remove: "Supprimer le bloc",
       removed: (label: string) => `Bloc supprimé : ${label}.`,
       undo: "Annuler",
       // Annoncé après « Monter » ou « Descendre ».
       moved: (position: number, count: number, container: string) =>
         `Bloc n° ${position} sur ${count}, dans ${container}.`,
-      inBox: "la section",
+      inBox: "l'encadré",
     },
     // Enregistrement automatique.
     save: {
@@ -1716,7 +1716,7 @@ export const texts = {
       copyFailed: "La copie n'a pas marché. Sélectionne ton texte à la main.",
       someone: "Quelqu'un",
       trashed:
-        "Ce contenu est dans la corbeille : restaure-le pour le modifier.",
+        "Ce contenu est dans la Corbeille : restaure-le pour le modifier.",
       failed:
         "L'état du brouillon n'a pas pu être lu. Réessaie dans un instant.",
       reloadFailed:
@@ -1760,7 +1760,7 @@ export const texts = {
           readOnly: "Prendre la main",
           readOnlySelf: "Prendre la main ici",
           free: "Prendre la main",
-          released: "Reprendre l'écriture",
+          released: "Reprendre la main",
         },
         stay: "Rester en lecture seule",
       },
@@ -1768,14 +1768,14 @@ export const texts = {
     // Erreurs de la base (RPC), selon leur code (docs/ARCHITECTURE-CONTENUS.md, « Étape 4 »).
     errors: {
       reserve_a_l_equipe:
-        "Ta session ne donne plus accès à l'éditeur. Reconnecte-toi.",
+        "Ton compte n'a plus accès à l'éditeur. Reconnecte-toi.",
       demande_invalide: "La demande n'est pas valide. Recharge la page.",
       sorte_invalide:
         "Ce type de contenu ou de modèle n'est pas valide. Recharge la page.",
       parent_invalide: "Ce contenu ne peut pas être rangé à cet endroit.",
       contenu_introuvable: "Ce contenu n'existe plus.",
       dans_la_corbeille:
-        "Ce contenu est dans la corbeille : restaure-le pour le modifier.",
+        "Ce contenu est dans la Corbeille : restaure-le pour le modifier.",
       verrou_perdu:
         "Quelqu'un d'autre a pris la main sur ce brouillon : tes dernières modifications ne sont pas enregistrées.",
       conflit_revision:
@@ -1794,13 +1794,13 @@ export const texts = {
       id_en_double:
         "Deux blocs ont le même identifiant. Recharge la page, puis réessaie.",
       fichier_indisponible:
-        "Une image n'est plus disponible (supprimée ou pas prête). Choisis-en une autre.",
+        "Un fichier n'est plus disponible (à la corbeille ou pas encore prêt). Choisis-en un autre.",
       modele_indisponible: "Un modèle utilisé n'est plus disponible.",
       // Étape 5 : publication, programmation, historique, corbeille.
       acces_a_choisir:
-        "Choisis d'abord le niveau d'accès : Gratuit ou une formule d'abonnement.",
+        "Choisis d'abord le niveau d'accès : Gratuit ou une formule.",
       verrou_tenu:
-        "Quelqu'un écrit ce brouillon en ce moment : reprends la main, ou attends que cette personne ait fini.",
+        "Quelqu'un écrit ce brouillon en ce moment : prends la main, ou attends que cette personne ait fini.",
       adresse_manquante: "Choisis l'adresse de la page avant de la publier.",
       son_manquant: "Choisis l'audio de l'épisode avant de le publier.",
       // [D49].
@@ -1825,7 +1825,7 @@ export const texts = {
       modele_vide:
         "Ce bloc partagé est encore vide : ajoute-lui son bloc dans Modèles de bloc avant de l'insérer.",
       modele_un_seul_bloc:
-        "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans une section.",
+        "Un bloc partagé contient un seul bloc : pour en regrouper plusieurs, mets-les dans un encadré.",
       bloc_introuvable:
         "Un des blocs choisis n'est pas encore enregistré. Attends la fin de l'enregistrement, puis réessaie.",
       modele_introuvable:
@@ -1875,12 +1875,12 @@ export const texts = {
       waiting: (date: string) =>
         `Programmation en attente depuis le ${date} : quelqu'un écrit ce brouillon.`,
       waitingHint:
-        "La publication partira dès qu'il aura quitté l'éditeur. Au bout d'une heure, elle échouera.",
+        "La publication partira dès que cette personne aura quitté l'éditeur. Au bout d'une heure, elle échouera.",
       // La personne devant l'écran tient elle-même le verrou ([D31]).
       waitingMine: (date: string) =>
         `Programmé le ${date} : la publication attend que tu quittes l'éditeur.`,
       waitingMineHint:
-        "Tu as modifié le brouillon depuis la programmation : tant que ton éditeur reste ouvert, même sans écrire, elle ne part pas. Au bout d'une heure, elle échouera.",
+        "Tu as modifié le brouillon depuis la programmation : tant que ton éditeur reste ouvert, même sans écrire, la publication ne part pas. Au bout d'une heure, elle échouera.",
       leave: "Quitter l'éditeur",
       failed: "La publication programmée a échoué.",
       failedReason: (reason: string) => `Raison : ${reason}`,
@@ -1901,7 +1901,7 @@ export const texts = {
       schedule: "Programmer…",
       reschedule: "Changer la programmation…",
       unschedule: "Annuler la programmation",
-      dismissFailure: "Effacer l'échec",
+      dismissFailure: "Retirer l'échec",
       unpublish: "Retirer de l'app",
       history: "Historique",
     },
@@ -1911,7 +1911,7 @@ export const texts = {
       description:
         "Les lecteurs verront ce brouillon tel qu'il est enregistré. Tu pourras ensuite le modifier sans toucher à l'app, jusqu'à la prochaine publication.",
       access: "Niveau d'accès",
-      address: "Adresse",
+      address: "Adresse de la page",
       confirm: "Publier",
     },
     // Ce qui manque pour publier ou programmer ([D45], audio d'un épisode), et le conseil [D46].
@@ -1922,14 +1922,14 @@ export const texts = {
       writeTitle: "Écrire le titre",
       cover: "L'image de présentation (la vignette des listes de l'app).",
       coverUnavailable:
-        "Une image de présentation disponible : la sienne est supprimée ou pas prête.",
+        "Une image de présentation disponible : la sienne est à la corbeille ou pas encore prête.",
       audio: "L'audio de l'épisode.",
       audioUnavailable:
-        "Un audio disponible : le sien est supprimé ou pas prêt.",
+        "Un audio disponible : le sien est à la corbeille ou pas encore prêt.",
       chooseCover: "Choisir l'image",
       chooseAudio: "Choisir l'audio",
       transcript:
-        "Conseillé : l'audio n'a pas de transcription. Tu peux publier quand même, et l'ajouter ensuite dans sa fiche de la médiathèque.",
+        "Conseillé : l'audio n'a pas de transcription. Tu peux publier quand même, et l'ajouter ensuite dans sa fiche de la Médiathèque.",
     },
     levelRequired:
       "Il n'y a pas de niveau d'accès par défaut : choisis Gratuit ou une formule.",
@@ -1974,7 +1974,7 @@ export const texts = {
       },
     },
     unscheduled: "Programmation annulée.",
-    failureDismissed: "Échec effacé.",
+    failureDismissed: "Échec retiré.",
     history: {
       title: "Historique",
       description:
@@ -1986,8 +1986,8 @@ export const texts = {
       origins: {
         manual: "Publiée",
         scheduled: "Publiée à l'heure programmée",
-        template: "Mise à jour d'un modèle",
-        files: "Textes de la médiathèque mis à jour",
+        template: "Bloc partagé mis à jour",
+        files: "Textes d'un fichier mis à jour",
       },
       // Les catégories d'une version (article, épisode), dans l'ordre de la section ([D28]).
       categories: (names: string[]) => `Catégories : ${names.join(", ")}`,
@@ -2016,7 +2016,7 @@ export const texts = {
         fichier_retire:
           "Un fichier n'est plus disponible : choisis-en un autre avant de publier.",
         modele_detache:
-          "Un modèle n'existe plus : son bloc est devenu une copie ordinaire.",
+          "Le modèle d'un bloc partagé n'existe plus : ce bloc est devenu une copie ordinaire.",
         adresse_prise:
           "Une autre page a pris cette adresse entre-temps : le brouillon garde son adresse actuelle.",
       },
@@ -2080,7 +2080,7 @@ export const texts = {
   // Paramètres (admins) : quatre onglets, dont les formules d'abonnement.
   settings: {
     tabs: {
-      label: "Rubriques des paramètres",
+      label: "Onglets des Paramètres",
       admin: "Identité de l'admin",
       app: "Identité de l'app",
       plans: "Formules",
@@ -2093,7 +2093,7 @@ export const texts = {
       description:
         "Le nom que ton équipe retrouve partout : dans le menu, l'onglet du navigateur et l'écran de connexion. L'adresse e-mail s'affiche à la connexion, pour qui a perdu son téléphone ou son invitation.",
       name: "Le nom de ta marque",
-      save: "Enregistre tes choix",
+      save: "Enregistrer",
       placeholder: "Ruche",
       nameTooLong: "Le nom ne doit pas dépasser 40 caractères.",
       // L'adresse de contact, montrée sur l'écran de connexion à qui a besoin d'aide.
@@ -2115,7 +2115,7 @@ export const texts = {
         },
         monogram: {
           title: "Monogramme",
-          use: "onglet et aperçu",
+          use: "onglet et connexion",
         },
         light: "Fond clair",
         dark: "Fond sombre",
@@ -2154,19 +2154,20 @@ export const texts = {
         loginScreen: {
           title: "Écran de connexion",
           description:
-            "Le premier regard de ton équipe sur l'admin. Choisis l'image de fond (JPEG, PNG ou WebP, 1 Mo au plus), à sélectionner ou à glisser sur l'aperçu, puis donne vie au monogramme posé dessus.",
+            "Le premier regard de ton équipe sur l'admin. Choisis l'image de fond (JPEG, PNG ou WebP, réduite à 1 Mo au besoin) ou glisse-la sur l'aperçu, puis donne vie au monogramme posé dessus.",
           preview: "Aperçu de l'écran de connexion",
         },
         loginImage: {
           title: "Image de fond",
           formats: "JPEG, PNG ou WebP",
           // Une photo plus lourde est réduite à l'envoi : elle tient toujours dans 1 Mo.
-          maxSize: "1 Mo au plus",
+          maxSize: "Réduite à 1 Mo au besoin",
           choose: "Choisir",
         },
         monogramMotion: {
           title: "Monogramme animé",
-          description: "Coche tes préférées : elles s'enchaînent en douceur.",
+          description:
+            "Coche les animations que tu préfères : elles s'enchaînent en douceur.",
           toggle: "Animer le monogramme",
           on: "Monogramme animé.",
           off: "Monogramme immobile.",
@@ -2183,9 +2184,9 @@ export const texts = {
           group: "Animations du monogramme",
           // Une animation grisée : ce que le monogramme pour fond sombre ne permet pas.
           blocked: {
-            svg: "Tracé, cascade et lueur : seulement avec un monogramme en SVG simple (couleurs pleines, sans dégradé ni image).",
+            svg: "« Tracé », « Cascade » et « Lueur » : seulement avec un monogramme en SVG simple (couleurs pleines, sans dégradé ni image).",
             accent:
-              "Lueur : seulement avec un monogramme qui a une couleur d'accent (une couleur vive à côté du noir, du blanc ou du gris).",
+              "« Lueur » : seulement avec un monogramme qui a une couleur d'accent (une couleur vive à côté du noir, du blanc ou du gris).",
           },
           saved: "Animations enregistrées.",
         },
@@ -2194,12 +2195,12 @@ export const texts = {
     // Un onglet pas encore rempli.
     empty: {
       title: "Rien ici pour l'instant",
-      description: "Cette rubrique arrive bientôt.",
+      description: "Cet onglet arrive bientôt.",
     },
     accessLevels: {
       title: "Formules d'abonnement",
       description:
-        "De la plus légère, en haut, à la plus complète, en bas. Chaque abonné lit les contenus de sa formule et de toutes celles placées au-dessus. Change l'ordre : ce que chacun peut lire suit aussitôt.",
+        "De la moins complète, en haut, à la plus complète, en bas. Chaque abonné lit les contenus de sa formule et de toutes celles placées au-dessus. Change l'ordre : ce que chacun peut lire suit aussitôt.",
       listLabel: "Formules, de la moins complète à la plus complète",
       empty:
         "Pas encore de formule. Tant qu'il n'y en a pas, tous les contenus restent gratuits.",
@@ -2221,7 +2222,7 @@ export const texts = {
       confirmRemove: {
         title: "Supprimer cette formule ?",
         description: (name: string) =>
-          `« ${name} » disparaîtra pour de bon. Seule une formule qu'aucun contenu, aucune version publiée et aucun abonné n'utilise peut partir.`,
+          `« ${name} » sera supprimée définitivement. Seule une formule qu'aucun contenu, aucune version publiée et aucun abonné n'utilise peut être supprimée.`,
         confirm: "Supprimer définitivement",
       },
       removed: (name: string) => `Formule « ${name} » supprimée.`,
@@ -2247,7 +2248,7 @@ export const texts = {
         nom_en_double: "Une formule porte déjà ce nom.",
         reserve_aux_admins: "Les formules sont réservées aux admins.",
         reserve_a_l_equipe:
-          "Ta session ne donne plus accès aux paramètres. Reconnecte-toi.",
+          "Tu as été déconnecté. Reconnecte-toi pour retrouver les Paramètres.",
         demande_invalide:
           "La liste a changé entre-temps. Recharge la page, puis réessaie.",
         introuvable: "Cette formule n'existe plus. Recharge la page.",
@@ -2336,8 +2337,8 @@ export const texts = {
     preview: {
       title: "Aperçu",
       description:
-        "La palette choisie s'applique à la charte graphique de l'administration.",
-      nav: ["Accueil", "Le Fil", "Radio", "Pages", "Médias"],
+        "La palette choisie s'applique à toute l'admin, pour toi seulement.",
+      nav: ["Tableau de bord", "Blog", "Podcasts", "Pages", "Médiathèque"],
       initial: "C",
       member: "Camille",
       heading: "Tableau de bord",
@@ -2352,17 +2353,17 @@ export const texts = {
       rows: [
         {
           name: "Respirer avant de répondre",
-          meta: "Le Fil · par Léa, il y a 2 h",
+          meta: "Blog · par Léa, il y a 2 h",
           badge: "En ligne",
         },
         {
           name: "Le calme du matin",
-          meta: "Radio Éclaircies · par Hugo, hier",
+          meta: "Podcasts · par Hugo, hier",
           badge: "Programmé",
         },
         {
           name: "Trouver son rythme",
-          meta: "Le Fil · par Camille, lundi",
+          meta: "Blog · par Camille, lundi",
           badge: "Brouillon",
         },
       ],
@@ -2384,14 +2385,13 @@ export const texts = {
   smallScreen: {
     title: "Écran trop petit",
     message:
-      "L'administration est faite pour un ordinateur. Agrandis la fenêtre ou passe sur un ordinateur.",
+      "L'admin s'utilise sur un ordinateur. Agrandis la fenêtre ou change d'appareil.",
   },
 
   notFound: {
     title: "Page introuvable",
-    description:
-      "Cette adresse ne correspond à aucune page de l'administration.",
-    back: "Retour au tableau de bord",
+    description: "Cette adresse ne correspond à aucune page de l'admin.",
+    back: "Retour au Tableau de bord",
   },
 
   error: {
