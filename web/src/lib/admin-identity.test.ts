@@ -9,6 +9,7 @@ import {
   brandName,
   faviconHref,
   prepareBrandFile,
+  prepareLoginImage,
   tabTitle,
   type AdminBrand,
 } from "@/lib/admin-identity"
@@ -45,6 +46,7 @@ describe("le nom de la marque", () => {
       "logotype-dark": null,
       "monogram-light": null,
       "monogram-dark": null,
+      loginImage: null,
       variants: {
         "logotype:zinc-blue:dark": "bleu",
         "logotype:neutral-none:dark": "origine-sombre",
@@ -63,6 +65,23 @@ describe("le nom de la marque", () => {
     )
     expect(brandFileFor(brand, "monogram", "dark")).toBeNull()
     expect(brandFileFor(undefined, "logotype", "light")).toBeNull()
+  })
+
+  it("l'image de l'écran de connexion : une photo, pas un SVG ; illisible, refusée", async () => {
+    const errors = texts.settings.adminIdentity.files.errors
+    const refused = (file: File) =>
+      prepareLoginImage(file).catch((error: Error) => error)
+
+    const svg = await refused(
+      new File(["<svg/>"], "photo.svg", { type: "image/svg+xml" })
+    )
+    expect(svg).toBeInstanceOf(BrandFileError)
+    expect(svg).toHaveProperty("message", errors.photoType)
+    // jsdom ne décode pas d'image : comme une photo abîmée.
+    const broken = await refused(
+      new File(["x"], "photo.jpg", { type: "image/jpeg" })
+    )
+    expect(broken).toHaveProperty("message", errors.photo)
   })
 
   it("refuse un fichier d'un autre type, trop lourd ou un SVG illisible, avant l'envoi", async () => {
@@ -141,6 +160,7 @@ describe("le nom de la marque", () => {
       "logotype-dark": null,
       "monogram-light": null,
       "monogram-dark": null,
+      loginImage: null,
       variants: {},
     }
     const origin = brandFileFor(empty, "monogram", "dark")!

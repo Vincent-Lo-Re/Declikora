@@ -19,6 +19,14 @@ export const signInEmailSchema = z.object({
   email: email(texts.signIn.invalidEmail),
 })
 
+/**
+ * Vrai si l'adresse est bien écrite : le bouton « Recevoir un code » ne s'active qu'alors. La base
+ * n'est pas interrogée : la page de connexion ne dit pas qui fait partie de l'équipe (ADMIN § 2).
+ */
+export function isSignInEmail(value: string): boolean {
+  return signInEmailSchema.safeParse({ email: value }).success
+}
+
 export const signInCodeSchema = z.object({
   code: sixDigits(texts.signIn.invalidCode),
 })
@@ -26,6 +34,11 @@ export const signInCodeSchema = z.object({
 export const mfaCodeSchema = z.object({
   code: sixDigits(texts.mfa.invalidCode),
 })
+
+/** Vrai si les 6 chiffres d'un code sont saisis : son bouton ne s'active qu'alors. */
+export function isCompleteCode(value: string): boolean {
+  return signInCodeSchema.safeParse({ code: value }).success
+}
 
 export const profileSchema = z.object({
   full_name: fullName(texts.account.profile.nameTooLong),

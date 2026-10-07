@@ -96,10 +96,16 @@ export const texts = {
   },
 
   // Connexion : e-mail, puis code reçu par e-mail, puis double vérification.
+  // Sous la carte des pages de connexion : « © 2026 Ruche · Tous droits réservés ».
+  copyright: (year: number, brand: string) =>
+    `© ${year} ${brand} · Tous droits réservés`,
   signIn: {
     title: "Connexion",
-    description:
-      "Saisis ton adresse e-mail. Tu recevras un code à 6 chiffres pour te connecter.",
+    // En bas de l'étape de l'adresse (AuthNote).
+    hint: {
+      title: "Connexion sans mot de passe",
+      text: "Saisis ton adresse e-mail. Tu recevras un code à 6 chiffres pour te connecter.",
+    },
     email: "Adresse e-mail",
     emailPlaceholder: "prenom@exemple.fr",
     invalidEmail: "Saisis une adresse e-mail valide.",
@@ -115,8 +121,10 @@ export const texts = {
     codeStillValid: (email: string) =>
       `Si ${email} fait partie de l'équipe, un code y a été envoyé. Il est valable 10 minutes.`,
     // Une invitation pas encore acceptée ne permet pas de recevoir un code.
-    invitedHint:
-      "Tu as reçu une invitation ? Ouvre plutôt le lien de l'e-mail d'invitation, ou demande à un admin de te le renvoyer.",
+    invitedHint: {
+      title: "Tu as reçu une invitation ?",
+      text: "Ouvre plutôt le lien de l'e-mail d'invitation, ou demande à un admin de te le renvoyer.",
+    },
     code: "Code reçu par e-mail",
     invalidCode: "Le code contient 6 chiffres.",
     wrongCode:
@@ -129,15 +137,18 @@ export const texts = {
   },
 
   mfa: {
-    setupTitle: "Configure la double vérification",
+    // La configuration, en deux étapes qui glissent : le QR code (modèle « Scan to connect your
+    // mobile device » de shadcn), puis le premier code de l'app.
+    setupTitle: "Scanne pour relier ton téléphone",
     setupDescription:
-      "Elle protège l'administration : après le code reçu par e-mail, tu saisiras le code d'une app de ton téléphone. Tu ne la configures qu'une fois.",
-    installApp:
-      "Installe une app de double vérification sur ton téléphone (Google Authenticator, 1Password…).",
-    scan: "Dans l'app, ajoute un compte en scannant ce QR code.",
+      "Ouvre une app de double vérification (Google Authenticator, 1Password…), ajoute un compte et scanne ce code. Tu ne le fais qu'une fois.",
     qrCode: "QR code à scanner avec l'app de ton téléphone",
     secret: "Pas de caméra ? Saisis plutôt cette clé dans l'app :",
-    enterCode: "Saisis le code à 6 chiffres affiché par l'app.",
+    scanned: "C'est fait",
+    firstCodeTitle: "Saisis le code de l'app",
+    firstCodeDescription:
+      "Le code à 6 chiffres que l'app affiche maintenant pour l'administration.",
+    backToQr: "Revoir le QR code",
     setupFailed:
       "La configuration n'a pas pu démarrer. Recharge la page pour réessayer.",
     verifyTitle: "Double vérification",
@@ -148,8 +159,10 @@ export const texts = {
     wrongCode:
       "Code incorrect. Vérifie l'heure de ton téléphone, puis réessaie avec le code suivant.",
     submit: "Valider",
-    lostPhone:
-      "Téléphone perdu ? Demande à un admin de réinitialiser ta double vérification.",
+    // Sous le bouton « Valider », en une ligne (assez court pour la largeur du formulaire).
+    lostPhone: "Téléphone perdu ? Demande à un admin de la réinitialiser.",
+    // Sous « Se déconnecter », en bas de la carte.
+    signOutText: "Reviens à la connexion.",
   },
 
   invitation: {
@@ -224,6 +237,8 @@ export const texts = {
     status: {
       invited: "Invitation envoyée",
       expired: "Invitation expirée",
+      // Invitation acceptée, double vérification pas encore configurée.
+      mfaPending: "Double vérification à faire",
       active: "Actif",
     },
     you: "Toi",
@@ -2120,6 +2135,16 @@ export const texts = {
           type: "Choisis un SVG, un PNG ou un WebP.",
           tooBig: "Le fichier dépasse 1 Mo.",
           svg: "Ce SVG n'a pas pu être lu.",
+          photoType: "Choisis un JPEG, un PNG ou un WebP.",
+          photo: "Cette image n'a pas pu être lue.",
+        },
+        // L'image à droite du formulaire de connexion (modèle « login-04 » de shadcn).
+        loginImage: {
+          title: "Écran de connexion",
+          use: "À droite du formulaire de connexion, sur grand écran",
+          formats:
+            "JPEG, PNG ou WebP, réduite à l'envoi, à choisir ou à déposer",
+          hint: "Un voile sombre et le monogramme passent par-dessus l'image. Sans image, celle de Ruche s'affiche.",
         },
       },
     },

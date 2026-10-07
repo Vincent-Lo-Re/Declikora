@@ -20,7 +20,8 @@ export function RequireTeamMember() {
   if (loading) return <LoadingScreen />
   if (!session) return <Navigate to={authPaths.signIn} replace state={state} />
   if (level !== "aal2") {
-    return <Navigate to={authPaths.mfa} replace state={state} />
+    // La connexion reprend à la double vérification (AuthSlides).
+    return <Navigate to={authPaths.signIn} replace state={state} />
   }
   // La page d'erreur propose de recharger.
   if (profileState === "error") throw new Error("Fiche du membre illisible")

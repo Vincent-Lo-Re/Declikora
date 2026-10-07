@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { cn } from "cn"
 import {
   Ellipsis,
   KeyRound,
@@ -52,7 +53,8 @@ import { teamRead } from "@/lib/reads"
 import {
   callTeam,
   countActiveAdmins,
-  isInvitationExpired,
+  memberState,
+  shownLastSignIn,
   teamQueryKey,
   type Member,
   type TeamRequest,
@@ -158,10 +160,9 @@ export function TeamPage() {
                 {members.data.map((member) => {
                   const isMe = member.id === profile?.id
                   // Heure de la liste chargée : l'affichage ne dépend pas de l'heure du rendu.
-                  const expired = isInvitationExpired(
-                    member,
-                    members.dataUpdatedAt
-                  )
+                  const state = memberState(member, members.dataUpdatedAt)
+                  const expired = state === "expired"
+                  const lastSignIn = shownLastSignIn(member)
                   return (
                     <TableRow key={member.id}>
                       <TableCell>
@@ -184,16 +185,17 @@ export function TeamPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge
                             variant={
-                              member.status === "active"
+                              state === "active"
                                 ? "secondary"
                                 : expired
                                   ? "destructive"
                                   : "outline"
                             }
+                            className={cn(
+                              state === "mfaPending" && "text-warning"
+                            )}
                           >
-                            {expired
-                              ? texts.team.status.expired
-                              : texts.team.status[member.status]}
+                            {texts.team.status[state]}
                           </Badge>
                           {/* Lien expiré : on met le renvoi en avant. */}
                           {expired && (
@@ -215,8 +217,8 @@ export function TeamPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {member.last_sign_in_at
-                          ? formatDateTime(member.last_sign_in_at)
+                        {lastSignIn
+                          ? formatDateTime(lastSignIn)
                           : texts.team.never}
                       </TableCell>
                       <TableCell>

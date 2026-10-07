@@ -55,15 +55,9 @@ export const test = base.extend<{ team: Team }>({
 
 export { expect }
 
-/** Remplit un champ de code à 6 chiffres et valide. */
-async function submitCode(
-  page: Page,
-  label: string,
-  code: string,
-  submit: string
-) {
+/** Remplit un champ de code à 6 chiffres : le 6e chiffre lance la connexion, sans clic. */
+async function typeCode(page: Page, label: string, code: string) {
   await page.getByLabel(label).fill(code)
-  await page.getByRole("button", { name: submit }).click()
 }
 
 /**
@@ -86,14 +80,17 @@ export async function signInWithEmailCode(page: Page, account: Account) {
   ).toBeVisible()
 
   const email = await waitForNewEmail(account.email, before)
-  await submitCode(
-    page,
-    texts.signIn.code,
-    signInCode(email),
-    texts.signIn.submitCode
-  )
+  await typeCode(page, texts.signIn.code, signInCode(email))
 
-  await expect(page).toHaveURL(/\/double-verification$/)
+  // La double vérification glisse à la place du code, sur la même page.
+  await expect(secondFactorHeading(page)).toBeVisible()
+}
+
+/** Le titre de l'étape de double vérification (configuration ou saisie du code). */
+export function secondFactorHeading(page: Page) {
+  return page
+    .getByRole("heading", { name: texts.mfa.setupTitle })
+    .or(page.getByRole("heading", { name: texts.mfa.verifyTitle }))
 }
 
 /** Double vérification : configuration de l'app la première fois, sinon son code. */
@@ -109,17 +106,14 @@ export async function verifySecondFactor(page: Page, account: Account) {
     const secret = (await page.locator("code").textContent())?.trim()
     if (!secret) throw new Error("Clé de double vérification introuvable")
     account.totpSecret = secret
+    // « C'est fait » : la saisie du premier code glisse à la place du QR code.
+    await page.getByRole("button", { name: texts.mfa.scanned }).click()
   } else {
     await expect(
       page.getByRole("heading", { name: texts.mfa.verifyTitle })
     ).toBeVisible()
   }
-  await submitCode(
-    page,
-    texts.mfa.code,
-    await totpCode(account.totpSecret),
-    texts.mfa.submit
-  )
+  await typeCode(page, texts.mfa.code, await totpCode(account.totpSecret))
 }
 
 /** Le menu du header (Site web, Mon compte, et Équipe et Paramètres pour les admins). */

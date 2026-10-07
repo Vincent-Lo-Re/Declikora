@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/page-header"
 import { AccessLevelsCard } from "@/components/settings/access-levels-card"
 import { AdminIdentityCard } from "@/components/settings/admin-identity-card"
 import { BrandFileCard } from "@/components/settings/brand-file-card"
+import { LoginImageCard } from "@/components/settings/login-image-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAddressState } from "@/hooks/use-address-state"
 import {
@@ -80,6 +81,15 @@ export function SettingsPage() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {labels.adminIdentity.files.hint}
+                  </p>
+                </div>
+                {/* L'image de l'écran de connexion, de la largeur d'un logo. */}
+                <div className="space-y-3 xl:col-span-2">
+                  <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                    <LoginImageCard />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {labels.adminIdentity.files.loginImage.hint}
                   </p>
                 </div>
               </div>

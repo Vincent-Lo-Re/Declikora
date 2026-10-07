@@ -368,8 +368,10 @@
   }
 }
 
-/* Une nouvelle page apparaît en fondu, en 150 ms (layouts/root-layout.tsx, app-layout.tsx) ; rien
-   ne bouge si l'ordinateur demande moins d'animations. */
+/* Une administration douce, jamais brutale : une nouvelle page apparaît en fondu, en 300 ms, même
+   déjà chargée (layouts/root-layout.tsx, app-layout.tsx), comme un onglet (TabsContent de
+   components/ui/tabs.tsx) et chaque étape de la connexion (components/auth-form.tsx) ; rien ne
+   bouge si l'ordinateur demande moins d'animations. */
 @keyframes page-fade {
   from {
     opacity: 0;
@@ -377,7 +379,7 @@
 }
 
 [data-page-fade] {
-  animation: page-fade 150ms ease-out;
+  animation: page-fade 300ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -409,5 +411,106 @@
 @media (prefers-reduced-motion: reduce) {
   [data-returned] {
     animation-name: returned-row-hold;
+  }
+}
+
+/* Trois petits points qui rebondissent, à la place du texte d'un bouton qui attend
+   (components/loading-dots.tsx, pages de connexion) ; immobiles et à demi visibles si
+   l'ordinateur demande moins d'animations. */
+@keyframes loading-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+[data-loading-dot] {
+  animation: loading-dot 1s ease-in-out infinite;
+}
+
+[data-loading-dot="2"] {
+  animation-delay: 0.15s;
+}
+
+[data-loading-dot="3"] {
+  animation-delay: 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-loading-dot] {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+/* Le monogramme de l'écran de connexion (components/auth/animated-monogram.tsx, boucle de
+   lib/monogram-motion.ts) : le tracé (les contours se dessinent l'un après l'autre, puis les
+   formes pleines apparaissent), la lueur de l'accent, la respiration ; entre deux, il est
+   immobile. Rien ne bouge si l'ordinateur demande moins d'animations. */
+[data-monogram] svg {
+  height: 100%;
+  width: auto;
+  overflow: visible;
+}
+
+[data-monogram] [data-motion="trace"] {
+  stroke-dasharray: 1;
+}
+
+[data-motion-phase="trace"] [data-motion="trace"] {
+  animation: monogram-trace 1.4s ease-in-out both;
+  animation-delay: calc(var(--motion-order, 0) * 150ms);
+}
+
+[data-motion-phase="trace"] [data-motion="reveal"] {
+  animation: monogram-reveal 1s ease-out both;
+  animation-delay: calc(var(--motion-order, 0) * 150ms + 600ms);
+}
+
+[data-motion-phase="glint"] [data-accent] {
+  animation: monogram-glint 2.4s ease-in-out;
+}
+
+[data-motion-phase="breathe"] {
+  animation: monogram-breathe 3s ease-in-out;
+}
+
+@keyframes monogram-trace {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes monogram-reveal {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes monogram-glint {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes monogram-breathe {
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-monogram],
+  [data-monogram] * {
+    animation: none !important;
   }
 }

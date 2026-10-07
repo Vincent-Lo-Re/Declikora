@@ -39,7 +39,6 @@ export const sections = {
 // Pages de connexion, sans le menu.
 export const authPaths = {
   signIn: "/connexion",
-  mfa: "/double-verification",
   invitation: "/invitation",
   signOut: "/deconnexion",
 } as const
