@@ -137,7 +137,7 @@ jobs:
   parcours:
     name: Parcours
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: web
@@ -159,24 +159,10 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      # Les bibliothèques Linux de Chromium (apt-get), puis Chromium lui-même. Un miroir Ubuntu en
-      # panne bloquait apt-get sans fin (07/10/2026) : apt-get abandonne un serveur muet au bout de
-      # 30 s et réessaie ; chaque essai dure 5 minutes au plus, et un second essai part tout seul.
-      # timeout tourne en administrateur (sudo) : sinon il ne peut pas arrêter apt-get, lancé en
-      # administrateur, qui gardait son verrou et faisait échouer le second essai.
-      - name: Bibliothèques de Chromium
-        timeout-minutes: 11
-        run: |
-          printf 'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::Retries "3";\n' \
-            | sudo tee /etc/apt/apt.conf.d/99-delais > /dev/null
-          for essai in 1 2; do
-            sudo env "PATH=$PATH" timeout -k 10 300 npx playwright install-deps chromium && exit 0
-            echo "::warning::Bibliothèques de Chromium trop longues ou en échec (essai $essai)."
-            # Un apt-get arrêté en route : dpkg est remis d'aplomb avant le second essai.
-            sudo dpkg --configure -a || true
-          done
-          exit 1
-      # Chromium vient du site de Playwright, pas des miroirs Ubuntu.
+      # Chromium seulement, depuis le site de Playwright, sans apt-get (07/10/2026) : la machine de
+      # GitHub (Ubuntu 24.04) a déjà les bibliothèques dont il a besoin ; --with-deps n'ajoutait que
+      # des polices (chinois, thaï…) et des mises à jour, dont le téléchargement restait bloqué sur
+      # un miroir Ubuntu en panne jusqu'à la fin du job. Les parcours ne comparent pas de captures.
       - name: Navigateur Chromium
         timeout-minutes: 5
         run: npx playwright install --only-shell chromium
