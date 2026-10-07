@@ -37,6 +37,15 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    // Les textes sans espaces insécables (src/test/texts.ts) : voir la raison dans ce fichier.
+    alias: [
+      {
+        find: /^@\/texts$/,
+        replacement: fileURLToPath(
+          new URL("./src/test/texts.ts", import.meta.url)
+        ),
+      },
+    ],
     // Les tests de parcours (e2e/) tournent avec Playwright, pas avec Vitest.
     exclude: [...configDefaults.exclude, "e2e/**"],
     // Valeurs fictives : les tests remplacent les appels à Supabase, rien ne part sur le réseau.

@@ -12,7 +12,7 @@
 | Titres, boutons, onglets | Majuscule au premier mot, sans point final | Sentence case, no final period |
 | Boutons | Un verbe à l'infinitif, deux à quatre mots | A verb, two to four words |
 | Messages | Ce qui s'est passé, puis ce qu'on peut faire | What happened, then what you can do |
-| Ponctuation | Espace insécable avant « : ; ! ? », guillemets « », « … » | Straight quotes in code, curly in texts, « … » |
+| Ponctuation | Espace insécable (U+00A0) avant « : ; ! ? » et à l'intérieur des guillemets « », vérifiée par `web/src/texts.test.ts` ; « … » | No space before punctuation; curly quotes “ ” in texts |
 | Majuscules | Les noms de section (Médiathèque, Corbeille) et de l'éditeur (Plan, Blocs, Lecture, Édition, Concentration) ; le geste en minuscule (« mettre à la corbeille ») | Same nouns capitalized (Media library, Trash, Outline…) |
 
 ## Lieux de l'admin
@@ -191,6 +191,6 @@
 | adresse e-mail de contact | contact email | Montrée à qui a perdu son téléphone ou son invitation. | — / support email |
 | thème | theme | Clair, Sombre ou Automatique, propre à chaque membre. | mode, apparence / appearance |
 | Automatique | System | Suit le thème de l'ordinateur. | Système / Auto |
-| palette | palette | Une base et un accent, propres à chaque membre. | couleurs / color scheme |
+| palette | palette | Une base et un accent, propres à chaque membre. Les noms des palettes (Neutrine, Pierrange…) ne se traduisent pas, comme Ruche. | couleurs / color scheme |
 | décliner (un logo) | adapt | Faire un logo aux couleurs de chaque palette. | — / generate variants |
 | langue | language | La langue de l'admin. | — / locale |

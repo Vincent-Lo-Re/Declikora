@@ -39,7 +39,7 @@ test("un admin se connecte avec les deux codes, se déconnecte, puis revient", a
   // Mon compte : la double vérification est configurée.
   await openAccountPage(page)
   await expect(
-    page.getByText(texts.account.mfa.active, { exact: true })
+    page.getByText(texts.account.mfa.configured, { exact: true })
   ).toBeVisible()
 
   // Déconnexion, par le menu de l'avatar : retour à la connexion, et la session est bien fermée.

@@ -25,6 +25,14 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // Les textes français ont une espace insécable avant « : ; ! ? » et dans les guillemets
+      // (docs/LEXIQUE.md, vérifié par src/texts.test.ts) : permise dans les textes, pas ailleurs.
+      "no-irregular-whitespace": [
+        "error",
+        { skipStrings: true, skipTemplates: true, skipRegExps: true },
+      ],
+    },
   },
   {
     // Tests de parcours (Playwright) : du code Node, pas des composants React.

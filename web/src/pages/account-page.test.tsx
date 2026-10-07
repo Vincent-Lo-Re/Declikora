@@ -29,7 +29,7 @@ describe("Mon compte", () => {
     expect(
       screen.getByText(texts.account.mfa.configuredOn("27 sept. 2026 à 14h30"))
     ).toBeVisible()
-    expect(screen.getAllByText(texts.account.mfa.active)[0]).toBeVisible()
+    expect(screen.getByText(texts.account.mfa.configured)).toBeVisible()
   })
 
   it("refuse un nom trop long sans rien envoyer", async () => {
