@@ -448,10 +448,10 @@ test("page réservée à une formule : verrouillée dans l'app, image de présen
   const coverName = `vitrine-${id}.png`
   const innerName = `dedans-${id}.png`
   try {
-    // Une formule, créée dans Paramètres.
-    await page.goto("/parametres")
+    // Une formule, créée dans Paramètres (onglet Formules).
+    await page.goto("/parametres?onglet=formules")
     await signIn(page, admin)
-    await expect(page).toHaveURL(/\/parametres$/)
+    await expect(page).toHaveURL(/\/parametres\?onglet=formules$/)
     const accessLevels = texts.settings.accessLevels
     await page.getByLabel(accessLevels.name).fill(level)
     await page.getByRole("button", { name: accessLevels.add }).click()
@@ -689,10 +689,12 @@ test("formules d'abonnement : réservées aux admins ; ajouter, ranger au clavie
       message: "reserve_aux_admins",
     })
 
-    // Un admin.
+    // Un admin, dans l'onglet Formules (ouvert par un clic : le premier onglet s'ouvre au départ).
     await page.goto("/parametres")
     await signIn(page, admin)
     await expect(page).toHaveURL(/\/parametres$/)
+    await page.getByRole("tab", { name: texts.settings.tabs.plans }).click()
+    await expect(page).toHaveURL(/\/parametres\?onglet=formules$/)
     await expect(
       headerMenu(page).getByRole("link", {
         name: texts.sections.settings.title,

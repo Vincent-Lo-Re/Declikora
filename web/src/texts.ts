@@ -85,7 +85,8 @@ export const texts = {
     },
     settings: {
       title: "Paramètres",
-      description: "Les formules d'abonnement.",
+      description:
+        "L'identité de l'admin et de l'app, les formules d'abonnement et les réglages avancés.",
     },
     account: {
       title: "Mon compte",
@@ -2054,8 +2055,20 @@ export const texts = {
     },
   },
 
-  // Paramètres (admins) : les formules d'abonnement.
+  // Paramètres (admins) : quatre onglets, dont les formules d'abonnement.
   settings: {
+    tabs: {
+      label: "Rubriques des paramètres",
+      admin: "Identité de l'admin",
+      app: "Identité de l'app",
+      plans: "Formules",
+      advanced: "Avancé",
+    },
+    // Un onglet pas encore rempli.
+    empty: {
+      title: "Rien ici pour l'instant",
+      description: "Cette rubrique sera remplie prochainement.",
+    },
     accessLevels: {
       title: "Formules d'abonnement",
       description:

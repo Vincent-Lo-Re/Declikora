@@ -45,7 +45,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **Modèles** : les modèles de blocs (voir § 5).
 - [x] **Médiathèque** : tous les fichiers (voir § 6).
 - [x] **Corbeille** : une seule, pour tout ce qui a été supprimé (voir § 3).
-- [x] **Équipe** et **Paramètres**, réservés aux admins. Les Paramètres contiennent les formules d'abonnement.
+- [x] **Équipe** et **Paramètres**, réservés aux admins. Depuis le 06/10/2026 (QCM), les Paramètres ont quatre onglets : « Identité de l'admin », « Identité de l'app », « Formules » (les formules d'abonnement) et « Avancé ». Le premier s'ouvre au départ ; l'onglet choisi est dans l'adresse (« ?onglet=formules »). Seules les formules sont remplies : les trois autres onglets le disent, en attendant ce qu'on y mettra.
 - [x] **Mon compte** : double vérification, déconnexion.
 
 ## 2. Équipe, connexion et sécurité
