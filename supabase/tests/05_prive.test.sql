@@ -71,11 +71,13 @@ select is(
     order by 1
   ),
   array[
-    'app_access_levels()', 'app_categories(text)', 'app_content(uuid)',
+    'admin_brand_variants()', 'admin_brand()', 'app_access_levels()', 'app_categories(text)', 'app_content(uuid)',
     'app_feed(text,uuid,text,integer)', 'app_file_locations(uuid[])', 'app_page(text)',
     'ping()'
   ],
-  'public : seules ping et les lectures de l''app (app_*, étapes 5 et 7) sont exécutables par anon'
+  'public : seules ping, admin_brand et admin_brand_variants (l''identité de l''admin, avant la '
+  'connexion) et les lectures de '
+  'l''app (app_*, étapes 5 et 7) sont exécutables par anon'
 );
 select is(
   array(

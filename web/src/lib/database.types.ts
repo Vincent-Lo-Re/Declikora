@@ -55,6 +55,54 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_brand_variants: {
+        Row: {
+          kind: string
+          palette: string
+          path: string
+          surface: string
+        }
+        Insert: {
+          kind: string
+          palette: string
+          path: string
+          surface: string
+        }
+        Update: {
+          kind?: string
+          palette?: string
+          path?: string
+          surface?: string
+        }
+        Relationships: []
+      }
+      admin_identity: {
+        Row: {
+          id: boolean
+          logotype_dark: string | null
+          logotype_light: string | null
+          monogram_dark: string | null
+          monogram_light: string | null
+          name: string | null
+        }
+        Insert: {
+          id?: boolean
+          logotype_dark?: string | null
+          logotype_light?: string | null
+          monogram_dark?: string | null
+          monogram_light?: string | null
+          name?: string | null
+        }
+        Update: {
+          id?: boolean
+          logotype_dark?: string | null
+          logotype_light?: string | null
+          monogram_dark?: string | null
+          monogram_light?: string | null
+          name?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -569,6 +617,25 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      admin_brand: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          logotype_dark: string
+          logotype_light: string
+          monogram_dark: string
+          monogram_light: string
+          name: string
+        }[]
+      }
+      admin_brand_variants: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          kind: string
+          palette: string
+          path: string
+          surface: string
+        }[]
       }
       app_access_levels: {
         Args: Record<PropertyKey, never>
