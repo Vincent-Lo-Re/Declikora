@@ -187,7 +187,7 @@ Les sections 1 à 9 sont **décidées**. On coche chaque ligne quand elle est en
 - [x] **En français**, avec tous les textes de l'interface dans un seul fichier (`web/src/texts.ts`). L'interface tutoie.
 - [ ] **En anglais et en français** (07/10/2026, QCM). L'anglais devient la langue de départ et la langue source : un texte s'écrit d'abord en anglais, puis en français. Le français est la première traduction ; d'autres langues pourront suivre.
   - **Qui choisit** : une langue pour toute l'admin dans l'onglet « Avancé » des Paramètres (l'anglais au départ), que chaque membre peut remplacer pour lui dans « Mon compte ».
-  - **Ce qui est traduit** : tout ce que l'équipe lit, l'interface (`texts.ts`), les fiches de l'aide et les trois e-mails (invitation, code, confirmation).
+  - **Ce qui est traduit** : tout ce que l'équipe lit, l'interface (`texts.ts`), les fiches de l'aide et les trois e-mails (invitation, code, confirmation). Les fiches de l'aide attendent que l'admin ne change plus (décidé le 07/10/2026) : la relecture et la traduction se font d'abord sur l'interface et les e-mails.
   - **Les noms** : « Ruche » reste « Ruche » dans toutes les langues. « Le Fil » devient « Blog » et « Radio Éclaircies » devient « Podcasts », en anglais comme en français.
   - **Les dates** : toujours à l'heure de Paris, quelle que soit la langue ; seule leur écriture change (« 27 sept. 2026 à 14h30 », « Sep 27, 2026, 2:30 PM »).
   - **Les mots du produit** sont fixés dans un lexique, [LEXIQUE.md](LEXIQUE.md) : le même mot pour la même chose, dans chaque langue.
