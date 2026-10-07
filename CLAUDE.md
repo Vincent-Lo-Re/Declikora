@@ -38,7 +38,7 @@ Elles ont été vérifiées sur npm et Expo le 2026-09-27. Elles sont épinglée
 - Ajouter une dépendance **uniquement** avec `npx expo install <paquet>`, jamais `npm install`. Voir aussi `mobile/AGENTS.md`.
 
 **Base et serveur**
-- Supabase CLI 2.118 (devDependency à la racine), supabase-js 2.117, Postgres 17
+- Supabase CLI 2.120 (devDependency à la racine ; même version dans les garde-fous et la sauvegarde, vérifiée le 07/10/2026), supabase-js 2.117, Postgres 17
 
 **Node 24 partout** : `.nvmrc` à la racine, `engines` dans les `package.json` (Vercel s'en sert), et les garde-fous GitHub.
 

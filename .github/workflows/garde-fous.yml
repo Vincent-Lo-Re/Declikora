@@ -83,7 +83,7 @@ jobs:
         run: npm run functions:test
       - uses: supabase/setup-cli@v3
         with:
-          version: 2.118.0
+          version: 2.120.0
       # Seulement ce que la fonction « files » utilise : base (pg_cron, pg_net), connexion, API,
       # Storage, passerelle et fonctions.
       - name: Démarrage de Supabase
@@ -98,7 +98,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: supabase/setup-cli@v3
         with:
-          version: 2.118.0
+          version: 2.120.0
       # `supabase db start` applique aussi les migrations de Storage (et d'Auth) : les tests
       # pgTAP des buckets et des politiques de Storage n'ont pas besoin de plus. pg_cron et
       # pg_net sont dans l'image de la base. Le seed (supabase/seed.sql) est appliqué.
@@ -145,7 +145,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: supabase/setup-cli@v3
         with:
-          version: 2.118.0
+          version: 2.120.0
       # Seulement ce que les parcours utilisent : base (avec pg_cron et pg_net, et le seed qui
       # fait appeler la fonction « files » par la passerelle locale), connexion, API, passerelle,
       # fichiers (Storage), fonctions (« equipe », « files »), e-mails (Mailpit) et Realtime (le
