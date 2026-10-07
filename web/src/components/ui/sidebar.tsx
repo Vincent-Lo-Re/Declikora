@@ -58,8 +58,9 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          // Toujours en sombre (classe dark), comme la colonne de gauche de la page du preset :
-          // une carte à 90 %, floutée par-dessous.
+          // Toujours en sombre (classe dark), à la teinte de la couleur de base, comme la colonne
+          // de gauche de la page du preset : une carte à 90 %, floutée par-dessous. L'élément
+          // choisi prend la couleur de l'accent (lib/palettes.ts).
           className="dark flex size-full flex-col overflow-hidden rounded-2xl bg-card/90 text-sidebar-foreground ring-1 ring-foreground/10 backdrop-blur-xl"
         >
           {children}
@@ -191,6 +192,7 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
   )
 }
 
+// Le lien actif garde sa couleur au survol et au clic : seuls les autres prennent celle du survol.
 function SidebarMenuButton({
   render,
   isActive = false,
@@ -205,7 +207,7 @@ function SidebarMenuButton({
     props: mergeProps<"button">(
       {
         className: cn(
-          "flex h-8 w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
+          "flex h-8 w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring transition-all outline-hidden not-data-active:hover:bg-sidebar-accent not-data-active:hover:text-sidebar-accent-foreground focus-visible:ring-2 not-data-active:active:bg-sidebar-accent not-data-active:active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:bg-sidebar-active data-active:font-medium data-active:text-sidebar-active-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
           className
         ),
       },
