@@ -245,7 +245,7 @@ describe("Corbeille : contenus", () => {
       within(filters)
         .getAllByRole("button")
         .map((button) => button.textContent)
-    ).toEqual(["Tout", "Le Fil", "Pages", "Médiathèque"])
+    ).toEqual(["Tout", "Blog", "Pages", "Médiathèque"])
     // Ce qui est parti avec l'article n'a pas sa propre ligne.
     expect(screen.getAllByRole("row")).toHaveLength(4)
     expect(screen.getByText(texts.trash.batch(1))).toBeVisible()

@@ -236,7 +236,7 @@ test("Éditeur du Fil : « Ajouter un bloc » ouvre les Blocs, bloc glissé, pla
   await open(page, "/blog", admin)
   await createFromDialog(page, "article", `Finitions ${uniqueId()}`)
   const plan = page.getByRole("navigation", { name: outline.title })
-  const rows = plan.getByRole("button", { name: /^Aller à (Texte|Section)/ })
+  const rows = plan.getByRole("button", { name: /^Aller à (Texte|Encadré)/ })
   // Ce que montre une ligne du plan : le contenu (l'icône dit le type).
   // Une section vide : une icône devant son nom, ce qui manque dans son infobulle (et pour les
   // lecteurs d'écran) : elle n'apparaîtra pas dans l'app.
@@ -244,7 +244,7 @@ test("Éditeur du Fil : « Ajouter un bloc » ouvre les Blocs, bloc glissé, pla
   const phone = page.getByRole("region", { name: editor.preview.screen.ios })
 
   // « Ajouter un bloc » (le téléphone vide) ouvre les Blocs par-dessus le Plan, le curseur sur
-  // Texte ; une Section s'ajoute ; × les referme.
+  // Texte ; un Encadré s'ajoute ; × les referme.
   const library = page.getByRole("region", { name: editor.columns.blocks })
   const closeBlocks = () =>
     library.getByRole("button", { name: editor.library.close }).click()

@@ -79,7 +79,7 @@ function BrandDetailsForm({
                 <Input
                   {...field}
                   id="admin-name"
-                  placeholder={labels.placeholder}
+                  placeholder={texts.app.name}
                   aria-invalid={fieldState.invalid}
                 />
                 <FieldError errors={[fieldState.error]} />

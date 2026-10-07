@@ -61,7 +61,12 @@ export function BrandVariantsDialog({
       <DialogContent className="sm:max-w-3xl" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>{labels.title}</DialogTitle>
-          <DialogDescription>{labels.description(count)}</DialogDescription>
+          <DialogDescription>
+            {labels.description(
+              count,
+              texts.colors.presets.names["neutral-none"]
+            )}
+          </DialogDescription>
         </DialogHeader>
         {svg && (
           <>

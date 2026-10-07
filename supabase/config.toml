@@ -264,17 +264,17 @@ otp_expiry = 600
 # Modèles d'e-mails en français. Les chemins partent de la racine du dépôt.
 # Invitation : lien vers la page /invitation de l'admin, qui demande un clic avant de valider.
 [auth.email.template.invite]
-subject = "Ton invitation à l'administration de Declikora"
+subject = "Ton invitation à rejoindre l'équipe"
 content_path = "./supabase/templates/invitation.html"
 
 # Code de connexion (envoyé par signInWithOtp à un membre qui a déjà accepté son invitation).
 [auth.email.template.magic_link]
-subject = "Ton code de connexion à Declikora"
+subject = "Ton code de connexion"
 content_path = "./supabase/templates/code-connexion.html"
 
 # Confirmation d'adresse : ne devrait pas servir (inscriptions fermées), traduite par prudence.
 [auth.email.template.confirmation]
-subject = "Confirme ton adresse e-mail pour Declikora"
+subject = "Confirme ton adresse e-mail"
 content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize notification email template

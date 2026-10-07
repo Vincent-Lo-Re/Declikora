@@ -12,7 +12,6 @@ import { PageHeader } from "@/components/page-header"
 import { PaletteChoice } from "@/components/theme/palette-choice"
 import { PalettePreview } from "@/components/theme/palette-preview"
 import { ThemeChoice } from "@/components/theme-choice"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import {
@@ -113,8 +112,7 @@ function Section({
 }
 
 /**
- * La double vérification, présentée comme les autres cartes : le titre à gauche et « Activée » en
- * pastille ; la date dans une ligne grise avec le bouclier (Item, comme « Se déconnecter ») ; ce qu'il
+ * La double vérification, présentée comme les autres cartes : le titre à gauche ; la date dans une ligne grise avec le bouclier (Item, comme « Se déconnecter ») ; ce qu'il
  * faut faire si le téléphone est perdu, en petit texte (seul un admin la réinitialise). Elle prend
  * la hauteur de la carte Profil, à côté.
  */
@@ -127,14 +125,6 @@ function MfaCard({ factor }: { factor: Factor | null }) {
       className="self-stretch"
       // Le contenu prend toute la hauteur de la carte : « Téléphone perdu ? » descend tout en bas.
       contentClassName="flex flex-1 flex-col gap-3 space-y-0"
-      action={
-        factor && (
-          <Badge variant="outline">
-            <span className="size-1.5 rounded-full bg-status-live" />
-            {labels.active}
-          </Badge>
-        )
-      }
     >
       {factor && (
         <Item variant="muted" className="py-4">

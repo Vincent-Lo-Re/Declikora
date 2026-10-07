@@ -29,8 +29,8 @@ describe("menu", () => {
         .map((link) => link.textContent)
     ).toEqual([
       "Tableau de bord",
-      "Le Fil",
-      "Radio Éclaircies",
+      "Blog",
+      "Podcasts",
       "Pages",
       "Modèles de bloc",
       "Médiathèque",
@@ -63,10 +63,8 @@ describe("menu", () => {
   it("ouvre la section demandée et marque son lien comme actif", async () => {
     await renderAt("/blog")
 
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Le Fil"
-    )
-    expect(screen.getByRole("link", { name: "Le Fil" })).toHaveAttribute(
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Blog")
+    expect(screen.getByRole("link", { name: "Blog" })).toHaveAttribute(
       "aria-current",
       "page"
     )
