@@ -4,6 +4,7 @@ import { texts } from "../src/texts.ts"
 import { uniqueEmail } from "./support/accounts.ts"
 import { receivedIds, signInCode, waitForNewEmail } from "./support/mailpit.ts"
 import {
+  accountMenuButton,
   headerMenu,
   expect,
   openAccountPage,
@@ -36,11 +37,13 @@ test("un admin se connecte avec les deux codes, se déconnecte, puis revient", a
 
   // Mon compte : la double vérification est configurée.
   await openAccountPage(page)
-  const configuredOn = texts.account.mfa.configuredOn("…").replace("….", "")
-  await expect(page.getByText(configuredOn)).toBeVisible()
+  await expect(
+    page.getByText(texts.account.mfa.active, { exact: true })
+  ).toBeVisible()
 
-  // Déconnexion : retour à la connexion, et la session est bien fermée.
-  await page.getByRole("link", { name: texts.common.signOut }).click()
+  // Déconnexion, par le menu de l'avatar : retour à la connexion, et la session est bien fermée.
+  await accountMenuButton(page).click()
+  await page.getByRole("menuitem", { name: texts.common.signOut }).click()
   await expect(page).toHaveURL(/\/connexion$/)
   await page.goto("/equipe")
   await expect(page).toHaveURL(/\/connexion$/)

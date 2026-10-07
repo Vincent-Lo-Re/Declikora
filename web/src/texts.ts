@@ -183,13 +183,15 @@ export const texts = {
     },
     mfa: {
       title: "Double vérification",
-      configuredOn: (date: string) => `Configurée le ${date}.`,
-      lostPhone:
-        "Téléphone perdu ? Demande à un admin de réinitialiser ta double vérification.",
-    },
-    signOut: {
-      title: "Déconnexion",
-      description: "Ferme ta session sur ce navigateur.",
+      description:
+        "Le code de l'app de ton téléphone, demandé à chaque connexion.",
+      active: "Activée",
+      configured: "Configurée",
+      configuredOn: (date: string) => `le ${date}`,
+      lostPhone: {
+        title: "Téléphone perdu ?",
+        text: "Demande à un admin de réinitialiser ta double vérification.",
+      },
     },
   },
 
@@ -2170,9 +2172,83 @@ export const texts = {
     },
   },
 
+  // Les couleurs de chacun, dans Mon compte (noms des thèmes de shadcn, en français).
+  // Les couleurs, dans la carte Thème de Mon compte.
+  colors: {
+    // Les palettes toutes prêtes : un clic choisit la base et l'accent. Leur nom mêle ceux des deux.
+    presets: {
+      title: "Palettes",
+      // Revenir à la palette d'origine (Neutrine).
+      reset: "Réinitialiser",
+      names: {
+        "neutral-none": "Neutrine",
+        "stone-orange": "Pierrange",
+        "taupe-amber": "Taupambre",
+        "olive-green": "Olivert",
+        "mist-teal": "Brumelle",
+        "mist-sky": "Brumciel",
+        "zinc-indigo": "Zindigo",
+        "zinc-blue": "Zinbleu",
+        "mauve-violet": "Mauvolette",
+        "mauve-rose": "Mauvoise",
+        "neutral-red": "Neutrouge",
+      },
+      moods: {
+        "neutral-none": "Épuré, intemporel",
+        "stone-orange": "Chaleureux, énergique",
+        "taupe-amber": "Terreux, doré",
+        "olive-green": "Naturel, apaisé",
+        "mist-teal": "Calme, frais",
+        "mist-sky": "Aérien, lumineux",
+        "zinc-indigo": "Net, moderne",
+        "zinc-blue": "Classique, rassurant",
+        "mauve-violet": "Doux, créatif",
+        "mauve-rose": "Tendre, affirmé",
+        "neutral-red": "Sobre, contrasté",
+      },
+    },
+    // L'aperçu, à côté du choix : la page d'accueil de l'admin en réduction, avec un travail d'équipe inventé.
+    preview: {
+      title: "Aperçu",
+      description:
+        "La palette choisie s'applique à la charte graphique de l'administration.",
+      brand: "Declikora",
+      nav: ["Accueil", "Le Fil", "Radio", "Pages", "Médias"],
+      initial: "C",
+      member: "Camille",
+      heading: "Tableau de bord",
+      subtitle: "Le travail de l'équipe cette semaine.",
+      primary: "Nouvel article",
+      stats: [
+        { label: "Publiés", value: "24", badge: "+6" },
+        { label: "Brouillons", value: "8", badge: "À relire" },
+      ],
+      chart: "Publications de la semaine",
+      list: "Derniers contenus modifiés",
+      rows: [
+        {
+          name: "Respirer avant de répondre",
+          meta: "Le Fil · par Léa, il y a 2 h",
+          badge: "En ligne",
+        },
+        {
+          name: "Le calme du matin",
+          meta: "Radio Éclaircies · par Hugo, hier",
+          badge: "Programmé",
+        },
+        {
+          name: "Trouver son rythme",
+          meta: "Le Fil · par Camille, lundi",
+          badge: "Brouillon",
+        },
+      ],
+    },
+  },
+
   theme: {
     title: "Thème",
-    description: "Clair, sombre ou automatique (comme l'ordinateur).",
+    // Sous le titre de la carte Thème de Mon compte, qui réunit le mode et les couleurs.
+    description: "Rien que pour toi, sur ce navigateur.",
     light: "Clair",
     dark: "Sombre",
     system: "Automatique",

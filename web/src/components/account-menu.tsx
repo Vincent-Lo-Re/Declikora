@@ -31,7 +31,7 @@ export function AccountMenu() {
   return (
     <DropdownMenu>
       {/* Encadré comme les blocs de la colonne de gauche de la page du preset (ring-foreground/10). */}
-      <DropdownMenuTrigger className="flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-left ring-1 ring-foreground/10 outline-none hover:bg-muted focus-visible:ring-foreground/50 data-popup-open:bg-muted">
+      <DropdownMenuTrigger className="flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-left ring-1 ring-sidebar-foreground/15 outline-none hover:bg-sidebar-accent focus-visible:ring-sidebar-foreground/50 data-popup-open:bg-sidebar-accent">
         {/*
           Le bouton se lit par ce qu'il montre, le nom puis le rôle, et ce qu'il fait ; pas
           l'initiale. Les espaces séparent ces mots à la lecture (une grille ou une rangée ne les
@@ -42,7 +42,7 @@ export function AccountMenu() {
         </Avatar>
         <span className="grid min-w-0 flex-1 leading-tight">
           <span className="truncate text-sm font-medium">{name}</span>{" "}
-          <span className="truncate text-xs text-muted-foreground">
+          <span className="truncate text-xs text-sidebar-foreground/70">
             {texts.roles[profile.role]}
           </span>
         </span>{" "}

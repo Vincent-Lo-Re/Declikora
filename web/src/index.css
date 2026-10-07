@@ -15,6 +15,15 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
   --color-panel: var(--panel);
@@ -26,7 +35,6 @@
   --color-status-live: var(--status-live);
   --color-status-modified: var(--status-modified);
   --color-status-new: var(--status-new);
-  --color-status-removing: var(--status-removing);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -50,29 +58,28 @@
 
 :root {
   --background: oklch(1 0 0);
-  --foreground: oklch(0.147 0.004 49.25);
+  --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.147 0.004 49.25);
+  --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.147 0.004 49.25);
-  --primary: oklch(0.216 0.006 56.043);
-  --primary-foreground: oklch(0.985 0.001 106.423);
-  --secondary: oklch(0.97 0.001 106.424);
-  --secondary-foreground: oklch(0.216 0.006 56.043);
-  --muted: oklch(0.97 0.001 106.424);
-  --muted-foreground: oklch(0.553 0.013 58.071);
-  --accent: oklch(0.97 0.001 106.424);
-  --accent-foreground: oklch(0.216 0.006 56.043);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  /* Avertissement (texte) et pastilles d'état : « En ligne », « Modifié », « Neuf », « Sera retiré ». */
+  /* Avertissement (texte) et pastilles d'état : « En ligne », « Modifié », « Neuf ». */
   --warning: oklch(0.555 0.163 48.998);
   --status-live: oklch(0.696 0.17 162.48);
   --status-modified: oklch(0.769 0.188 70.08);
   --status-new: oklch(0.685 0.169 237.323);
-  --status-removing: oklch(0.645 0.246 16.439);
-  --border: oklch(0.923 0.003 48.717);
-  --input: oklch(0.923 0.003 48.717);
-  --ring: oklch(0.709 0.01 56.259);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
   --radius: 0.625rem;
   /* Les pages avec le menu (ADMIN § 7, « Des panneaux gris sur fond blanc ») : la page est
      blanche ; le menu est un panneau toujours sombre (classe dark de Sidebar, comme la colonne de
@@ -80,42 +87,66 @@
      sur lequel le gris d'une barre de progression reste visible ; les cartes sont blanches. */
   --panel: color-mix(in oklab, var(--muted) 50%, transparent);
   --sidebar: var(--muted);
-  --sidebar-foreground: oklch(0.147 0.004 49.25);
+  --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-accent: var(--card);
   --sidebar-accent-foreground: var(--card-foreground);
-  --sidebar-border: oklch(0.923 0.003 48.717);
-  --sidebar-ring: oklch(0.709 0.01 56.259);
+  /* L'élément choisi du menu : le survol, sauf avec une couleur d'accent (lib/palettes.ts). */
+  --sidebar-active: var(--sidebar-accent);
+  --sidebar-active-foreground: var(--sidebar-accent-foreground);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  /* La couleur des boutons de la page (en clair ou en sombre, selon la page), relevée ici avant que
+     le menu, toujours sombre (classe dark), ne redéfinisse --primary : l'élément choisi du menu la
+     prend avec une couleur d'accent (lib/palettes.ts). Jamais redéfinie dans .dark. */
+  --page-primary: var(--primary);
+  --page-primary-foreground: var(--primary-foreground);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
 }
 
 .dark {
-  --background: oklch(0.147 0.004 49.25);
-  --foreground: oklch(0.985 0.001 106.423);
-  --card: oklch(0.216 0.006 56.043);
-  --card-foreground: oklch(0.985 0.001 106.423);
-  --popover: oklch(0.216 0.006 56.043);
-  --popover-foreground: oklch(0.985 0.001 106.423);
-  --primary: oklch(0.923 0.003 48.717);
-  --primary-foreground: oklch(0.216 0.006 56.043);
-  --secondary: oklch(0.268 0.007 34.298);
-  --secondary-foreground: oklch(0.985 0.001 106.423);
-  --muted: oklch(0.268 0.007 34.298);
-  --muted-foreground: oklch(0.709 0.01 56.259);
-  --accent: oklch(0.268 0.007 34.298);
-  --accent-foreground: oklch(0.985 0.001 106.423);
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --warning: oklch(0.828 0.189 84.429);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.553 0.013 58.071);
+  --ring: oklch(0.556 0 0);
   /* Comme la page de shadcn en sombre : le gris des panneaux à 30 % sur le fond. */
   --panel: color-mix(in oklab, var(--muted) 30%, var(--background));
   --sidebar: var(--panel);
-  --sidebar-foreground: oklch(0.985 0.001 106.423);
+  --sidebar-foreground: oklch(0.985 0 0);
   /* Le menu est une carte sombre : l'élément choisi y prend le gris de muted. */
   --sidebar-accent: var(--muted);
   --sidebar-accent-foreground: var(--foreground);
+  --sidebar-active: var(--sidebar-accent);
+  --sidebar-active-foreground: var(--sidebar-accent-foreground);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.553 0.013 58.071);
+  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
 }
 
 /* Grille des vignettes de la médiathèque (liste et chargement) : des colonnes d'au moins 11 rem. */
@@ -147,6 +178,8 @@
 @utility sidebar-on-white {
   --sidebar-accent: var(--muted);
   --sidebar-accent-foreground: var(--foreground);
+  --sidebar-active: var(--muted);
+  --sidebar-active-foreground: var(--foreground);
 }
 
 /* Éditeur du Fil : le bas des deux colonnes, à la même hauteur (à gauche le retour et « Ajouter un

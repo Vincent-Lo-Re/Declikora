@@ -1,18 +1,23 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import type { Factor } from "@supabase/supabase-js"
+import { cn } from "cn"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { LogOut, ShieldCheck } from "lucide-react"
+import { ShieldCheck } from "lucide-react"
 import type { ReactNode } from "react"
 import { Controller, useForm } from "react-hook-form"
-import { Link } from "react-router"
 import { toast } from "sonner"
 
 import { profileQueryKey, useAuth, type Profile } from "@/auth/auth-context"
 import { PageHeader } from "@/components/page-header"
+import { PaletteChoice } from "@/components/theme/palette-choice"
+import { PalettePreview } from "@/components/theme/palette-preview"
 import { ThemeChoice } from "@/components/theme-choice"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -25,14 +30,21 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item"
 import { Spinner } from "@/components/ui/spinner"
 import { saveFullName } from "@/lib/auth"
 import { formatDateTime } from "@/lib/dates"
 import { profileSchema } from "@/lib/schemas"
-import { authPaths, sections } from "@/navigation"
+import { sections } from "@/navigation"
 import { texts } from "@/texts"
 
-/** Mon compte : profil, double vérification, apparence et déconnexion, chacun dans sa carte. */
+/** Mon compte : profil, double vérification, thème (clair, sombre ou automatique, et les couleurs) et son aperçu. */
 export function AccountPage() {
   const { profile, factor } = useAuth()
   const { title, description } = texts.sections.account
@@ -45,45 +57,24 @@ export function AccountPage() {
         description={description}
       />
       <div className="grid items-start gap-6 xl:grid-cols-2">
-        <Section
-          title={texts.account.profile.title}
-          description={texts.account.profile.description}
-        >
-          {profile && <ProfileForm profile={profile} />}
-        </Section>
+        {profile && <ProfileCard profile={profile} />}
 
-        <Section title={texts.account.mfa.title}>
-          {factor && (
-            <p className="flex items-center gap-2 text-sm">
-              <ShieldCheck className="size-4 text-muted-foreground" />
-              {texts.account.mfa.configuredOn(
-                formatDateTime(factor.created_at)
-              )}
-            </p>
-          )}
-          <p className="text-sm text-muted-foreground">
-            {texts.account.mfa.lostPhone}
-          </p>
-        </Section>
+        <MfaCard factor={factor} />
 
         <Section
           title={texts.theme.title}
           description={texts.theme.description}
+          action={<ThemeChoice />}
         >
-          <ThemeChoice />
+          <PaletteChoice />
         </Section>
 
         <Section
-          title={texts.account.signOut.title}
-          description={texts.account.signOut.description}
+          title={texts.colors.preview.title}
+          description={texts.colors.preview.description}
+          className="xl:sticky xl:top-0"
         >
-          <Link
-            to={authPaths.signOut}
-            className={buttonVariants({ variant: "outline" })}
-          >
-            <LogOut />
-            {texts.common.signOut}
-          </Link>
+          <PalettePreview />
         </Section>
       </div>
     </>
@@ -93,26 +84,89 @@ export function AccountPage() {
 function Section({
   title,
   description,
+  action,
+  className,
+  contentClassName,
   children,
 }: {
   title: string
   description?: string
+  action?: ReactNode
+  className?: string
+  contentClassName?: string
   children: ReactNode
 }) {
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <CardTitle role="heading" aria-level={2}>
           {title}
         </CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
+        {action && <CardAction>{action}</CardAction>}
       </CardHeader>
-      <CardContent className="space-y-3">{children}</CardContent>
+      <CardContent className={cn("space-y-3", contentClassName)}>
+        {children}
+      </CardContent>
     </Card>
   )
 }
 
-function ProfileForm({ profile }: { profile: Profile }) {
+/**
+ * La double vérification, présentée comme les autres cartes : le titre à gauche et « Activée » en
+ * pastille ; la date dans une ligne grise avec le bouclier (Item, comme « Se déconnecter ») ; ce qu'il
+ * faut faire si le téléphone est perdu, en petit texte (seul un admin la réinitialise). Elle prend
+ * la hauteur de la carte Profil, à côté.
+ */
+function MfaCard({ factor }: { factor: Factor | null }) {
+  const labels = texts.account.mfa
+  return (
+    <Section
+      title={labels.title}
+      description={labels.description}
+      className="self-stretch"
+      // Le contenu prend toute la hauteur de la carte : « Téléphone perdu ? » descend tout en bas.
+      contentClassName="flex flex-1 flex-col gap-3 space-y-0"
+      action={
+        factor && (
+          <Badge variant="outline">
+            <span className="size-1.5 rounded-full bg-status-live" />
+            {labels.active}
+          </Badge>
+        )
+      }
+    >
+      {factor && (
+        <Item variant="muted" className="py-4">
+          <ItemMedia variant="icon">
+            <ShieldCheck className="text-status-live" />
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle className="text-status-live">
+              {labels.configured}
+            </ItemTitle>
+            <ItemDescription>
+              {labels.configuredOn(formatDateTime(factor.created_at))}
+            </ItemDescription>
+          </ItemContent>
+        </Item>
+      )}
+      <p className="mt-auto text-sm text-muted-foreground">
+        <span className="block font-medium text-foreground">
+          {labels.lostPhone.title}
+        </span>
+        {labels.lostPhone.text}
+      </p>
+    </Section>
+  )
+}
+
+/**
+ * Le profil, sur le modèle de la carte « Account Access » de shadcn : le nom, l'adresse e-mail
+ * (grisée, elle ne se change pas ici) avec le rôle à droite ; « Enregistrer » collé au nom.
+ */
+function ProfileCard({ profile }: { profile: Profile }) {
+  const labels = texts.account.profile
   const queryClient = useQueryClient()
   const form = useForm({
     resolver: zodResolver(profileSchema),
@@ -126,7 +180,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
       await queryClient.invalidateQueries({
         queryKey: profileQueryKey(profile.id),
       })
-      toast.success(texts.account.profile.saved)
+      toast.success(labels.saved)
     },
     onError: () => toast.error(texts.common.unexpected),
   })
@@ -134,48 +188,62 @@ function ProfileForm({ profile }: { profile: Profile }) {
   const onSubmit = form.handleSubmit(({ full_name }) => save.mutate(full_name))
 
   return (
-    <form onSubmit={onSubmit} noValidate>
-      <FieldGroup>
-        <Controller
-          name="full_name"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="account-name">
-                {texts.account.profile.name}
-              </FieldLabel>
-              <ButtonGroup className="w-full">
-                <Input
-                  {...field}
-                  id="account-name"
-                  autoComplete="name"
-                  placeholder={texts.account.profile.namePlaceholder}
-                  aria-invalid={fieldState.invalid}
-                />
-                <Button
-                  type="submit"
-                  variant="outline"
-                  disabled={save.isPending || !form.formState.isDirty}
-                >
-                  {save.isPending && <Spinner />}
-                  {texts.common.save}
-                </Button>
-              </ButtonGroup>
-              <FieldError errors={[fieldState.error]} />
+    <form onSubmit={onSubmit} noValidate className="self-stretch">
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle role="heading" aria-level={2}>
+            {labels.title}
+          </CardTitle>
+          <CardDescription>{labels.description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FieldGroup>
+            <Controller
+              name="full_name"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="account-name">{labels.name}</FieldLabel>
+                  <ButtonGroup className="w-full">
+                    <Input
+                      {...field}
+                      id="account-name"
+                      autoComplete="name"
+                      placeholder={labels.namePlaceholder}
+                      aria-invalid={fieldState.invalid}
+                    />
+                    <Button
+                      type="submit"
+                      variant="outline"
+                      disabled={save.isPending || !form.formState.isDirty}
+                    >
+                      {save.isPending && <Spinner />}
+                      {texts.common.save}
+                    </Button>
+                  </ButtonGroup>
+                  <FieldError errors={[fieldState.error]} />
+                </Field>
+              )}
+            />
+            <Field>
+              <div className="flex items-center justify-between">
+                <FieldLabel htmlFor="account-email">{labels.email}</FieldLabel>
+                <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                  <span className="sr-only">{labels.role} : </span>
+                  {texts.roles[profile.role]}
+                </span>
+              </div>
+              <Input
+                id="account-email"
+                type="email"
+                value={profile.email}
+                disabled
+                readOnly
+              />
             </Field>
-          )}
-        />
-        <dl className="grid grid-cols-label-value gap-x-6 gap-y-2 text-sm">
-          <dt className="text-muted-foreground">
-            {texts.account.profile.email}
-          </dt>
-          <dd>{profile.email}</dd>
-          <dt className="text-muted-foreground">
-            {texts.account.profile.role}
-          </dt>
-          <dd>{texts.roles[profile.role]}</dd>
-        </dl>
-      </FieldGroup>
+          </FieldGroup>
+        </CardContent>
+      </Card>
     </form>
   )
 }
