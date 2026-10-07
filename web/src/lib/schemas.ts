@@ -31,6 +31,16 @@ export const profileSchema = z.object({
   full_name: fullName(texts.account.profile.nameTooLong),
 })
 
+// Le nom de la marque : mêmes limites que la base (table admin_identity) ; vide : « Ruche ».
+const ADMIN_NAME_MAX = 40
+
+export const adminNameSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .max(ADMIN_NAME_MAX, texts.settings.adminIdentity.nameTooLong),
+})
+
 export const inviteSchema = z.object({
   email: email(texts.team.invalidEmail),
   full_name: fullName(texts.team.nameTooLong),

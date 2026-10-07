@@ -19,7 +19,7 @@ export const fiche: HelpFiche = {
   steps: [
     "Dans l'éditeur, trouve la carte « Niveau d'accès » dans la colonne de droite.",
     "Choisis « Gratuit » ou une formule dans la liste : le choix compte à la prochaine publication.",
-    "Pour créer une formule (admins), ouvre « Paramètres », écris son nom dans « Ajouter une formule », puis clique sur « Ajouter ».",
+    "Pour créer une formule (admins), ouvre « Paramètres », onglet « Formules », écris son nom dans « Ajouter une formule », puis clique sur « Ajouter ».",
     "Range les formules avec la poignée, de la moins complète (en haut) à la plus complète (en bas).",
   ],
   notes: [

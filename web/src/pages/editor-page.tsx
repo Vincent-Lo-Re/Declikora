@@ -107,6 +107,8 @@ import {
 } from "@/lib/scroll-memory"
 import { sections, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
+import { useBrandName } from "@/hooks/use-brand-name"
+import { tabTitle } from "@/lib/admin-identity"
 
 /** L'éditeur plein écran d'un contenu : /pages/<id>. Le menu de l'admin se cache. */
 export function EditorPage({
@@ -752,6 +754,7 @@ function ContentEditor({
 
   const sectionTitle = texts.sections[section].title
   const SectionIcon = sections[section].icon
+  const brand = useBrandName()
   const untitled = isTemplate
     ? texts.templates.list.untitled
     : texts.common.untitled
@@ -799,7 +802,7 @@ function ContentEditor({
 
   return (
     <div className="flex h-svh flex-col bg-muted/40">
-      <title>{`${title.trim() || untitled} — ${texts.app.name}`}</title>
+      <title>{tabTitle(title.trim() || untitled, brand)}</title>
       <p role="status" className="sr-only">
         {announcement}
       </p>

@@ -2,7 +2,8 @@
 
 export const texts = {
   app: {
-    name: "Declikora",
+    // Le nom par défaut de l'admin ; un admin le remplace par celui de la marque (Paramètres).
+    name: "Ruche",
   },
 
   // Les mots de l'interface qui ne dépendent pas de la page : une seule fois ici.
@@ -153,8 +154,8 @@ export const texts = {
 
   invitation: {
     title: "Rejoindre l'équipe",
-    description:
-      "Un admin t'invite à rejoindre l'administration de Declikora. Ensuite, tu configureras la double vérification.",
+    description: (brand: string) =>
+      `Un admin t'invite à rejoindre l'administration de ${brand}. Ensuite, tu configureras la double vérification.`,
     accept: "Accepter l'invitation",
     expired:
       "Ce lien a expiré ou a déjà servi. Demande à un admin de te renvoyer l'invitation.",
@@ -2066,6 +2067,62 @@ export const texts = {
       plans: "Formules",
       advanced: "Avancé",
     },
+    // Onglet « Identité de l'admin » : le nom de la marque, pour toute l'équipe.
+    adminIdentity: {
+      title: "Nom de la marque",
+      description:
+        "Personnalise l'expérience de ton équipe avec le nom de ta marque, affiché dans l'administration, le menu, l'écran de connexion et l'onglet du navigateur.",
+      name: "Nom",
+      placeholder: "Ruche",
+      nameTooLong: "Le nom ne doit pas dépasser 40 caractères.",
+      saved: "Nom de la marque enregistré.",
+      loadFailed: "Le nom de la marque n'a pas pu être chargé.",
+      // Le logotype et le monogramme, chacun pour fond clair et pour fond sombre : une carte
+      // par fichier (le modèle « Cover Art » de shadcn).
+      files: {
+        logotype: {
+          title: "Logotype",
+          use: "En haut du menu et à la connexion",
+        },
+        monogram: {
+          title: "Monogramme",
+          use: "Dans l'onglet du navigateur et l'aperçu",
+        },
+        light: "Fond clair",
+        dark: "Fond sombre",
+        // L'étiquette d'une carte, et le nom de son champ : « Logotype · fond clair ».
+        label: (what: string, surface: string) =>
+          `${what} · ${surface.toLowerCase()}`,
+        formats: "SVG, PNG ou WebP, 1 Mo au plus, à choisir ou à déposer",
+        // Une seule version : elle sert aussi sur l'autre fond.
+        hint: "Une seule version sert pour les deux fonds. Sans fichier, le nom de la marque (ou son initiale) s'affiche ; sans fichier ni nom de marque, les logos de Ruche, aux couleurs de chaque palette.",
+        choose: "Choisir un fichier",
+        // Un fichier glissé au-dessus d'une carte.
+        drop: "Dépose le fichier ici",
+        replace: "Remplacer",
+        remove: "Retirer",
+        saved: "Fichier enregistré.",
+        removed: "Fichier retiré.",
+        // Un SVG aux couleurs modifiables : le décliner aux couleurs des palettes ?
+        variants: {
+          title: "Décliner ce logo aux couleurs des palettes ?",
+          description: (count: number) =>
+            `Ses couleurs peuvent changer : chaque membre le verra aux couleurs de la palette qu'il a choisie, sur fond clair et sur fond sombre. ${count} palettes ; Neutrine, la palette d'origine, garde ses couleurs.`,
+          detected: "Couleurs détectées",
+          main: "Principale",
+          accent: "Accent",
+          keep: "Garder tel quel",
+          confirm: (count: number) => `Décliner pour les ${count} palettes`,
+          done: "Logo enregistré et décliné pour les palettes.",
+          status: (count: number) => `Décliné pour ${count} palettes`,
+        },
+        errors: {
+          type: "Choisis un SVG, un PNG ou un WebP.",
+          tooBig: "Le fichier dépasse 1 Mo.",
+          svg: "Ce SVG n'a pas pu être lu.",
+        },
+      },
+    },
     // Un onglet pas encore rempli.
     empty: {
       title: "Rien ici pour l'instant",
@@ -2212,7 +2269,6 @@ export const texts = {
       title: "Aperçu",
       description:
         "La palette choisie s'applique à la charte graphique de l'administration.",
-      brand: "Declikora",
       nav: ["Accueil", "Le Fil", "Radio", "Pages", "Médias"],
       initial: "C",
       member: "Camille",
