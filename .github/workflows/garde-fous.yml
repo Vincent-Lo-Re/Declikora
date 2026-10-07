@@ -159,20 +159,13 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      # Chromium et ses bibliothèques Linux (apt-get). Un miroir Ubuntu en panne bloquait apt-get
-      # sans fin, jusqu'aux 20 minutes du job, sans qu'aucun test ne parte (07/10/2026) : apt-get
-      # abandonne un serveur muet au bout de 30 s et réessaie, chaque essai dure 5 minutes au plus,
-      # et un second essai part tout seul.
+      # Chromium seulement, depuis le site de Playwright, sans apt-get (07/10/2026) : la machine de
+      # GitHub (Ubuntu 24.04) a déjà les bibliothèques dont il a besoin ; --with-deps n'ajoutait que
+      # des polices (chinois, thaï…) et des mises à jour, dont le téléchargement restait bloqué sur
+      # un miroir Ubuntu en panne jusqu'à la fin du job. Les parcours ne comparent pas de captures.
       - name: Navigateur Chromium
-        timeout-minutes: 11
-        run: |
-          printf 'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nAcquire::Retries "3";\n' \
-            | sudo tee /etc/apt/apt.conf.d/99-delais > /dev/null
-          for essai in 1 2; do
-            timeout 300 npx playwright install --with-deps --only-shell chromium && exit 0
-            echo "::warning::Installation de Chromium trop longue ou en échec (essai $essai)."
-          done
-          exit 1
+        timeout-minutes: 5
+        run: npx playwright install --only-shell chromium
       # Les clés du Supabase local sont lues par playwright.config.ts (supabase status).
       - name: Tests de parcours
         run: npm run test:e2e
