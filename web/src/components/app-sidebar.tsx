@@ -12,27 +12,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { useAuth } from "@/auth/auth-context"
-import {
-  adminOnlySections,
-  isInSection,
-  menu,
-  sections,
-  type SectionKey,
-} from "@/navigation"
+import { isInSection, menu, sections, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
 
 /** Le menu de gauche, toujours ouvert (docs/ADMINISTRATION.md § 7). */
 export function AppSidebar() {
-  const { profile } = useAuth()
-  // Équipe et Paramètres n'apparaissent que pour les admins.
-  const bottom =
-    profile?.role === "admin"
-      ? menu.bottom
-      : menu.bottom.filter((key) => !adminOnlySections.includes(key))
-
   return (
     <Sidebar>
       <SidebarHeader>
@@ -59,19 +44,9 @@ export function AppSidebar() {
         </nav>
       </SidebarContent>
 
-      {/*
-        Équipe et Paramètres (admins), un trait, puis l'avatar du membre : « Mon compte », le
-        thème et « Se déconnecter » sont dans son menu.
-      */}
+      {/* L'avatar du membre : son menu a « Se déconnecter » (le compte, l'équipe, les
+          paramètres et le thème sont dans le header). */}
       <SidebarFooter>
-        {bottom.length > 0 && (
-          <>
-            <nav aria-label={texts.nav.footerLabel}>
-              <MenuItems sectionKeys={bottom} />
-            </nav>
-            <SidebarSeparator />
-          </>
-        )}
         <AccountMenu />
       </SidebarFooter>
     </Sidebar>

@@ -5,13 +5,11 @@ import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cn } from "cn"
 
-import { Separator } from "@/components/ui/separator"
-
 // Le menu de gauche est toujours ouvert (docs/ADMINISTRATION.md § 7) : ni repli en icônes, ni
-// raccourci, ni version mobile (l'admin est faite pour 1 024 px de large au moins). Le menu et le
-// contenu sont deux panneaux gris arrondis sur la page blanche, séparés par --page-gap ; le menu
-// passe en diagonale (du coin en haut à gauche au coin en bas à droite) de son gris à celui du
-// contenu.
+// raccourci, ni version mobile (l'admin est faite pour 1 024 px de large au moins). Sous le header
+// (--header-height, puis --header-gap), le menu et le contenu sont deux panneaux arrondis sur la
+// page blanche, séparés par --page-gap : le contenu gris, le menu toujours sombre, comme la
+// colonne de gauche de la page du preset de shadcn.
 const SIDEBAR_WIDTH = "16rem"
 
 function SidebarWrapper({
@@ -52,7 +50,7 @@ function Sidebar({
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed inset-y-0 left-0 z-10 flex h-svh w-[calc(var(--sidebar-width)+var(--page-gap))] py-(--page-gap) pl-(--page-gap)",
+          "fixed top-(--header-height) bottom-0 left-0 z-10 flex w-[calc(var(--sidebar-width)+var(--page-gap))] pt-(--header-gap) pb-(--page-gap) pl-(--page-gap)",
           className
         )}
         {...props}
@@ -60,7 +58,9 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="flex size-full flex-col overflow-hidden rounded-2xl bg-linear-to-br from-sidebar to-panel ring-1 ring-muted dark:ring-foreground/10"
+          // Toujours en sombre (classe dark), comme la colonne de gauche de la page du preset :
+          // une carte à 90 %, floutée par-dessous.
+          className="dark flex size-full flex-col overflow-hidden rounded-2xl bg-card/90 text-sidebar-foreground ring-1 ring-foreground/10 backdrop-blur-xl"
         >
           {children}
         </div>
@@ -73,8 +73,10 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
   return (
     <main
       data-slot="sidebar-inset"
+      // Le contenu défile seul, dans son panneau (lib/scroll-memory.ts).
+      data-page-scroll
       className={cn(
-        "relative m-(--page-gap) flex min-h-[calc(100svh-2*var(--page-gap))] min-w-0 flex-1 flex-col rounded-2xl bg-panel ring-1 ring-muted dark:ring-foreground/10",
+        "relative m-(--page-gap) mt-(--header-gap) flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto rounded-2xl bg-panel ring-1 ring-muted dark:ring-foreground/10",
         className
       )}
       {...props}
@@ -99,20 +101,6 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="sidebar-footer"
       data-sidebar="footer"
       className={cn("flex flex-col gap-2 p-2", className)}
-      {...props}
-    />
-  )
-}
-
-function SidebarSeparator({
-  className,
-  ...props
-}: React.ComponentProps<typeof Separator>) {
-  return (
-    <Separator
-      data-slot="sidebar-separator"
-      data-sidebar="separator"
-      className={cn("mx-2 bg-sidebar-border data-horizontal:w-auto", className)}
       {...props}
     />
   )
@@ -290,6 +278,5 @@ export {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
-  SidebarSeparator,
   SidebarWrapper,
 }

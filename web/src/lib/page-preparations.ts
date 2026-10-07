@@ -18,9 +18,6 @@ import {
   contentListRead,
   contentRead,
   coverIds,
-  homeDraftsRead,
-  homeFailedRead,
-  homeScheduledRead,
   linkedTemplatesRead,
   mediaByIdsRead,
   mediaListRead,
@@ -80,14 +77,6 @@ async function prepareFiles(
   if (ids.length === 0) return
   const media = await ready(queryClient, mediaByIdsRead(ids))
   await prepareImages(queryClient, shownFiles(media ?? []), limit)
-}
-
-export const prepareHome: Prepare = async ({ queryClient, member }) => {
-  await Promise.all([
-    ready(queryClient, homeDraftsRead(member.id)),
-    ready(queryClient, homeScheduledRead()),
-    ready(queryClient, homeFailedRead()),
-  ])
 }
 
 /** Le Fil, Radio Éclaircies, Pages. */

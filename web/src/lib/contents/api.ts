@@ -130,11 +130,6 @@ export function isContentKind(kind: string): kind is ContentKind {
   return (CONTENT_KINDS as readonly string[]).includes(kind)
 }
 
-// Celles qui partent dans l'app (pas un modèle de bloc) : l'Accueil.
-export const APP_KINDS = CONTENT_KINDS.filter(
-  (kind): kind is Exclude<ContentKind, "template"> => kind !== "template"
-)
-
 export type ContentListItem = {
   id: string
   title: string

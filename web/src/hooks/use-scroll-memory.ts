@@ -6,8 +6,10 @@ import {
   lightRowSoon,
   rememberScroll,
   rememberSearch,
+  pageScrollTop,
   scrollOf,
-  scrollWindowBackTo,
+  scrollPageBackTo,
+  scrollPageTo,
   takeOpened,
 } from "@/lib/scroll-memory"
 
@@ -27,10 +29,13 @@ export function useScrollMemory() {
     // Le navigateur ne replace plus la page lui-même : c'est fait ici.
     const before = window.history.scrollRestoration
     window.history.scrollRestoration = "manual"
-    const save = () => rememberScroll(shown.current, window.scrollY)
-    window.addEventListener("scroll", save, { passive: true })
+    // Le contenu des pages avec le menu défile seul (son défilement ne remonte pas jusqu'à la
+    // fenêtre) : on l'écoute en descendant (capture), comme celui de la fenêtre.
+    const save = () => rememberScroll(shown.current, pageScrollTop())
+    const options = { capture: true, passive: true }
+    document.addEventListener("scroll", save, options)
     return () => {
-      window.removeEventListener("scroll", save)
+      document.removeEventListener("scroll", save, options)
       window.history.scrollRestoration = before
     }
   }, [])
@@ -43,8 +48,8 @@ export function useScrollMemory() {
   const arrive = useEffectEvent(() => {
     shown.current = location.pathname
     const back = isReturn(location.state, navigationType)
-    if (back) scrollWindowBackTo(scrollOf(location.pathname))
-    else window.scrollTo(0, 0)
+    if (back) scrollPageBackTo(scrollOf(location.pathname))
+    else scrollPageTo(0)
     const opened = takeOpened()
     if (back && opened) lightRowSoon(opened)
   })

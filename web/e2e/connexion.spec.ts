@@ -4,7 +4,7 @@ import { texts } from "../src/texts.ts"
 import { uniqueEmail } from "./support/accounts.ts"
 import { receivedIds, signInCode, waitForNewEmail } from "./support/mailpit.ts"
 import {
-  bottomMenu,
+  headerMenu,
   expect,
   openAccountPage,
   signIn,
@@ -31,7 +31,7 @@ test("un admin se connecte avec les deux codes, se déconnecte, puis revient", a
     page.getByRole("heading", { name: texts.sections.home.title })
   ).toBeVisible()
   await expect(
-    bottomMenu(page).getByRole("link", { name: texts.sections.team.title })
+    headerMenu(page).getByRole("link", { name: texts.sections.team.title })
   ).toBeVisible()
 
   // Mon compte : la double vérification est configurée.

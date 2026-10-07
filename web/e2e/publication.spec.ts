@@ -22,11 +22,11 @@ import { texts } from "../src/texts.ts"
 import type { Account } from "./support/accounts.ts"
 import {
   accountMenuButton,
-  bottomMenu,
   createBlankPage,
   expect,
   frenchDay,
   frenchTime,
+  headerMenu,
   signIn,
   test,
 } from "./support/fixtures.ts"
@@ -669,7 +669,7 @@ test("formules d'abonnement : réservées aux admins ; ajouter, ranger au clavie
     await expect(editorPage.getByLabel(settings.name)).toHaveCount(0)
     await expect(accountMenuButton(editorPage)).toBeVisible()
     await expect(
-      bottomMenu(editorPage).getByRole("link", {
+      headerMenu(editorPage).getByRole("link", {
         name: texts.sections.settings.title,
       })
     ).toHaveCount(0)
@@ -694,7 +694,7 @@ test("formules d'abonnement : réservées aux admins ; ajouter, ranger au clavie
     await signIn(page, admin)
     await expect(page).toHaveURL(/\/parametres$/)
     await expect(
-      bottomMenu(page).getByRole("link", {
+      headerMenu(page).getByRole("link", {
         name: texts.sections.settings.title,
       })
     ).toBeVisible()

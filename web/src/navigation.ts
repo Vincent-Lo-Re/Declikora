@@ -47,7 +47,8 @@ export const authPaths = {
 // Sections réservées aux admins : cachées dans le menu d'un éditeur.
 export const adminOnlySections: readonly SectionKey[] = ["team", "settings"]
 
-// Rangement du menu : l'accueil, puis les groupes, et en bas l'équipe et le compte.
+// Rangement du menu de gauche : l'accueil, puis les groupes. Le compte, l'équipe et les
+// paramètres sont dans le header (`header`).
 export const menu = {
   top: ["home"],
   groups: [
@@ -60,12 +61,17 @@ export const menu = {
       items: ["templates", "media", "trash"],
     },
   ],
-  bottom: ["team", "settings"],
 } satisfies {
   top: SectionKey[]
   groups: { label: string; items: SectionKey[] }[]
-  bottom: SectionKey[]
 }
+
+// Le menu du header, à gauche, après « Site web » (ADMIN § 7, « Un header sur toute la
+// largeur ») ; Équipe et Paramètres pour les admins seulement.
+export const header: SectionKey[] = ["account", "team", "settings"]
+
+// Le site public, ouvert par « Site web » dans un nouvel onglet.
+export const siteUrl = "https://declikora.fr"
 
 /** Adresse de l'éditeur d'un contenu : « /pages/<id> ». */
 export function editorPath(section: SectionKey, contentId: string): string {

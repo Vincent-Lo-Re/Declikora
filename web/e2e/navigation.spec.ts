@@ -8,7 +8,6 @@ import type { Page } from "@playwright/test"
 
 import { texts } from "../src/texts.ts"
 import {
-  accountMenuButton,
   createFromDialog,
   createBlankPage,
   expect,
@@ -49,7 +48,7 @@ test("le tour de l'admin : chaque page arrive préparée, sans lecture oubliée"
   await signIn(page, admin)
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 
-  // Un article et une page, pour ouvrir leurs éditeurs depuis les listes et l'Accueil.
+  // Un article et une page, pour ouvrir leurs éditeurs depuis les listes.
   await menu(page, sections.blog.title)
   const article = `Tour de l'admin ${id}`
   await createFromDialog(page, "article", article)
@@ -79,25 +78,22 @@ test("le tour de l'admin : chaque page arrive préparée, sans lecture oubliée"
     .getByRole("link", { name: texts.contentList.manageCategories })
     .click()
   await expect(page).toHaveURL(/\/blog\/categories$/)
-  await accountMenuButton(page).click()
-  await page.getByRole("menuitem", { name: sections.account.title }).click()
-  await expect(page).toHaveURL(/\/mon-compte$/)
+  await menu(page, sections.account.title)
 
-  // L'éditeur depuis sa liste (survolé d'abord, comme avec la souris), puis depuis l'Accueil.
+  // L'éditeur depuis sa liste (survolé d'abord, comme avec la souris), deux fois.
   await menu(page, sections.blog.title)
   const row = page.getByRole("link", { name: article })
   await row.hover()
   await row.click()
   await expect(page.getByLabel(texts.editor.title.label)).toHaveValue(article)
   await back(page, sections.blog.title)
-  await menu(page, sections.home.title)
-  await page.getByRole("link", { name: article }).first().click()
+  await page.getByRole("link", { name: article }).click()
   await expect(page.getByLabel(texts.editor.title.label)).toHaveValue(article)
 
   // Retour du navigateur : la liste, sans lecture oubliée non plus.
   await page.goBack()
   await expect(
-    page.getByRole("heading", { level: 1, name: sections.home.title })
+    page.getByRole("heading", { level: 1, name: sections.blog.title })
   ).toBeVisible()
 
   expect(forgotten).toEqual([])

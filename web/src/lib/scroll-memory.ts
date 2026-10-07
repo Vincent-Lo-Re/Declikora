@@ -59,14 +59,35 @@ export function isReturn(state: unknown, navigationType: string): boolean {
 // Le temps qu'on laisse à une page pour grandir (ses lignes lues) avant d'abandonner.
 const PATIENCE_MS = 1500
 
-/** Ramène la fenêtre à une position, en réessayant tant que la page n'est pas assez haute. */
-export function scrollWindowBackTo(
+/**
+ * Ce qui défile : le contenu des pages avec le menu (`data-page-scroll`, le panneau gris : le
+ * header et le menu restent en place, comme sur la page du preset de shadcn), sinon la fenêtre
+ * (connexion, éditeur).
+ */
+function pageScroller(): HTMLElement | null {
+  return document.querySelector<HTMLElement>("[data-page-scroll]")
+}
+
+/** Où en est ce qui défile. */
+export function pageScrollTop(): number {
+  return pageScroller()?.scrollTop ?? window.scrollY
+}
+
+/** Amène ce qui défile à une position (0 : en haut). */
+export function scrollPageTo(top: number) {
+  const scroller = pageScroller()
+  if (scroller) scroller.scrollTop = top
+  else window.scrollTo(0, top)
+}
+
+/** Ramène la page à une position, en réessayant tant qu'elle n'est pas assez haute. */
+export function scrollPageBackTo(
   top: number,
   until = performance.now() + PATIENCE_MS
 ) {
-  window.scrollTo(0, top)
-  if (window.scrollY < top - 1 && performance.now() < until) {
-    requestAnimationFrame(() => scrollWindowBackTo(top, until))
+  scrollPageTo(top)
+  if (pageScrollTop() < top - 1 && performance.now() < until) {
+    requestAnimationFrame(() => scrollPageBackTo(top, until))
   }
 }
 

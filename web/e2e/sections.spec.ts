@@ -16,8 +16,7 @@
 //    durée ; la transcription ajoutée depuis sa fiche fait taire l'avertissement.
 // 3. Pages : recherche (accents et casse ignorés, adresse comprise) et filtre par état dans la
 //    liste complète.
-// 4. Accueil : un brouillon récent, une publication programmée et une programmation échouée
-//    (image de présentation retirée après avoir programmé) ; leurs liens ouvrent le bon éditeur.
+// (L'Accueil n'a plus que son titre et « Bienvenue » depuis le 06/10/2026 : rien à y parcourir.)
 
 import type { Locator, Page } from "@playwright/test"
 
@@ -27,19 +26,11 @@ import {
   createBlankPage,
   createFromDialog,
   expect,
-  frenchDay,
-  frenchTime,
   signIn,
   test,
 } from "./support/fixtures.ts"
 import { photoPng, silentMp3 } from "./support/media.ts"
-import {
-  contentIdFromUrl,
-  makeScheduleDue,
-  publicFileStatus,
-  readSchedule,
-  runDuePublications,
-} from "./support/publication.ts"
+import { contentIdFromUrl, publicFileStatus } from "./support/publication.ts"
 import {
   appCategories,
   appFeed,
@@ -51,13 +42,6 @@ const words = texts.editor.presentation
 const publication = texts.publication
 const list = texts.contentList
 const categories = texts.categories
-const home = texts.home
-
-/** La raison d'un échec de programmation, telle que l'admin l'écrit après « Raison : ». */
-function scheduleErrorText(code: keyof typeof texts.editor.errors) {
-  const text = texts.editor.errors[code]
-  return text.charAt(0).toLowerCase() + text.slice(1)
-}
 
 function uniqueId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
@@ -164,42 +148,6 @@ async function pageFree(page: Page, slug: string) {
   await articleFree(page, "page")
 }
 
-/** Jour et heure à Paris, dans deux jours à 8 h : { date: "2026-09-30", time: "08:00" }. */
-function inTwoDaysAtEight() {
-  const date = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Paris",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(Date.now() + 2 * 24 * 3600 * 1000))
-  return { date, time: "08:00" }
-}
-
-/** « Programmer… » dans deux jours à 8 h (heure de Paris). */
-async function scheduleInTwoDays(page: Page) {
-  await page.getByRole("button", { name: publication.actions.more }).click()
-  await page
-    .getByRole("menuitem", { name: publication.actions.schedule })
-    .click()
-  const dialog = page.getByRole("dialog", {
-    name: publication.scheduleDialog.title,
-  })
-  const when = inTwoDaysAtEight()
-  await dialog
-    .getByLabel(publication.scheduleDialog.date, { exact: true })
-    .fill(frenchDay(when.date))
-  await dialog
-    .getByLabel(publication.scheduleDialog.time, { exact: true })
-    .fill(frenchTime(when.time))
-  await dialog
-    .getByRole("button", { name: publication.scheduleDialog.confirm })
-    .click()
-  await expect(dialog).toHaveCount(0)
-  await expect(
-    page.locator('[data-schedule-banner="scheduled"]')
-  ).toContainText("à 08h00")
-}
-
 /** Envoie une image depuis le choix d'image déjà ouvert ; il se ferme une fois l'image choisie. */
 async function uploadInImagePicker(page: Page, name: string) {
   const picker = page.getByRole("dialog", { name: editor.picker.title })
@@ -209,19 +157,6 @@ async function uploadInImagePicker(page: Page, name: string) {
       { name, mimeType: "image/png", buffer: photoPng(640, 400) },
     ])
   await expect(picker).toHaveCount(0, { timeout: 60_000 })
-}
-
-/** Choisit un fichier déjà dans la médiathèque, par son nom, dans le choix ouvert. */
-async function chooseInPicker(
-  page: Page,
-  kind: "image" | "audio",
-  name: string
-) {
-  const labels = kind === "image" ? editor.picker : editor.audioPicker
-  const picker = page.getByRole("dialog", { name: labels.title })
-  await picker.getByLabel(labels.search).fill(name)
-  await picker.getByRole("button", { name: labels.choose(name) }).click()
-  await expect(picker).toHaveCount(0)
 }
 
 test("Le Fil : un article neuf arrive en tête ; rangé au clavier, l'ordre tient ; la recherche gardée au retour", async ({
@@ -864,174 +799,4 @@ test("Pages : recherche (accents, casse, adresse) et filtre par état dans la li
   await expect(search).toHaveValue("")
   await expect(liveRow).toBeVisible()
   await expect(draftRow).toBeVisible()
-})
-
-test("Accueil : brouillon récent, publication programmée et programmation échouée, avec leurs liens", async ({
-  page,
-  team,
-}) => {
-  test.setTimeout(180_000)
-  const id = uniqueId()
-  const admin = await team.createAdmin("Anne Accueil")
-  const coverName = `accueil-${id}.png`
-  const audioName = `accueil-${id}.mp3`
-  const episodeTitle = `Épisode programmé ${id}`
-  const articleTitle = `Article sans image ${id}`
-  const pageTitle = `Brouillon récent ${id}`
-
-  // Un épisode complet, programmé dans deux jours.
-  await open(page, "/podcasts", admin)
-  await createBlank(page, "episode")
-  const episodeId = contentIdFromUrl(page.url())
-  await page.getByLabel(editor.title.label).fill(episodeTitle)
-  await articleTab(page, "episode")
-    .getByRole("button", { name: editor.article.feed.chooseLabel })
-    .click()
-  await uploadInPickerAndWait(page, coverName)
-  await audioCard(page)
-    .getByRole("button", { name: words.audio.choose })
-    .click()
-  const audioPicker = page.getByRole("dialog", {
-    name: editor.audioPicker.title,
-  })
-  await audioPicker
-    .getByLabel(editor.audioPicker.uploadInput)
-    .setInputFiles([
-      { name: audioName, mimeType: "audio/mpeg", buffer: silentMp3(4) },
-    ])
-  await expect(audioPicker).toHaveCount(0, { timeout: 60_000 })
-  await expect(audioCard(page)).toContainText(audioName)
-  await articleFree(page, "episode")
-  await scheduleInTwoDays(page)
-  await page
-    .getByRole("link", { name: editor.back(texts.sections.podcasts.title) })
-    .click()
-  await expect(page).toHaveURL(/\/podcasts$/)
-
-  // Un article programmé, puis privé de son image de présentation : la tâche échouera ([D45]).
-  await nav(page, texts.sections.blog.title)
-  await createBlank(page, "article")
-  const articleId = contentIdFromUrl(page.url())
-  await page.getByLabel(editor.title.label).fill(articleTitle)
-  await articleTab(page)
-    .getByRole("button", { name: editor.article.feed.chooseLabel })
-    .click()
-  await chooseInPicker(page, "image", coverName)
-  await expect(page.locator('[data-presentation="cover"] img')).toBeVisible()
-  await articleFree(page)
-  await scheduleInTwoDays(page)
-  await articleTab(page)
-    .getByRole("button", { name: words.cover.remove })
-    .click()
-  await expect(
-    articleTab(page).getByRole("button", {
-      name: editor.article.feed.chooseLabel,
-    })
-  ).toBeVisible()
-  await saved(page)
-  // L'éditeur quitté (verrou rendu), l'heure arrive : la tâche refuse, faute d'image.
-  await page
-    .getByRole("link", { name: editor.back(texts.sections.blog.title) })
-    .click()
-  await expect(page).toHaveURL(/\/blog$/)
-  await makeScheduleDue(articleId, 1)
-  await expect
-    .poll(
-      async () => {
-        await runDuePublications()
-        return readSchedule(articleId)
-      },
-      { timeout: 20_000 }
-    )
-    .toMatchObject({
-      scheduled_at: null,
-      schedule_error: "image_de_presentation_manquante",
-      live_version_id: null,
-    })
-
-  // Une page, enregistrée en dernier.
-  await nav(page, texts.sections.pages.title)
-  await createBlankPage(page)
-  const pageId = contentIdFromUrl(page.url())
-  await page.getByLabel(editor.title.label).fill(pageTitle)
-  await saved(page)
-  await page
-    .getByRole("link", { name: editor.back(texts.sections.pages.title) })
-    .click()
-
-  // --- L'Accueil ------------------------------------------------------------------------
-  await nav(page, texts.sections.home.title)
-  await expect(page).toHaveURL(/\/$/)
-  const failedList = page.getByRole("list", { name: home.failed.title })
-  const scheduledList = page.getByRole("list", { name: home.scheduled.title })
-  const draftsList = page.getByRole("list", { name: home.drafts.title })
-
-  // Les échecs passent en tête quand il y en a.
-  await expect(page.locator("[data-home]").first()).toHaveAttribute(
-    "data-home",
-    "failed"
-  )
-  const failedRow = failedList
-    .getByRole("listitem")
-    .filter({ hasText: articleTitle })
-  await expect(failedRow).toContainText(
-    home.failed.reason(scheduleErrorText("image_de_presentation_manquante"))
-  )
-  await expect(failedRow).toContainText(home.failed.by(admin.fullName))
-  const scheduledRow = scheduledList
-    .getByRole("listitem")
-    .filter({ hasText: episodeTitle })
-  await expect(scheduledRow).toContainText(home.scheduled.by(admin.fullName))
-  await expect(
-    scheduledRow.locator('[data-schedule="scheduled"]')
-  ).toBeVisible()
-  // L'article échoué n'est plus programmé.
-  await expect(
-    scheduledList.getByRole("listitem").filter({ hasText: articleTitle })
-  ).toHaveCount(0)
-  // Mes brouillons : le plus récent d'abord.
-  await expect(draftsList.getByRole("listitem").first()).toContainText(
-    pageTitle
-  )
-
-  // Chaque lien ouvre le bon éditeur.
-  const opens = async (
-    link: Locator,
-    path: string,
-    title: string,
-    check?: () => Promise<void>
-  ) => {
-    await expect(link).toHaveAttribute("href", path)
-    await link.click()
-    await expect(page).toHaveURL(new RegExp(`${path}$`))
-    await expect(page.getByLabel(editor.title.label)).toHaveValue(title)
-    await check?.()
-    await page.goBack()
-    await expect(page).toHaveURL(/\/$/)
-  }
-  await opens(
-    draftsList.getByRole("link", { name: pageTitle }),
-    `/pages/${pageId}`,
-    pageTitle
-  )
-  await opens(
-    scheduledRow.getByRole("link", { name: episodeTitle }),
-    `/podcasts/${episodeId}`,
-    episodeTitle,
-    () =>
-      expect(page.locator('[data-schedule-banner="scheduled"]')).toContainText(
-        "à 08h00"
-      )
-  )
-  await opens(
-    failedRow.getByRole("link", { name: articleTitle }),
-    `/blog/${articleId}`,
-    articleTitle,
-    () =>
-      expect(page.locator('[data-schedule-banner="failed"]')).toContainText(
-        publication.banner.failedReason(
-          scheduleErrorText("image_de_presentation_manquante")
-        )
-      )
-  )
 })
