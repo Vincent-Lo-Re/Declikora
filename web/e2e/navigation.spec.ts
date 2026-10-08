@@ -75,10 +75,8 @@ test("le tour de l'admin : chaque page arrive préparée, sans lecture oubliée"
 
   // Les catégories, Mon compte.
   await menu(page, sections.blog.title)
-  await page
-    .getByRole("link", { name: texts.contentList.manageCategories })
-    .click()
-  await expect(page).toHaveURL(/\/blog\/categories$/)
+  await page.getByRole("tab", { name: texts.categories.tab }).click()
+  await expect(page).toHaveURL(/\/blog\?tab=categories$/)
   await menu(page, sections.account.title)
 
   // L'éditeur depuis sa liste (survolé d'abord, comme avec la souris), deux fois.

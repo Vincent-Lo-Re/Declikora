@@ -2,17 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Ellipsis,
   FilePlus2,
+  Plus,
   FileText,
   FilterX,
   Search,
   Settings2,
   SquarePen,
-  Tags,
   Trash2,
   TriangleAlert,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
+
 import { toast } from "sonner"
 
 import {
@@ -21,6 +22,8 @@ import {
   SelectAllHead,
   type SelectAll,
 } from "@/components/bulk-selection"
+import { CategoriesTab } from "@/components/categories/categories-tab"
+import { useCategoriesBulk } from "@/components/categories/use-categories-bulk"
 import { ListCard, ListEmpty } from "@/components/list-card"
 import { CoverCell, SavedCell } from "@/components/contents/row-cells"
 import { useContentsSelection } from "@/components/contents/use-contents-selection"
@@ -41,8 +44,9 @@ import { useAccessCheck } from "@/components/team/use-access-check"
 import { TrashDialog } from "@/components/trash-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Spinner } from "@/components/ui/spinner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,13 +70,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useAddressState } from "@/hooks/use-address-state"
-import { listFiltersFromAddress, writeListFilters } from "@/lib/address"
+import {
+  listFiltersFromAddress,
+  listTabFromAddress,
+  writeListFilters,
+  writeListTab,
+  type ListTab,
+} from "@/lib/address"
 import { categoryNames, type Category } from "@/lib/categories"
 import {
   ContentError,
@@ -100,12 +111,7 @@ import { errorMessage } from "@/lib/errors"
 import { kickFiles } from "@/lib/media/api"
 import { accessLevelsRead, contentListRead, startersRead } from "@/lib/reads"
 import { refreshAfterContentTrash } from "@/lib/refresh"
-import {
-  categoriesPath,
-  editorPath,
-  sections,
-  type SectionKey,
-} from "@/navigation"
+import { editorPath, sections, type SectionKey } from "@/navigation"
 import { texts } from "@/texts"
 
 const labels = texts.contentList
@@ -119,7 +125,8 @@ function titleOf(item: ContentListItem): string {
  * Liste des contenus d'une section (Pages, Blog, Podcasts) : recherche, filtres par état de
  * publication et par catégorie, créer (vide ou depuis un point de départ, [D42]), ouvrir dans
  * l'éditeur, mettre à la corbeille. Pour une page, son adresse ; pour un article ou un épisode,
- * ses catégories.
+ * ses catégories. Le Blog et les Podcasts ont deux onglets, les contenus et les catégories
+ * (CategoriesTab, « ?tab=categories ») ; le bouton en tête de page suit l'onglet.
  */
 export function ContentListPage({
   section,
@@ -149,6 +156,11 @@ export function ContentListPage({
     contentProfile(kind).cover === "required" ? (list.data ?? []) : []
   )
   const items = list.data
+  // Blog, Podcasts : l'onglet ouvert, gardé dans l'adresse.
+  const [tab, setTab] = useAddressState(listTabFromAddress, writeListTab)
+  const onCategories = categorySection !== null && tab === "categories"
+  const [creatingCategory, setCreatingCategory] = useState(false)
+  const categoryBulk = useCategoriesBulk()
   const [toTrash, setToTrash] = useState<ContentListItem | null>(null)
   // La recherche et les filtres, gardés dans l'adresse (on retrouve la liste en y revenant).
   const [filters, setFilters] = useAddressState(
@@ -307,6 +319,85 @@ export function ContentListPage({
       }
     : undefined
 
+  const contents =
+    list.data === undefined ? (
+      <ListCard>
+        <LoadState
+          query={list}
+          failed={labels.loadFailed}
+          rows={3}
+          rowClassName="h-12 w-full"
+        />
+      </ListCard>
+    ) : (
+      <div className="space-y-4">
+        {list.isError && (
+          <Alert variant="destructive">
+            <TriangleAlert />
+            <AlertDescription>{labels.refreshFailed}</AlertDescription>
+          </Alert>
+        )}
+        <KeptNotice
+          kept={bulk.kept}
+          nameOf={titleOf}
+          words={kindLabels}
+          onClose={bulk.closeKept}
+        />
+        {list.data.length === 0 ? (
+          <ListEmpty
+            icon={FileText}
+            title={kindLabels.emptyTitle}
+            description={kindLabels.emptyDescription}
+          />
+        ) : (
+          <>
+            <ListFiltersBar
+              kind={kind}
+              filters={{ ...filters, category }}
+              categories={categorySection ? categories.data : undefined}
+              filtering={filtering}
+              count={labels.count(shown.length, list.data.length)}
+              onChange={setFilters}
+            />
+            {shown.length === 0 ? (
+              <ListEmpty icon={Search} title={kindLabels.noResults} />
+            ) : (
+              <>
+                {isOrderedKind(kind) && filtering && (
+                  <p className="text-sm text-muted-foreground">
+                    {labels.order.filtering}
+                  </p>
+                )}
+                <ContentTable
+                  kind={kind}
+                  section={section}
+                  items={shown}
+                  now={list.dataUpdatedAt}
+                  categories={categories.data}
+                  selectAll={bulk.selectAll}
+                  selected={bulk.checkedIds}
+                  onSelect={bulk.toggle}
+                  trashing={trash.isPending || bulk.pending}
+                  onTrash={setToTrash}
+                  onSettings={setSettingsFor}
+                  coverFor={coverFor}
+                  order={
+                    isOrderedKind(kind)
+                      ? {
+                          disabled:
+                            filtering || reorder.isPending || bulk.pending,
+                          onReorder: (ids) => reorder.mutate(ids),
+                        }
+                      : undefined
+                  }
+                />
+              </>
+            )}
+          </>
+        )}
+      </div>
+    )
+
   return (
     <>
       <PageHeader
@@ -314,105 +405,59 @@ export function ContentListPage({
         title={title}
         description={description}
         actions={
-          <>
-            <BulkTrashButton
-              count={selection.items.length}
-              pending={bulk.pending}
-              onClick={bulk.askConfirm}
-            />
-            {categorySection && (
-              <Link
-                to={categoriesPath(categorySection)}
-                className={buttonVariants({ variant: "outline" })}
-              >
-                <Tags />
-                {labels.manageCategories}
-              </Link>
-            )}
-            <Button onClick={() => setCreating(true)}>
-              <FilePlus2 />
-              {kindLabels.create}
-            </Button>
-          </>
+          onCategories ? (
+            <>
+              {categoryBulk.selected.size > 0 && (
+                <Button
+                  variant="destructive"
+                  disabled={categoryBulk.removeMany.isPending}
+                  onClick={() => categoryBulk.setConfirming(true)}
+                >
+                  {categoryBulk.removeMany.isPending ? <Spinner /> : <Trash2 />}
+                  {texts.categories.removeMany(categoryBulk.selected.size)}
+                </Button>
+              )}
+              <Button onClick={() => setCreatingCategory(true)}>
+                <Plus />
+                {texts.categories.create}
+              </Button>
+            </>
+          ) : (
+            <>
+              <BulkTrashButton
+                count={selection.items.length}
+                pending={bulk.pending}
+                onClick={bulk.askConfirm}
+              />
+              <Button onClick={() => setCreating(true)}>
+                <FilePlus2 />
+                {kindLabels.create}
+              </Button>
+            </>
+          )
         }
       />
 
-      {list.data === undefined ? (
-        <ListCard>
-          <LoadState
-            query={list}
-            failed={labels.loadFailed}
-            rows={3}
-            rowClassName="h-12 w-full"
-          />
-        </ListCard>
-      ) : (
-        <div className="space-y-4">
-          {list.isError && (
-            <Alert variant="destructive">
-              <TriangleAlert />
-              <AlertDescription>{labels.refreshFailed}</AlertDescription>
-            </Alert>
-          )}
-          <KeptNotice
-            kept={bulk.kept}
-            nameOf={titleOf}
-            words={kindLabels}
-            onClose={bulk.closeKept}
-          />
-          {list.data.length === 0 ? (
-            <ListEmpty
-              icon={FileText}
-              title={kindLabels.emptyTitle}
-              description={kindLabels.emptyDescription}
+      {categorySection ? (
+        <Tabs value={tab} onValueChange={(value: ListTab) => setTab(value)}>
+          <TabsList aria-label={labels.tabs(title)}>
+            <TabsTrigger value="contents">{kindLabels.tab}</TabsTrigger>
+            <TabsTrigger value="categories">{texts.categories.tab}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="contents" className="pt-4">
+            {contents}
+          </TabsContent>
+          <TabsContent value="categories" className="pt-4">
+            <CategoriesTab
+              section={categorySection}
+              creating={creatingCategory}
+              onCreatingChange={setCreatingCategory}
+              bulk={categoryBulk}
             />
-          ) : (
-            <>
-              <ListFiltersBar
-                kind={kind}
-                filters={{ ...filters, category }}
-                categories={categorySection ? categories.data : undefined}
-                filtering={filtering}
-                count={labels.count(shown.length, list.data.length)}
-                onChange={setFilters}
-              />
-              {shown.length === 0 ? (
-                <ListEmpty icon={Search} title={kindLabels.noResults} />
-              ) : (
-                <>
-                  {isOrderedKind(kind) && filtering && (
-                    <p className="text-sm text-muted-foreground">
-                      {labels.order.filtering}
-                    </p>
-                  )}
-                  <ContentTable
-                    kind={kind}
-                    section={section}
-                    items={shown}
-                    now={list.dataUpdatedAt}
-                    categories={categories.data}
-                    selectAll={bulk.selectAll}
-                    selected={bulk.checkedIds}
-                    onSelect={bulk.toggle}
-                    trashing={trash.isPending || bulk.pending}
-                    onTrash={setToTrash}
-                    onSettings={setSettingsFor}
-                    coverFor={coverFor}
-                    order={
-                      isOrderedKind(kind)
-                        ? {
-                            disabled:
-                              filtering || reorder.isPending || bulk.pending,
-                            onReorder: (ids) => reorder.mutate(ids),
-                          }
-                        : undefined
-                    }
-                  />
-                </>
-              )}
-            </>
-          )}
-        </div>
+          </TabsContent>
+        </Tabs>
+      ) : (
+        contents
       )}
 
       <NewContentDialog

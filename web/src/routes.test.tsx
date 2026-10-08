@@ -173,8 +173,7 @@ describe("rôles", () => {
 
 describe("éditeurs", () => {
   it("chaque sorte de contenu s'ouvre dans l'éditeur de sa section", async () => {
-    const { contentEditorPath, categoriesPath, mediaFilePath } =
-      await import("@/navigation")
+    const { contentEditorPath, mediaFilePath } = await import("@/navigation")
     expect(contentEditorPath("article", "a")).toBe("/blog/a")
     expect(contentEditorPath("episode", "e")).toBe("/podcasts/e")
     expect(contentEditorPath("page", "p")).toBe("/pages/p")
@@ -182,7 +181,6 @@ describe("éditeurs", () => {
     // Une sorte sans éditeur (les anciennes méthodes, en cours de refonte).
     expect(contentEditorPath("method", "m")).toBeNull()
     expect(contentEditorPath("inconnu", "x")).toBeNull()
-    expect(categoriesPath("podcasts")).toBe("/podcasts/categories")
     expect(mediaFilePath("f")).toBe("/media?file=f")
   })
 })
@@ -201,7 +199,7 @@ describe("pages chargées à part et préparées (ADMIN § 7)", () => {
 
   it("chaque page est chargée à part et dit ce qu'elle prépare : une nouvelle page aussi", () => {
     const found = pages(routes)
-    expect(found.length).toBeGreaterThanOrEqual(20)
+    expect(found.length).toBeGreaterThanOrEqual(18)
     for (const [route, auth] of found) {
       const handle = route.handle as PageHandle | undefined
       expect(route.lazy, route.path).toBeTypeOf("function")

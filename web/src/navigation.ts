@@ -99,11 +99,6 @@ export function contentEditorPath(
   return section ? editorPath(section, contentId) : null
 }
 
-/** Les catégories d'une section (Blog, Podcasts) : « /blog/categories ». */
-export function categoriesPath(section: "blog" | "podcasts"): string {
-  return `${sections[section].path}/categories`
-}
-
 /** La fiche d'un fichier dans la Médiathèque : « /media?file=<id> ». */
 export function mediaFilePath(mediaId: string): string {
   return `${sections.media.path}?file=${encodeURIComponent(mediaId)}`

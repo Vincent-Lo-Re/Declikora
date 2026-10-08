@@ -182,8 +182,20 @@ beforeEach(() => {
   vi.mocked(categoriesApi.listCategories).mockImplementation(async (section) =>
     section === "blog"
       ? [
-          { id: SOMMEIL, name: "Sommeil", position: 0, uses: 0 },
-          { id: STRESS, name: "Stress", position: 1, uses: 0 },
+          {
+            id: SOMMEIL,
+            name: "Sommeil",
+            position: 0,
+            created_at: "2026-10-01T10:00:00Z",
+            uses: 0,
+          },
+          {
+            id: STRESS,
+            name: "Stress",
+            position: 1,
+            created_at: "2026-10-01T10:00:00Z",
+            uses: 0,
+          },
         ]
       : []
   )

@@ -98,6 +98,25 @@ export function writeListFilters(
   }
 }
 
+/** Blog, Podcasts : l'onglet de la liste, les contenus (au départ) ou les catégories. */
+export type ListTab = "contents" | "categories"
+
+const listTabChoice: Choice<ListTab> = {
+  name: "tab",
+  words: { contents: "contents", categories: "categories" },
+  fallback: "contents",
+}
+
+/** L'onglet d'une liste de contenus (Blog, Podcasts), lu dans l'adresse. */
+export function listTabFromAddress(params: URLSearchParams): ListTab {
+  return readChoice(params, listTabChoice)
+}
+
+/** Écrit l'onglet d'une liste de contenus dans l'adresse. */
+export function writeListTab(params: URLSearchParams, tab: ListTab) {
+  writeChoice(params, listTabChoice, tab)
+}
+
 // --- Médiathèque ----------------------------------------------------------------------------
 
 const kindChoice: Choice<MediaFilters["kind"]> = {

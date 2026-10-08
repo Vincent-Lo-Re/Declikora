@@ -12,9 +12,27 @@ import {
 import { texts } from "@/texts"
 
 const categories: Category[] = [
-  { id: "c1", name: "Sommeil", position: 0, uses: 2 },
-  { id: "c2", name: "Stress", position: 1, uses: 0 },
-  { id: "c3", name: "Nutrition", position: 2, uses: 1 },
+  {
+    id: "c1",
+    name: "Sommeil",
+    position: 0,
+    created_at: "2026-10-01T10:00:00Z",
+    uses: 2,
+  },
+  {
+    id: "c2",
+    name: "Stress",
+    position: 1,
+    created_at: "2026-10-01T10:00:00Z",
+    uses: 0,
+  },
+  {
+    id: "c3",
+    name: "Nutrition",
+    position: 2,
+    created_at: "2026-10-01T10:00:00Z",
+    uses: 1,
+  },
 ]
 
 function pgError(changes: Partial<PostgrestError>): PostgrestError {
