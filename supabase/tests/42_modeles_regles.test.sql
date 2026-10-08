@@ -9,7 +9,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(130);
+select plan(136);
 
 select pg_temp.create_people();
 select pg_temp.empty_media_library();
@@ -221,6 +221,12 @@ select matches(
   '^modele_vide \| .*Contact',
   'un bloc partagé vide ne s''insère pas (modele_vide, et il est nommé)'
 );
+select is(
+  pg_temp.facts_of($$select pg_temp.save('p1', pg_temp.draft(jsonb_build_array(
+    pg_temp.linked('00000000-0000-4000-8000-000000000d02', 'contact'))))$$),
+  '{"code": "modele_vide", "hint": ["Contact"]}'::jsonb,
+  'modele_vide : hint, les titres des modèles en tableau JSON'
+);
 select throws_ok(
   $$select pg_temp.save('contact', pg_temp.draft(jsonb_build_array(
     pg_temp.text_block('00000000-0000-4000-8000-000000000a02', 'Un'),
@@ -244,6 +250,11 @@ select matches(
   pg_temp.error_of($$select pg_temp.save('contact', pg_temp.draft('[]', 'Contact'))$$),
   '^modele_utilise \| .*Accueil',
   'un bloc partagé utilisé garde son bloc (modele_utilise, avec la liste)'
+);
+select is(
+  pg_temp.facts_of($$select pg_temp.save('contact', pg_temp.draft('[]', 'Contact'))$$),
+  '{"code": "modele_utilise", "hint": ["Accueil"]}'::jsonb,
+  'modele_utilise (brouillon) : hint, les titres des contenus en tableau JSON'
 );
 select lives_ok(
   $$select pg_temp.create_template('libre', 'Libre', 'shared')$$, 'un autre bloc partagé'
@@ -571,6 +582,37 @@ select throws_ok(
   'template_push refuse un modèle qui ne pourrait pas être publié'
 );
 select is(pg_temp.version_count(), (select n from count_before), 'refus : aucune version écrite');
+-- Un son dans un bloc Image du modèle, puis un fichier qui n'est plus prêt : refusés, nommés.
+select lives_ok(
+  $$select pg_temp.save('contact', pg_temp.draft(jsonb_build_array(pg_temp.box_block(
+    '00000000-0000-4000-8000-000000000b01', jsonb_build_array(
+      pg_temp.text_block('00000000-0000-4000-8000-000000000b02', 'Cinq'),
+      pg_temp.image_block('00000000-0000-4000-8000-000000000b03', pg_temp.mid('son'))))), 'Contact'))$$,
+  'le modèle cite un son dans un bloc Image'
+);
+select is(
+  pg_temp.facts_of($$select public.template_push(pg_temp.cid('contact'))$$),
+  '{"code": "fichier_inadapte", "hint": ["son.mp3"]}'::jsonb,
+  'template_push, fichier_inadapte : hint, les noms des fichiers en tableau JSON'
+);
+select lives_ok(
+  $$select pg_temp.save('contact', pg_temp.draft(jsonb_build_array(pg_temp.box_block(
+    '00000000-0000-4000-8000-000000000b01', jsonb_build_array(
+      pg_temp.text_block('00000000-0000-4000-8000-000000000b02', 'Cinq'),
+      pg_temp.image_block('00000000-0000-4000-8000-000000000b03', pg_temp.mid('vieux'))))), 'Contact'))$$,
+  'le modèle cite « vieux »'
+);
+select pg_temp.as_postgres();
+update public.media set status = 'checking' where id = pg_temp.mid('vieux');
+select pg_temp.as_person('editor');
+select is(
+  pg_temp.facts_of($$select public.template_push(pg_temp.cid('contact'))$$),
+  '{"code": "fichier_indisponible", "hint": [{"name": "vieux.webp", "state": "pending"}]}'::jsonb,
+  'template_push, fichier_indisponible : hint, chaque fichier et son état en JSON'
+);
+select pg_temp.as_postgres();
+update public.media set status = 'ready' where id = pg_temp.mid('vieux');
+select pg_temp.as_person('editor');
 select lives_ok(
   $$select pg_temp.save('contact', pg_temp.draft(jsonb_build_array(pg_temp.contact_block('Six',
     '00000000-0000-4000-8000-000000000b01', '00000000-0000-4000-8000-000000000b02',

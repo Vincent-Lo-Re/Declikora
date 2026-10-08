@@ -16,6 +16,7 @@
 --   select pg_temp.empty_media_library();     -- médiathèque vide (fichiers, contrôles, objets)
 --   select pg_temp.empty_contents();          -- aucun contenu, version, verrou, catégorie,
 --                                             -- formule ni abonnement de lecteur
+--   select pg_temp.facts_of('select …');    -- code et hint (les faits) de l'erreur levée
 -- Chaque profil a un compte et une session ouverte, créés par pg_temp.create_people().
 -- Les identifiants sont fixes : pg_temp.person_id('editor')…
 
@@ -157,6 +158,32 @@ begin
 end;
 $$;
 
+-- Le code et le hint de l'erreur levée par une commande (null si elle réussit) :
+-- {"code": "...", "hint": ...}. Le hint porte les faits que l'admin met en phrase dans sa langue :
+-- un tableau JSON (titres, fichiers, numéros de blocs), lu tel quel, ou un nom, lu en texte.
+create function pg_temp.facts_of(command text)
+returns jsonb
+language plpgsql
+as $$
+declare
+  hint text;
+  facts jsonb;
+begin
+  execute command;
+  return null;
+exception
+  when others then
+    get stacked diagnostics hint = pg_exception_hint;
+    begin
+      facts := hint::jsonb;
+    exception
+      when others then
+        facts := to_jsonb(hint);
+    end;
+    return jsonb_build_object('code', sqlerrm, 'hint', facts);
+end;
+$$;
+
 -- Les migrations retirent l'EXECUTE par défaut de PUBLIC sur les fonctions créées par postgres
 -- (20260927170000_socle_contenus.sql) : on le rend à ces aides, appelées sous chaque rôle.
 grant execute on function
@@ -168,5 +195,6 @@ grant execute on function
   pg_temp.as_postgres(),
   pg_temp.affected(text),
   pg_temp.empty_media_library(),
-  pg_temp.empty_contents()
+  pg_temp.empty_contents(),
+  pg_temp.facts_of(text)
 to public;
