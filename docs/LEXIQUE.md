@@ -14,7 +14,7 @@
 | Messages | Ce qui s'est passé, puis ce qu'on peut faire | What happened, then what you can do |
 | Ponctuation | Espace insécable (U+00A0) avant « : ; ! ? » et à l'intérieur des guillemets « », vérifiée par `web/src/texts.test.ts` ; « … » | No space before punctuation; curly quotes “ ” in texts |
 | Majuscules | Les noms de section (Médiathèque, Corbeille) et de l'éditeur (Plan, Blocs, Lecture, Édition, Concentration) ; le geste en minuscule (« mettre à la corbeille ») | Same nouns capitalized (Media library, Trash, Outline…) |
-| Anglais : règles fixées le 07/10/2026 (QCM) | — | “the Trash” with a capital when it names the place (buttons stay “Move to trash”, “Empty trash”); Oxford comma in every list (“images, audio, and PDFs”); “e.g.” in placeholders; straight apostrophes ' |
+| Anglais : règles fixées le 07/10/2026 (QCM) | — | “Trash” always capitalized, as a place: “the Trash”, “Move to Trash”, “Empty Trash” (WordPress); Oxford comma in every list (“images, audio, and PDFs”); “e.g.” in placeholders; straight apostrophes ' |
 
 ## Lieux de l'admin
 
@@ -71,7 +71,7 @@
 | image de présentation | featured image | Image en tête du contenu et vignette des listes de l'app, exigée pour publier. | vignette, couverture / cover, thumbnail |
 | audio (d'un épisode) | audio | Le fichier MP3 ou M4A d'un épisode, exigé pour publier. | son, piste / sound, track |
 | adresse de la page | page URL | Ce que l'app demande pour ouvrir une page (`mentions-legales`). | slug, permalien / slug, permalink |
-| niveau d'accès | access | Qui peut lire : Gratuit ou une formule. | visibilité, droits / visibility, permission |
+| niveau d'accès | access (« Access » comme titre de champ, comme le « Post access » de Ghost ; « who can read it » dans une phrase) | Qui peut lire : Gratuit ou une formule. | visibilité, droits / visibility, permission |
 | Gratuit | Free | Tout le monde peut lire. | public / Public |
 | formule | plan | Offre payante, de la moins complète à la plus complète. | abonnement, offre / tier, subscription |
 | abonné | subscriber | Lecteur de l'app qui a une formule. | membre (réservé à l'équipe) / member |
@@ -108,7 +108,7 @@
 | Prêt à publier ? | Ready to publish? | Ce qui manque avant de publier. | checklist / checklist |
 | enregistrement automatique | autosave | Le brouillon s'enregistre seul. | sauvegarde / backup |
 | Édition (mode) | Edit | On écrit dans le téléphone. | — / Write |
-| Lecture (mode) | Preview | Le contenu comme dans l'app, sans rien modifier. | Aperçu (déjà pris) / Read mode |
+| Lecture (mode) | Preview (le duo Edit / Preview ; le téléphone de l'éditeur se dit alors « phone ») | Le contenu comme dans l'app, sans rien modifier. | Aperçu (déjà pris) / Read mode |
 | aperçu | preview | Le téléphone de l'éditeur, ou la vignette d'un fichier. | — |
 | Concentration | Focus mode | Cache les deux colonnes de l'éditeur. | mode zen / Zen mode |
 | Écran entier / Ajuster | Full screen / Fit | Tout l'écran du téléphone, ou tenir dans la fenêtre. | — |
@@ -158,10 +158,10 @@
 | remplacer | replace | Un nouveau fichier du même type à sa place. | changer / swap |
 | nettoyer | clean up | Effacer les restes d'envois interrompus. | purger / purge |
 | indisponible (fichier) | unavailable | Fichier à la corbeille ou pas encore prêt. | supprimé |
-| mettre à la corbeille | move to trash | Supprimer en gardant 30 jours pour restaurer. | supprimer, jeter / delete, trash (verbe) |
+| mettre à la corbeille | Move to Trash | Supprimer en gardant 30 jours pour restaurer. | supprimer, jeter / delete, trash (verbe) |
 | restaurer | restore | Faire revenir de la Corbeille. | récupérer / recover, undelete |
 | supprimer définitivement | delete permanently | Sans retour possible (Corbeille, catégorie, formule). | effacer définitivement / erase, purge |
-| vider la corbeille | empty trash | Tout supprimer définitivement. | — |
+| vider la corbeille | Empty Trash | Tout supprimer définitivement. | — |
 | élément (de la Corbeille) | item | Fichier ou contenu dans la Corbeille. | objet / object |
 | lot | batch | Ce qui est parti ensemble dans la Corbeille et en revient ensemble. | groupe / group |
 | effacement automatique | auto-delete | La date où la Corbeille efface un élément. | — / purge |
