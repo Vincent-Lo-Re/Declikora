@@ -338,7 +338,7 @@ export function AddCategory({
   return (
     <Field data-invalid={error !== null}>
       <FieldLabel htmlFor="reglages-nouvelle-categorie">
-        {texts.categories.name}
+        {texts.categories.newName}
       </FieldLabel>
       <div className="flex gap-2">
         <Input

@@ -16,6 +16,7 @@ export type Category = {
   id: string
   name: string
   position: number
+  created_at: string
   // Brouillons qui la citent (corbeille comprise) : ce que sa suppression leur retire.
   uses: number
 }
@@ -61,6 +62,7 @@ type CategoryRow = {
   id: string
   name: string
   position: number
+  created_at: string
   content_categories?: { count: number }[]
 }
 
@@ -69,6 +71,7 @@ function toCategory(row: CategoryRow): Category {
     id: row.id,
     name: row.name,
     position: row.position,
+    created_at: row.created_at,
     uses: row.content_categories?.[0]?.count ?? 0,
   }
 }
@@ -79,7 +82,7 @@ export async function listCategories(
 ): Promise<Category[]> {
   const { data, error } = await supabase
     .from("categories")
-    .select("id, name, position, content_categories(count)")
+    .select("id, name, position, created_at, content_categories(count)")
     .eq("section", section)
     .order("position")
     .order("name")
@@ -95,7 +98,7 @@ export async function createCategory(
   const { data, error } = await supabase
     .from("categories")
     .insert({ section, name } as TablesInsert<"categories">)
-    .select("id, name, position")
+    .select("id, name, position, created_at")
     .single()
   if (error) throw toCategoryError(error)
   return toCategory(data)
@@ -109,7 +112,7 @@ export async function renameCategory(
     .from("categories")
     .update({ name })
     .eq("id", id)
-    .select("id, name, position")
+    .select("id, name, position, created_at")
     .maybeSingle()
   if (error) throw toCategoryError(error)
   // Aucune ligne : la catégorie a disparu entre-temps (ou l'accès a été retiré).
@@ -132,7 +135,7 @@ export async function deleteCategory(id: string): Promise<void> {
 export async function reorderCategories(
   section: CategorySection,
   ids: string[]
-): Promise<Omit<Category, "uses">[]> {
+): Promise<Pick<Category, "id" | "name" | "position">[]> {
   const { data, error } = await supabase.rpc("categories_reorder", {
     section,
     ids,

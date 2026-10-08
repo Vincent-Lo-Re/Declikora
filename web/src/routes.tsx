@@ -8,7 +8,6 @@ import { AuthLayout } from "@/layouts/auth-layout"
 import { RootLayout } from "@/layouts/root-layout"
 import type { ContentKind } from "@/lib/contents/api"
 import {
-  prepareCategories,
   prepareContentList,
   prepareEditor,
   prepareMedia,
@@ -23,13 +22,7 @@ import {
   type PageHandle,
   type Prepare,
 } from "@/lib/preparation"
-import {
-  authPaths,
-  categoriesPath,
-  menuRouteId,
-  sections,
-  type SectionKey,
-} from "@/navigation"
+import { authPaths, menuRouteId, sections, type SectionKey } from "@/navigation"
 import { ErrorPage } from "@/pages/error-page"
 
 /**
@@ -70,7 +63,6 @@ function authPage<M>(
 
 const editorCode = () => import("@/pages/editor-page")
 const listCode = () => import("@/pages/content-list-page")
-const categoriesCode = () => import("@/pages/categories-page")
 // Les éditeurs plein écran : la section (pour « ← Blog »), la sorte de contenu et l'adresse.
 type EditorRoute = { section: SectionKey; kind: ContentKind; path: string }
 
@@ -156,13 +148,6 @@ export const routes: RouteObject[] = [
                     (m) => <m.ContentListPage section="blog" kind="article" />,
                     prepareContentList("article")
                   ),
-                  // Adresse fixe : elle passe avant « /blog/<id> » (l'éditeur).
-                  page(
-                    categoriesPath("blog"),
-                    categoriesCode,
-                    (m) => <m.CategoriesPage section="blog" />,
-                    prepareCategories("blog")
-                  ),
                   page(
                     sections.podcasts.path,
                     listCode,
@@ -170,12 +155,6 @@ export const routes: RouteObject[] = [
                       <m.ContentListPage section="podcasts" kind="episode" />
                     ),
                     prepareContentList("episode")
-                  ),
-                  page(
-                    categoriesPath("podcasts"),
-                    categoriesCode,
-                    (m) => <m.CategoriesPage section="podcasts" />,
-                    prepareCategories("podcasts")
                   ),
                   page(
                     sections.pages.path,

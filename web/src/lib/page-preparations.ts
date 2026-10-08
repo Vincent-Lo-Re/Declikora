@@ -4,7 +4,6 @@ import type { Draft } from "@/blocks/types"
 import { draftMediaIds } from "@/blocks/draft"
 import { linkedTemplateBlocks, linkedTemplateIds } from "@/blocks/templates"
 import { askedFileFromAddress, mediaFiltersFromAddress } from "@/lib/address"
-import type { CategorySection } from "@/lib/categories"
 import type { ContentKind } from "@/lib/contents/api"
 import { isTemplateSort } from "@/lib/contents/templates"
 import { contentProfile } from "@/lib/editor/profile"
@@ -96,11 +95,6 @@ export function prepareContentList(kind: ContentKind): Prepare {
       await prepareFiles(queryClient, coverIds(items ?? []), LIST_IMAGES)
     }
   }
-}
-
-/** Les catégories d'une section : relues à chaque ouverture (leurs nombres de brouillons). */
-export function prepareCategories(section: CategorySection): Prepare {
-  return ({ queryClient }) => fresh(queryClient, categoriesRead(section))
 }
 
 export const prepareTemplates: Prepare = ({ queryClient }) =>

@@ -1,0 +1,456 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Ellipsis, Search, SquarePen, Tags, Trash2 } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
+
+import { SelectAllHead } from "@/components/bulk-selection"
+import { CategoryDialog } from "@/components/categories/category-dialog"
+import { SortableRow } from "@/components/contents/sortable-rows"
+import { ListCard, ListEmpty } from "@/components/list-card"
+import { SortableList } from "@/components/list-sorting"
+import { LoadState } from "@/components/load-state"
+import { SearchInput } from "@/components/search-input"
+import { useAccessCheck } from "@/components/team/use-access-check"
+import { TrashDialog } from "@/components/trash-dialog"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Spinner } from "@/components/ui/spinner"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  categoryKeys,
+  createCategory,
+  deleteCategory,
+  renameCategory,
+  reorderCategories,
+  type Category,
+  type CategorySection,
+} from "@/lib/categories"
+import { contentKeys } from "@/lib/contents/api"
+import { normalizeSearch } from "@/lib/contents/list-filters"
+import { formatDateTime } from "@/lib/dates"
+import { errorMessage } from "@/lib/errors"
+import { categoriesRead, REREAD_MS } from "@/lib/reads"
+import { texts } from "@/texts"
+
+const labels = texts.categories
+
+/**
+ * L'onglet « Catégories » du Blog et des Podcasts, comme la liste des contenus : recherche,
+ * cases et « Supprimer définitivement (n) », rangement dans l'ordre de l'app (glisser-déposer, sur
+ * la liste complète), une ligne par catégorie (nom, brouillons qui la citent, date de création)
+ * et son menu « … » (Modifier, Supprimer définitivement). « Nouvelle catégorie » (en tête de
+ * page) et « Modifier » ouvrent la même fenêtre. Supprimer est définitif ([D28]) ; ces changements
+ * sont dans l'app tout de suite, sans publier.
+ */
+export function CategoriesTab({
+  section,
+  creating,
+  onCreatingChange,
+}: {
+  section: CategorySection
+  creating: boolean
+  onCreatingChange: (open: boolean) => void
+}) {
+  const queryClient = useQueryClient()
+  const checkAccess = useAccessCheck()
+  const key = categoryKeys.list(section)
+  // Relue à chaque ouverture : le nombre de brouillons de chaque catégorie change dans l'éditeur.
+  const categories = useQuery({
+    ...categoriesRead(section),
+    staleTime: REREAD_MS,
+  })
+  useEffect(() => {
+    if (categories.error) checkAccess(categories.error)
+  }, [categories.error, checkAccess])
+
+  const [search, setSearch] = useState("")
+  const [editing, setEditing] = useState<Category | null>(null)
+  const [toRemove, setToRemove] = useState<Category | null>(null)
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
+  const [confirmMany, setConfirmMany] = useState(false)
+
+  const all = categories.data
+  const shown = useMemo(() => {
+    const wanted = normalizeSearch(search)
+    return (all ?? []).filter((category) =>
+      normalizeSearch(category.name).includes(wanted)
+    )
+  }, [all, search])
+  const filtering = search.trim() !== ""
+  // Les lignes cochées encore affichées (une catégorie supprimée ailleurs n'y est plus).
+  const checked = shown.filter((category) => selected.has(category.id))
+
+  // Les listes du Blog ou des Podcasts montrent les noms : relues aussi.
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all }),
+      queryClient.invalidateQueries({ queryKey: contentKeys.lists }),
+    ])
+  const onError = (error: Error) => {
+    toast.error(error.message)
+    checkAccess(error)
+  }
+
+  // Créer ou modifier : la fenêtre se ferme, la catégorie arrive dans la liste.
+  const dialogOpen = creating || editing !== null
+  const closeDialog = () => {
+    onCreatingChange(false)
+    setEditing(null)
+    save.reset()
+  }
+  const save = useMutation({
+    mutationFn: (name: string) =>
+      editing
+        ? renameCategory(editing.id, name)
+        : createCategory(section, name),
+    onSuccess: (category) => {
+      toast.success(editing ? labels.renamed : labels.added(category.name))
+      closeDialog()
+    },
+    onError: (error) => checkAccess(error),
+    onSettled: refresh,
+  })
+
+  const remove = useMutation({
+    mutationFn: (category: Category) => deleteCategory(category.id),
+    onSuccess: (_, category) => {
+      toast.success(labels.removed(category.name))
+      setSelected((previous) => without(previous, [category.id]))
+    },
+    onError,
+    onSettled: async () => {
+      setToRemove(null)
+      await refresh()
+    },
+  })
+
+  // Une à une : une catégorie qui a disparu entre-temps n'arrête pas les autres.
+  const removeMany = useMutation({
+    mutationFn: async (items: Category[]) => {
+      let done = 0
+      for (const item of items) {
+        try {
+          await deleteCategory(item.id)
+          done += 1
+        } catch (error) {
+          if (done > 0) toast.success(labels.removedMany(done))
+          throw error
+        }
+      }
+      return done
+    },
+    onSuccess: (done) => {
+      toast.success(labels.removedMany(done))
+      setSelected(new Set())
+    },
+    onError,
+    onSettled: async () => {
+      setConfirmMany(false)
+      await refresh()
+    },
+  })
+
+  // L'ordre change tout de suite à l'écran ; il revient en arrière si la base refuse.
+  const reorder = useMutation({
+    mutationFn: (ids: string[]) => reorderCategories(section, ids),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueryData<Category[]>(key)
+      if (previous) {
+        const byId = new Map(previous.map((item) => [item.id, item]))
+        queryClient.setQueryData(
+          key,
+          ids.flatMap((id) => byId.get(id) ?? [])
+        )
+      }
+      return { previous }
+    },
+    onSuccess: () => toast.success(labels.reordered),
+    onError: (error, _ids, context) => {
+      if (context?.previous) queryClient.setQueryData(key, context.previous)
+      onError(error)
+    },
+    onSettled: refresh,
+  })
+
+  const busy = remove.isPending || removeMany.isPending || reorder.isPending
+  const toggle = (category: Category, on: boolean) =>
+    setSelected((previous) =>
+      on
+        ? new Set([...previous, category.id])
+        : without(previous, [category.id])
+    )
+
+  const dialog = (
+    <CategoryDialog
+      open={dialogOpen}
+      onOpenChange={(open) => !open && closeDialog()}
+      name={editing?.name ?? null}
+      pending={save.isPending}
+      error={save.error ? errorMessage(save.error) : null}
+      onSubmit={(name) => save.mutate(name)}
+    />
+  )
+
+  if (all === undefined) {
+    return (
+      <>
+        <ListCard>
+          <LoadState
+            query={categories}
+            failed={labels.loadFailed}
+            rows={3}
+            rowClassName="h-12 w-full"
+          />
+        </ListCard>
+        {dialog}
+      </>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        {labels.description[section]}
+      </p>
+      {all.length === 0 ? (
+        <ListEmpty
+          icon={Tags}
+          title={labels.emptyTitle}
+          description={labels.emptyDescription}
+        />
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              label={labels.search}
+              placeholder={labels.searchPlaceholder}
+              className="w-72"
+            />
+            {checked.length > 0 && (
+              <Button
+                variant="destructive"
+                disabled={busy}
+                onClick={() => setConfirmMany(true)}
+              >
+                {removeMany.isPending ? <Spinner /> : <Trash2 />}
+                {labels.removeMany(checked.length)}
+              </Button>
+            )}
+            <p
+              role="status"
+              className="ml-auto text-sm text-muted-foreground tabular-nums"
+            >
+              {texts.contentList.count(shown.length, all.length)}
+            </p>
+          </div>
+          {shown.length === 0 ? (
+            <ListEmpty icon={Search} title={labels.noResults} />
+          ) : (
+            <>
+              {filtering && (
+                <p className="text-sm text-muted-foreground">
+                  {labels.orderFiltering}
+                </p>
+              )}
+              <CategoryTable
+                items={shown}
+                selected={selected}
+                checkedCount={checked.length}
+                disabled={busy}
+                reorderDisabled={filtering || busy}
+                onToggle={toggle}
+                onToggleAll={(on) =>
+                  setSelected(
+                    on
+                      ? new Set(shown.map((category) => category.id))
+                      : without(
+                          selected,
+                          shown.map((category) => category.id)
+                        )
+                  )
+                }
+                onReorder={(ids) => reorder.mutate(ids)}
+                onEdit={setEditing}
+                onRemove={(category) => {
+                  setToRemove(category)
+                  // Le nombre de brouillons qui la perdent est relu avant de confirmer ([D28]).
+                  void categories.refetch()
+                }}
+              />
+            </>
+          )}
+        </>
+      )}
+
+      {dialog}
+      <TrashDialog
+        open={toRemove !== null}
+        title={labels.confirmRemove.title}
+        description={
+          toRemove
+            ? `${labels.confirmRemove.description(toRemove.name)} ${labels.confirmRemove.uses(
+                all.find((item) => item.id === toRemove.id)?.uses ??
+                  toRemove.uses
+              )}`
+            : ""
+        }
+        confirmLabel={labels.confirmRemove.confirm}
+        pending={remove.isPending || categories.isFetching}
+        onCancel={() => setToRemove(null)}
+        onConfirm={() => toRemove && remove.mutate(toRemove)}
+      />
+      <TrashDialog
+        open={confirmMany && checked.length > 0}
+        title={labels.confirmRemoveMany.title(checked.length)}
+        description={labels.confirmRemoveMany.description}
+        confirmLabel={labels.confirmRemove.confirm}
+        pending={removeMany.isPending}
+        onCancel={() => setConfirmMany(false)}
+        onConfirm={() => removeMany.mutate(checked)}
+      />
+    </div>
+  )
+}
+
+function without(set: ReadonlySet<string>, ids: string[]): Set<string> {
+  const next = new Set(set)
+  for (const id of ids) next.delete(id)
+  return next
+}
+
+function CategoryTable({
+  items,
+  selected,
+  checkedCount,
+  disabled,
+  reorderDisabled,
+  onToggle,
+  onToggleAll,
+  onReorder,
+  onEdit,
+  onRemove,
+}: {
+  items: Category[]
+  selected: ReadonlySet<string>
+  checkedCount: number
+  disabled: boolean
+  // On ne range que la liste complète : pas pendant une recherche.
+  reorderDisabled: boolean
+  onToggle: (category: Category, on: boolean) => void
+  onToggleAll: (on: boolean) => void
+  onReorder: (ids: string[]) => void
+  onEdit: (category: Category) => void
+  onRemove: (category: Category) => void
+}) {
+  return (
+    <SortableList
+      items={items.map((item) => ({ id: item.id, name: item.name }))}
+      words={labels.dnd}
+      onReorder={onReorder}
+    >
+      <ListCard>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-0">
+                <span className="sr-only">
+                  {texts.contentList.order.column}
+                </span>
+              </TableHead>
+              <SelectAllHead
+                all={checkedCount > 0 && checkedCount === items.length}
+                some={checkedCount > 0 && checkedCount < items.length}
+                disabled={disabled}
+                onToggleAll={onToggleAll}
+              />
+              <TableHead>{labels.columns.name}</TableHead>
+              <TableHead>{labels.columns.uses}</TableHead>
+              <TableHead>{labels.columns.createdAt}</TableHead>
+              <TableHead className="w-0">
+                <span className="sr-only">{texts.common.actions}</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((category) => (
+              <SortableRow
+                key={category.id}
+                id={category.id}
+                name={category.name}
+                disabled={reorderDisabled}
+                data-item={category.name}
+                data-state={selected.has(category.id) ? "selected" : undefined}
+              >
+                <TableCell>
+                  <Checkbox
+                    aria-label={texts.selection.select(category.name)}
+                    checked={selected.has(category.id)}
+                    disabled={disabled}
+                    onCheckedChange={(value) => onToggle(category, value)}
+                  />
+                </TableCell>
+                <TableCell className="max-w-80 font-medium">
+                  <button
+                    type="button"
+                    className="line-clamp-2 cursor-pointer text-left underline-offset-4 hover:underline"
+                    onClick={() => onEdit(category)}
+                  >
+                    {category.name}
+                  </button>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {labels.usesCount(category.uses)}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDateTime(category.created_at)}
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      disabled={disabled}
+                      aria-label={labels.actions(category.name)}
+                      render={<Button variant="ghost" size="icon-sm" />}
+                    >
+                      <Ellipsis />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52">
+                      <DropdownMenuItem onClick={() => onEdit(category)}>
+                        <SquarePen />
+                        {labels.edit}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => onRemove(category)}
+                      >
+                        <Trash2 />
+                        {labels.remove}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </SortableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ListCard>
+    </SortableList>
+  )
+}

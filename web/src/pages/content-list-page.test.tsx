@@ -154,8 +154,20 @@ function lockRow(changes: Partial<api.LockRow>): api.LockRow {
 
 beforeEach(() => {
   vi.mocked(categoriesApi.listCategories).mockResolvedValue([
-    { id: SOMMEIL, name: "Sommeil", position: 0, uses: 1 },
-    { id: STRESS, name: "Stress", position: 1, uses: 2 },
+    {
+      id: SOMMEIL,
+      name: "Sommeil",
+      position: 0,
+      created_at: "2026-10-01T10:00:00Z",
+      uses: 1,
+    },
+    {
+      id: STRESS,
+      name: "Stress",
+      position: 1,
+      created_at: "2026-10-01T10:00:00Z",
+      uses: 2,
+    },
   ])
 })
 
@@ -209,10 +221,13 @@ describe("Blog", () => {
       .closest("tr")!
     expect(within(last).getByText(labels.noCategory)).toBeVisible()
     expect(screen.getByText(labels.count(3, 3))).toBeVisible()
-    // Les catégories se gèrent sur leur propre écran.
+    // Deux onglets : les articles (ouvert) et les catégories.
     expect(
-      screen.getByRole("link", { name: labels.manageCategories })
-    ).toHaveAttribute("href", "/blog/categories")
+      screen.getByRole("tab", { name: labels.kinds.article.tab })
+    ).toHaveAttribute("aria-selected", "true")
+    expect(
+      screen.getByRole("tab", { name: texts.categories.tab })
+    ).toBeVisible()
     // La liste est dans une carte blanche, sur le panneau gris de la page (ADMIN § 7).
     expect(
       screen.getByRole("table").closest('[data-slot="list-card"]')
@@ -569,13 +584,26 @@ describe("Blog", () => {
       id: "00000000-0000-4000-8000-00000000c009",
       name: "Respiration",
       position: 2,
+      created_at: "2026-10-01T10:00:00Z",
       uses: 0,
     }
     // Créée dans la base : la relecture de la liste la contient.
     vi.mocked(categoriesApi.createCategory).mockImplementation(async () => {
       vi.mocked(categoriesApi.listCategories).mockResolvedValue([
-        { id: SOMMEIL, name: "Sommeil", position: 0, uses: 1 },
-        { id: STRESS, name: "Stress", position: 1, uses: 2 },
+        {
+          id: SOMMEIL,
+          name: "Sommeil",
+          position: 0,
+          created_at: "2026-10-01T10:00:00Z",
+          uses: 1,
+        },
+        {
+          id: STRESS,
+          name: "Stress",
+          position: 1,
+          created_at: "2026-10-01T10:00:00Z",
+          uses: 2,
+        },
         created,
       ])
       return created
@@ -587,7 +615,7 @@ describe("Blog", () => {
     const dialog = await screen.findByRole("dialog", {
       name: labels.kinds.article.create,
     })
-    const name = await within(dialog).findByLabelText(texts.categories.name)
+    const name = await within(dialog).findByLabelText(texts.categories.newName)
     fireEvent.change(name, { target: { value: "Respiration" } })
     // Entrée ajoute la catégorie, sans envoyer la fenêtre.
     fireEvent.keyDown(name, { key: "Enter" })

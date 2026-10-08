@@ -783,11 +783,14 @@ export const en = {
 
   // Listes des contenus d'une section (Pages, Blog, Podcasts) : étape 7.
   contentList: {
+    // Blog, Podcasts : deux onglets, les contenus et les catégories (nom des onglets).
+    tabs: (section: string) => `${section} tabs`,
     // Ce qui dépend de la sorte de contenu (genre, nombre).
     kinds: {
       page: {
         submit: "Create page",
         create: "New page",
+        tab: "Pages",
         createFailed: "Couldn't create the page.",
         // « Nouvelle page » quand des points de départ existent pour les Pages ([D42]).
         blank: "Blank page",
@@ -823,6 +826,8 @@ export const en = {
       article: {
         submit: "Create post",
         create: "New post",
+        // L'onglet de la liste, à côté de « Categories ».
+        tab: "Posts",
         createFailed: "Couldn't create the post.",
         blank: "Blank post",
         confirmTrashTitle: "Move this post to Trash?",
@@ -857,6 +862,8 @@ export const en = {
       episode: {
         submit: "Create episode",
         create: "New episode",
+        // L'onglet de la liste, à côté de « Categories ».
+        tab: "Episodes",
         createFailed: "Couldn't create the episode.",
         blank: "Blank episode",
         confirmTrashTitle: "Move this episode to Trash?",
@@ -922,7 +929,6 @@ export const en = {
           : `${total} items`
         : `${shown} of ${total}`,
     noCategory: "Uncategorized",
-    manageCategories: "Categories",
     actions: (title: string) => `Actions for ${title}`,
     open: "Open",
     trash: "Move to Trash",
@@ -992,41 +998,51 @@ export const en = {
 
   // Catégories du Blog et des Podcasts (étape 7) : ADMIN § 3, [D28], [D44].
   categories: {
-    title: (section: string) => `Categories: ${section}`,
+    // Sous les onglets, dans l'onglet Categories du Blog et des Podcasts.
     description: {
       // Renommer ou ranger une catégorie change l'app tout de suite, sans « Publier ».
       blog: "Readers use them to filter posts in the app. A post can have one, several, or none. Changes here show in the app right away, without publishing.",
       podcasts:
         "Readers use them to filter episodes in the app. An episode can have one, several, or none. Changes here show in the app right away, without publishing.",
     },
-    back: (section: string) => `Back to ${section}`,
-    orderTitle: "Order in the app",
-    order:
-      "The app shows them in this order. Drag the handles to reorder them, or use your keyboard.",
-    listLabel: (section: string) => `Categories: ${section}, in app order`,
-    empty:
-      "No categories yet. They're optional. Add some to let readers filter in the app.",
-    name: "New category name",
+    // L'onglet du Blog et des Podcasts.
+    tab: "Categories",
+    create: "New category",
+    // La fenêtre d'une catégorie : la créer, ou la modifier (menu « … », clic sur la ligne).
+    dialog: {
+      createTitle: "New category",
+      editTitle: "Edit category",
+      description:
+        "New categories are added at the bottom of the list. Drag them into place.",
+      save: "Save",
+    },
+    name: "Name",
+    // Le champ pour en créer une au passage (fenêtre d'un nouveau contenu, réglages).
+    newName: "New category name",
+    add: "Add",
     namePlaceholder: "e.g. Sleep",
-    addTitle: "Add a category",
-    addDescription:
-      "It's added to the bottom of the list. Then drag it into place.",
     nameRequired: "Give the category a name.",
     nameTooLong: "The name can't be longer than 100 characters.",
-    add: "Add",
     added: (name: string) => `Category “${name}” added.`,
-    rename: "Rename",
-    renameLabel: (name: string) => `New name for ${name}`,
-    renamed: "Category renamed.",
+    renamed: "Category saved.",
+    edit: "Edit",
     remove: "Delete permanently",
     actions: (name: string) => `Actions for ${name}`,
-    // Pastille de chaque catégorie : le nombre de brouillons qui la citent, dans l'infobulle.
-    uses: (count: number) =>
-      count === 0
-        ? "Not used in any draft"
-        : count === 1
-          ? "Used in 1 draft"
-          : `Used in ${count} drafts`,
+    search: "Search categories",
+    searchPlaceholder: "Search by name…",
+    columns: {
+      name: "Name",
+      uses: "Used in",
+      createdAt: "Created",
+    },
+    // Colonne « Utilisée dans » : les brouillons qui la citent.
+    usesCount: (count: number) =>
+      count === 0 ? "No drafts" : count === 1 ? "1 draft" : `${count} drafts`,
+    emptyTitle: "No categories yet",
+    emptyDescription:
+      "Categories are optional. Add some so readers can filter in the app.",
+    noResults: "No categories match your search.",
+    orderFiltering: "Clear the search to reorder the categories.",
     confirmRemove: {
       title: "Delete this category?",
       description: (name: string) =>
@@ -1039,9 +1055,18 @@ export const en = {
             : "It'll be removed from the filters in the app right away, even for published content.",
       confirm: "Delete permanently",
     },
+    // Sélection en masse : « Supprimer définitivement (n) ».
+    removeMany: (count: number) => `Delete permanently (${count})`,
+    confirmRemoveMany: {
+      title: (count: number) =>
+        count === 1 ? "Delete 1 category?" : `Delete ${count} categories?`,
+      description:
+        "They'll be permanently deleted, removed from every draft, and removed from the filters in the app right away. Categories don't go to the Trash, so you won't be able to restore them.",
+    },
     removed: (name: string) => `Category “${name}” deleted.`,
-    handle: (name: string) => `Move “${name}”`,
-    reordered: "New order saved.",
+    removedMany: (count: number) =>
+      count === 1 ? "1 category deleted." : `${count} categories deleted.`,
+    reordered: "New order saved. It shows in the app right away.",
     // Glisser-déposer : annonces lues par les lecteurs d'écran.
     dnd: {
       roleDescription: "draggable category",

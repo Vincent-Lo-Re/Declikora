@@ -800,11 +800,14 @@ export const fr: Texts = {
 
   // Listes des contenus d'une section (Pages, Blog, Podcasts) : étape 7.
   contentList: {
+    // Blog, Podcasts : deux onglets, les contenus et les catégories (nom des onglets).
+    tabs: (section: string) => `Onglets : ${section}`,
     // Ce qui dépend de la sorte de contenu (genre, nombre).
     kinds: {
       page: {
         submit: "Créer la page",
         create: "Nouvelle page",
+        tab: "Pages",
         createFailed: "La page n'a pas pu être créée.",
         // « Nouvelle page » quand des points de départ existent pour les Pages ([D42]).
         blank: "Page vide",
@@ -843,6 +846,8 @@ export const fr: Texts = {
       article: {
         submit: "Créer l'article",
         create: "Nouvel article",
+        // L'onglet de la liste, à côté de « Catégories ».
+        tab: "Articles",
         createFailed: "L'article n'a pas pu être créé.",
         blank: "Article vide",
         confirmTrashTitle: "Mettre cet article à la corbeille ?",
@@ -878,6 +883,8 @@ export const fr: Texts = {
       episode: {
         submit: "Créer l'épisode",
         create: "Nouvel épisode",
+        // L'onglet de la liste, à côté de « Catégories ».
+        tab: "Épisodes",
         createFailed: "L'épisode n'a pas pu être créé.",
         blank: "Épisode vide",
         confirmTrashTitle: "Mettre cet épisode à la corbeille ?",
@@ -942,7 +949,6 @@ export const fr: Texts = {
           : `${total} contenus`
         : `${shown} sur ${total}`,
     noCategory: "Aucune",
-    manageCategories: "Catégories",
     actions: (title: string) => `Actions pour ${title}`,
     open: "Ouvrir",
     trash: "Mettre à la corbeille",
@@ -1015,42 +1021,55 @@ export const fr: Texts = {
 
   // Catégories du Blog et des Podcasts (étape 7) : ADMIN § 3, [D28], [D44].
   categories: {
-    title: (section: string) => `Catégories : ${section}`,
+    // Sous les onglets, dans l'onglet Categories du Blog et des Podcasts.
     description: {
       // Renommer ou ranger une catégorie change l'app tout de suite, sans « Publier ».
       blog: "Elles servent à filtrer les articles dans l'app. Un article peut en avoir une, plusieurs ou aucune. Ce que tu changes ici apparaît tout de suite dans l'app, sans publier.",
       podcasts:
         "Elles servent à filtrer les épisodes dans l'app. Un épisode peut en avoir une, plusieurs ou aucune. Ce que tu changes ici apparaît tout de suite dans l'app, sans publier.",
     },
-    back: (section: string) => `Retour : ${section}`,
-    orderTitle: "Ordre dans l'app",
-    order:
-      "L'app les montre dans cet ordre. Range-les avec la poignée, à la souris ou au clavier.",
-    listLabel: (section: string) =>
-      `Catégories : ${section}, dans l'ordre de l'app`,
-    empty:
-      "Aucune catégorie pour l'instant. Les catégories sont facultatives : ajoutes-en si tu veux que l'app puisse filtrer.",
-    name: "Nom de la nouvelle catégorie",
+    // L'onglet du Blog et des Podcasts.
+    tab: "Catégories",
+    create: "Nouvelle catégorie",
+    // La fenêtre d'une catégorie : la créer, ou la modifier (menu « … », clic sur la ligne).
+    dialog: {
+      createTitle: "Nouvelle catégorie",
+      editTitle: "Modifier la catégorie",
+      description:
+        "Une nouvelle catégorie arrive en bas de la liste. Range-la ensuite à sa place.",
+      save: "Enregistrer",
+    },
+    name: "Nom",
+    // Le champ pour en créer une au passage (fenêtre d'un nouveau contenu, réglages).
+    newName: "Nom de la nouvelle catégorie",
+    add: "Ajouter",
     namePlaceholder: "Par exemple : Sommeil",
-    addTitle: "Ajouter une catégorie",
-    addDescription:
-      "Elle arrive en bas de la liste ; range-la ensuite à sa place.",
     nameRequired: "Donne un nom à la catégorie.",
     nameTooLong: "Le nom ne doit pas dépasser 100 caractères.",
-    add: "Ajouter",
     added: (name: string) => `Catégorie « ${name} » ajoutée.`,
-    rename: "Renommer",
-    renameLabel: (name: string) => `Nouveau nom pour ${name}`,
-    renamed: "Catégorie renommée.",
+    renamed: "Catégorie enregistrée.",
+    edit: "Modifier",
     remove: "Supprimer définitivement",
     actions: (name: string) => `Actions pour ${name}`,
-    // Pastille de chaque catégorie : le nombre de brouillons qui la citent, dans l'infobulle.
-    uses: (count: number) =>
+    search: "Rechercher une catégorie",
+    searchPlaceholder: "Rechercher par nom…",
+    columns: {
+      name: "Nom",
+      uses: "Utilisée dans",
+      createdAt: "Créée le",
+    },
+    // Colonne « Utilisée dans » : les brouillons qui la citent.
+    usesCount: (count: number) =>
       count === 0
-        ? "Utilisée dans aucun brouillon"
+        ? "Aucun brouillon"
         : count === 1
-          ? "Utilisée dans 1 brouillon"
-          : `Utilisée dans ${count} brouillons`,
+          ? "1 brouillon"
+          : `${count} brouillons`,
+    emptyTitle: "Aucune catégorie pour l'instant",
+    emptyDescription:
+      "Les catégories sont facultatives. Ajoutes-en pour que les lecteurs puissent filtrer dans l'app.",
+    noResults: "Aucune catégorie ne correspond à ta recherche.",
+    orderFiltering: "Pour ranger les catégories, efface d'abord la recherche.",
     confirmRemove: {
       title: "Supprimer cette catégorie ?",
       description: (name: string) =>
@@ -1063,9 +1082,23 @@ export const fr: Texts = {
             : "Dans l'app, elle disparaît des filtres tout de suite, même pour les contenus déjà publiés.",
       confirm: "Supprimer définitivement",
     },
+    // Sélection en masse : « Supprimer définitivement (n) ».
+    removeMany: (count: number) => `Supprimer définitivement (${count})`,
+    confirmRemoveMany: {
+      title: (count: number) =>
+        count === 1
+          ? "Supprimer 1 catégorie ?"
+          : `Supprimer ${count} catégories ?`,
+      description:
+        "Elles seront supprimées définitivement, retirées de tous les brouillons et, dans l'app, des filtres tout de suite. Les catégories ne passent pas par la Corbeille : tu ne pourras pas les restaurer.",
+    },
     removed: (name: string) => `Catégorie « ${name} » supprimée.`,
-    handle: (name: string) => `Déplacer « ${name} »`,
-    reordered: "Nouvel ordre enregistré.",
+    removedMany: (count: number) =>
+      count === 1
+        ? "1 catégorie supprimée."
+        : `${count} catégories supprimées.`,
+    reordered:
+      "Nouvel ordre enregistré : il apparaît tout de suite dans l'app.",
     // Glisser-déposer : annonces lues par les lecteurs d'écran.
     dnd: {
       roleDescription: "catégorie déplaçable",

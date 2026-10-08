@@ -105,13 +105,10 @@ async function articleFree(
   await saved(page)
 }
 
-/** Les noms des catégories du Blog affichées, dans l'ordre. */
+/** Les noms des catégories du Blog affichées (onglet Catégories), dans l'ordre. */
 function categoryOrder(page: Page) {
   return page
-    .getByRole("list", {
-      name: categories.listLabel(texts.sections.blog.title),
-    })
-    .locator("[data-item]")
+    .locator("tr[data-item]")
     .evaluateAll((items) => items.map((item) => item.getAttribute("data-item")))
 }
 
@@ -391,24 +388,36 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     names.filter((name) => name?.endsWith(id))
   try {
     // --- Deux catégories, rangées -----------------------------------------------------
-    await open(page, "/blog/categories", admin)
-    const name = page.getByLabel(categories.name)
-    for (const category of [sommeil, stress]) {
-      await name.fill(category)
-      await name.press("Enter")
-      await expect(page.getByText(categories.added(category))).toBeVisible()
+    await open(page, "/blog", admin)
+    await page.getByRole("tab", { name: categories.tab }).click()
+    // « Nouvelle catégorie » : la fenêtre se ferme à l'enregistrement.
+    const addCategory = async (category: string) => {
+      await page.getByRole("button", { name: categories.create }).click()
+      const dialog = page.getByRole("dialog", {
+        name: categories.dialog.createTitle,
+      })
+      await dialog.getByLabel(categories.name).fill(category)
+      await dialog.getByLabel(categories.name).press("Enter")
+      return dialog
     }
-    // Un doublon, à la casse près, est refusé par la base.
-    await name.fill(sommeil.toUpperCase())
-    await name.press("Enter")
-    await expect(page.getByText(categories.errors.nom_en_double)).toBeVisible()
-    await name.fill("")
+    for (const category of [sommeil, stress]) {
+      const dialog = await addCategory(category)
+      await expect(page.getByText(categories.added(category))).toBeVisible()
+      await expect(dialog).toBeHidden()
+    }
+    // Un doublon, à la casse près, est refusé par la base : la fenêtre reste ouverte.
+    const duplicate = await addCategory(sommeil.toUpperCase())
+    await expect(
+      duplicate.getByText(categories.errors.nom_en_double)
+    ).toBeVisible()
+    await page.keyboard.press("Escape")
+    await expect(duplicate).toBeHidden()
     await expect
       .poll(async () => mine(await categoryOrder(page)))
       .toEqual([sommeil, stress])
 
     // Au clavier : « Stress » passe avant « Sommeil » (categories_reorder).
-    const handle = page.getByRole("button", { name: categories.handle(stress) })
+    const handle = page.getByRole("button", { name: list.order.handle(stress) })
     const announced = page.locator('[id^="DndLiveRegion"]')
     await handle.focus()
     await page.keyboard.press("Space")
@@ -441,9 +450,7 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     const stressId = await categoryId(stress)
 
     // --- Un article : titre et catégorie (sans résumé) ------------------------------------
-    await page
-      .getByRole("link", { name: categories.back(texts.sections.blog.title) })
-      .click()
+    await page.getByRole("tab", { name: list.kinds.article.tab }).click()
     await expect(page).toHaveURL(/\/blog$/)
     await createBlank(page, "article")
     const articleId = contentIdFromUrl(page.url())
@@ -540,10 +547,8 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     await expect(row).toBeVisible()
 
     // --- Supprimer la catégorie de l'article : définitif, l'app l'ignore ([D28]) -------
-    await page
-      .getByRole("link", { name: list.manageCategories, exact: true })
-      .click()
-    await expect(page).toHaveURL(/\/blog\/categories$/)
+    await page.getByRole("tab", { name: categories.tab }).click()
+    await expect(page).toHaveURL(/\/blog\?tab=categories$/)
     await page
       .getByRole("button", { name: categories.actions(sommeil) })
       .click()
@@ -568,9 +573,7 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     expect((await feedItem())?.categoryIds).toEqual([])
     expect(await appFeed("blog", sommeilId)).toEqual([])
     // L'admin : l'article n'a plus de catégorie.
-    await page
-      .getByRole("link", { name: categories.back(texts.sections.blog.title) })
-      .click()
+    await page.getByRole("tab", { name: list.kinds.article.tab }).click()
     await expect(row).toContainText(list.noCategory)
     await byCategory(list.filters.noCategory)
     await expect(row).toBeVisible()
