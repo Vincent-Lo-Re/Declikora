@@ -23,6 +23,7 @@ const brand = (
   monogramMotion: true,
   monogramMotions: ["trace", "glint", "breathe"],
   contactEmail: null,
+  language: "en",
   variants: {},
 })
 

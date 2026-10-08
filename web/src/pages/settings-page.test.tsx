@@ -32,6 +32,7 @@ vi.mock("@/lib/admin-identity", async (importOriginal) => {
     removeLoginImage: vi.fn(),
     saveMonogramMotion: vi.fn(),
     saveMonogramMotions: vi.fn(),
+    saveAdminLanguage: vi.fn(),
   }
 })
 
@@ -66,6 +67,7 @@ const brand = (name: string | null): identityApi.AdminBrand => ({
   monogramMotion: true,
   monogramMotions: ["trace", "glint", "breathe"],
   contactEmail: null,
+  language: "en",
   variants: {},
 })
 
@@ -80,9 +82,45 @@ beforeEach(() => {
   vi.mocked(identityApi.removeLoginImage).mockResolvedValue()
   vi.mocked(identityApi.saveMonogramMotion).mockResolvedValue()
   vi.mocked(identityApi.saveMonogramMotions).mockResolvedValue()
+  vi.mocked(identityApi.saveAdminLanguage).mockResolvedValue()
 })
 
 afterEach(() => vi.clearAllMocks())
+
+describe("Paramètres : la langue de l'admin (Avancé)", () => {
+  it("un admin choisit la langue de toute l'admin, l'identité est relue", async () => {
+    vi.mocked(identityApi.getAdminBrand).mockResolvedValue({
+      ...brand(null),
+      language: "fr",
+    })
+    await renderApp("/settings?tab=advanced")
+    const words = texts.settings.advanced.language
+
+    expect(
+      await screen.findByRole("heading", { name: words.title })
+    ).toBeVisible()
+    const choice = await screen.findByRole("combobox", { name: words.label })
+    expect(choice).toHaveTextContent(texts.languages.fr)
+
+    fireEvent.click(choice)
+    const english = await screen.findByRole("option", {
+      name: texts.languages.en,
+    })
+    // Base UI ne retient un clic de souris que s'il a commencé sur l'option.
+    fireEvent.pointerDown(english, { pointerType: "mouse" })
+    fireEvent.click(english)
+
+    await waitFor(() =>
+      expect(identityApi.saveAdminLanguage).toHaveBeenCalledWith("en")
+    )
+    expect(await screen.findByText(words.saved)).toBeVisible()
+    await waitFor(() =>
+      expect(
+        vi.mocked(identityApi.getAdminBrand).mock.calls.length
+      ).toBeGreaterThan(1)
+    )
+  })
+})
 
 describe("Paramètres : les onglets", () => {
   it("quatre onglets ; le premier s'ouvre au départ, l'onglet choisi va dans l'adresse", async () => {

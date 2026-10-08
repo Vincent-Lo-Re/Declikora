@@ -215,6 +215,8 @@ export const fr: Texts = {
       description:
         "La langue de l'admin, pour toi seulement. Elle vaut aussi pour les e-mails que tu reçois.",
       label: "Langue de l'admin",
+      // Le membre suit la langue de toute l'admin (Paramètres › Avancé), entre parenthèses.
+      sameAsAdmin: (language: string) => `Comme l'admin (${language})`,
       failed: "Ta langue n'a pas pu être enregistrée. Réessaie.",
     },
     mfa: {
@@ -2221,6 +2223,18 @@ export const fr: Texts = {
           },
           saved: "Animations enregistrées.",
         },
+      },
+    },
+    // Onglet « Avancé » : la langue de toute l'admin.
+    advanced: {
+      language: {
+        title: "Langue",
+        description:
+          "La langue de l'admin et de ses pages de connexion, pour toute l'équipe. Chaque membre peut choisir la sienne dans Mon compte.",
+        label: "Langue de l'admin",
+        hint: "Les membres qui ont choisi leur langue dans Mon compte la gardent.",
+        saved: "Langue de l'admin enregistrée.",
+        loadFailed: "La langue de l'admin n'a pas pu être chargée.",
       },
     },
     // Un onglet pas encore rempli.

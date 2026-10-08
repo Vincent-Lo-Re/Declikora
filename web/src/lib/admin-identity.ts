@@ -16,7 +16,7 @@ import {
 import type { Tables, TablesInsert } from "@/lib/database.types"
 import { decodeImage, reduceImage } from "@/lib/media/image"
 import { cleanSvg } from "@/lib/media/svg"
-import { locale } from "@/lib/language"
+import { isLanguage, locale, type Language } from "@/lib/language"
 import { DEFAULT_MOTIONS, isMotion, type Motion } from "@/lib/monogram-motion"
 import { palettePresets, presetLogoColors, type PresetId } from "@/lib/palettes"
 import { supabase } from "@/lib/supabase"
@@ -67,6 +67,8 @@ export type AdminBrand = { name: string | null } & Record<
     monogramMotions: Motion[]
     /** L'adresse de contact de la marque, sur l'écran de connexion (ou null). */
     contactEmail: string | null
+    /** La langue de toute l'admin (Paramètres › Avancé). */
+    language: Language
   }
 
 type BrandRow = Pick<
@@ -77,6 +79,7 @@ type BrandRow = Pick<
   | "login_monogram_motion"
   | "login_monogram_motions"
   | "contact_email"
+  | "language"
 >
 
 const variantKey = (kind: BrandKind, palette: string, surface: BrandSurface) =>
@@ -122,6 +125,7 @@ export async function getAdminBrand(): Promise<AdminBrand> {
       isMotion
     ),
     contactEmail: row.contact_email ?? null,
+    language: isLanguage(row.language) ? row.language : "en",
     variants: Object.fromEntries(
       variants.data.map((variant) => [
         variantKey(
@@ -152,6 +156,11 @@ export function saveBrandDetails(
   contactEmail: string | null
 ): Promise<void> {
   return updateIdentity({ name, contact_email: contactEmail })
+}
+
+/** Change la langue de toute l'admin (admins). */
+export function saveAdminLanguage(language: Language): Promise<void> {
+  return updateIdentity({ language })
 }
 
 /** Un fichier refusé avant l'envoi : son message est dans texts. */
