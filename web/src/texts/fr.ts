@@ -1709,6 +1709,8 @@ export const fr: Texts = {
       pending: "Enregistrement dans un instant…",
       saving: "Enregistrement…",
       offline: "Hors ligne, nouvel essai…",
+      // En ligne, mais le serveur n'a pas répondu (erreur passagère) : nouvel essai prévu.
+      retrying: "Échec de l'enregistrement, nouvel essai…",
       failed: "Échec de l'enregistrement",
       stopped: "Enregistrement arrêté",
       // Lu par les lecteurs d'écran, seulement quand l'état change vraiment (pas à chaque
@@ -1716,6 +1718,8 @@ export const fr: Texts = {
       announce: {
         offline:
           "Hors ligne : tes modifications seront enregistrées au retour du réseau.",
+        retrying:
+          "Le serveur n'a pas répondu : l'enregistrement va réessayer dans un instant.",
         saved: "Tes modifications sont enregistrées.",
       },
       leave: {
@@ -1805,7 +1809,6 @@ export const fr: Texts = {
       demande_invalide: "La demande n'est pas valide. Recharge la page.",
       sorte_invalide:
         "Ce type de contenu ou de modèle n'est pas valide. Recharge la page.",
-      parent_invalide: "Ce contenu ne peut pas être rangé à cet endroit.",
       contenu_introuvable: "Ce contenu n'existe plus.",
       dans_la_corbeille:
         "Ce contenu est dans la Corbeille : restaure-le pour le modifier.",

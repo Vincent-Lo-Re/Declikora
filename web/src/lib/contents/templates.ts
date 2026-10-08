@@ -39,6 +39,17 @@ export const templateSections: readonly TemplateFor[] = [
   "page",
 ]
 
+/**
+ * Les sections proposées pour un nouveau point de départ : celles qui ont un éditeur aujourd'hui.
+ * Les méthodes refaites ajouteront le chapitre, la leçon et l'exercice ; d'ici là, ils ne
+ * serviraient à rien (un point de départ déjà créé reste lisible).
+ */
+export const offeredTemplateSections: readonly TemplateFor[] = [
+  "article",
+  "episode",
+  "page",
+]
+
 export function isTemplateSort(value: unknown): value is TemplateSort {
   return (
     typeof value === "string" && templateSorts.includes(value as TemplateSort)

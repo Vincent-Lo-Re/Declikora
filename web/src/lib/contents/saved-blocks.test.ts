@@ -45,7 +45,7 @@ describe("Mes blocs", () => {
     expect(savedBlocks(all, "all", "zzz")).toEqual([])
   })
 
-  it("compte les contenus qui citent chaque modèle, hors corbeille", () => {
+  it("compte les contenus qui citent chaque modèle, Corbeille comprise", () => {
     const counts = countUses([
       {
         id: "1",
@@ -63,7 +63,7 @@ describe("Mes blocs", () => {
       },
       { id: "3", kind: "page", title: "", inTrash: true, templateIds: ["b"] },
     ])
-    expect(counts.get("b")).toBe(2)
+    expect(counts.get("b")).toBe(3)
     expect(counts.get("a")).toBe(1)
     expect(counts.get("z")).toBeUndefined()
   })

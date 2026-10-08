@@ -1683,6 +1683,8 @@ export const en = {
       pending: "Saving shortly…",
       saving: "Saving…",
       offline: "Offline, retrying…",
+      // En ligne, mais le serveur n'a pas répondu (erreur passagère) : nouvel essai prévu.
+      retrying: "Couldn't save, retrying…",
       failed: "Couldn't save",
       stopped: "Saving stopped",
       // Lu par les lecteurs d'écran, seulement quand l'état change vraiment (pas à chaque
@@ -1690,6 +1692,7 @@ export const en = {
       announce: {
         offline:
           "You're offline. Your changes will be saved when you're back online.",
+        retrying: "The server didn't respond. Saving will try again shortly.",
         saved: "All changes saved.",
       },
       leave: {
@@ -1777,7 +1780,6 @@ export const en = {
       demande_invalide: "This request isn't valid. Reload the page.",
       sorte_invalide:
         "This content or template type isn't valid. Reload the page.",
-      parent_invalide: "This item can't be placed here.",
       contenu_introuvable: "This item no longer exists.",
       dans_la_corbeille: "This item is in the Trash. Restore it to edit it.",
       verrou_perdu:
