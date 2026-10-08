@@ -64,7 +64,7 @@ describe("Blog : l'onglet Catégories", () => {
     expect(
       rows.map((row) => within(row).getAllByRole("cell")[2].textContent)
     ).toEqual(["Sommeil", "Stress"])
-    // « Utilisée dans » : un lien et le nombre, ou un lien coupé.
+    // « État » : un lien (le nombre dans l'infobulle), ou un lien coupé.
     expect(
       within(rows[0]).getByRole("img", { name: labels.usesCount(3) })
     ).toBeVisible()
