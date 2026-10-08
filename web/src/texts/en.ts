@@ -1042,6 +1042,13 @@ export const en = {
     emptyDescription:
       "Categories are optional. Add some so readers can filter in the app.",
     noResults: "No categories match your search.",
+    // Filtre par état : utilisées par des brouillons ou non.
+    filters: {
+      label: "Status",
+      all: "All statuses",
+      used: "Used",
+      unused: "Unused",
+    },
     count: (shown: number, total: number) =>
       shown === total
         ? total === 1

@@ -64,7 +64,13 @@ describe("Blog : l'onglet Catégories", () => {
     expect(
       rows.map((row) => within(row).getAllByRole("cell")[2].textContent)
     ).toEqual(["Sommeil", "Stress"])
-    expect(within(rows[0]).getByText(labels.usesCount(3))).toBeVisible()
+    // « Utilisée dans » : un lien et le nombre, ou un lien coupé.
+    expect(
+      within(rows[0]).getByRole("img", { name: labels.usesCount(3) })
+    ).toHaveTextContent("3")
+    expect(
+      within(rows[1]).getByRole("img", { name: labels.usesCount(0) })
+    ).toBeVisible()
     expect(within(rows[0]).getByText("27 sept. 2026 à 14h30")).toBeVisible()
     expect(screen.getByRole("button", { name: labels.create })).toBeVisible()
     expect(
@@ -194,6 +200,23 @@ describe("Blog : l'onglet Catégories", () => {
       expect(categoriesApi.deleteCategory).toHaveBeenCalledTimes(2)
     )
     expect(await screen.findByText(labels.removedMany(2))).toBeVisible()
+  })
+
+  it("le filtre par état : utilisées ou non", async () => {
+    await renderApp("/blog?tab=categories")
+
+    fireEvent.click(
+      await screen.findByRole("combobox", { name: labels.filters.label })
+    )
+    const unused = await screen.findByRole("option", {
+      name: labels.filters.unused,
+    })
+    fireEvent.pointerDown(unused, { pointerType: "mouse" })
+    fireEvent.click(unused)
+
+    expect(await screen.findByRole("button", { name: "Stress" })).toBeVisible()
+    expect(screen.queryByRole("button", { name: "Sommeil" })).toBeNull()
+    expect(screen.getByText(labels.count(1, 2))).toBeVisible()
   })
 
   it("une recherche filtre les catégories et interdit de ranger", async () => {

@@ -1,17 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Ellipsis, Search, SquarePen, Tags, Trash2 } from "lucide-react"
+import {
+  Ellipsis,
+  FilterX,
+  Link as LinkIcon,
+  Search,
+  SquarePen,
+  Tags,
+  Trash2,
+  Unlink,
+} from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { SelectAllHead } from "@/components/bulk-selection"
 import { CategoryDialog } from "@/components/categories/category-dialog"
+import type { CategoriesBulk } from "@/components/categories/use-categories-bulk"
 import { SortableRow } from "@/components/contents/sortable-rows"
+import { IconBadge } from "@/components/icon-badge"
 import { ListCard, ListEmpty } from "@/components/list-card"
 import { SortableList } from "@/components/list-sorting"
 import { LoadState } from "@/components/load-state"
 import { SearchInput } from "@/components/search-input"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TrashDialog } from "@/components/trash-dialog"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -21,7 +33,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Spinner } from "@/components/ui/spinner"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -30,6 +48,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import {
   categoryKeys,
   createCategory,
@@ -49,8 +72,9 @@ import { texts } from "@/texts"
 const labels = texts.categories
 
 /**
- * L'onglet « Catégories » du Blog et des Podcasts, comme la liste des contenus : recherche,
- * cases et « Supprimer définitivement (n) », rangement dans l'ordre de l'app (glisser-déposer, sur
+ * L'onglet « Catégories » du Blog et des Podcasts, comme la liste des contenus : recherche, filtre
+ * par état (utilisées ou non), cases (« Supprimer définitivement (n) » est en tête de page,
+ * useCategoriesBulk), rangement dans l'ordre de l'app (glisser-déposer, sur
  * la liste complète), une ligne par catégorie (nom, brouillons qui la citent, date de création)
  * et son menu « … » (Modifier, Supprimer définitivement). « Nouvelle catégorie » (en tête de
  * page) et « Modifier » ouvrent la même fenêtre. Supprimer est définitif ([D28]) ; ces changements
@@ -60,10 +84,12 @@ export function CategoriesTab({
   section,
   creating,
   onCreatingChange,
+  bulk,
 }: {
   section: CategorySection
   creating: boolean
   onCreatingChange: (open: boolean) => void
+  bulk: CategoriesBulk
 }) {
   const queryClient = useQueryClient()
   const checkAccess = useAccessCheck()
@@ -78,20 +104,28 @@ export function CategoriesTab({
   }, [categories.error, checkAccess])
 
   const [search, setSearch] = useState("")
+  const [usage, setUsage] = useState<UsageFilter>("all")
   const [editing, setEditing] = useState<Category | null>(null)
   const [toRemove, setToRemove] = useState<Category | null>(null)
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
-  const [confirmMany, setConfirmMany] = useState(false)
+  const { selected, setSelected } = bulk
 
   const all = categories.data
   const shown = useMemo(() => {
     const wanted = normalizeSearch(search)
-    return (all ?? []).filter((category) =>
-      normalizeSearch(category.name).includes(wanted)
+    return (all ?? []).filter(
+      (category) =>
+        normalizeSearch(category.name).includes(wanted) &&
+        (usage === "all" || (usage === "used") === category.uses > 0)
     )
-  }, [all, search])
-  const filtering = search.trim() !== ""
-  // Les lignes cochées encore affichées (une catégorie supprimée ailleurs n'y est plus).
+  }, [all, search, usage])
+  const filtering = search.trim() !== "" || usage !== "all"
+  // Une recherche ou un filtre décoche ce qu'ils cachent : « Supprimer définitivement (n) » ne
+  // compte que les lignes affichées.
+  useEffect(() => {
+    const visible = new Set(shown.map((category) => category.id))
+    if ([...selected].some((id) => !visible.has(id)))
+      setSelected(new Set([...selected].filter((id) => visible.has(id))))
+  }, [shown, selected, setSelected])
   const checked = shown.filter((category) => selected.has(category.id))
 
   // Les listes du Blog ou des Podcasts montrent les noms : relues aussi.
@@ -138,32 +172,6 @@ export function CategoriesTab({
     },
   })
 
-  // Une à une : une catégorie qui a disparu entre-temps n'arrête pas les autres.
-  const removeMany = useMutation({
-    mutationFn: async (items: Category[]) => {
-      let done = 0
-      for (const item of items) {
-        try {
-          await deleteCategory(item.id)
-          done += 1
-        } catch (error) {
-          if (done > 0) toast.success(labels.removedMany(done))
-          throw error
-        }
-      }
-      return done
-    },
-    onSuccess: (done) => {
-      toast.success(labels.removedMany(done))
-      setSelected(new Set())
-    },
-    onError,
-    onSettled: async () => {
-      setConfirmMany(false)
-      await refresh()
-    },
-  })
-
   // L'ordre change tout de suite à l'écran ; il revient en arrière si la base refuse.
   const reorder = useMutation({
     mutationFn: (ids: string[]) => reorderCategories(section, ids),
@@ -187,7 +195,8 @@ export function CategoriesTab({
     onSettled: refresh,
   })
 
-  const busy = remove.isPending || removeMany.isPending || reorder.isPending
+  const busy =
+    remove.isPending || bulk.removeMany.isPending || reorder.isPending
   const toggle = (category: Category, on: boolean) =>
     setSelected((previous) =>
       on
@@ -243,14 +252,35 @@ export function CategoriesTab({
               placeholder={labels.searchPlaceholder}
               className="w-72"
             />
-            {checked.length > 0 && (
+            <Select
+              items={usageItems}
+              value={usage}
+              onValueChange={(value) => {
+                if (isUsageFilter(value)) setUsage(value)
+              }}
+            >
+              <SelectTrigger aria-label={labels.filters.label} className="w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {usageItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {filtering && (
               <Button
-                variant="destructive"
-                disabled={busy}
-                onClick={() => setConfirmMany(true)}
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearch("")
+                  setUsage("all")
+                }}
               >
-                {removeMany.isPending ? <Spinner /> : <Trash2 />}
-                {labels.removeMany(checked.length)}
+                <FilterX />
+                {texts.contentList.filters.reset}
               </Button>
             )}
             <p
@@ -317,15 +347,52 @@ export function CategoriesTab({
         onConfirm={() => toRemove && remove.mutate(toRemove)}
       />
       <TrashDialog
-        open={confirmMany && checked.length > 0}
+        open={bulk.confirming && checked.length > 0}
         title={labels.confirmRemoveMany.title(checked.length)}
         description={labels.confirmRemoveMany.description}
         confirmLabel={labels.confirmRemove.confirm}
-        pending={removeMany.isPending}
-        onCancel={() => setConfirmMany(false)}
-        onConfirm={() => removeMany.mutate(checked)}
+        pending={bulk.removeMany.isPending}
+        onCancel={() => bulk.setConfirming(false)}
+        onConfirm={() => bulk.removeMany.mutate(checked)}
       />
     </div>
+  )
+}
+
+// Filtre par état : toutes, celles que des brouillons citent, les autres.
+const usageFilters = ["all", "used", "unused"] as const
+type UsageFilter = (typeof usageFilters)[number]
+const usageItems = usageFilters.map((value) => ({
+  value,
+  label: labels.filters[value],
+}))
+function isUsageFilter(value: unknown): value is UsageFilter {
+  return usageFilters.includes(value as UsageFilter)
+}
+
+/**
+ * « Utilisée dans », comme l'utilisation d'un fichier dans la Médiathèque : un lien coupé si
+ * aucun brouillon ne la cite, sinon un lien et leur nombre ; le détail dans l'infobulle.
+ */
+function UsesCell({ uses }: { uses: number }) {
+  if (uses === 0) return <IconBadge icon={Unlink} label={labels.usesCount(0)} />
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Badge
+            variant="outline"
+            role="img"
+            aria-label={labels.usesCount(uses)}
+            className="tabular-nums"
+          />
+        }
+      >
+        <LinkIcon aria-hidden />
+        {uses}
+      </TooltipTrigger>
+      <TooltipContent>{labels.usesCount(uses)}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -415,8 +482,8 @@ function CategoryTable({
                     {category.name}
                   </button>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {labels.usesCount(category.uses)}
+                <TableCell>
+                  <UsesCell uses={category.uses} />
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatDateTime(category.created_at)}

@@ -1069,6 +1069,13 @@ export const fr: Texts = {
     emptyDescription:
       "Les catégories sont facultatives. Ajoutes-en pour que les lecteurs puissent filtrer dans l'app.",
     noResults: "Aucune catégorie ne correspond à ta recherche.",
+    // Filtre par état : utilisées par des brouillons ou non.
+    filters: {
+      label: "État",
+      all: "Tous les états",
+      used: "Utilisées",
+      unused: "Non utilisées",
+    },
     count: (shown: number, total: number) =>
       shown === total
         ? total === 1

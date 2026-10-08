@@ -23,6 +23,7 @@ import {
   type SelectAll,
 } from "@/components/bulk-selection"
 import { CategoriesTab } from "@/components/categories/categories-tab"
+import { useCategoriesBulk } from "@/components/categories/use-categories-bulk"
 import { ListCard, ListEmpty } from "@/components/list-card"
 import { CoverCell, SavedCell } from "@/components/contents/row-cells"
 import { useContentsSelection } from "@/components/contents/use-contents-selection"
@@ -45,6 +46,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Spinner } from "@/components/ui/spinner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -158,6 +160,7 @@ export function ContentListPage({
   const [tab, setTab] = useAddressState(listTabFromAddress, writeListTab)
   const onCategories = categorySection !== null && tab === "categories"
   const [creatingCategory, setCreatingCategory] = useState(false)
+  const categoryBulk = useCategoriesBulk()
   const [toTrash, setToTrash] = useState<ContentListItem | null>(null)
   // La recherche et les filtres, gardés dans l'adresse (on retrouve la liste en y revenant).
   const [filters, setFilters] = useAddressState(
@@ -403,10 +406,22 @@ export function ContentListPage({
         description={description}
         actions={
           onCategories ? (
-            <Button onClick={() => setCreatingCategory(true)}>
-              <Plus />
-              {texts.categories.create}
-            </Button>
+            <>
+              {categoryBulk.selected.size > 0 && (
+                <Button
+                  variant="destructive"
+                  disabled={categoryBulk.removeMany.isPending}
+                  onClick={() => categoryBulk.setConfirming(true)}
+                >
+                  {categoryBulk.removeMany.isPending ? <Spinner /> : <Trash2 />}
+                  {texts.categories.removeMany(categoryBulk.selected.size)}
+                </Button>
+              )}
+              <Button onClick={() => setCreatingCategory(true)}>
+                <Plus />
+                {texts.categories.create}
+              </Button>
+            </>
           ) : (
             <>
               <BulkTrashButton
@@ -437,6 +452,7 @@ export function ContentListPage({
               section={categorySection}
               creating={creatingCategory}
               onCreatingChange={setCreatingCategory}
+              bulk={categoryBulk}
             />
           </TabsContent>
         </Tabs>
