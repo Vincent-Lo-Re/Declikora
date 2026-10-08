@@ -5,14 +5,17 @@ import {
   Link as LinkIcon,
   TriangleAlert,
 } from "lucide-react"
+import type { ReactNode } from "react"
 import { Link } from "react-router"
 import { toast } from "sonner"
 
+import { SelectAllHead } from "@/components/bulk-selection"
 import { ListCard } from "@/components/list-card"
 import { LoadState } from "@/components/load-state"
 import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -132,12 +135,37 @@ export function UsesBadgeButton({
   )
 }
 
+/** Les lignes qu'on coche dans la fenêtre (catégories : « Retirer (n) »). */
+export type UsesSelection<T extends ContentUse> = {
+  selected: ReadonlySet<string>
+  onSelectedChange: (selected: ReadonlySet<string>) => void
+  // Une ligne qu'on ne peut pas cocher (l'action y est indisponible).
+  selectable: (use: T) => boolean
+}
+
+/** Où sert un contenu : en ligne, brouillon, copie, à la Corbeille (fichiers, modèles). */
+function WhereBadges({ use }: { use: ContentUse }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {use.in_app && (
+        <Badge variant="secondary">{texts.media.detail.inApp}</Badge>
+      )}
+      {use.in_draft && (
+        <Badge variant="outline">{texts.media.detail.inDraft}</Badge>
+      )}
+      {use.copied && <Badge variant="outline">{words.copied}</Badge>}
+      {use.in_trash && <Badge variant="outline">{words.inTrash}</Badge>}
+    </div>
+  )
+}
+
 /**
  * La fenêtre des utilisations : le nom de ce qui est utilisé et le nombre d'endroits, puis un
  * contenu par ligne (titre vers l'éditeur, section, en ligne, brouillon, à la Corbeille), avec
- * « Exporter ».
+ * « Exporter ». Les catégories y ajoutent l'état de chaque contenu (status), une action par ligne
+ * (action), des cases (selection) et un bouton en bas (footer).
  */
-export function UsesDialog({
+export function UsesDialog<T extends ContentUse>({
   open,
   onOpenChange,
   title,
@@ -146,18 +174,37 @@ export function UsesDialog({
   fileName,
   failed,
   empty,
+  status,
+  action,
+  selection,
+  footer,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
   // Le fichier ou la catégorie, sous le titre.
   subject: string
-  query: UseQueryResult<ContentUse[]>
+  query: UseQueryResult<T[]>
   fileName: string
   failed: string
   empty: string
+  // La colonne d'état, à la place de « Où » : son titre et sa cellule.
+  status?: { head: string; cell: (use: T) => ReactNode }
+  action?: (use: T) => ReactNode
+  selection?: UsesSelection<T>
+  footer?: ReactNode
 }) {
   const close = () => onOpenChange(false)
+  const selectable = selection
+    ? (query.data ?? []).filter(selection.selectable)
+    : []
+  const toggle = (id: string, checked: boolean) => {
+    if (!selection) return
+    const next = new Set(selection.selected)
+    if (checked) next.add(id)
+    else next.delete(id)
+    selection.onSelectedChange(next)
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
@@ -189,9 +236,38 @@ export function UsesDialog({
             <Table>
               <TableHeader>
                 <TableRow>
+                  {selection && (
+                    <SelectAllHead
+                      all={
+                        selectable.length > 0 &&
+                        selectable.every((use) =>
+                          selection.selected.has(use.content_id)
+                        )
+                      }
+                      some={
+                        selection.selected.size > 0 &&
+                        selection.selected.size < selectable.length
+                      }
+                      disabled={selectable.length === 0}
+                      onToggleAll={(checked) =>
+                        selection.onSelectedChange(
+                          new Set(
+                            checked
+                              ? selectable.map((use) => use.content_id)
+                              : []
+                          )
+                        )
+                      }
+                    />
+                  )}
                   <TableHead>{words.columns.title}</TableHead>
                   <TableHead>{words.columns.section}</TableHead>
-                  <TableHead>{words.columns.where}</TableHead>
+                  <TableHead>{status?.head ?? words.columns.where}</TableHead>
+                  {action && (
+                    <TableHead>
+                      <span className="sr-only">{texts.common.actions}</span>
+                    </TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -199,6 +275,20 @@ export function UsesDialog({
                   const section = contentSection(use.kind)
                   return (
                     <TableRow key={use.content_id}>
+                      {selection && (
+                        <TableCell className="w-0">
+                          <Checkbox
+                            aria-label={texts.selection.select(
+                              use.title?.trim() || texts.common.untitled
+                            )}
+                            checked={selection.selected.has(use.content_id)}
+                            disabled={!selection.selectable(use)}
+                            onCheckedChange={(checked) =>
+                              toggle(use.content_id, checked)
+                            }
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="max-w-72 truncate font-medium">
                         <UseTitle use={use} onNavigate={close} />
                       </TableCell>
@@ -209,25 +299,13 @@ export function UsesDialog({
                         </span>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1.5">
-                          {use.in_app && (
-                            <Badge variant="secondary">
-                              {texts.media.detail.inApp}
-                            </Badge>
-                          )}
-                          {use.in_draft && (
-                            <Badge variant="outline">
-                              {texts.media.detail.inDraft}
-                            </Badge>
-                          )}
-                          {use.copied && (
-                            <Badge variant="outline">{words.copied}</Badge>
-                          )}
-                          {use.in_trash && (
-                            <Badge variant="outline">{words.inTrash}</Badge>
-                          )}
-                        </div>
+                        {status ? status.cell(use) : <WhereBadges use={use} />}
                       </TableCell>
+                      {action && (
+                        <TableCell className="w-0 text-right">
+                          {action(use)}
+                        </TableCell>
+                      )}
                     </TableRow>
                   )
                 })}
@@ -236,6 +314,7 @@ export function UsesDialog({
           </ListCard>
         )}
         <DialogFooter>
+          {footer}
           <ExportUsesButton fileName={fileName} uses={query.data} />
           <Button onClick={close}>{texts.common.close}</Button>
         </DialogFooter>

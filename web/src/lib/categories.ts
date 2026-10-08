@@ -5,7 +5,10 @@
 
 import type { PostgrestError } from "@supabase/supabase-js"
 
+import { publicationStatus, type LiveState } from "@/lib/contents/publication"
 import type { TablesInsert } from "@/lib/database.types"
+import { isLockAlive } from "@/lib/editor/edit-lock"
+import { displayName, type PersonName } from "@/lib/people"
 import type { ContentUse } from "@/lib/uses-export"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
@@ -151,7 +154,26 @@ type UseRow = {
   kind: string
   title: string
   deleted_at: string | null
-  live: { category_ids: string[] } | null
+  draft_rev: number
+  first_published_at: string | null
+  scheduled_at: string | null
+  live: { category_ids: string[]; draft_rev: number } | null
+  lock: {
+    holder_id: string | null
+    heartbeat_at: string
+    holder: PersonName | null
+  } | null
+}
+
+/**
+ * Un contenu qui utilise une catégorie, avec ce qu'il faut pour savoir si on peut la lui retirer
+ * depuis la fenêtre (lib/contents/category-removal.ts) : son état de publication, sa
+ * programmation, et qui l'écrit en ce moment.
+ */
+export type CategoryUse = ContentUse & {
+  live_state: LiveState
+  scheduled: boolean
+  writer: { id: string; name: string } | null
 }
 
 /**
@@ -159,10 +181,11 @@ type UseRow = {
  * Corbeille comprise) et ceux dont la version en ligne la cite encore. Triés par titre.
  */
 export async function getCategoryUses(
-  categoryId: string
-): Promise<ContentUse[]> {
+  categoryId: string,
+  now = Date.now()
+): Promise<CategoryUse[]> {
   const columns =
-    "id, kind, title, deleted_at, live:versions!contents_live_version_fkey(category_ids)"
+    "id, kind, title, deleted_at, draft_rev, first_published_at, scheduled_at, live:versions!contents_live_version_fkey(category_ids, draft_rev), lock:edit_locks(holder_id, heartbeat_at, holder:profiles(full_name, email))"
   const [drafts, live] = await Promise.all([
     supabase
       .from("content_categories")
@@ -175,9 +198,10 @@ export async function getCategoryUses(
   ])
   if (drafts.error) throw toCategoryError(drafts.error)
   if (live.error) throw toCategoryError(live.error)
-  const byId = new Map<string, ContentUse>()
+  const byId = new Map<string, CategoryUse>()
   const add = (row: UseRow, inDraft: boolean) => {
     const known = byId.get(row.id)
+    const lock = row.lock
     byId.set(row.id, {
       content_id: row.id,
       kind: row.kind,
@@ -185,6 +209,19 @@ export async function getCategoryUses(
       in_draft: inDraft || (known?.in_draft ?? false),
       in_app: row.live?.category_ids.includes(categoryId) ?? false,
       in_trash: row.deleted_at !== null,
+      live_state: publicationStatus(
+        { ...row, schedule_error: null },
+        row.draft_rev,
+        now
+      ).live,
+      scheduled: row.scheduled_at !== null,
+      writer:
+        lock?.holder_id && isLockAlive(lock.heartbeat_at, now)
+          ? {
+              id: lock.holder_id,
+              name: displayName(lock.holder) ?? texts.editor.lock.someone,
+            }
+          : null,
     })
   }
   for (const { content } of drafts.data as unknown as { content: UseRow }[])

@@ -546,9 +546,39 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     await page.getByRole("button", { name: list.filters.reset }).click()
     await expect(row).toBeVisible()
 
-    // --- Supprimer la catégorie de l'article : définitif, l'app l'ignore ([D28]) -------
+    // --- Retirer la catégorie de l'article en ligne, depuis « État » : republié sans elle -----
     await page.getByRole("tab", { name: categories.tab }).click()
     await expect(page).toHaveURL(/\/blog\?tab=categories$/)
+    await page
+      .getByRole("button", { name: categories.uses.open(sommeil) })
+      .click()
+    const uses = page.getByRole("dialog", { name: categories.uses.title })
+    const useRow = uses.getByRole("row").filter({ hasText: title })
+    await expect(useRow).toContainText(categories.uses.states.live)
+    await useRow
+      .getByRole("button", { name: categories.uses.removeFrom(title) })
+      .click()
+    const removeConfirm = page.getByRole("alertdialog")
+    await expect(removeConfirm).toContainText(
+      categories.uses.confirm.republish(1)
+    )
+    await removeConfirm
+      .getByRole("button", { name: categories.uses.confirm.confirm })
+      .click()
+    await expect(
+      page.getByText(
+        [
+          categories.uses.done.removed(1),
+          categories.uses.done.republished(1),
+        ].join(" · ")
+      )
+    ).toBeVisible()
+    await expect(uses.getByText(categories.usesCount(0))).toBeVisible()
+    await expect.poll(async () => (await feedItem())?.categoryIds).toEqual([])
+    await page.keyboard.press("Escape")
+    await expect(uses).toHaveCount(0)
+
+    // --- Supprimer la catégorie : définitif, l'app l'ignore ([D28]) -----------------------
     await page
       .getByRole("button", { name: categories.actions(sommeil) })
       .click()
@@ -557,7 +587,7 @@ test("Blog : catégories rangées, article refusé sans image de présentation, 
     await expect(confirm).toContainText(
       categories.confirmRemove.description(sommeil)
     )
-    await expect(confirm).toContainText(categories.confirmRemove.uses(1))
+    await expect(confirm).toContainText(categories.confirmRemove.uses(0))
     await confirm
       .getByRole("button", { name: categories.confirmRemove.confirm })
       .click()

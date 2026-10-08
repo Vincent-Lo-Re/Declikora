@@ -1065,6 +1065,76 @@ export const fr: Texts = {
       open: (name: string) => `Voir où « ${name} » est utilisée`,
       title: "Où cette catégorie est utilisée",
       fileName: (name: string) => `utilisations-categorie-${name}.csv`,
+      // Retirer la catégorie d'un contenu, depuis la fenêtre : ce que fait « Retirer » dépend de
+      // l'état du contenu (lib/contents/category-removal.ts).
+      columns: { status: "État" },
+      remove: "Retirer",
+      removeFrom: (title: string) => `Retirer la catégorie de « ${title} »`,
+      removeMany: (count: number) => `Retirer (${count})`,
+      states: {
+        draft: "Brouillon",
+        withdrawn: "Retiré de l'app",
+        live: "En ligne",
+        modified: "Modifié",
+        scheduled: "Programmé",
+        writing: "En cours d'écriture",
+        trash: "À la Corbeille",
+      },
+      // L'infobulle de l'état : ce que « Retirer » fera, ou pourquoi il est indisponible.
+      tips: {
+        draft: "Pas dans l'app : la catégorie est retirée du brouillon.",
+        withdrawn: "Pas dans l'app : la catégorie est retirée du brouillon.",
+        live: "Dans l'app, sans autre modification : la catégorie est retirée et le contenu republié tout de suite.",
+        modified:
+          "Modifié depuis la publication : la catégorie est retirée du brouillon seulement, pour ne pas mettre en ligne un travail pas fini. Republie-le pour que l'app suive.",
+        notInDraft:
+          "Déjà retirée du brouillon, encore dans l'app : republie-le pour que l'app suive.",
+        scheduled: "Programmé : ouvre-le pour changer ses catégories.",
+        writing: (name: string) =>
+          `${name} l'écrit en ce moment : attends que ${name} ait fini.`,
+        writingSelf:
+          "Tu l'écris dans un autre onglet : change ses catégories là-bas.",
+        trash:
+          "À la Corbeille, il ne se modifie pas. Il perd la catégorie quand il est supprimé définitivement.",
+      },
+      confirm: {
+        title: (count: number) =>
+          count === 1
+            ? "Retirer la catégorie de 1 contenu ?"
+            : `Retirer la catégorie de ${count} contenus ?`,
+        draft: (count: number) =>
+          count === 1
+            ? "1 brouillon la perd. L'app ne change pas."
+            : `${count} brouillons la perdent. L'app ne change pas.`,
+        republish: (count: number) =>
+          count === 1
+            ? "1 contenu en ligne est republié sans elle, tout de suite."
+            : `${count} contenus en ligne sont republiés sans elle, tout de suite.`,
+        draftOnly: (count: number) =>
+          count === 1
+            ? "1 contenu modifié depuis la publication la perd dans son brouillon seulement. Republie-le pour que l'app suive."
+            : `${count} contenus modifiés depuis la publication la perdent dans leur brouillon seulement. Republie-les pour que l'app suive.`,
+        confirm: "Retirer",
+      },
+      // Le résumé, une fois fait.
+      done: {
+        removed: (count: number) =>
+          count === 1 ? "Retirée de 1 contenu" : `Retirée de ${count} contenus`,
+        republished: (count: number) =>
+          count === 1 ? "1 republié" : `${count} republiés`,
+        toRepublish: (count: number) => `${count} à republier`,
+        kept: (count: number) => (count === 1 ? "1 gardé" : `${count} gardés`),
+      },
+      // Programmé entre l'ouverture de la fenêtre et le clic.
+      scheduledNow:
+        "Il vient d'être programmé : ouvre-le pour changer ses catégories.",
+      heldBy: (name: string) =>
+        `${name} l'écrit en ce moment. Attends que ${name} ait fini.`,
+      heldSelf:
+        "Tu l'écris dans un autre onglet. Change ses catégories là-bas.",
+      yourselfElsewhere: "Toi (dans un autre onglet)",
+      notRepublished: (title: string, reason: string) =>
+        `« ${title} » a perdu la catégorie dans son brouillon, mais n'a pas été republié : ${reason}`,
     },
     create: "Nouvelle catégorie",
     // La fenêtre d'une catégorie : la créer, ou la modifier (menu « … », clic sur la ligne).

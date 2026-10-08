@@ -47,7 +47,7 @@ export type LockState = {
 const LOCK_TTL_MS = 90_000
 
 /** Vrai si le dernier signe de vie d'un verrou date de moins de 90 s. */
-function isLockAlive(heartbeatAt: string, now: number): boolean {
+export function isLockAlive(heartbeatAt: string, now: number): boolean {
   return now - new Date(heartbeatAt).getTime() < LOCK_TTL_MS
 }
 const HEARTBEAT_MS = 20_000

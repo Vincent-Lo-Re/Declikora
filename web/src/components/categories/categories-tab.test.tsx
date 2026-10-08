@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import * as categoriesApi from "@/lib/categories"
 import * as api from "@/lib/contents/api"
+import * as settingsApi from "@/lib/contents/settings"
 import * as templatesApi from "@/lib/contents/templates"
 import { renderApp } from "@/test/render"
 import { texts } from "@/texts"
@@ -19,6 +20,11 @@ vi.mock("@/lib/contents/api", async (importOriginal) => {
 vi.mock("@/lib/contents/templates", async (importOriginal) => {
   const actual = await importOriginal<typeof templatesApi>()
   return { ...actual, listStarters: vi.fn(async () => []) }
+})
+
+vi.mock("@/lib/contents/settings", async (importOriginal) => {
+  const actual = await importOriginal<typeof settingsApi>()
+  return { ...actual, removeCategory: vi.fn() }
 })
 
 vi.mock("@/lib/categories", async (importOriginal) => {
@@ -214,6 +220,9 @@ describe("Blog : l'onglet Catégories", () => {
         in_draft: true,
         in_app: true,
         in_trash: false,
+        live_state: "live",
+        scheduled: false,
+        writer: null,
       },
       {
         content_id: "a2",
@@ -222,6 +231,9 @@ describe("Blog : l'onglet Catégories", () => {
         in_draft: true,
         in_app: false,
         in_trash: true,
+        live_state: "withdrawn",
+        scheduled: false,
+        writer: null,
       },
     ])
     await renderApp("/blog?tab=categories")
@@ -237,10 +249,100 @@ describe("Blog : l'onglet Catégories", () => {
       await within(dialog).findByRole("link", { name: "Bien dormir" })
     ).toHaveAttribute("href", "/blog/a1")
     const trashed = within(dialog).getByRole("row", { name: /Ancien article/ })
-    expect(within(trashed).getByText(texts.uses.inTrash)).toBeVisible()
+    expect(within(trashed).getByText(labels.uses.states.trash)).toBeVisible()
     expect(
       within(dialog).getByRole("button", { name: texts.uses.export })
     ).toBeEnabled()
+  })
+
+  it("« Retirer » suit l'état de chaque contenu : republié, brouillon seulement, ou indisponible", async () => {
+    const use = {
+      kind: "article",
+      in_draft: true,
+      in_app: true,
+      in_trash: false,
+      scheduled: false,
+      writer: null,
+    }
+    vi.mocked(categoriesApi.getCategoryUses).mockResolvedValue([
+      { ...use, content_id: "a1", title: "En ligne", live_state: "live" },
+      { ...use, content_id: "a2", title: "Modifié", live_state: "modified" },
+      {
+        ...use,
+        content_id: "a3",
+        title: "Programmé",
+        live_state: "live",
+        scheduled: true,
+      },
+      {
+        ...use,
+        content_id: "a4",
+        title: "Écrit",
+        live_state: "draft",
+        in_app: false,
+        writer: { id: "u2", name: "Marie" },
+      },
+    ])
+    vi.mocked(settingsApi.removeCategory)
+      .mockResolvedValueOnce({ result: "republished" })
+      .mockResolvedValueOnce({ result: "draftOnly", publishError: null })
+    await renderApp("/blog?tab=categories")
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: labels.uses.open("Sommeil") })
+    )
+    const dialog = await screen.findByRole("dialog", {
+      name: labels.uses.title,
+    })
+    const row = (title: string) =>
+      within(dialog).getByRole("row", { name: new RegExp(title) })
+    await within(dialog).findByRole("link", { name: "En ligne" })
+    // L'état, avec ce que fera « Retirer » pour les lecteurs d'écran.
+    expect(row("Programmé")).toHaveTextContent(labels.uses.states.scheduled)
+    expect(row("Écrit")).toHaveTextContent(labels.uses.tips.writing("Marie"))
+    expect(
+      within(row("Programmé")).getByRole("button", {
+        name: labels.uses.removeFrom("Programmé"),
+      })
+    ).toBeDisabled()
+    expect(
+      within(row("Écrit")).getByRole("checkbox", {
+        name: texts.selection.select("Écrit"),
+      })
+    ).toHaveAttribute("aria-disabled", "true")
+
+    // Tout cocher ne coche que ce qu'on peut retirer.
+    fireEvent.click(
+      within(dialog).getByRole("checkbox", { name: texts.selection.selectAll })
+    )
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: labels.uses.removeMany(2) })
+    )
+    const confirm = await screen.findByRole("alertdialog", {
+      name: labels.uses.confirm.title(2),
+    })
+    expect(confirm).toHaveTextContent(labels.uses.confirm.republish(1))
+    expect(confirm).toHaveTextContent(labels.uses.confirm.draftOnly(1))
+    fireEvent.click(
+      within(confirm).getByRole("button", {
+        name: labels.uses.confirm.confirm,
+      })
+    )
+
+    await waitFor(() =>
+      expect(settingsApi.removeCategory).toHaveBeenCalledTimes(2)
+    )
+    expect(vi.mocked(settingsApi.removeCategory).mock.calls[0][0]).toBe("a1")
+    expect(vi.mocked(settingsApi.removeCategory).mock.calls[0][1]).toBe("c1")
+    expect(
+      await screen.findByText(
+        [
+          labels.uses.done.removed(2),
+          labels.uses.done.republished(1),
+          labels.uses.done.toRepublish(1),
+        ].join(" · ")
+      )
+    ).toBeVisible()
   })
 
   it("le filtre par état : utilisées ou non", async () => {
