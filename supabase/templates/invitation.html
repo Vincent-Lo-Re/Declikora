@@ -1,33 +1,46 @@
 <!doctype html>
-<html lang="fr">
+<html lang="{{ if and .Data.language (eq .Data.language "fr") }}fr{{ else }}en{{ end }}">
   <head>
+    <!--
+      Invitation : lien vers la page /invitation de l'admin, qui demande un clic avant de valider.
+      Deux langues : le français si le membre l'a choisi (user_metadata.language, Mon compte ou
+      l'invitation), sinon l'anglais, la langue de départ (ADMIN § 7, « En anglais et en français »).
+    -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Ton invitation à rejoindre l'équipe</title>
+    <title>{{ if and .Data.language (eq .Data.language "fr") }}Ton invitation à rejoindre l'équipe{{ else }}You're invited to join the team{{ end }}</title>
   </head>
   <body style="margin: 0; padding: 24px; background: #f5f5f5; font-family: Inter, Arial, sans-serif; color: #171717">
     <div style="max-width: 480px; margin: 0 auto; padding: 32px; background: #ffffff; border-radius: 12px">
+      {{ if and .Data.language (eq .Data.language "fr") }}
       <h1 style="margin: 0 0 16px; font-size: 20px">Bienvenue dans l'équipe</h1>
-      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5">
-        {{ if .Data.full_name }}Bonjour {{ .Data.full_name }},{{ else }}Bonjour,{{ end }}
-      </p>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5">{{ if .Data.full_name }}Bonjour {{ .Data.full_name }},{{ else }}Bonjour,{{ end }}</p>
       <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.5">
         Un admin t'invite à rejoindre l'équipe de ton administration. Clique sur le bouton
         ci-dessous, puis configure la double vérification avec une app de ton téléphone.
       </p>
       <p style="margin: 0 0 24px">
-        <a
-          href="{{ .SiteURL }}/invitation?token_hash={{ .TokenHash }}&type=invite"
-          style="display: inline-block; padding: 12px 20px; background: #171717; color: #ffffff; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none"
-          >Accepter l'invitation</a
-        >
+        <a href="{{ .SiteURL }}/invitation?token_hash={{ .TokenHash }}&type=invite" style="display: inline-block; padding: 12px 20px; background: #171717; color: #ffffff; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none">Accepter l'invitation</a>
       </p>
       <p style="margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: #525252">
         Ce lien est valable 10 minutes. S'il a expiré, demande à un admin de te renvoyer l'invitation.
       </p>
-      <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #525252">
-        Si tu ne t'attendais pas à cette invitation, ignore cet e-mail.
+      <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #525252">Si tu ne t'attendais pas à cette invitation, ignore cet e-mail.</p>
+      {{ else }}
+      <h1 style="margin: 0 0 16px; font-size: 20px">Welcome to the team</h1>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5">{{ if .Data.full_name }}Hi {{ .Data.full_name }},{{ else }}Hi,{{ end }}</p>
+      <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.5">
+        An admin has invited you to join the team. Click the button below, then set up two-step
+        verification with an authenticator app on your phone.
       </p>
+      <p style="margin: 0 0 24px">
+        <a href="{{ .SiteURL }}/invitation?token_hash={{ .TokenHash }}&type=invite" style="display: inline-block; padding: 12px 20px; background: #171717; color: #ffffff; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none">Accept invitation</a>
+      </p>
+      <p style="margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: #525252">
+        This link is valid for 10 minutes. If it has expired, ask an admin to resend your invitation.
+      </p>
+      <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #525252">If you weren't expecting this invitation, you can ignore this email.</p>
+      {{ end }}
     </div>
   </body>
 </html>
