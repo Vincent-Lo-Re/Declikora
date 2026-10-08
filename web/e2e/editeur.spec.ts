@@ -335,7 +335,10 @@ test("une image insérée apparaît dans « Utilisé dans » et ne peut plus all
     ])
   const card = page.getByRole("button", { name: texts.media.open(fileName) })
   await expect(
-    card.getByRole("img", { name: texts.media.status.ready })
+    page
+      .getByRole("listitem")
+      .filter({ has: card })
+      .getByRole("img", { name: texts.media.status.ready })
   ).toBeVisible({
     timeout: 60_000,
   })

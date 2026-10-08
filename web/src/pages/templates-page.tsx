@@ -71,14 +71,13 @@ import {
   listTemplateUses,
   templateKeys,
   templateSorts,
-  templateUsage,
   type NewTemplate,
   type TemplateItem,
   type TemplateSort,
 } from "@/lib/contents/templates"
 import { errorMessage } from "@/lib/errors"
 import { kickFiles } from "@/lib/media/api"
-import { templateListRead } from "@/lib/reads"
+import { templateListRead, templateUsageRead } from "@/lib/reads"
 import { refreshAfterContentTrash } from "@/lib/refresh"
 import { editorPath, sections } from "@/navigation"
 import { texts } from "@/texts"
@@ -140,10 +139,7 @@ export function TemplatesPage() {
     writeTemplateTab
   )
   // Le nombre d'endroits où chaque modèle sert : colonne « État » et onglet « Non utilisés ».
-  const usage = useQuery({
-    queryKey: templateKeys.usage,
-    queryFn: templateUsage,
-  })
+  const usage = useQuery(templateUsageRead())
   const usesOf = (item: TemplateItem) => usage.data?.get(item.id) ?? 0
   const shown = useMemo(
     () =>

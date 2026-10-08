@@ -48,9 +48,14 @@ function uniqueId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 }
 
-/** La carte d'un fichier dans la grille. */
+/** La carte d'un fichier dans la grille : la vignette et le nom, qui ouvrent sa fiche. */
 function card(page: Page, name: string) {
   return page.getByRole("button", { name: texts.media.open(name) })
+}
+
+/** Toute la case d'un fichier dans la grille, avec ses pastilles (état, utilisation) sous la carte. */
+function tile(page: Page, name: string) {
+  return page.getByRole("listitem").filter({ has: card(page, name) })
 }
 
 /** La fenêtre des envois, en bas à droite. */
@@ -115,7 +120,7 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
   // Les deux passent à « Prêt » (le SVG après la vérification du serveur).
   for (const name of [photoName, svgName]) {
     await expect(
-      card(page, name).getByRole("img", { name: texts.media.status.ready })
+      tile(page, name).getByRole("img", { name: texts.media.status.ready })
     ).toBeVisible({
       timeout: 60_000,
     })
@@ -190,7 +195,7 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
   await trashed.getByRole("button", { name: texts.media.detail.undo }).click()
   await expect(page.getByText(texts.media.detail.restored)).toBeVisible()
   await expect(
-    card(page, photoName).getByRole("img", { name: texts.media.status.ready })
+    tile(page, photoName).getByRole("img", { name: texts.media.status.ready })
   ).toBeVisible()
 
   // Corbeille de nouveau : le fichier quitte la médiathèque, son objet reste.
@@ -211,7 +216,7 @@ test("un membre envoie une photo et un SVG piégé, décrit la photo, la met à 
 
   await page.goto("/media")
   await expect(
-    card(page, photoName).getByRole("img", { name: texts.media.status.ready })
+    tile(page, photoName).getByRole("img", { name: texts.media.status.ready })
   ).toBeVisible()
   expect(await readMedia(photoName)).toMatchObject({
     id: photo!.id,
@@ -288,7 +293,7 @@ test("un SVG piégé envoyé sans passer par l'admin est refusé par le serveur"
       refused!.reject_reason as keyof typeof texts.media.rejectReasons
     ]
   await expect(
-    card(page, svgName).getByRole("img", {
+    tile(page, svgName).getByRole("img", {
       name: texts.media.rejectedBecause(reason),
     })
   ).toBeVisible()
@@ -357,7 +362,7 @@ test("un membre envoie les autres formats, filtre, cherche, en met deux à la co
   await expect(uploadWindow(page)).toHaveCount(0)
   for (const name of [names.gif, names.lottie, names.pdf, names.audio]) {
     await expect(
-      card(page, name).getByRole("img", { name: texts.media.status.ready })
+      tile(page, name).getByRole("img", { name: texts.media.status.ready })
     ).toBeVisible({
       timeout: 60_000,
     })
@@ -399,7 +404,7 @@ test("un membre envoie les autres formats, filtre, cherche, en met deux à la co
   // Aucun de ces fichiers ne sert encore : badge « Non utilisé », et le filtre « Non utilisés »
   // (colonne calculée par la base) les garde.
   await expect(
-    card(page, names.audio).getByRole("img", { name: texts.media.unused })
+    tile(page, names.audio).getByRole("img", { name: texts.media.unused })
   ).toBeVisible()
   const unusedFilter = page.getByRole("button", {
     name: texts.media.filters.unused,
