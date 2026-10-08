@@ -1,9 +1,12 @@
+import { language, locale } from "@/lib/language"
 import { texts } from "@/texts"
 
-// Toutes les dates de l'administration sont à l'heure de Paris.
+// Toutes les dates de l'administration sont à l'heure de Paris, quelle que soit la langue ;
+// seule leur écriture change (« 27 sept. 2026 à 14h30 », « Sep 27, 2026, 2:30 PM »).
 const timeZone = "Europe/Paris"
+const french = language === "fr"
 
-const dateFormat = new Intl.DateTimeFormat("fr-FR", {
+const dateFormat = new Intl.DateTimeFormat(locale, {
   day: "numeric",
   month: "short",
   year: "numeric",
@@ -17,15 +20,24 @@ const timeFormat = new Intl.DateTimeFormat("fr-FR", {
   timeZone,
 })
 
-/** L'heure à la française, à l'heure de Paris : « 18h42 », « 09h05 ». */
+// En anglais, l'heure sur 12 heures : « 6:42 PM ».
+const englishTimeFormat = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZone,
+})
+
+/** L'heure à l'heure de Paris : « 18h42 », « 09h05 » ; « 6:42 PM » en anglais. */
 function formatTime(value: Date): string {
+  if (!french) return englishTimeFormat.format(value)
   const parts = timeFormat.formatToParts(value)
   const hour = parts.find((part) => part.type === "hour")?.value ?? ""
   const minute = parts.find((part) => part.type === "minute")?.value ?? ""
   return `${hour}${texts.dates.hour}${minute}`
 }
 
-const dayFormat = new Intl.DateTimeFormat("fr-FR", {
+const dayFormat = new Intl.DateTimeFormat(locale, {
   day: "numeric",
   month: "short",
   timeZone,
@@ -47,27 +59,35 @@ export function formatShortDateTime(
   }
 }
 
-/** « 27 sept. 2026 à 18h42 », à l'heure de Paris. */
+/** « 27 sept. 2026 à 18h42 », « Sep 27, 2026, 6:42 PM » en anglais, à l'heure de Paris. */
 export function formatDateTime(date: Date | string): string {
   const value = typeof date === "string" ? new Date(date) : date
+  if (!french) return `${dateFormat.format(value)}, ${formatTime(value)}`
   return `${dateFormat.format(value)} ${texts.dates.at} ${formatTime(value)}`
 }
 
 // ---------------------------------------------------------------------------------------------
-// Saisie d'un jour et d'une heure à la française (fenêtre « Programmer ») : « 25/10/2099 »,
-// « 08h00 ». Les calculs gardent les formats ISO (« 2099-10-25 », « 08:00 »).
+// Saisie d'un jour et d'une heure (fenêtre « Programmer ») : à la française, « 25/10/2099 » et
+// « 08h00 » ; à l'américaine en anglais, « 10/25/2099 » et « 8:00 AM ». Les calculs gardent les
+// formats ISO (« 2099-10-25 », « 08:00 »).
 // ---------------------------------------------------------------------------------------------
 
 const DAY_INPUT = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
 const TIME_INPUT = /^(\d{1,2})\s*[h:]\s*(\d{2})?$/i
+// « 8:00 AM », « 8 am », « 8:00pm », « 8 p.m. », ou sur 24 heures « 14:30 ».
+const ENGLISH_TIME_INPUT = /^(\d{1,2})(?::(\d{2}))?\s*(?:([ap])\.?\s*m\.?)?$/i
 
 const pad = (value: number) => String(value).padStart(2, "0")
 
-/** « 25/10/2099 » (ou « 5/3/2099 ») → « 2099-10-25 » ; null si ce n'est pas un jour qui existe. */
+/**
+ * « 25/10/2099 » (ou « 5/3/2099 ») → « 2099-10-25 » ; en anglais, « 10/25/2099 ». Null si ce
+ * n'est pas un jour qui existe.
+ */
 export function parseDayInput(text: string): string | null {
   const match = DAY_INPUT.exec(text.trim())
   if (!match) return null
-  const [day, month, year] = match.slice(1).map(Number)
+  const [first, second, year] = match.slice(1).map(Number)
+  const [day, month] = french ? [first, second] : [second, first]
   const check = new Date(Date.UTC(year, month - 1, day))
   if (
     check.getUTCFullYear() !== year ||
@@ -79,14 +99,18 @@ export function parseDayInput(text: string): string | null {
   return `${year}-${pad(month)}-${pad(day)}`
 }
 
-/** « 2099-10-25 » → « 25/10/2099 ». */
+/** « 2099-10-25 » → « 25/10/2099 » ; « 10/25/2099 » en anglais. */
 export function formatDayInput(iso: string): string {
   const [year, month, day] = iso.split("-")
-  return `${day}/${month}/${year}`
+  return french ? `${day}/${month}/${year}` : `${month}/${day}/${year}`
 }
 
-/** « 8h05 », « 08h05 », « 8h », « 08:05 » → « 08:05 » ; null sinon. */
+/**
+ * « 8h05 », « 08h05 », « 8h », « 08:05 » → « 08:05 » ; en anglais, « 8:05 AM », « 8 pm »,
+ * « 20:05 ». Null sinon.
+ */
 export function parseTimeInput(text: string): string | null {
+  if (!french) return parseEnglishTime(text)
   const match = TIME_INPUT.exec(text.trim())
   if (!match) return null
   const hours = Number(match[1])
@@ -95,9 +119,30 @@ export function parseTimeInput(text: string): string | null {
   return `${pad(hours)}:${pad(minutes)}`
 }
 
-/** « 08:05 » → « 08h05 ». */
+function parseEnglishTime(text: string): string | null {
+  const match = ENGLISH_TIME_INPUT.exec(text.trim())
+  if (!match) return null
+  const [, hourText, minuteText, half] = match
+  let hours = Number(hourText)
+  const minutes = Number(minuteText ?? "0")
+  if (minutes > 59) return null
+  if (half) {
+    if (hours < 1 || hours > 12) return null
+    hours = (hours % 12) + (half.toLowerCase() === "p" ? 12 : 0)
+  } else if (minuteText === undefined || hours > 23) {
+    // Sans AM ni PM, seulement l'heure sur 24 heures avec ses minutes (« 14:30 »).
+    return null
+  }
+  return `${pad(hours)}:${pad(minutes)}`
+}
+
+/** « 08:05 » → « 08h05 » ; « 8:05 AM » en anglais. */
 export function formatTimeInput(time: string): string {
   const [hours, minutes] = time.split(":")
+  if (!french) {
+    const hour = Number(hours)
+    return `${hour % 12 || 12}:${minutes} ${hour < 12 ? "AM" : "PM"}`
+  }
   return `${hours}${texts.dates.hour}${minutes}`
 }
 

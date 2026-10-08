@@ -13,7 +13,7 @@
 | Boutons | Un verbe à l'infinitif, deux à quatre mots | A verb, two to four words |
 | Messages | Ce qui s'est passé, puis ce qu'on peut faire | What happened, then what you can do |
 | Ponctuation | Espace insécable (U+00A0) avant « : ; ! ? » et à l'intérieur des guillemets « », vérifiée par `web/src/texts.test.ts` ; « … » | No space before punctuation; curly quotes “ ” in texts |
-| Majuscules | Les noms de section (Médiathèque, Corbeille) et de l'éditeur (Plan, Blocs, Lecture, Édition, Concentration) ; le geste en minuscule (« mettre à la corbeille ») | Same nouns capitalized (Media library, Trash, Outline…) |
+| Majuscules | Les noms de section (Médiathèque, Corbeille) et de l'éditeur (Plan, Blocs, Lecture, Édition, Concentration) ; la Corbeille comme lieu aussi (« dans la Corbeille », « restaurer depuis la Corbeille », « La Corbeille est vide ») ; le geste en minuscule (« Mettre à la corbeille », « Vider la corbeille ») | Same nouns capitalized (Media library, Trash, Outline…) |
 | Anglais : règles fixées le 07/10/2026 (QCM) | — | “Trash” always capitalized, as a place: “the Trash”, “Move to Trash”, “Empty Trash” (WordPress); Oxford comma in every list (“images, audio, and PDFs”); “e.g.” in placeholders; straight apostrophes ' |
 
 ## Lieux de l'admin

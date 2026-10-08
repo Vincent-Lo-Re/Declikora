@@ -52,6 +52,8 @@ export default defineConfig({
       VITE_SENTRY_DSN: "",
       // Le contrôle des lectures non préparées (e2e/navigation.spec.ts).
       VITE_PREPARATION_CHECK: "1",
+      // L'admin en français, comme les textes que lisent les parcours (texts/fr.ts).
+      VITE_DEFAULT_LANGUAGE: "fr",
     },
   },
 })

@@ -36,14 +36,22 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
-import { saveFullName } from "@/lib/auth"
+import { saveFullName, saveLanguage } from "@/lib/auth"
 import { formatDateTime } from "@/lib/dates"
+import { applyLanguage, language, LANGUAGES, isLanguage } from "@/lib/language"
 import { profileSchema } from "@/lib/schemas"
 import { sections } from "@/navigation"
 import { texts } from "@/texts"
 
-/** Mon compte : profil, double vérification, thème (clair, sombre ou automatique, et les couleurs) et son aperçu. */
+/** Mon compte : profil, double vérification, langue, thème (clair, sombre ou automatique, et les couleurs) et son aperçu. */
 export function AccountPage() {
   const { profile, factor } = useAuth()
   const { title, description } = texts.sections.account
@@ -59,6 +67,8 @@ export function AccountPage() {
         {profile && <ProfileCard profile={profile} />}
 
         <MfaCard factor={factor} />
+
+        <LanguageCard />
 
         <Section
           title={texts.theme.title}
@@ -219,7 +229,7 @@ function ProfileCard({ profile }: { profile: Profile }) {
               <div className="flex items-center justify-between">
                 <FieldLabel htmlFor="account-email">{labels.email}</FieldLabel>
                 <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                  <span className="sr-only">{labels.role} : </span>
+                  <span className="sr-only">{labels.rolePrefix}</span>
                   {texts.roles[profile.role]}
                 </span>
               </div>
@@ -235,5 +245,47 @@ function ProfileCard({ profile }: { profile: Profile }) {
         </CardContent>
       </Card>
     </form>
+  )
+}
+
+const languageItems = LANGUAGES.map((value) => ({
+  value,
+  label: texts.languages[value],
+}))
+
+/** La langue de l'admin pour ce membre : rangée sur son compte, puis la page se recharge. */
+function LanguageCard() {
+  const labels = texts.account.language
+  const save = useMutation({
+    mutationFn: saveLanguage,
+    onSuccess: (_, chosen) => applyLanguage(chosen),
+    onError: () => toast.error(labels.failed),
+  })
+
+  return (
+    <Section title={labels.title} description={labels.description}>
+      <Field>
+        <FieldLabel htmlFor="account-language">{labels.label}</FieldLabel>
+        <Select
+          items={languageItems}
+          value={save.isPending ? save.variables : language}
+          disabled={save.isPending}
+          onValueChange={(value) => {
+            if (isLanguage(value) && value !== language) save.mutate(value)
+          }}
+        >
+          <SelectTrigger id="account-language" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {languageItems.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+    </Section>
   )
 }

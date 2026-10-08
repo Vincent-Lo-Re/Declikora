@@ -16,6 +16,7 @@ import {
 import type { Tables, TablesInsert } from "@/lib/database.types"
 import { decodeImage, reduceImage } from "@/lib/media/image"
 import { cleanSvg } from "@/lib/media/svg"
+import { locale } from "@/lib/language"
 import { DEFAULT_MOTIONS, isMotion, type Motion } from "@/lib/monogram-motion"
 import { palettePresets, presetLogoColors, type PresetId } from "@/lib/palettes"
 import { supabase } from "@/lib/supabase"
@@ -425,7 +426,7 @@ export function tabTitle(title: string, brand: string): string {
 
 /** L'initiale de la marque, en capitale (« Essaim » : « E ») ; vide tant que le nom n'est pas lu. */
 export function brandInitial(brand: string): string {
-  return Array.from(brand.trim())[0]?.toLocaleUpperCase("fr") ?? ""
+  return Array.from(brand.trim())[0]?.toLocaleUpperCase(locale) ?? ""
 }
 
 /**

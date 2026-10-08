@@ -32,6 +32,26 @@ describe("Mon compte", () => {
     expect(screen.getByText(texts.account.mfa.configured)).toBeVisible()
   })
 
+  it("la langue : rangée sur le compte du membre, avec un message si l'enregistrement échoue", async () => {
+    const updateUser = vi.spyOn(supabase.auth, "updateUser").mockResolvedValue({
+      data: { user: null },
+      error: new Error("hors ligne"),
+    } as never)
+    await renderApp("/account", fakeAuth({ role: "editor" }))
+    const labels = texts.account.language
+
+    fireEvent.click(screen.getByRole("combobox", { name: labels.label }))
+    const english = await screen.findByRole("option", {
+      name: texts.languages.en,
+    })
+    // Base UI ne retient un clic de souris que s'il a commencé sur l'option.
+    fireEvent.pointerDown(english, { pointerType: "mouse" })
+    fireEvent.click(english)
+
+    expect(await screen.findByText(labels.failed)).toBeVisible()
+    expect(updateUser).toHaveBeenCalledWith({ data: { language: "en" } })
+  })
+
   it("refuse un nom trop long sans rien envoyer", async () => {
     const from = vi.spyOn(supabase, "from")
     await renderApp("/account")

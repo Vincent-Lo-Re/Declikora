@@ -1,11 +1,13 @@
+import { locale } from "@/lib/language"
 import { texts } from "@/texts"
 
-// Affichage des tailles, durées et dimensions, en français (unités dans texts.media.units).
+// Affichage des tailles, durées et dimensions, dans la langue de l'admin (unités dans
+// texts.media.units).
 
 const units = texts.media.units
 
-const oneDecimal = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 })
-const integer = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 })
+const oneDecimal = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 })
+const integer = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 })
 
 const KB = 1024
 const MB = 1024 * KB

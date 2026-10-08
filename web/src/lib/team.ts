@@ -1,6 +1,7 @@
 import { FunctionsHttpError } from "@supabase/supabase-js"
 
 import type { Database } from "@/lib/database.types"
+import type { Language } from "@/lib/language"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
 
@@ -24,7 +25,14 @@ export type Member = {
 
 export type TeamRequest =
   | { action: "list" }
-  | { action: "invite"; email: string; full_name: string; role: TeamRole }
+  | {
+      action: "invite"
+      email: string
+      full_name: string
+      role: TeamRole
+      // La langue de l'admin qui invite : celle des e-mails du membre, et de son admin au départ.
+      language: Language
+    }
   | { action: "resend"; user_id: string }
   | { action: "set_role"; user_id: string; role: TeamRole }
   | { action: "remove"; user_id: string }

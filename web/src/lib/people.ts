@@ -1,3 +1,5 @@
+import { locale } from "@/lib/language"
+
 /** Le nom et l'e-mail d'un membre, tels que les lectures les donnent (profiles). */
 export type PersonName = { full_name: string | null; email: string }
 
@@ -15,5 +17,5 @@ export function displayName(person: PersonName | null): string | null {
  */
 export function initial({ full_name, email }: PersonName): string {
   const firstWord = (full_name ?? "").trim().split(/\s+/)[0] || email.trim()
-  return (Array.from(firstWord)[0] ?? "").toLocaleUpperCase("fr")
+  return (Array.from(firstWord)[0] ?? "").toLocaleUpperCase(locale)
 }
