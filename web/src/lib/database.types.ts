@@ -532,6 +532,40 @@ export type Database = {
           },
         ]
       }
+      template_copies: {
+        Row: {
+          content_id: string
+          copied_at: string
+          template_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          content_id: string
+          copied_at?: string
+          template_id: string
+        }
+        Update: {
+          content_id?: string
+          copied_at?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_copies_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_copies_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       versions: {
         Row: {
           access_level_id: string | null
