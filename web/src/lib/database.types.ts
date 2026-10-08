@@ -82,6 +82,7 @@ export type Database = {
         Row: {
           contact_email: string | null
           id: boolean
+          language: string
           login_image: string | null
           login_monogram_motion: boolean
           login_monogram_motions: string[]
@@ -95,6 +96,7 @@ export type Database = {
         Insert: {
           contact_email?: string | null
           id?: boolean
+          language?: string
           login_image?: string | null
           login_monogram_motion?: boolean
           login_monogram_motions?: string[]
@@ -107,6 +109,7 @@ export type Database = {
         Update: {
           contact_email?: string | null
           id?: boolean
+          language?: string
           login_image?: string | null
           login_monogram_motion?: boolean
           login_monogram_motions?: string[]
@@ -647,6 +650,7 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: {
           contact_email: string
+          language: string
           login_image: string
           login_monogram_motion: boolean
           login_monogram_motions: string[]

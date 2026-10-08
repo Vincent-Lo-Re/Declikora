@@ -6,7 +6,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(53);
+select plan(58);
 
 select pg_temp.create_people();
 
@@ -269,6 +269,27 @@ select is(
 );
 select pg_temp.as_anon();
 select is((select contact_email from public.admin_brand()), 'aide@exemple.fr', 'anon : l''adresse de contact');
+select pg_temp.as_person('admin');
+
+-- La langue de toute l'admin : l'anglais au départ ; un admin la change (en ou fr seulement), un
+-- éditeur non ; tout le monde la lit par admin_brand().
+select is((select language from public.admin_brand()), 'en', 'l''anglais au départ');
+select pg_temp.as_person('editor');
+select is(
+  pg_temp.affected($$update public.admin_identity set language = 'fr'$$), 0,
+  'éditeur : ne change pas la langue de l''admin'
+);
+select pg_temp.as_person('admin');
+select throws_ok(
+  $$update public.admin_identity set language = 'de'$$, '23514', null,
+  'une langue inconnue est refusée'
+);
+select is(
+  pg_temp.affected($$update public.admin_identity set language = 'fr'$$), 1,
+  'admin : choisit le français pour toute l''admin'
+);
+select pg_temp.as_anon();
+select is((select language from public.admin_brand()), 'fr', 'anon : la langue de l''admin');
 select pg_temp.as_person('admin');
 
 -- Une seule ligne : ni ajout ni suppression, même pour un admin.
