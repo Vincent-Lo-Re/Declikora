@@ -81,33 +81,36 @@ export function MediaGrid({
                   onCheckedChange={(value) => onSelect(media, value)}
                 />
               </div>
-              <button
-                type="button"
-                className="group w-full rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                // Pendant une sélection, la vignette entière coche ou décoche le fichier.
-                aria-label={
-                  selecting
-                    ? texts.selection.select(media.name)
-                    : texts.media.open(media.name)
-                }
-                aria-pressed={selecting ? checked : undefined}
-                // Au clavier, la case suffit : pas deux arrêts pour le même fichier.
-                tabIndex={selecting ? -1 : undefined}
-                aria-describedby={`media-${media.id}-etat`}
-                data-media-open={media.id}
-                onClick={() => {
-                  if (!selecting) onOpen(media)
-                  else if (!selectionDisabled) onSelect(media, !checked)
-                }}
+              {/* La Card de shadcn, l'aperçu en tête ; cochée, elle prend le contour de l'accent. La
+                  vignette et le nom ouvrent la fiche ; la pastille « Utilisé », sous eux, ouvre la
+                  liste des endroits où le fichier sert (un bouton ne peut pas en contenir un autre). */}
+              <Card
+                size="sm"
+                id={`media-${media.id}-etat`}
+                className={cn(
+                  "pt-0 transition-shadow group-hover/media:ring-foreground/25 has-[[data-media-open]:focus-visible]:ring-3 has-[[data-media-open]:focus-visible]:ring-ring/50",
+                  checked &&
+                    "ring-2 ring-primary group-hover/media:ring-primary"
+                )}
               >
-                {/* La Card de shadcn, l'aperçu en tête ; cochée, elle prend le contour de l'accent. */}
-                <Card
-                  size="sm"
-                  id={`media-${media.id}-etat`}
-                  className={cn(
-                    "pt-0 transition-shadow group-hover:ring-foreground/25",
-                    checked && "ring-2 ring-primary group-hover:ring-primary"
-                  )}
+                <button
+                  type="button"
+                  className="flex w-full flex-col gap-(--card-spacing) text-left outline-none"
+                  // Pendant une sélection, la vignette entière coche ou décoche le fichier.
+                  aria-label={
+                    selecting
+                      ? texts.selection.select(media.name)
+                      : texts.media.open(media.name)
+                  }
+                  aria-pressed={selecting ? checked : undefined}
+                  // Au clavier, la case suffit : pas deux arrêts pour le même fichier.
+                  tabIndex={selecting ? -1 : undefined}
+                  aria-describedby={`media-${media.id}-etat`}
+                  data-media-open={media.id}
+                  onClick={() => {
+                    if (!selecting) onOpen(media)
+                    else if (!selectionDisabled) onSelect(media, !checked)
+                  }}
                 >
                   <MediaThumbnail
                     media={media}
@@ -128,12 +131,12 @@ export function MediaGrid({
                       {formatBytes(media.size_bytes)}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="flex flex-wrap gap-1.5">
-                    <MediaStatusIcon media={media} now={now} />
-                    <MediaUseIcon media={media} />
-                  </CardContent>
-                </Card>
-              </button>
+                </button>
+                <CardContent className="flex flex-wrap gap-1.5">
+                  <MediaStatusIcon media={media} now={now} />
+                  <MediaUseIcon media={media} openable />
+                </CardContent>
+              </Card>
             </li>
           )
         })}
@@ -215,7 +218,7 @@ export function MediaTable({
               <TableCell>
                 <div className="flex items-center gap-1.5">
                   <MediaStatusIcon media={media} now={now} />
-                  <MediaUseIcon media={media} />
+                  <MediaUseIcon media={media} openable />
                 </div>
               </TableCell>
             </TableRow>

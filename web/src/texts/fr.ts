@@ -332,6 +332,28 @@ export const fr: Texts = {
   },
 
   media: {
+    // La pastille « Utilisé » ouvre la liste des endroits où le fichier sert, avec son export
+    // (CSV) ; la fiche du fichier propose le même export.
+    uses: {
+      open: (name: string) => `Voir où « ${name} » est utilisé`,
+      title: "Où ce fichier est utilisé",
+      count: (count: number) =>
+        count === 1 ? "Utilisé à 1 endroit." : `Utilisé à ${count} endroits.`,
+      columns: { title: "Titre", section: "Section", where: "Où" },
+      export: "Exporter",
+      exported: "Liste exportée.",
+      // Le fichier téléchargé, puis ses colonnes.
+      fileName: (name: string) => `utilisations-${name}.csv`,
+      csv: {
+        title: "Titre",
+        section: "Section",
+        draft: "Dans un brouillon",
+        live: "En ligne",
+        url: "Adresse de l'éditeur",
+        yes: "Oui",
+        no: "Non",
+      },
+    },
     upload: "Envoyer des fichiers",
     uploadInput: "Fichiers à envoyer",
     dropTitle: "Dépose tes fichiers ici",

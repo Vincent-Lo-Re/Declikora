@@ -214,12 +214,13 @@ describe("Médiathèque", () => {
     // Une pastille « Non utilisé » pour le fichier qui ne sert nulle part, « Utilisé » sinon.
     const unused = screen.getAllByRole("img", { name: texts.media.unused })
     expect(unused).toHaveLength(1)
-    expect(
-      screen.getByRole("button", { name: texts.media.open(voice.name) })
-    ).toContainElement(unused[0])
-    expect(
-      screen.getByRole("button", { name: texts.media.open(photo.name) })
-    ).toContainElement(screen.getByRole("img", { name: texts.media.used }))
+    const card = (name: string) =>
+      screen.getByRole("button", { name: texts.media.open(name) }).closest("li")
+    expect(card(voice.name)).toContainElement(unused[0])
+    // « Utilisé » : un bouton, à côté de la vignette (il ouvre la liste des utilisations).
+    expect(card(photo.name)).toContainElement(
+      screen.getByRole("button", { name: texts.media.uses.open(photo.name) })
+    )
 
     vi.mocked(api.listMedia).mockResolvedValue([])
     const toggle = screen.getByRole("button", {
@@ -268,7 +269,9 @@ describe("Médiathèque", () => {
     ).toBeVisible()
     const used = screen.getByRole("row", { name: new RegExp(photo.name) })
     expect(
-      within(used).getByRole("img", { name: texts.media.used })
+      within(used).getByRole("button", {
+        name: texts.media.uses.open(photo.name),
+      })
     ).toBeVisible()
     // Ni dimensions ni durée dans la liste.
     expect(within(row).queryByText("3 min 05 s")).toBeNull()
@@ -391,6 +394,60 @@ describe("Médiathèque", () => {
     ).toBeTruthy()
   })
 
+  it("« Utilisé » ouvre la liste des endroits où le fichier sert, avec son export en CSV", async () => {
+    vi.mocked(api.listMedia).mockResolvedValue([
+      { ...photo, media_in_use: true },
+    ])
+    vi.mocked(api.getMediaUses).mockResolvedValue([
+      {
+        content_id: "00000000-0000-4000-8000-0000000000aa",
+        kind: "article",
+        title: "Bien commencer",
+        in_draft: true,
+        in_app: true,
+      },
+      {
+        content_id: "00000000-0000-4000-8000-0000000000bb",
+        kind: "page",
+        title: "",
+        in_draft: true,
+        in_app: false,
+      },
+    ])
+    const createObjectURL = vi.fn(() => "blob:csv")
+    const revokeObjectURL = vi.fn()
+    Object.assign(URL, { createObjectURL, revokeObjectURL })
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {})
+    await renderApp("/media")
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: texts.media.uses.open(photo.name),
+      })
+    )
+    const words = texts.media.uses
+    const dialog = await screen.findByRole("dialog", { name: words.title })
+    expect(
+      await within(dialog).findByText(new RegExp(words.count(2)))
+    ).toBeVisible()
+    expect(
+      within(dialog).getByRole("link", { name: "Bien commencer" })
+    ).toHaveAttribute("href", "/blog/00000000-0000-4000-8000-0000000000aa")
+    expect(
+      within(dialog).getByRole("link", { name: texts.common.untitled })
+    ).toBeVisible()
+    expect(within(dialog).getByText(texts.sections.pages.title)).toBeVisible()
+
+    fireEvent.click(within(dialog).getByRole("button", { name: words.export }))
+    expect(click).toHaveBeenCalledOnce()
+    const link = click.mock.contexts[0] as HTMLAnchorElement
+    expect(link.download).toBe(words.fileName("photo"))
+    expect(await screen.findByText(words.exported)).toBeVisible()
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:csv")
+  })
+
   it("la fiche d'un fichier utilisé et public : le nombre de contenus, et l'accès expliqué", async () => {
     vi.mocked(api.listMedia).mockResolvedValue([{ ...photo, is_public: true }])
     vi.mocked(api.getMediaUses).mockResolvedValue([
@@ -414,6 +471,10 @@ describe("Médiathèque", () => {
     expect(
       within(uses).getByRole("link", { name: "Bien commencer" })
     ).toBeVisible()
+    // Le même export que la fenêtre des utilisations.
+    expect(
+      within(uses).getByRole("button", { name: texts.media.uses.export })
+    ).toBeEnabled()
     expect(
       within(sheet).getByRole("img", { name: texts.media.used })
     ).toBeVisible()

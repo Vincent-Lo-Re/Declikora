@@ -4,7 +4,6 @@ import {
   CalendarPlus,
   Clock,
   ExternalLink,
-  FileText,
   Globe,
   HardDrive,
   Info,
@@ -25,12 +24,17 @@ import {
   useState,
 } from "react"
 import { Controller, useForm } from "react-hook-form"
-import { Link } from "react-router"
 import { toast } from "sonner"
 
 import { AudioPlayer } from "@/components/media/audio-player"
 import { kindIcons, rejectedText } from "@/components/media/media-kinds"
 import { MediaStatusIcon, MediaUseIcon } from "@/components/media/media-visuals"
+import {
+  ExportUsesButton,
+  SectionIcon,
+  UseTitle,
+} from "@/components/media/media-uses"
+import { useMediaUses } from "@/components/media/use-media-uses"
 import { ReplaceFile } from "@/components/media/replace-file"
 import { PanelCard } from "@/components/panel-card"
 import { useAccessCheck } from "@/components/team/use-access-check"
@@ -87,7 +91,6 @@ import {
   formatDuration,
 } from "@/lib/media/format"
 import { mediaDetailsSchema } from "@/lib/schemas"
-import { contentEditorPath, contentSection, sections } from "@/navigation"
 import { texts } from "@/texts"
 
 const LottiePreview = lazy(() =>
@@ -480,10 +483,7 @@ function MediaInfo({ media }: { media: Media }) {
  * l'app » quand un texte figé diffère ([D30], option B).
  */
 function MediaUses({ media }: { media: Media }) {
-  const uses = useQuery({
-    queryKey: mediaKeys.uses(media.id),
-    queryFn: () => getMediaUses(media.id),
-  })
+  const uses = useMediaUses(media.id)
   const live = uses.data?.filter((use) => use.in_app) ?? []
   const drafts = uses.data?.filter((use) => use.in_draft) ?? []
   const count = uses.data?.length ?? 0
@@ -529,6 +529,7 @@ function MediaUses({ media }: { media: Media }) {
                 }
               />
             )}
+            <ExportUsesButton media={media} uses={uses.data} size="sm" />
           </>
         )}
         {live.length > 0 && <OutdatedTexts media={media} />}
@@ -745,21 +746,3 @@ function TrashBar({
 }
 
 /** L'icône de la section d'un contenu (Le Fil, Pages…), comme dans le menu. */
-function SectionIcon({ kind }: { kind: string }) {
-  const section = contentSection(kind)
-  const Icon = section ? sections[section].icon : FileText
-  return <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-}
-
-/** Titre d'un contenu qui utilise le fichier, avec un lien vers son éditeur s'il existe. */
-function UseTitle({ use }: { use: MediaUse }) {
-  const title = use.title?.trim() || texts.common.untitled
-  const path = contentEditorPath(use.kind, use.content_id)
-  return path ? (
-    <Link to={path} className="underline-offset-4 hover:underline">
-      {title}
-    </Link>
-  ) : (
-    title
-  )
-}
