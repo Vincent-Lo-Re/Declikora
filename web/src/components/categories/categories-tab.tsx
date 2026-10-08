@@ -23,7 +23,6 @@ import { LoadState } from "@/components/load-state"
 import { SearchInput } from "@/components/search-input"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TrashDialog } from "@/components/trash-dialog"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -48,11 +47,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import {
   categoryKeys,
   createCategory,
@@ -371,28 +365,15 @@ function isUsageFilter(value: unknown): value is UsageFilter {
 }
 
 /**
- * « Utilisée dans », comme l'utilisation d'un fichier dans la Médiathèque : un lien coupé si
- * aucun brouillon ne la cite, sinon un lien et leur nombre ; le détail dans l'infobulle.
+ * « Utilisée dans », comme l'utilisation d'un fichier dans la Médiathèque : un lien si des
+ * brouillons la citent, un lien coupé sinon ; leur nombre dans l'infobulle.
  */
 function UsesCell({ uses }: { uses: number }) {
-  if (uses === 0) return <IconBadge icon={Unlink} label={labels.usesCount(0)} />
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Badge
-            variant="outline"
-            role="img"
-            aria-label={labels.usesCount(uses)}
-            className="tabular-nums"
-          />
-        }
-      >
-        <LinkIcon aria-hidden />
-        {uses}
-      </TooltipTrigger>
-      <TooltipContent>{labels.usesCount(uses)}</TooltipContent>
-    </Tooltip>
+    <IconBadge
+      icon={uses > 0 ? LinkIcon : Unlink}
+      label={labels.usesCount(uses)}
+    />
   )
 }
 

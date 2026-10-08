@@ -67,7 +67,7 @@ describe("Blog : l'onglet Catégories", () => {
     // « Utilisée dans » : un lien et le nombre, ou un lien coupé.
     expect(
       within(rows[0]).getByRole("img", { name: labels.usesCount(3) })
-    ).toHaveTextContent("3")
+    ).toBeVisible()
     expect(
       within(rows[1]).getByRole("img", { name: labels.usesCount(0) })
     ).toBeVisible()
