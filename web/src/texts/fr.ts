@@ -975,7 +975,8 @@ export const fr: Texts = {
       handle: (title: string) => `Déplacer « ${title} »`,
       filtering:
         "Pour ranger la liste, efface d'abord la recherche et les filtres.",
-      saved: "Nouvel ordre enregistré.",
+      // Le nouvel ordre est dans l'app tout de suite, sans « Publier ».
+      saved: "Nouvel ordre enregistré : il apparaît tout de suite dans l'app.",
       failed:
         "Le nouvel ordre n'a pas été enregistré : la liste reprend son ordre.",
       dnd: {
@@ -1016,9 +1017,10 @@ export const fr: Texts = {
   categories: {
     title: (section: string) => `Catégories : ${section}`,
     description: {
-      blog: "Elles servent à filtrer les articles dans l'app. Un article peut en avoir une, plusieurs ou aucune.",
+      // Renommer ou ranger une catégorie change l'app tout de suite, sans « Publier ».
+      blog: "Elles servent à filtrer les articles dans l'app. Un article peut en avoir une, plusieurs ou aucune. Ce que tu changes ici apparaît tout de suite dans l'app, sans publier.",
       podcasts:
-        "Elles servent à filtrer les épisodes dans l'app. Un épisode peut en avoir une, plusieurs ou aucune.",
+        "Elles servent à filtrer les épisodes dans l'app. Un épisode peut en avoir une, plusieurs ou aucune. Ce que tu changes ici apparaît tout de suite dans l'app, sans publier.",
     },
     back: (section: string) => `Retour : ${section}`,
     orderTitle: "Ordre dans l'app",

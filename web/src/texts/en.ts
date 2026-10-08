@@ -954,7 +954,8 @@ export const en = {
       column: "Order",
       handle: (title: string) => `Move “${title}”`,
       filtering: "Clear the search and filters to reorder the list.",
-      saved: "New order saved.",
+      // Le nouvel ordre est dans l'app tout de suite, sans « Publier ».
+      saved: "New order saved. It shows in the app right away.",
       failed: "Couldn't save the new order. The list is back to how it was.",
       dnd: {
         roleDescription: "draggable item",
@@ -993,9 +994,10 @@ export const en = {
   categories: {
     title: (section: string) => `Categories: ${section}`,
     description: {
-      blog: "Readers use them to filter posts in the app. A post can have one, several, or none.",
+      // Renommer ou ranger une catégorie change l'app tout de suite, sans « Publier ».
+      blog: "Readers use them to filter posts in the app. A post can have one, several, or none. Changes here show in the app right away, without publishing.",
       podcasts:
-        "Readers use them to filter episodes in the app. An episode can have one, several, or none.",
+        "Readers use them to filter episodes in the app. An episode can have one, several, or none. Changes here show in the app right away, without publishing.",
     },
     back: (section: string) => `Back to ${section}`,
     orderTitle: "Order in the app",
