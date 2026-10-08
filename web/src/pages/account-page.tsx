@@ -9,6 +9,7 @@ import { toast } from "sonner"
 
 import { profileQueryKey, useAuth, type Profile } from "@/auth/auth-context"
 import { PageHeader } from "@/components/page-header"
+import { useBrand } from "@/hooks/use-brand-name"
 import { PaletteChoice } from "@/components/theme/palette-choice"
 import { PalettePreview } from "@/components/theme/palette-preview"
 import { ThemeChoice } from "@/components/theme-choice"
@@ -46,7 +47,13 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { saveFullName, saveLanguage } from "@/lib/auth"
 import { formatDateTime } from "@/lib/dates"
-import { applyLanguage, language, LANGUAGES, isLanguage } from "@/lib/language"
+import {
+  applyMemberLanguage,
+  isLanguage,
+  LANGUAGES,
+  memberLanguage,
+  type Language,
+} from "@/lib/language"
 import { profileSchema } from "@/lib/schemas"
 import { sections } from "@/navigation"
 import { texts } from "@/texts"
@@ -248,37 +255,52 @@ function ProfileCard({ profile }: { profile: Profile }) {
   )
 }
 
-const languageItems = LANGUAGES.map((value) => ({
-  value,
-  label: texts.languages[value],
-}))
+// « Comme l'admin » : le membre suit la langue de toute l'admin (Paramètres › Avancé).
+const ADMIN_CHOICE = "admin"
 
-/** La langue de l'admin pour ce membre : rangée sur son compte, puis la page se recharge. */
+/**
+ * La langue de l'admin pour ce membre (ou celle de toute l'admin) : rangée sur son compte, puis
+ * la page se recharge si la langue change.
+ */
 function LanguageCard() {
   const labels = texts.account.language
+  const { session } = useAuth()
+  const brand = useBrand()
+  const chosen = memberLanguage(session?.user.user_metadata)
   const save = useMutation({
     mutationFn: saveLanguage,
-    onSuccess: (_, chosen) => applyLanguage(chosen),
+    onSuccess: (_, next) => applyMemberLanguage(next),
     onError: () => toast.error(labels.failed),
   })
+  const items = [
+    {
+      value: ADMIN_CHOICE,
+      label: labels.sameAsAdmin(texts.languages[brand?.language ?? "en"]),
+    },
+    ...LANGUAGES.map((value) => ({ value, label: texts.languages[value] })),
+  ]
+  const current: string = save.isPending
+    ? (save.variables ?? ADMIN_CHOICE)
+    : (chosen ?? ADMIN_CHOICE)
 
   return (
     <Section title={labels.title} description={labels.description}>
       <Field>
         <FieldLabel htmlFor="account-language">{labels.label}</FieldLabel>
         <Select
-          items={languageItems}
-          value={save.isPending ? save.variables : language}
+          items={items}
+          value={current}
           disabled={save.isPending}
           onValueChange={(value) => {
-            if (isLanguage(value) && value !== language) save.mutate(value)
+            const next: Language | null = isLanguage(value) ? value : null
+            if (next !== chosen) save.mutate(next)
           }}
         >
           <SelectTrigger id="account-language" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {languageItems.map((item) => (
+            {items.map((item) => (
               <SelectItem key={item.value} value={item.value}>
                 {item.label}
               </SelectItem>

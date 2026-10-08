@@ -50,6 +50,7 @@ describe("le nom de la marque", () => {
       monogramMotion: true,
       monogramMotions: ["trace", "glint", "breathe"],
       contactEmail: null,
+      language: "en",
       variants: {
         "logotype:zinc-blue:dark": "bleu",
         "logotype:neutral-none:dark": "origine-sombre",
@@ -167,6 +168,7 @@ describe("le nom de la marque", () => {
       monogramMotion: true,
       monogramMotions: ["trace", "glint", "breathe"],
       contactEmail: null,
+      language: "en",
       variants: {},
     }
     const origin = brandFileFor(empty, "monogram", "dark")!

@@ -9,7 +9,7 @@ import {
   type Profile,
 } from "@/auth/auth-context"
 import { assuranceLevel, verifiedTotpFactor } from "@/auth/session"
-import { applyLanguage, memberLanguage } from "@/lib/language"
+import { applyMemberLanguage, memberLanguage } from "@/lib/language"
 import { supabase } from "@/lib/supabase"
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
@@ -43,12 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { session } = state
   const userId = session?.user.id
 
-  // La langue du membre le suit d'un navigateur à l'autre : celle de son compte remplace celle
-  // gardée ici (la page se recharge si elle change).
+  // La langue du membre le suit d'un navigateur à l'autre : celle de son compte (ou aucune : il
+  // suit l'admin) remplace celle gardée ici ; la page se recharge si la langue change.
   const chosenLanguage = memberLanguage(session?.user.user_metadata)
   useEffect(() => {
-    if (chosenLanguage) applyLanguage(chosenLanguage)
-  }, [chosenLanguage])
+    if (userId) applyMemberLanguage(chosenLanguage)
+  }, [userId, chosenLanguage])
   const profileQuery = useQuery({
     queryKey: profileQueryKey(userId),
     queryFn: () => fetchProfile(userId!),

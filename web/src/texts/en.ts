@@ -211,6 +211,8 @@ export const en = {
       description:
         "The language of the admin, for you only. It also applies to the emails you receive.",
       label: "Admin language",
+      // Le membre suit la langue de toute l'admin (Paramètres › Avancé), entre parenthèses.
+      sameAsAdmin: (language: string) => `Same as the admin (${language})`,
       failed: "Your language couldn't be saved. Try again.",
     },
     mfa: {
@@ -2188,6 +2190,18 @@ export const en = {
     empty: {
       title: "Nothing here yet",
       description: "This tab is coming soon.",
+    },
+    // Onglet « Avancé » : la langue de toute l'admin.
+    advanced: {
+      language: {
+        title: "Language",
+        description:
+          "The language of the admin and its sign-in pages for the whole team. Each member can choose their own in My account.",
+        label: "Admin language",
+        hint: "Members who chose their own language in My account keep it.",
+        saved: "Admin language saved.",
+        loadFailed: "The admin language couldn't be loaded.",
+      },
     },
     accessLevels: {
       title: "Subscription plans",

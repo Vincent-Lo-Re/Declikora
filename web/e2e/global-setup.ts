@@ -1,7 +1,9 @@
-// Avant les tests : supprime les comptes de test laissés par une série interrompue.
+// Avant les tests : supprime les comptes de test laissés par une série interrompue, et met
+// l'admin en français.
 
-import { deleteAccounts } from "./support/accounts.ts"
+import { deleteAccounts, setFrenchAdmin } from "./support/accounts.ts"
 
 export default async function globalSetup() {
   await deleteAccounts("all")
+  await setFrenchAdmin()
 }

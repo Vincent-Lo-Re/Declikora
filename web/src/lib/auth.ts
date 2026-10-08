@@ -121,10 +121,10 @@ export async function saveFullName(
 }
 
 /**
- * Enregistre la langue du membre sur son compte (Mon compte) : elle le suit d'un navigateur à
- * l'autre, et les e-mails qu'il reçoit la lisent.
+ * Enregistre la langue du membre sur son compte (Mon compte ; null : celle de l'admin) : elle le
+ * suit d'un navigateur à l'autre, et les e-mails qu'il reçoit la lisent.
  */
-export async function saveLanguage(language: Language): Promise<void> {
+export async function saveLanguage(language: Language | null): Promise<void> {
   const { error } = await supabase.auth.updateUser({ data: { language } })
   if (error) throw error
 }

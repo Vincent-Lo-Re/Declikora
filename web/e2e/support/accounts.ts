@@ -58,6 +58,19 @@ function database() {
 }
 
 /**
+ * Met toute l'admin en français (Paramètres › Avancé), comme les textes que lisent les parcours :
+ * sans cela, la langue enregistrée dans la base remplacerait celle de VITE_DEFAULT_LANGUAGE.
+ */
+export async function setFrenchAdmin() {
+  const sql = database()
+  try {
+    await sql`update public.admin_identity set language = 'fr' where id`
+  } finally {
+    await sql.end()
+  }
+}
+
+/**
  * Supprime des comptes de test (adresses exactes, ou toutes celles du domaine de test).
  *
  * La base refuse de supprimer le dernier admin : c'est voulu, et testé. Pour les comptes de

@@ -6,9 +6,14 @@ import { afterEach } from "vitest"
 // Les tests lisent l'admin en français, ses textes et ses dates (lib/language.ts) : la langue
 // est posée avant qu'un test charge les textes. src/texts.test.ts vérifie les deux langues.
 localStorage.setItem("declikora-langue", "fr")
+localStorage.setItem("declikora-langue-admin", "fr")
 
-// Chaque test repart d'une page vide.
-afterEach(() => cleanup())
+// Chaque test repart d'une page vide, en français (un test peut vider le stockage).
+afterEach(() => {
+  cleanup()
+  localStorage.setItem("declikora-langue", "fr")
+  localStorage.setItem("declikora-langue-admin", "fr")
+})
 
 // jsdom ne connaît pas matchMedia, utilisé par le thème et le menu.
 if (!window.matchMedia) {
