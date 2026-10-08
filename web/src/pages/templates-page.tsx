@@ -28,6 +28,7 @@ import { PageHeader } from "@/components/page-header"
 import { useAccessCheck } from "@/components/team/use-access-check"
 import { TemplateDialog } from "@/components/templates/template-dialog"
 import { templateSortIcons } from "@/components/templates/sort-icons"
+import { TemplateStatus } from "@/components/templates/template-uses"
 import { UsesList } from "@/components/templates/uses-list"
 import { TrashDialog } from "@/components/trash-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -70,6 +71,7 @@ import {
   listTemplateUses,
   templateKeys,
   templateSorts,
+  templateUsage,
   type NewTemplate,
   type TemplateItem,
   type TemplateSort,
@@ -83,13 +85,15 @@ import { texts } from "@/texts"
 
 const labels = texts.templates.list
 
-// Les onglets : « Tous les blocs », puis une sorte de modèle par onglet.
+// Les onglets : « Tous les blocs », une sorte de modèle par onglet, puis « Non utilisés ».
 const ALL = "all"
-type TemplateTab = typeof ALL | TemplateSort
-const tabs: TemplateTab[] = [ALL, ...templateSorts]
+const UNUSED = "unused"
+type TemplateTab = typeof ALL | TemplateSort | typeof UNUSED
+const tabs: TemplateTab[] = [ALL, ...templateSorts, UNUSED]
 const tabIcons: Record<TemplateTab, LucideIcon> = {
   all: Layers, // comme Modèles de bloc dans le menu
   ...templateSortIcons,
+  unused: Unlink, // comme « Non utilisés » de la Médiathèque
 }
 
 function nameOf(item: { title: string }) {
@@ -135,9 +139,22 @@ export function TemplatesPage() {
     templateTabFromAddress,
     writeTemplateTab
   )
+  // Le nombre d'endroits où chaque modèle sert : colonne « État » et onglet « Non utilisés ».
+  const usage = useQuery({
+    queryKey: templateKeys.usage,
+    queryFn: templateUsage,
+  })
+  const usesOf = (item: TemplateItem) => usage.data?.get(item.id) ?? 0
   const shown = useMemo(
-    () => (list.data ?? []).filter((item) => tab === ALL || item.sort === tab),
-    [list.data, tab]
+    () =>
+      (list.data ?? []).filter((item) =>
+        tab === ALL
+          ? true
+          : tab === UNUSED
+            ? usage.data !== undefined && !usage.data.has(item.id)
+            : item.sort === tab
+      ),
+    [list.data, tab, usage.data]
   )
 
   // Sélection en masse ; un bloc identique partout encore utilisé est gardé et listé.
@@ -208,8 +225,8 @@ export function TemplatesPage() {
                 return (
                   <TabsTrigger key={value} value={value}>
                     <Icon />
-                    {value === ALL
-                      ? labels.tabs.all
+                    {value === ALL || value === UNUSED
+                      ? labels.tabs[value]
                       : texts.templates.sorts[value].tab}
                   </TabsTrigger>
                 )
@@ -222,15 +239,25 @@ export function TemplatesPage() {
                 className="space-y-4"
                 data-template-tab={value}
               >
-                {value !== ALL && (
+                {value === UNUSED ? (
                   <p className="text-sm text-muted-foreground">
-                    {texts.templates.sorts[value].description}{" "}
-                    {texts.templates.sorts[value].example}
+                    {labels.unusedDescription}
                   </p>
+                ) : (
+                  value !== ALL && (
+                    <p className="text-sm text-muted-foreground">
+                      {texts.templates.sorts[value].description}{" "}
+                      {texts.templates.sorts[value].example}
+                    </p>
+                  )
                 )}
                 <TemplateTable
                   items={shown}
-                  withType={value === ALL}
+                  withType={value === ALL || value === UNUSED}
+                  usesOf={usage.data ? usesOf : null}
+                  emptyTitle={
+                    value === UNUSED ? labels.noUnused : labels.emptySort
+                  }
                   selectAll={bulk.selectAll}
                   selected={bulk.checkedIds}
                   onSelect={bulk.toggle}
@@ -298,6 +325,8 @@ export function TemplatesPage() {
 function TemplateTable({
   items,
   withType,
+  usesOf,
+  emptyTitle,
   selectAll,
   selected,
   onSelect,
@@ -306,6 +335,9 @@ function TemplateTable({
 }: {
   items: TemplateItem[]
   withType: boolean
+  // Le nombre d'endroits où sert un modèle (null : pas encore lu).
+  usesOf: ((item: TemplateItem) => number) | null
+  emptyTitle: string
   // Sélection en masse : « Tout sélectionner » et les modèles cochés.
   selectAll: SelectAll
   selected: ReadonlySet<string>
@@ -314,7 +346,7 @@ function TemplateTable({
   onTrash: (item: TemplateItem) => void
 }) {
   if (items.length === 0) {
-    return <ListEmpty icon={LayoutTemplate} title={labels.emptySort} />
+    return <ListEmpty icon={LayoutTemplate} title={emptyTitle} />
   }
   return (
     <ListCard>
@@ -324,6 +356,7 @@ function TemplateTable({
             <SelectAllHead {...selectAll} />
             <TableHead>{labels.columns.name}</TableHead>
             {withType && <TableHead>{labels.columns.type}</TableHead>}
+            <TableHead>{labels.columns.status}</TableHead>
             <TableHead>{labels.columns.savedAt}</TableHead>
             <TableHead className="w-0">
               <span className="sr-only">{texts.common.actions}</span>
@@ -361,6 +394,15 @@ function TemplateTable({
                   </Badge>
                 </TableCell>
               )}
+              <TableCell>
+                {usesOf && (
+                  <TemplateStatus
+                    template={item}
+                    name={nameOf(item)}
+                    count={usesOf(item)}
+                  />
+                )}
+              </TableCell>
               <SavedCell savedAt={item.draft_saved_at} />
               <TableCell>
                 <RowActions item={item} onTrash={() => onTrash(item)} />

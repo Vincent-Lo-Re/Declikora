@@ -8,6 +8,7 @@ import type { Draft } from "@/blocks/types"
 import type { Json, Tables } from "@/lib/database.types"
 import type { Media } from "@/lib/media/constants"
 import { supabase } from "@/lib/supabase"
+import { recordTemplateCopy } from "@/lib/contents/template-copies"
 import { describeFacts } from "@/lib/error-facts"
 import { texts } from "@/texts"
 
@@ -329,6 +330,8 @@ export async function createContent(
     ...(fromTemplateId && { from_template_id: fromTemplateId }),
   })
   if (error) throw toContentError(error, status)
+  // Le point de départ a servi : noté, pour la colonne « État » des Modèles de bloc.
+  if (fromTemplateId) void recordTemplateCopy(fromTemplateId, data.id)
   return {
     ...data,
     title: data.title ?? "",

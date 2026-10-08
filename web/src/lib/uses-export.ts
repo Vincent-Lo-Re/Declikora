@@ -15,6 +15,8 @@ export type ContentUse = {
   in_draft: boolean
   in_app: boolean
   in_trash?: boolean
+  // Un modèle copié (mise en forme, point de départ) : le contenu en a reçu une copie.
+  copied?: boolean
 }
 
 const words = texts.uses
@@ -26,19 +28,20 @@ function field(value: string): string {
 }
 
 /**
- * Le CSV des utilisations : une ligne par contenu (titre, section, dans un brouillon, en ligne,
- * à la Corbeille quand on le sait, adresse de son éditeur). origin : l'adresse de l'admin
+ * Le CSV des utilisations : une ligne par contenu (titre, section, dans un brouillon et en ligne,
+ * ou copié pour un modèle copié, à la Corbeille quand on le sait, adresse de son éditeur). origin : l'adresse de l'admin
  * (« https://admin.declikora.app »), pour des liens qui s'ouvrent hors de l'admin.
  */
 export function usesCsv(uses: readonly ContentUse[], origin: string): string {
   const { csv } = words
   const withTrash = uses.some((use) => use.in_trash !== undefined)
+  // Un modèle copié : « Copié » au lieu de « Dans un brouillon » et « En ligne », inconnus.
+  const copies = uses.some((use) => use.copied)
   const yesNo = (value: boolean) => (value ? csv.yes : csv.no)
   const header = [
     csv.title,
     csv.section,
-    csv.draft,
-    csv.live,
+    ...(copies ? [csv.copied] : [csv.draft, csv.live]),
     ...(withTrash ? [csv.trash] : []),
     csv.url,
   ]
@@ -48,8 +51,9 @@ export function usesCsv(uses: readonly ContentUse[], origin: string): string {
     return [
       use.title?.trim() || texts.common.untitled,
       section ? texts.sections[section].title : "",
-      yesNo(use.in_draft),
-      yesNo(use.in_app),
+      ...(copies
+        ? [yesNo(use.copied ?? false)]
+        : [yesNo(use.in_draft), yesNo(use.in_app)]),
       ...(withTrash ? [yesNo(use.in_trash ?? false)] : []),
       path ? `${origin}${path}` : "",
     ]

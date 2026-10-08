@@ -37,6 +37,8 @@ export const fr: Texts = {
     count: (count: number) => (count === 1 ? "1 endroit" : `${count} endroits`),
     columns: { title: "Titre", section: "Section", where: "Où" },
     inTrash: "Dans la Corbeille",
+    // Une mise en forme ou un point de départ : le contenu en a reçu une copie.
+    copied: "Copié",
     export: "Exporter",
     exported: "Liste exportée.",
     // Les colonnes du fichier exporté.
@@ -46,6 +48,7 @@ export const fr: Texts = {
       draft: "Dans un brouillon",
       live: "En ligne",
       trash: "Dans la Corbeille",
+      copied: "Copié",
       url: "Adresse de l'éditeur",
       yes: "Oui",
       no: "Non",
@@ -1212,12 +1215,32 @@ export const fr: Texts = {
       columns: {
         name: "Nom",
         type: "Type",
+        // Utilisé ou non, en icône (comme la Médiathèque et les catégories).
+        status: "État",
         savedAt: "Enregistré le",
       },
-      // Les onglets : « Tous les modèles », puis un par sorte (texts.templates.sorts.*.tab).
+      // Les onglets : « Tous les modèles », un par sorte (texts.templates.sorts.*.tab), puis les
+      // modèles qui ne servent nulle part.
       tabs: {
         label: "Types de modèles",
         all: "Tous les modèles",
+        unused: "Non utilisés",
+      },
+      unusedDescription:
+        "Les modèles qui ne servent nulle part. Les copies des mises en forme et des points de départ ne sont comptées que depuis le 8 octobre 2026.",
+      noUnused: "Chaque modèle sert quelque part.",
+      // Infobulle de la colonne « État ».
+      usesCount: (count: number) =>
+        count === 0
+          ? "Non utilisé"
+          : count === 1
+            ? "Utilisé à 1 endroit"
+            : `Utilisé à ${count} endroits`,
+      // La pastille « État » ouvre la liste des endroits où le modèle sert (texts.uses).
+      uses: {
+        open: (name: string) => `Voir où « ${name} » est utilisé`,
+        title: "Où ce modèle est utilisé",
+        fileName: (name: string) => `utilisations-modele-${name}.csv`,
       },
       untitled: "Sans nom",
       empty: {

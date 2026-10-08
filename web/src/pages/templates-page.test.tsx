@@ -46,6 +46,8 @@ vi.mock("@/lib/contents/templates", async (importOriginal) => {
     ...actual,
     listTemplates: vi.fn(),
     listTemplateUses: vi.fn(async () => []),
+    templateUsage: vi.fn(async () => new Map()),
+    getTemplateUses: vi.fn(async () => []),
     getTemplatesByIds: vi.fn(async () => []),
     listStarters: vi.fn(async () => []),
     getTemplateOutdated: vi.fn(async () => []),
@@ -414,6 +416,66 @@ describe("section Modèles", () => {
       )
     )
     expect(await screen.findByText(labels.restoredMany(2))).toBeVisible()
+  })
+})
+
+describe("Modèles de bloc : où ils servent", () => {
+  it("la colonne « État », l'onglet « Non utilisés », et la fenêtre des copies avec son export", async () => {
+    vi.mocked(templatesApi.templateUsage).mockResolvedValue(
+      new Map([
+        [CONTACT, 2],
+        [RETENIR, 1],
+      ])
+    )
+    vi.mocked(templatesApi.getTemplateUses).mockResolvedValue([
+      {
+        content_id: "a1",
+        kind: "article",
+        title: "Bien dormir",
+        in_draft: false,
+        in_app: false,
+        in_trash: false,
+        copied: true,
+      },
+    ])
+    const { router } = await renderApp("/templates")
+
+    // « Interview » (point de départ) ne sert nulle part : un lien coupé.
+    const interview = (
+      await screen.findByRole("link", { name: "Interview" })
+    ).closest("tr")!
+    expect(
+      await within(interview).findByRole("img", { name: labels.usesCount(0) })
+    ).toBeVisible()
+
+    // « À retenir » (mise en forme) a été copiée : la fenêtre le dit, avec l'export.
+    fireEvent.click(
+      await screen.findByRole("button", { name: labels.uses.open("À retenir") })
+    )
+    const dialog = await screen.findByRole("dialog", {
+      name: labels.uses.title,
+    })
+    expect(templatesApi.getTemplateUses).toHaveBeenCalledWith(
+      expect.objectContaining({ id: RETENIR, sort: "style" })
+    )
+    expect(
+      await within(dialog).findByRole("link", { name: "Bien dormir" })
+    ).toHaveAttribute("href", "/blog/a1")
+    expect(within(dialog).getByText(texts.uses.copied)).toBeVisible()
+    expect(
+      within(dialog).getByRole("button", { name: texts.uses.export })
+    ).toBeEnabled()
+    fireEvent.keyDown(dialog, { key: "Escape" })
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+
+    // L'onglet « Non utilisés » : seulement « Interview », et dans l'adresse.
+    fireEvent.click(screen.getByRole("tab", { name: labels.tabs.unused }))
+    expect(router.state.location.search).toBe("?tab=unused")
+    const panel = await screen.findByRole("tabpanel")
+    expect(within(panel).getByText(labels.unusedDescription)).toBeVisible()
+    expect(within(panel).getByRole("link", { name: "Interview" })).toBeVisible()
+    expect(within(panel).queryByRole("link", { name: "Contact" })).toBeNull()
+    expect(within(panel).queryByRole("link", { name: "À retenir" })).toBeNull()
   })
 })
 

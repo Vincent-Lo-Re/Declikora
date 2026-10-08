@@ -41,6 +41,7 @@ import {
   type TemplateItem,
   type TemplateSort,
 } from "@/lib/contents/templates"
+import { recordTemplateCopy } from "@/lib/contents/template-copies"
 import {
   blockAnchor,
   focusBlockSoon,
@@ -385,6 +386,8 @@ export function useBlockEditing({
     const result = insertTemplate(draft, template, selectedId, at)
     if (!result) return
     if (template.sort === "shared") rememberShared(template)
+    // Une mise en forme est copiée sans lien : notée, pour la colonne « État » des Modèles de bloc.
+    else void recordTemplateCopy(template.id, contentId)
     setDraft(result.draft)
     setSelectedId(result.firstId)
     // Le plan est caché sous les Blocs : le bloc vient sous les yeux dans le téléphone, le

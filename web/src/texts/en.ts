@@ -36,6 +36,8 @@ export const en = {
     count: (count: number) => (count === 1 ? "1 place" : `${count} places`),
     columns: { title: "Title", section: "Section", where: "Where" },
     inTrash: "In the Trash",
+    // Une mise en forme ou un point de départ : le contenu en a reçu une copie.
+    copied: "Copied",
     export: "Export",
     exported: "List exported.",
     // Les colonnes du fichier exporté.
@@ -45,6 +47,7 @@ export const en = {
       draft: "In draft",
       live: "In the app",
       trash: "In the Trash",
+      copied: "Copied",
       url: "Editor URL",
       yes: "Yes",
       no: "No",
@@ -1181,12 +1184,32 @@ export const en = {
       columns: {
         name: "Name",
         type: "Type",
+        // Utilisé ou non, en icône (comme la Médiathèque et les catégories).
+        status: "Status",
         savedAt: "Last saved",
       },
-      // Les onglets : « Tous les modèles », puis un par sorte (texts.templates.sorts.*.tab).
+      // Les onglets : « Tous les modèles », un par sorte (texts.templates.sorts.*.tab), puis les
+      // modèles qui ne servent nulle part.
       tabs: {
         label: "Template types",
         all: "All templates",
+        unused: "Unused",
+      },
+      unusedDescription:
+        "Templates that aren't used anywhere. Copies of presets and starters are only counted from October 8, 2026.",
+      noUnused: "Every template is used somewhere.",
+      // Infobulle de la colonne « État ».
+      usesCount: (count: number) =>
+        count === 0
+          ? "Not used"
+          : count === 1
+            ? "Used in 1 place"
+            : `Used in ${count} places`,
+      // La pastille « État » ouvre la liste des endroits où le modèle sert (texts.uses).
+      uses: {
+        open: (name: string) => `See where ${name} is used`,
+        title: "Where this template is used",
+        fileName: (name: string) => `uses-template-${name}.csv`,
       },
       untitled: "Unnamed",
       empty: {

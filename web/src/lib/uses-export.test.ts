@@ -56,4 +56,27 @@ describe("export des utilisations", () => {
       `Respirer,${texts.sections.podcasts.title},${csv.yes},${csv.no},${csv.yes},https://admin.exemple.test/podcasts/e1`
     )
   })
+
+  it("un modèle copié : la colonne « Copié » au lieu de brouillon et en ligne", () => {
+    const [header, row] = usesCsv(
+      [
+        {
+          content_id: "a1",
+          kind: "article",
+          title: "Bien dormir",
+          in_draft: false,
+          in_app: false,
+          in_trash: false,
+          copied: true,
+        },
+      ],
+      "https://admin.exemple.test"
+    ).split("\r\n")
+    expect(header).toBe(
+      [csv.title, csv.section, csv.copied, csv.trash, csv.url].join(",")
+    )
+    expect(row).toBe(
+      `Bien dormir,${texts.sections.blog.title},${csv.yes},${csv.no},https://admin.exemple.test/blog/a1`
+    )
+  })
 })

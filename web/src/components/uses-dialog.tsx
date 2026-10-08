@@ -220,6 +220,9 @@ export function UsesDialog({
                               {texts.media.detail.inDraft}
                             </Badge>
                           )}
+                          {use.copied && (
+                            <Badge variant="outline">{words.copied}</Badge>
+                          )}
                           {use.in_trash && (
                             <Badge variant="outline">{words.inTrash}</Badge>
                           )}
