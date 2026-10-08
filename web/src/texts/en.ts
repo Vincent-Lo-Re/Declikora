@@ -31,6 +31,23 @@ export const en = {
       "Something went wrong. Check your connection and try again in a moment.",
   },
 
+  // Les faits renvoyés par la base avec une erreur (hint), écrits par l'admin (lib/error-facts.ts).
+  errorFacts: {
+    quoted: (text: string) => `“${text}”`,
+    someone: "Someone",
+    usedIn: (titles: string) => `Used in: ${titles}.`,
+    heldBy: (name: string) => `${name} is editing it right now.`,
+    unavailableFiles: (files: string) => `Unavailable files: ${files}.`,
+    fileTrashed: (name: string) => `${name} (in the Trash)`,
+    filePending: (name: string) => `${name} (not ready yet)`,
+    fileMissing: "a file that no longer exists",
+    wrongTypeFiles: (names: string) =>
+      `Not the right file type here: ${names}.`,
+    emptyTemplates: (titles: string) => `Empty templates: ${titles}.`,
+    imageMissingAt: (positions: string) =>
+      `Image blocks without a file, at position ${positions}.`,
+  },
+
   // Sélection en masse (Médiathèque, listes de contenus) : les mots qui ne dépendent pas de la page.
   selection: {
     select: (name: string) => `Select ${name}`,
@@ -1683,6 +1700,8 @@ export const en = {
       pending: "Saving shortly…",
       saving: "Saving…",
       offline: "Offline, retrying…",
+      // En ligne, mais le serveur n'a pas répondu (erreur passagère) : nouvel essai prévu.
+      retrying: "Couldn't save, retrying…",
       failed: "Couldn't save",
       stopped: "Saving stopped",
       // Lu par les lecteurs d'écran, seulement quand l'état change vraiment (pas à chaque
@@ -1690,6 +1709,7 @@ export const en = {
       announce: {
         offline:
           "You're offline. Your changes will be saved when you're back online.",
+        retrying: "The server didn't respond. Saving will try again shortly.",
         saved: "All changes saved.",
       },
       leave: {
@@ -1777,7 +1797,6 @@ export const en = {
       demande_invalide: "This request isn't valid. Reload the page.",
       sorte_invalide:
         "This content or template type isn't valid. Reload the page.",
-      parent_invalide: "This item can't be placed here.",
       contenu_introuvable: "This item no longer exists.",
       dans_la_corbeille: "This item is in the Trash. Restore it to edit it.",
       verrou_perdu:
@@ -2133,6 +2152,8 @@ export const en = {
           keep: "Keep original colors",
           confirm: (count: number) => `Adapt for all ${count} palettes`,
           done: "File saved and adapted to each palette.",
+          // Sous le message : un fichier envoyé sans être décliné, ou retiré, emporte les déclinaisons.
+          removed: "Its palette versions were removed.",
           status: (count: number) =>
             `Adapted for ${count} palette${count === 1 ? "" : "s"}`,
         },

@@ -65,7 +65,7 @@ describe("Corbeille", () => {
       within(row).getByText(texts.trash.deletedBy("Anne Admin"))
     ).toBeVisible()
     expect(
-      within(row).getByText(texts.trash.purgeOn("27 oct. 2026 à 14h30"))
+      within(row).getByText(texts.trash.purgeOn("27 oct. 2026"))
     ).toBeVisible()
   })
 

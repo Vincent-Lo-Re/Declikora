@@ -79,6 +79,7 @@ const NO_PUBLICATION = {
   live: null,
   first_published_at: null,
   scheduled_at: null,
+  scheduled_rev: null,
   schedule_error: null,
 }
 

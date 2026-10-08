@@ -86,6 +86,7 @@ const publication: publicationApi.Publication = {
   draft_rev: 4,
   first_published_at: null,
   scheduled_at: null,
+  scheduled_rev: null,
   scheduled_by_name: null,
   schedule_error: null,
   deleted_at: null,

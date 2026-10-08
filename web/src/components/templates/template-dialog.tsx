@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import {
-  templateSections,
+  offeredTemplateSections,
   templateSorts,
   type TemplateFor,
 } from "@/lib/contents/templates"
@@ -45,7 +45,7 @@ const labels = texts.templates.create
 
 const emptyForm: TemplateValues = { name: "", sort: "style", templateFor: null }
 
-const sectionItems = templateSections.map((value) => ({
+const sectionItems = offeredTemplateSections.map((value) => ({
   value,
   label: texts.templates.sections[value],
 }))

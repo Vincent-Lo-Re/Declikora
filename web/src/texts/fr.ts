@@ -32,6 +32,23 @@ export const fr: Texts = {
       "Un problème est survenu. Vérifie ta connexion, puis réessaie dans un instant.",
   },
 
+  // Les faits renvoyés par la base avec une erreur (hint), écrits par l'admin (lib/error-facts.ts).
+  errorFacts: {
+    quoted: (text: string) => `« ${text} »`,
+    someone: "Quelqu'un",
+    usedIn: (titles: string) => `Utilisé dans : ${titles}.`,
+    heldBy: (name: string) => `${name} l'écrit en ce moment.`,
+    unavailableFiles: (files: string) => `Fichiers indisponibles : ${files}.`,
+    fileTrashed: (name: string) => `${name} (dans la Corbeille)`,
+    filePending: (name: string) => `${name} (pas encore prêt)`,
+    fileMissing: "un fichier qui n'existe plus",
+    wrongTypeFiles: (names: string) =>
+      `Pas du bon type de fichier à cet endroit : ${names}.`,
+    emptyTemplates: (titles: string) => `Modèles vides : ${titles}.`,
+    imageMissingAt: (positions: string) =>
+      `Blocs Image sans fichier, à la position ${positions}.`,
+  },
+
   // Sélection en masse (Médiathèque, listes de contenus) : les mots qui ne dépendent pas de la page.
   selection: {
     select: (name: string) => `Sélectionner ${name}`,
@@ -1709,6 +1726,8 @@ export const fr: Texts = {
       pending: "Enregistrement dans un instant…",
       saving: "Enregistrement…",
       offline: "Hors ligne, nouvel essai…",
+      // En ligne, mais le serveur n'a pas répondu (erreur passagère) : nouvel essai prévu.
+      retrying: "Échec de l'enregistrement, nouvel essai…",
       failed: "Échec de l'enregistrement",
       stopped: "Enregistrement arrêté",
       // Lu par les lecteurs d'écran, seulement quand l'état change vraiment (pas à chaque
@@ -1716,6 +1735,8 @@ export const fr: Texts = {
       announce: {
         offline:
           "Hors ligne : tes modifications seront enregistrées au retour du réseau.",
+        retrying:
+          "Le serveur n'a pas répondu : l'enregistrement va réessayer dans un instant.",
         saved: "Tes modifications sont enregistrées.",
       },
       leave: {
@@ -1805,7 +1826,6 @@ export const fr: Texts = {
       demande_invalide: "La demande n'est pas valide. Recharge la page.",
       sorte_invalide:
         "Ce type de contenu ou de modèle n'est pas valide. Recharge la page.",
-      parent_invalide: "Ce contenu ne peut pas être rangé à cet endroit.",
       contenu_introuvable: "Ce contenu n'existe plus.",
       dans_la_corbeille:
         "Ce contenu est dans la Corbeille : restaure-le pour le modifier.",
@@ -2172,6 +2192,8 @@ export const fr: Texts = {
           keep: "Garder tel quel",
           confirm: (count: number) => `Décliner pour les ${count} palettes`,
           done: "Logo enregistré et décliné pour les palettes.",
+          // Sous le message : un fichier envoyé sans être décliné, ou retiré, emporte les déclinaisons.
+          removed: "Ses déclinaisons par palette ont été retirées.",
           status: (count: number) =>
             `Décliné pour ${count} palette${count > 1 ? "s" : ""}`,
         },

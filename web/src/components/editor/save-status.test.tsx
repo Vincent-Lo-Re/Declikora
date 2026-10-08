@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { SaveStatus } from "@/components/editor/save-status"
 import type { AutosaveState, AutosaveStatus } from "@/lib/editor/autosave"
@@ -24,6 +24,8 @@ function announced(): string {
   return regions[0].textContent ?? ""
 }
 
+afterEach(() => vi.restoreAllMocks())
+
 describe("indicateur d'enregistrement", () => {
   it("n'annonce pas le cycle normal (en attente, enregistrement, enregistré)", () => {
     const { rerender } = render(<SaveStatus state={state("saved")} visible />)
@@ -36,6 +38,7 @@ describe("indicateur d'enregistrement", () => {
   })
 
   it("annonce le passage hors ligne, puis le retour à « enregistré »", () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false)
     const { rerender } = render(<SaveStatus state={state("saving")} visible />)
     rerender(<SaveStatus state={state("offline")} visible />)
     expect(announced()).toBe(labels.announce.offline)
@@ -43,6 +46,13 @@ describe("indicateur d'enregistrement", () => {
     expect(announced()).toBe(labels.announce.offline)
     rerender(<SaveStatus state={state("saved")} visible />)
     expect(announced()).toBe(labels.announce.saved)
+  })
+
+  it("en ligne, un serveur qui ne répond pas n'est pas « hors ligne »", () => {
+    const { rerender } = render(<SaveStatus state={state("saving")} visible />)
+    rerender(<SaveStatus state={state("offline")} visible />)
+    expect(announced()).toBe(labels.announce.retrying)
+    expect(screen.getByText(labels.retrying)).toBeInTheDocument()
   })
 
   it("l'heure d'enregistrement est atteignable au clavier et lue avec « Enregistré »", () => {

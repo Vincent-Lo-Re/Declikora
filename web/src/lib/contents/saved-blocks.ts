@@ -45,11 +45,13 @@ export function savedBlocks(
   )
 }
 
-/** Le nombre de contenus (hors corbeille) qui citent chaque modèle. */
+/**
+ * Le nombre de contenus qui citent chaque modèle, ceux de la Corbeille compris : comme la base,
+ * qui refuse de mettre à la corbeille un bloc partagé encore cité par l'un d'eux.
+ */
 export function countUses(uses: TemplateUse[]): Map<string, number> {
   const counts = new Map<string, number>()
   for (const use of uses) {
-    if (use.inTrash) continue
     for (const id of use.templateIds) counts.set(id, (counts.get(id) ?? 0) + 1)
   }
   return counts

@@ -1,5 +1,13 @@
 import { cn } from "cn"
-import { Check, Link, Unlink, X } from "lucide-react"
+import {
+  Check,
+  Hourglass,
+  Link,
+  TriangleAlert,
+  Unlink,
+  Upload,
+  X,
+} from "lucide-react"
 
 import { IconBadge } from "@/components/icon-badge"
 import { kindIcons, rejectedText } from "@/components/media/media-kinds"
@@ -54,8 +62,9 @@ function isInterrupted(media: Media, now: number): boolean {
 }
 
 /**
- * État d'un fichier (grille et liste) : une coche s'il est prêt, sinon une croix ; l'infobulle
- * dit l'état exact (Envoi en cours…, Vérification…, ou la raison du refus).
+ * État d'un fichier (grille et liste) : une coche s'il est prêt, un sablier pendant sa
+ * vérification, une flèche pendant son envoi (un triangle s'il est interrompu), une croix s'il est
+ * refusé ; l'infobulle dit l'état exact (ou la raison du refus).
  */
 export function MediaStatusIcon({ media, now }: { media: Media; now: number }) {
   switch (media.status) {
@@ -72,17 +81,15 @@ export function MediaStatusIcon({ media, now }: { media: Media; now: number }) {
         <IconBadge icon={X} label={rejectedText(media)} variant="destructive" />
       )
     case "checking":
-      return <IconBadge icon={X} label={texts.media.status.checking} />
+      return <IconBadge icon={Hourglass} label={texts.media.status.checking} />
     case "pending":
-      return (
+      return isInterrupted(media, now) ? (
         <IconBadge
-          icon={X}
-          label={
-            isInterrupted(media, now)
-              ? texts.media.status.interrupted
-              : texts.media.status.pending
-          }
+          icon={TriangleAlert}
+          label={texts.media.status.interrupted}
         />
+      ) : (
+        <IconBadge icon={Upload} label={texts.media.status.pending} />
       )
   }
 }

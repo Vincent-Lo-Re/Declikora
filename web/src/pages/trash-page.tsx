@@ -49,7 +49,7 @@ import {
 import { useAddressState } from "@/hooks/use-address-state"
 import { trashFilterFromAddress, writeTrashFilter } from "@/lib/address"
 import { ContentError, contentKeys } from "@/lib/contents/api"
-import { formatDateTime } from "@/lib/dates"
+import { formatDate, formatDateTime } from "@/lib/dates"
 import {
   emptyTrash,
   kickFiles,
@@ -126,7 +126,8 @@ export function TrashPage() {
       } else {
         toast.success(texts.trash.restored(name), {
           description:
-            item.item_type === "content"
+            // Un modèle ne se publie pas : rien à dire de l'app.
+            item.item_type === "content" && item.kind !== "template"
               ? texts.trash.restoredDraft
               : undefined,
           action,
@@ -463,7 +464,8 @@ function TrashRow({
             </p>
           </div>
         ) : (
-          texts.trash.purgeOn(formatDateTime(item.purge_at))
+          // Le jour seul : la tâche qui vide la Corbeille passe une fois par nuit.
+          texts.trash.purgeOn(formatDate(item.purge_at))
         )}
       </TableCell>
       <TableCell>

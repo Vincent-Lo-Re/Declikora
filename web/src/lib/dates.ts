@@ -59,6 +59,11 @@ export function formatShortDateTime(
   }
 }
 
+/** Le jour seul, à l'heure de Paris : « 27 sept. 2026 », « Sep 27, 2026 » en anglais. */
+export function formatDate(date: Date | string): string {
+  return dateFormat.format(typeof date === "string" ? new Date(date) : date)
+}
+
 /** « 27 sept. 2026 à 18h42 », « Sep 27, 2026, 6:42 PM » en anglais, à l'heure de Paris. */
 export function formatDateTime(date: Date | string): string {
   const value = typeof date === "string" ? new Date(date) : date

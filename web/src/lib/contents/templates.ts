@@ -30,12 +30,23 @@ export const templateSorts: readonly TemplateSort[] = [
  * Dans l'ordre du menu (Blog, Podcasts, Méthodes, Pages). Les points de départ d'un chapitre,
  * d'une leçon ou d'un exercice restent : ils serviront aux méthodes refaites (ADMIN § 1).
  */
-export const templateSections: readonly TemplateFor[] = [
+const templateSections: readonly TemplateFor[] = [
   "article",
   "episode",
   "chapter",
   "lesson",
   "exercise",
+  "page",
+]
+
+/**
+ * Les sections proposées pour un nouveau point de départ : celles qui ont un éditeur aujourd'hui.
+ * Les méthodes refaites ajouteront le chapitre, la leçon et l'exercice ; d'ici là, ils ne
+ * serviraient à rien (un point de départ déjà créé reste lisible).
+ */
+export const offeredTemplateSections: readonly TemplateFor[] = [
+  "article",
+  "episode",
   "page",
 ]
 

@@ -125,7 +125,7 @@ export function ScheduleBadge({ schedule }: { schedule: ScheduleState }) {
       return (
         <Badge
           variant="outline"
-          data-schedule={schedule.overdue ? "waiting" : "due"}
+          data-schedule={isHeld(schedule) ? "waiting" : "due"}
         >
           <Hourglass aria-hidden />
           {text}
@@ -141,6 +141,16 @@ export function ScheduleBadge({ schedule }: { schedule: ScheduleState }) {
   }
 }
 
+/**
+ * La tâche planifiée retient la publication : l'heure est passée depuis plus de deux minutes et
+ * le brouillon a changé depuis la programmation ([D31]). Sinon, elle part à son prochain passage.
+ */
+function isHeld(
+  schedule: Extract<ScheduleState, { kind: "waiting" }>
+): boolean {
+  return schedule.overdue && schedule.edited
+}
+
 function scheduleText(schedule: ScheduleState): string | null {
   switch (schedule.kind) {
     case "none":
@@ -148,7 +158,7 @@ function scheduleText(schedule: ScheduleState): string | null {
     case "scheduled":
       return labels.status.scheduled(formatDateTime(schedule.at))
     case "waiting":
-      return schedule.overdue ? labels.status.waiting : labels.status.due
+      return isHeld(schedule) ? labels.status.waiting : labels.status.due
     case "failed":
       return labels.status.failed
   }
@@ -171,7 +181,7 @@ export function PublicationBadge({ pub }: { pub: PublicationControls }) {
     schedule.kind === "none"
       ? labels.short[live]
       : schedule.kind === "waiting"
-        ? labels.short[schedule.overdue ? "waiting" : "due"]
+        ? labels.short[isHeld(schedule) ? "waiting" : "due"]
         : labels.short[schedule.kind]
   return (
     <Tooltip>
@@ -367,8 +377,9 @@ export function ScheduleBanner({
     )
   } else if (schedule.kind === "waiting") {
     const date = formatDateTime(schedule.at)
-    if (pub.bridge.editable) {
-      // C'est peut-être nous qui retenons la publication ([D31]) : on le dit, au tutoiement.
+    if (pub.bridge.editable && schedule.edited) {
+      // Le brouillon a changé depuis la programmation et nous avons la main : c'est peut-être
+      // nous qui retenons la publication ([D31]) ; on le dit, au tutoiement.
       message = words.waitingMine(date)
       extra = words.waitingMineHint
       actions = (
@@ -378,8 +389,10 @@ export function ScheduleBanner({
         </>
       )
     } else {
-      message = schedule.overdue ? words.waiting(date) : words.due(date)
-      extra = schedule.overdue ? words.waitingHint : words.dueHint
+      // Brouillon inchangé : la tâche publie à son prochain passage, personne ne la retient.
+      const held = isHeld(schedule)
+      message = held ? words.waiting(date) : words.due(date)
+      extra = held ? words.waitingHint : words.dueHint
       actions = cancel
     }
   } else {

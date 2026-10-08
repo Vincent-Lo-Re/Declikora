@@ -105,7 +105,10 @@ function useAnnouncement(status: AutosaveStatus): string {
     let { problem, message } = tracked
     if (PROBLEMS.has(status)) {
       problem = true
-      if (status === "offline") message = labels.announce.offline
+      if (status === "offline")
+        message = isOffline()
+          ? labels.announce.offline
+          : labels.announce.retrying
     } else if (status === "saved" && problem) {
       problem = false
       message = labels.announce.saved
@@ -113,6 +116,14 @@ function useAnnouncement(status: AutosaveStatus): string {
     setTracked({ status, problem, message })
   }
   return tracked.message
+}
+
+/**
+ * L'envoi a échoué et repartira : « Hors ligne » seulement si le navigateur l'est vraiment ; sinon
+ * le serveur n'a pas répondu (erreur 5xx, délai dépassé, trop de demandes).
+ */
+function isOffline(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false
 }
 
 function describe(status: AutosaveStatus) {
@@ -136,7 +147,7 @@ function describe(status: AutosaveStatus) {
     case "offline":
       return {
         icon: CloudOff,
-        text: labels.offline,
+        text: isOffline() ? labels.offline : labels.retrying,
         spin: false,
         tone: "error",
       }

@@ -28,6 +28,8 @@ export type Publication = {
   draft_rev: number
   first_published_at: string | null
   scheduled_at: string | null
+  // La révision du brouillon au moment de la programmation (null sans programmation).
+  scheduled_rev: number | null
   scheduled_by_name: string | null
   schedule_error: string | null
   deleted_at: string | null
@@ -38,7 +40,7 @@ export async function getPublication(id: string): Promise<Publication | null> {
   const { data, error, status } = await supabase
     .from("contents")
     .select(
-      "id, draft_rev, first_published_at, scheduled_at, schedule_error, deleted_at, scheduler:profiles!contents_scheduled_by_fkey(full_name, email), live:versions!contents_live_version_fkey(id, number, draft_rev, published_at, published_by_name, slug, access_level_id)"
+      "id, draft_rev, first_published_at, scheduled_at, scheduled_rev, schedule_error, deleted_at, scheduler:profiles!contents_scheduled_by_fkey(full_name, email), live:versions!contents_live_version_fkey(id, number, draft_rev, published_at, published_by_name, slug, access_level_id)"
     )
     .eq("id", id)
     .maybeSingle()
@@ -49,6 +51,7 @@ export async function getPublication(id: string): Promise<Publication | null> {
     draft_rev: data.draft_rev,
     first_published_at: data.first_published_at,
     scheduled_at: data.scheduled_at,
+    scheduled_rev: data.scheduled_rev,
     scheduled_by_name: displayName(data.scheduler as PersonName | null),
     schedule_error: data.schedule_error,
     deleted_at: data.deleted_at,
@@ -108,8 +111,9 @@ export type ScheduleState =
   | { kind: "scheduled"; at: string }
   // L'heure est passée. Tant que overdue est faux, la tâche planifiée (chaque minute) n'est
   // peut-être pas encore passée ; ensuite, elle attend que la personne qui écrit ait quitté
-  // l'éditeur ([D31]).
-  | { kind: "waiting"; at: string; overdue: boolean }
+  // l'éditeur ([D31]). Elle n'attend que si le brouillon a changé depuis la programmation
+  // (edited) : sinon, elle publie même si quelqu'un a l'éditeur ouvert.
+  | { kind: "waiting"; at: string; overdue: boolean; edited: boolean }
   | { kind: "failed"; code: string }
 
 export type PublicationStatus = { live: LiveState; schedule: ScheduleState }
@@ -128,6 +132,8 @@ export function publicationStatus(
     live: { draft_rev: number } | null
     first_published_at: string | null
     scheduled_at: string | null
+    // Absente (listes) : le brouillon est tenu pour changé.
+    scheduled_rev?: number | null
     schedule_error: string | null
   },
   draftRev: number,
@@ -152,6 +158,10 @@ export function publicationStatus(
             overdue:
               now - new Date(publication.scheduled_at).getTime() >
               SCHEDULE_GRACE_MS,
+            edited:
+              unsaved ||
+              publication.scheduled_rev == null ||
+              draftRev !== publication.scheduled_rev,
           }
   } else if (publication.schedule_error) {
     schedule = { kind: "failed", code: publication.schedule_error }
