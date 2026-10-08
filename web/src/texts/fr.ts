@@ -1069,6 +1069,12 @@ export const fr: Texts = {
     emptyDescription:
       "Les catégories sont facultatives. Ajoutes-en pour que les lecteurs puissent filtrer dans l'app.",
     noResults: "Aucune catégorie ne correspond à ta recherche.",
+    count: (shown: number, total: number) =>
+      shown === total
+        ? total === 1
+          ? "1 catégorie"
+          : `${total} catégories`
+        : `${shown} sur ${total}`,
     orderFiltering: "Pour ranger les catégories, efface d'abord la recherche.",
     confirmRemove: {
       title: "Supprimer cette catégorie ?",

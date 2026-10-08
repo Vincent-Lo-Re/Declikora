@@ -1042,6 +1042,12 @@ export const en = {
     emptyDescription:
       "Categories are optional. Add some so readers can filter in the app.",
     noResults: "No categories match your search.",
+    count: (shown: number, total: number) =>
+      shown === total
+        ? total === 1
+          ? "1 category"
+          : `${total} categories`
+        : `${shown} of ${total}`,
     orderFiltering: "Clear the search to reorder the categories.",
     confirmRemove: {
       title: "Delete this category?",

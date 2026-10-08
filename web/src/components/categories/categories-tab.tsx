@@ -257,7 +257,7 @@ export function CategoriesTab({
               role="status"
               className="ml-auto text-sm text-muted-foreground tabular-nums"
             >
-              {texts.contentList.count(shown.length, all.length)}
+              {labels.count(shown.length, all.length)}
             </p>
           </div>
           {shown.length === 0 ? (
