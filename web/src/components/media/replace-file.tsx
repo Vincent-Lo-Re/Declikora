@@ -206,7 +206,10 @@ export function ReplaceFile({
                   <ul className="list-disc pl-4">
                     {kept.map((draft) => (
                       <li key={draft.id}>
-                        {labels.keptItem(draft.title, draft.holder)}
+                        {labels.keptItem(
+                          draft.title,
+                          draft.holder || texts.errorFacts.someone
+                        )}
                       </li>
                     ))}
                   </ul>

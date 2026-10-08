@@ -31,6 +31,23 @@ export const en = {
       "Something went wrong. Check your connection and try again in a moment.",
   },
 
+  // Les faits renvoyés par la base avec une erreur (hint), écrits par l'admin (lib/error-facts.ts).
+  errorFacts: {
+    quoted: (text: string) => `“${text}”`,
+    someone: "Someone",
+    usedIn: (titles: string) => `Used in: ${titles}.`,
+    heldBy: (name: string) => `${name} is editing it right now.`,
+    unavailableFiles: (files: string) => `Unavailable files: ${files}.`,
+    fileTrashed: (name: string) => `${name} (in the Trash)`,
+    filePending: (name: string) => `${name} (not ready yet)`,
+    fileMissing: "a file that no longer exists",
+    wrongTypeFiles: (names: string) =>
+      `Not the right file type here: ${names}.`,
+    emptyTemplates: (titles: string) => `Empty templates: ${titles}.`,
+    imageMissingAt: (positions: string) =>
+      `Image blocks without a file, at position ${positions}.`,
+  },
+
   // Sélection en masse (Médiathèque, listes de contenus) : les mots qui ne dépendent pas de la page.
   selection: {
     select: (name: string) => `Select ${name}`,

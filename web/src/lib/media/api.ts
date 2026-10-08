@@ -14,6 +14,7 @@ import type { PreparedFile } from "@/lib/media/prepare"
 import { isContentKind } from "@/lib/contents/api"
 import { restoreContent } from "@/lib/contents/publication"
 import { supabase } from "@/lib/supabase"
+import { describeFacts } from "@/lib/error-facts"
 import { texts } from "@/texts"
 
 // ---------------------------------------------------------------------------------------------
@@ -29,7 +30,8 @@ function isMediaErrorCode(code: unknown): code is MediaErrorCode {
 /** Erreur de la base ou de la fonction « files » : son code (s'il est connu) et le message. */
 export class MediaError extends Error {
   readonly code: MediaErrorCode | null
-  // Précision de la base (par exemple la liste des contenus qui utilisent un fichier).
+  // Précision écrite par l'admin à partir des faits de la base (lib/error-facts.ts), par exemple
+  // la liste des contenus qui utilisent un fichier.
   readonly detail: string | null
 
   constructor(code: MediaErrorCode | null, detail: string | null = null) {
@@ -50,7 +52,7 @@ export function usedFileDetail(error: unknown): string | null {
 /** Traduit une erreur de la base (RPC ou table). */
 function toMediaError(error: PostgrestError): MediaError {
   const code = isMediaErrorCode(error.message) ? error.message : null
-  return new MediaError(code, error.details || null)
+  return new MediaError(code, describeFacts(code, error.hint || null))
 }
 
 /** Vrai si l'erreur montre que la personne n'a plus accès (fiche ou session à relire). */
@@ -288,7 +290,8 @@ export async function pushMediaTexts(mediaId: string): Promise<number> {
 }
 
 /** Un brouillon que media_replace n'a pas touché : quelqu'un l'écrit en ce moment. */
-export type KeptDraft = { id: string; title: string; holder: string }
+// holder : le nom (ou l'e-mail) de qui écrit, null si la base ne le connaît pas.
+export type KeptDraft = { id: string; title: string; holder: string | null }
 
 /**
  * « Remplacer… » ([D48]) : le nouveau fichier (même type, prêt) prend la place de l'ancien dans

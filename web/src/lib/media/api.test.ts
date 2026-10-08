@@ -26,13 +26,13 @@ afterEach(() => {
 type RpcResult = Awaited<ReturnType<typeof supabase.rpc>>
 
 /** Réponse d'erreur de la base, comme PostgREST la rend pour un « raise exception ». */
-function rpcFailure(message: string, details = ""): RpcResult {
+function rpcFailure(message: string, details = "", hint = ""): RpcResult {
   return {
     data: null,
     error: {
       message,
       details,
-      hint: "",
+      hint,
       code: "P0001",
       name: "PostgrestError",
     },
@@ -55,9 +55,13 @@ function mockRpc(...results: RpcResult[]) {
 }
 
 describe("appels de la médiathèque", () => {
-  it("traduit un refus de la base, avec sa précision", async () => {
+  it("traduit un refus de la base ; la précision vient de ses faits, jamais de son detail", async () => {
     mockRpc(
-      rpcFailure("fichier_utilise", "Ce fichier est utilisé dans : Pain.")
+      rpcFailure(
+        "fichier_utilise",
+        "Ce fichier est utilisé dans : Pain, Sans titre.",
+        '["Pain", null]'
+      )
     )
 
     const error = await trashMedia("id").catch((caught: unknown) => caught)
@@ -66,7 +70,9 @@ describe("appels de la médiathèque", () => {
     expect(error).toMatchObject({
       code: "fichier_utilise",
       message: texts.media.errors.fichier_utilise,
-      detail: "Ce fichier est utilisé dans : Pain.",
+      detail: texts.errorFacts.usedIn(
+        `${texts.errorFacts.quoted("Pain")}, ${texts.errorFacts.quoted(texts.common.untitled)}`
+      ),
     })
   })
 

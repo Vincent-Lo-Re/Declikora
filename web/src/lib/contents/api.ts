@@ -8,6 +8,7 @@ import type { Draft } from "@/blocks/types"
 import type { Json, Tables } from "@/lib/database.types"
 import type { Media } from "@/lib/media/constants"
 import { supabase } from "@/lib/supabase"
+import { describeFacts } from "@/lib/error-facts"
 import { texts } from "@/texts"
 
 // ---------------------------------------------------------------------------------------------
@@ -90,7 +91,8 @@ export function toContentError(
       status === 429 ||
       status >= 500)
   return new ContentError(code, {
-    detail: error.details || null,
+    // Jamais le detail de la base (en français) : la précision vient de ses faits (hint).
+    detail: describeFacts(code, error.hint || null),
     hint: error.hint || null,
     retryable,
   })

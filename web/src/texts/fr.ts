@@ -32,6 +32,23 @@ export const fr: Texts = {
       "Un problème est survenu. Vérifie ta connexion, puis réessaie dans un instant.",
   },
 
+  // Les faits renvoyés par la base avec une erreur (hint), écrits par l'admin (lib/error-facts.ts).
+  errorFacts: {
+    quoted: (text: string) => `« ${text} »`,
+    someone: "Quelqu'un",
+    usedIn: (titles: string) => `Utilisé dans : ${titles}.`,
+    heldBy: (name: string) => `${name} l'écrit en ce moment.`,
+    unavailableFiles: (files: string) => `Fichiers indisponibles : ${files}.`,
+    fileTrashed: (name: string) => `${name} (dans la Corbeille)`,
+    filePending: (name: string) => `${name} (pas encore prêt)`,
+    fileMissing: "un fichier qui n'existe plus",
+    wrongTypeFiles: (names: string) =>
+      `Pas du bon type de fichier à cet endroit : ${names}.`,
+    emptyTemplates: (titles: string) => `Modèles vides : ${titles}.`,
+    imageMissingAt: (positions: string) =>
+      `Blocs Image sans fichier, à la position ${positions}.`,
+  },
+
   // Sélection en masse (Médiathèque, listes de contenus) : les mots qui ne dépendent pas de la page.
   selection: {
     select: (name: string) => `Sélectionner ${name}`,
