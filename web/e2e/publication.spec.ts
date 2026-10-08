@@ -18,7 +18,8 @@
 import type { Page } from "@playwright/test"
 
 import { slugFromTitle } from "../src/lib/contents/slug.ts"
-import { texts } from "../src/texts.ts"
+// Les parcours tournent en français (VITE_DEFAULT_LANGUAGE de playwright.config.ts).
+import { fr as texts } from "../src/texts/fr.ts"
 import type { Account } from "./support/accounts.ts"
 import {
   accountMenuButton,

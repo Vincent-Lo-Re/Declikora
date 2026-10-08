@@ -10,8 +10,12 @@ import { AppProviders } from "@/components/app-providers"
 import { startPreparation } from "@/lib/preparation"
 import { adminBrandRead } from "@/lib/reads"
 import { createQueryClient } from "@/lib/query-client"
+import { language } from "@/lib/language"
 import { initSentry } from "@/lib/sentry"
 import { routes } from "@/routes"
+
+// La langue des textes, pour le navigateur et les lecteurs d'écran.
+document.documentElement.lang = language
 
 const rootOptions = initSentry()
 const queryClient = createQueryClient()

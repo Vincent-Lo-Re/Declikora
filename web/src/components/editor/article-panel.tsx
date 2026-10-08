@@ -82,6 +82,7 @@ import {
 } from "@/lib/editor/profile"
 import { READY_IDS, showReadySetting } from "@/lib/editor/ready-targets"
 import { focusSoon } from "@/lib/focus"
+import { locale } from "@/lib/language"
 import { formatDuration } from "@/lib/media/format"
 import { texts } from "@/texts"
 
@@ -91,8 +92,8 @@ const categoryWords = texts.publication.settings.categories
 const audioWords = texts.editor.presentation.audio
 const slugWords = texts.publication.settings.slug
 
-// Nombres en français (« 1 000 »).
-const integer = new Intl.NumberFormat("fr-FR")
+// Nombres dans la langue de l'admin (« 1 000 », « 1,000 »).
+const integer = new Intl.NumberFormat(locale)
 
 // Valeurs de la liste du niveau d'accès (une formule a pour valeur son identifiant).
 const NOT_CHOSEN = "pas-encore-choisi"

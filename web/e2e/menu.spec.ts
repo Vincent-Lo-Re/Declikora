@@ -1,7 +1,8 @@
 // Le menu de gauche, toujours ouvert : le membre en bas (avatar, nom, rôle), qui ouvre le menu du
 // compte.
 
-import { texts } from "../src/texts.ts"
+// Les parcours tournent en français (VITE_DEFAULT_LANGUAGE de playwright.config.ts).
+import { fr as texts } from "../src/texts/fr.ts"
 import { accountMenuButton, expect, signIn, test } from "./support/fixtures.ts"
 
 test("le membre en bas du menu : nom et rôle, son menu ; le menu ne se replie pas", async ({

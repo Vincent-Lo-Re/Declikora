@@ -215,6 +215,7 @@ describe("Équipe", () => {
         email: "nina@exemple.test",
         full_name: "",
         role: "editor",
+        language: "fr",
       },
     })
     // La liste est relue même après un échec : elle montre l'état réel.

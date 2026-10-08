@@ -6,7 +6,8 @@
 
 import type { Page } from "@playwright/test"
 
-import { texts } from "../src/texts.ts"
+// Les parcours tournent en français (VITE_DEFAULT_LANGUAGE de playwright.config.ts).
+import { fr as texts } from "../src/texts/fr.ts"
 import {
   createFromDialog,
   createBlankPage,

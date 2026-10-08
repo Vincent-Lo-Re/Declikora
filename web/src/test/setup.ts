@@ -3,6 +3,10 @@ import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
 import { afterEach } from "vitest"
 
+// Les tests lisent l'admin en français, ses textes et ses dates (lib/language.ts) : la langue
+// est posée avant qu'un test charge les textes. src/texts.test.ts vérifie les deux langues.
+localStorage.setItem("declikora-langue", "fr")
+
 // Chaque test repart d'une page vide.
 afterEach(() => cleanup())
 

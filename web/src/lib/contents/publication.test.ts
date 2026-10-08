@@ -82,7 +82,7 @@ describe("état de publication", () => {
       texts.publication.scheduleErrors.auteur_parti
     )
     expect(scheduleErrorText("image_sans_fichier")).toBe(
-      "une image n'a pas de fichier : choisis-en un, ou supprime le bloc."
+      "un bloc Image n'a pas de fichier : choisis-en un, ou supprime le bloc."
     )
     expect(scheduleErrorText("code_inconnu")).toBe(
       texts.publication.scheduleErrors.erreur_inattendue

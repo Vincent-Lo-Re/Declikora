@@ -7,6 +7,7 @@ import {
   isRateLimitError,
 } from "@/lib/auth-errors"
 import { brandName, getAdminBrand } from "@/lib/admin-identity"
+import type { Language } from "@/lib/language"
 import { supabase } from "@/lib/supabase"
 
 // « Code envoyé », « code déjà envoyé il y a moins d'une minute » (le code précédent reste
@@ -116,5 +117,14 @@ export async function saveFullName(
     .eq("id", profileId)
     .select("id")
     .single()
+  if (error) throw error
+}
+
+/**
+ * Enregistre la langue du membre sur son compte (Mon compte) : elle le suit d'un navigateur à
+ * l'autre, et les e-mails qu'il reçoit la lisent.
+ */
+export async function saveLanguage(language: Language): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ data: { language } })
   if (error) throw error
 }

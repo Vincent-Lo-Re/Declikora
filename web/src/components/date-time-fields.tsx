@@ -1,9 +1,10 @@
 import { CalendarDays } from "lucide-react"
 import { useState, type ComponentProps } from "react"
-import { fr } from "react-day-picker/locale"
+import { enUS, fr } from "react-day-picker/locale"
 
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
+import { language } from "@/lib/language"
 import {
   InputGroup,
   InputGroupAddon,
@@ -83,7 +84,7 @@ export function DayField({ value, onChange, onBlur, ...props }: FieldProps) {
           <PopoverContent align="end" className="w-auto p-0">
             <Calendar
               mode="single"
-              locale={fr}
+              locale={language === "fr" ? fr : enUS}
               selected={selected}
               defaultMonth={selected}
               onSelect={(date) => {

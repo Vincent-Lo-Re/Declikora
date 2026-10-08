@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
+import { language } from "@/lib/language"
 import { inviteSchema } from "@/lib/schemas"
 import { callTeam, teamQueryKey, type TeamRole } from "@/lib/team"
 import { texts } from "@/texts"
@@ -55,7 +56,7 @@ export function InviteDialog() {
 
   const invite = useMutation({
     mutationFn: (values: typeof emptyForm) =>
-      callTeam({ action: "invite", ...values }),
+      callTeam({ action: "invite", ...values, language }),
     onSuccess: (_, values) => {
       toast.success(texts.team.invited(values.email))
       setOpen(false)
