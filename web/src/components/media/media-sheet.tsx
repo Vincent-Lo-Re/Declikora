@@ -30,11 +30,14 @@ import { AudioPlayer } from "@/components/media/audio-player"
 import { kindIcons, rejectedText } from "@/components/media/media-kinds"
 import { MediaStatusIcon, MediaUseIcon } from "@/components/media/media-visuals"
 import {
+  mediaUsesFileName,
+  useMediaUses,
+} from "@/components/media/use-media-uses"
+import {
   ExportUsesButton,
   SectionIcon,
   UseTitle,
-} from "@/components/media/media-uses"
-import { useMediaUses } from "@/components/media/use-media-uses"
+} from "@/components/uses-dialog"
 import { ReplaceFile } from "@/components/media/replace-file"
 import { PanelCard } from "@/components/panel-card"
 import { useAccessCheck } from "@/components/team/use-access-check"
@@ -529,7 +532,11 @@ function MediaUses({ media }: { media: Media }) {
                 }
               />
             )}
-            <ExportUsesButton media={media} uses={uses.data} size="sm" />
+            <ExportUsesButton
+              fileName={mediaUsesFileName(media)}
+              uses={uses.data}
+              size="sm"
+            />
           </>
         )}
         {live.length > 0 && <OutdatedTexts media={media} />}

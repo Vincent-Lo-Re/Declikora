@@ -15,6 +15,7 @@ import { isContentKind } from "@/lib/contents/api"
 import { restoreContent } from "@/lib/contents/publication"
 import { supabase } from "@/lib/supabase"
 import { describeFacts } from "@/lib/error-facts"
+import type { ContentUse } from "@/lib/uses-export"
 import { texts } from "@/texts"
 
 // ---------------------------------------------------------------------------------------------
@@ -239,13 +240,7 @@ export async function getPreviewUrls(
   return urls
 }
 
-export type MediaUse = {
-  content_id: string
-  kind: string
-  title: string
-  in_draft: boolean
-  in_app: boolean
-}
+export type MediaUse = ContentUse
 
 /** Contenus qui utilisent un fichier : brouillons (in_draft) et versions en ligne (in_app). */
 export async function getMediaUses(mediaId: string): Promise<MediaUse[]> {

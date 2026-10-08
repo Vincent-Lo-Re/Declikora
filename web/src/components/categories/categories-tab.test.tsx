@@ -30,6 +30,7 @@ vi.mock("@/lib/categories", async (importOriginal) => {
     renameCategory: vi.fn(),
     deleteCategory: vi.fn(),
     reorderCategories: vi.fn(),
+    getCategoryUses: vi.fn(),
   }
 })
 
@@ -66,7 +67,9 @@ describe("Blog : l'onglet Catégories", () => {
     ).toEqual(["Sommeil", "Stress"])
     // « État » : un lien (le nombre dans l'infobulle), ou un lien coupé.
     expect(
-      within(rows[0]).getByRole("img", { name: labels.usesCount(3) })
+      within(rows[0]).getByRole("button", {
+        name: labels.uses.open("Sommeil"),
+      })
     ).toBeVisible()
     expect(
       within(rows[1]).getByRole("img", { name: labels.usesCount(0) })
@@ -200,6 +203,44 @@ describe("Blog : l'onglet Catégories", () => {
       expect(categoriesApi.deleteCategory).toHaveBeenCalledTimes(2)
     )
     expect(await screen.findByText(labels.removedMany(2))).toBeVisible()
+  })
+
+  it("« État » ouvre la liste des contenus qui utilisent la catégorie, avec son export", async () => {
+    vi.mocked(categoriesApi.getCategoryUses).mockResolvedValue([
+      {
+        content_id: "a1",
+        kind: "article",
+        title: "Bien dormir",
+        in_draft: true,
+        in_app: true,
+        in_trash: false,
+      },
+      {
+        content_id: "a2",
+        kind: "article",
+        title: "Ancien article",
+        in_draft: true,
+        in_app: false,
+        in_trash: true,
+      },
+    ])
+    await renderApp("/blog?tab=categories")
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: labels.uses.open("Sommeil") })
+    )
+    const dialog = await screen.findByRole("dialog", {
+      name: labels.uses.title,
+    })
+    expect(categoriesApi.getCategoryUses).toHaveBeenCalledWith("c1")
+    expect(
+      await within(dialog).findByRole("link", { name: "Bien dormir" })
+    ).toHaveAttribute("href", "/blog/a1")
+    const trashed = within(dialog).getByRole("row", { name: /Ancien article/ })
+    expect(within(trashed).getByText(texts.uses.inTrash)).toBeVisible()
+    expect(
+      within(dialog).getByRole("button", { name: texts.uses.export })
+    ).toBeEnabled()
   })
 
   it("le filtre par état : utilisées ou non", async () => {

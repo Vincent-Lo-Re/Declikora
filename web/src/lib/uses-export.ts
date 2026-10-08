@@ -1,11 +1,23 @@
-// L'export des endroits où un fichier est utilisé (pastille « Utilisé » et fiche du fichier) :
-// un CSV que lisent Excel, Numbers et Google Sheets, dans la langue de l'admin. Sans React.
+// Où un fichier ou une catégorie est utilisé : les contenus qui le citent, et leur export en CSV
+// (Excel, Numbers, Google Sheets), dans la langue de l'admin. Sans React.
 
-import type { MediaUse } from "@/lib/media/api"
 import { contentEditorPath, contentSection } from "@/navigation"
 import { texts } from "@/texts"
 
-const words = texts.media.uses
+/**
+ * Un contenu qui utilise un fichier ou une catégorie : dans son brouillon (in_draft), dans sa
+ * version en ligne (in_app) et, quand on le sait (catégories), s'il est à la Corbeille.
+ */
+export type ContentUse = {
+  content_id: string
+  kind: string
+  title: string
+  in_draft: boolean
+  in_app: boolean
+  in_trash?: boolean
+}
+
+const words = texts.uses
 
 // Un champ entre guillemets dès qu'il contient un séparateur, un guillemet ou un retour à la
 // ligne ; un guillemet se double (RFC 4180).
@@ -14,14 +26,22 @@ function field(value: string): string {
 }
 
 /**
- * Le CSV des utilisations d'un fichier : une ligne par contenu (titre, section, dans un
- * brouillon, en ligne, adresse de son éditeur). origin : l'adresse de l'admin
+ * Le CSV des utilisations : une ligne par contenu (titre, section, dans un brouillon, en ligne,
+ * à la Corbeille quand on le sait, adresse de son éditeur). origin : l'adresse de l'admin
  * (« https://admin.declikora.app »), pour des liens qui s'ouvrent hors de l'admin.
  */
-export function usesCsv(uses: readonly MediaUse[], origin: string): string {
+export function usesCsv(uses: readonly ContentUse[], origin: string): string {
   const { csv } = words
+  const withTrash = uses.some((use) => use.in_trash !== undefined)
   const yesNo = (value: boolean) => (value ? csv.yes : csv.no)
-  const header = [csv.title, csv.section, csv.draft, csv.live, csv.url]
+  const header = [
+    csv.title,
+    csv.section,
+    csv.draft,
+    csv.live,
+    ...(withTrash ? [csv.trash] : []),
+    csv.url,
+  ]
   const rows = uses.map((use) => {
     const section = contentSection(use.kind)
     const path = contentEditorPath(use.kind, use.content_id)
@@ -30,6 +50,7 @@ export function usesCsv(uses: readonly MediaUse[], origin: string): string {
       section ? texts.sections[section].title : "",
       yesNo(use.in_draft),
       yesNo(use.in_app),
+      ...(withTrash ? [yesNo(use.in_trash ?? false)] : []),
       path ? `${origin}${path}` : "",
     ]
   })
@@ -38,17 +59,17 @@ export function usesCsv(uses: readonly MediaUse[], origin: string): string {
 }
 
 /**
- * Télécharge le CSV des utilisations d'un fichier. Le BOM en tête dit à Excel que le texte est en
+ * Télécharge le CSV des utilisations sous ce nom. Le BOM en tête dit à Excel que le texte est en
  * UTF-8 (sans lui, les accents s'y affichent mal).
  */
-export function downloadUsesCsv(mediaName: string, uses: readonly MediaUse[]) {
+export function downloadUsesCsv(fileName: string, uses: readonly ContentUse[]) {
   const blob = new Blob([`﻿${usesCsv(uses, window.location.origin)}`], {
     type: "text/csv;charset=utf-8",
   })
   const url = URL.createObjectURL(blob)
   const link = document.createElement("a")
   link.href = url
-  link.download = words.fileName(mediaName.replace(/\.[^.]+$/, ""))
+  link.download = fileName
   document.body.append(link)
   link.click()
   link.remove()

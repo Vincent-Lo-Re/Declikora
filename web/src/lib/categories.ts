@@ -6,6 +6,7 @@
 import type { PostgrestError } from "@supabase/supabase-js"
 
 import type { TablesInsert } from "@/lib/database.types"
+import type { ContentUse } from "@/lib/uses-export"
 import { supabase } from "@/lib/supabase"
 import { texts } from "@/texts"
 
@@ -24,6 +25,7 @@ export type Category = {
 export const categoryKeys = {
   all: ["categories"] as const,
   list: (section: CategorySection) => ["categories", section] as const,
+  uses: (id: string) => ["categories", "uses", id] as const,
 }
 
 type CategoryErrorCode = keyof typeof texts.categories.errors
@@ -142,6 +144,55 @@ export async function reorderCategories(
   })
   if (error) throw toCategoryError(error)
   return data.map(({ id, name, position }) => ({ id, name, position }))
+}
+
+type UseRow = {
+  id: string
+  kind: string
+  title: string
+  deleted_at: string | null
+  live: { category_ids: string[] } | null
+}
+
+/**
+ * Les contenus qui utilisent une catégorie : ceux dont le brouillon la cite (content_categories,
+ * Corbeille comprise) et ceux dont la version en ligne la cite encore. Triés par titre.
+ */
+export async function getCategoryUses(
+  categoryId: string
+): Promise<ContentUse[]> {
+  const columns =
+    "id, kind, title, deleted_at, live:versions!contents_live_version_fkey(category_ids)"
+  const [drafts, live] = await Promise.all([
+    supabase
+      .from("content_categories")
+      .select(`content:contents!inner(${columns})`)
+      .eq("category_id", categoryId),
+    supabase
+      .from("contents")
+      .select(columns.replace("fkey(", "fkey!inner("))
+      .contains("live.category_ids", [categoryId]),
+  ])
+  if (drafts.error) throw toCategoryError(drafts.error)
+  if (live.error) throw toCategoryError(live.error)
+  const byId = new Map<string, ContentUse>()
+  const add = (row: UseRow, inDraft: boolean) => {
+    const known = byId.get(row.id)
+    byId.set(row.id, {
+      content_id: row.id,
+      kind: row.kind,
+      title: row.title,
+      in_draft: inDraft || (known?.in_draft ?? false),
+      in_app: row.live?.category_ids.includes(categoryId) ?? false,
+      in_trash: row.deleted_at !== null,
+    })
+  }
+  for (const { content } of drafts.data as unknown as { content: UseRow }[])
+    add(content, true)
+  for (const row of live.data as unknown as UseRow[]) add(row, false)
+  return [...byId.values()].sort((a, b) =>
+    (a.title ?? "").localeCompare(b.title ?? "")
+  )
 }
 
 /**

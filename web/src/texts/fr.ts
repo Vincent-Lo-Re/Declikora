@@ -32,6 +32,26 @@ export const fr: Texts = {
       "Un problème est survenu. Vérifie ta connexion, puis réessaie dans un instant.",
   },
 
+  // Où un fichier ou une catégorie est utilisé : la fenêtre et son export CSV (lib/uses-export.ts).
+  uses: {
+    count: (count: number) => (count === 1 ? "1 endroit" : `${count} endroits`),
+    columns: { title: "Titre", section: "Section", where: "Où" },
+    inTrash: "Dans la Corbeille",
+    export: "Exporter",
+    exported: "Liste exportée.",
+    // Les colonnes du fichier exporté.
+    csv: {
+      title: "Titre",
+      section: "Section",
+      draft: "Dans un brouillon",
+      live: "En ligne",
+      trash: "Dans la Corbeille",
+      url: "Adresse de l'éditeur",
+      yes: "Oui",
+      no: "Non",
+    },
+  },
+
   // Les faits renvoyés par la base avec une erreur (hint), écrits par l'admin (lib/error-facts.ts).
   errorFacts: {
     quoted: (text: string) => `« ${text} »`,
@@ -332,27 +352,12 @@ export const fr: Texts = {
   },
 
   media: {
-    // La pastille « Utilisé » ouvre la liste des endroits où le fichier sert, avec son export
-    // (CSV) ; la fiche du fichier propose le même export.
+    // La pastille « Utilisé » ouvre la liste des endroits où le fichier sert (texts.uses), avec
+    // son export ; la fiche du fichier propose le même export.
     uses: {
       open: (name: string) => `Voir où « ${name} » est utilisé`,
       title: "Où ce fichier est utilisé",
-      count: (count: number) =>
-        count === 1 ? "Utilisé à 1 endroit." : `Utilisé à ${count} endroits.`,
-      columns: { title: "Titre", section: "Section", where: "Où" },
-      export: "Exporter",
-      exported: "Liste exportée.",
-      // Le fichier téléchargé, puis ses colonnes.
       fileName: (name: string) => `utilisations-${name}.csv`,
-      csv: {
-        title: "Titre",
-        section: "Section",
-        draft: "Dans un brouillon",
-        live: "En ligne",
-        url: "Adresse de l'éditeur",
-        yes: "Oui",
-        no: "Non",
-      },
     },
     upload: "Envoyer des fichiers",
     uploadInput: "Fichiers à envoyer",
@@ -1052,6 +1057,12 @@ export const fr: Texts = {
     },
     // L'onglet du Blog et des Podcasts.
     tab: "Catégories",
+    // La pastille « État » ouvre la liste des contenus qui la citent (texts.uses), avec son export.
+    uses: {
+      open: (name: string) => `Voir où « ${name} » est utilisée`,
+      title: "Où cette catégorie est utilisée",
+      fileName: (name: string) => `utilisations-categorie-${name}.csv`,
+    },
     create: "Nouvelle catégorie",
     // La fenêtre d'une catégorie : la créer, ou la modifier (menu « … », clic sur la ligne).
     dialog: {

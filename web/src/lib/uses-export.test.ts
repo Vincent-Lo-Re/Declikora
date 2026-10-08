@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { usesCsv } from "@/lib/media/uses-export"
+import { usesCsv } from "@/lib/uses-export"
 import { texts } from "@/texts"
 
-const csv = texts.media.uses.csv
+const csv = texts.uses.csv
 
-describe("export des utilisations d'un fichier", () => {
+describe("export des utilisations", () => {
   it("une ligne par contenu, l'adresse de son éditeur, les champs délicats entre guillemets", () => {
     const text = usesCsv(
       [
@@ -31,5 +31,29 @@ describe("export des utilisations d'un fichier", () => {
       `"Dormir, ""vraiment""",${texts.sections.blog.title},${csv.yes},${csv.no},https://admin.exemple.test/blog/a1`,
       `${texts.common.untitled},${texts.sections.pages.title},${csv.no},${csv.yes},https://admin.exemple.test/pages/p1`,
     ])
+  })
+
+  it("la colonne « Dans la Corbeille » quand on la connaît (catégories)", () => {
+    const [header, row] = usesCsv(
+      [
+        {
+          content_id: "e1",
+          kind: "episode",
+          title: "Respirer",
+          in_draft: true,
+          in_app: false,
+          in_trash: true,
+        },
+      ],
+      "https://admin.exemple.test"
+    ).split("\r\n")
+    expect(header).toBe(
+      [csv.title, csv.section, csv.draft, csv.live, csv.trash, csv.url].join(
+        ","
+      )
+    )
+    expect(row).toBe(
+      `Respirer,${texts.sections.podcasts.title},${csv.yes},${csv.no},${csv.yes},https://admin.exemple.test/podcasts/e1`
+    )
   })
 })

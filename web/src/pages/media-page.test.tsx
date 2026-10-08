@@ -430,7 +430,7 @@ describe("Médiathèque", () => {
     const words = texts.media.uses
     const dialog = await screen.findByRole("dialog", { name: words.title })
     expect(
-      await within(dialog).findByText(new RegExp(words.count(2)))
+      await within(dialog).findByText(new RegExp(texts.uses.count(2)))
     ).toBeVisible()
     expect(
       within(dialog).getByRole("link", { name: "Bien commencer" })
@@ -440,11 +440,13 @@ describe("Médiathèque", () => {
     ).toBeVisible()
     expect(within(dialog).getByText(texts.sections.pages.title)).toBeVisible()
 
-    fireEvent.click(within(dialog).getByRole("button", { name: words.export }))
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: texts.uses.export })
+    )
     expect(click).toHaveBeenCalledOnce()
     const link = click.mock.contexts[0] as HTMLAnchorElement
     expect(link.download).toBe(words.fileName("photo"))
-    expect(await screen.findByText(words.exported)).toBeVisible()
+    expect(await screen.findByText(texts.uses.exported)).toBeVisible()
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:csv")
   })
 
@@ -473,7 +475,7 @@ describe("Médiathèque", () => {
     ).toBeVisible()
     // Le même export que la fenêtre des utilisations.
     expect(
-      within(uses).getByRole("button", { name: texts.media.uses.export })
+      within(uses).getByRole("button", { name: texts.uses.export })
     ).toBeEnabled()
     expect(
       within(sheet).getByRole("img", { name: texts.media.used })
