@@ -3,12 +3,14 @@
 --     une page n'a pas de place ; contents_reorder (équipe en aal2) range la liste complète hors
 --     corbeille ; l'ordre de l'app est testé dans 44_sections_regles.test.sql.
 --   - media_replace : le nouveau fichier (même type, prêt) remplace l'ancien dans les brouillons,
---     sauf celui que quelqu'un écrit ; ce qui est en ligne ne change pas. media_replace_live :
+--     sauf celui que quelqu'un écrit, ceux de la Corbeille compris (08/10/2026) ; il reprend le
+--     texte alternatif et la transcription de l'ancien s'il n'en a pas ; ce qui est en ligne ne
+--     change pas. media_replace_live :
 --     une nouvelle version en ligne avec le nouveau fichier.
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(21);
+select plan(23);
 
 select pg_temp.create_people();
 select pg_temp.empty_media_library();
@@ -108,6 +110,12 @@ select pg_temp.create_content('z', 'page', content_title => 'Z');
 select pg_temp.save('z', pg_temp.draft(
   jsonb_build_array(pg_temp.image_block('00000000-0000-4000-8000-0000000000c3', pg_temp.mid('photo'))), 'Z'));
 select public.lock_release(pg_temp.cid('z'));
+-- « t » l'utilise aussi, mais il est à la Corbeille.
+select pg_temp.create_content('t', 'page', content_title => 'T');
+select pg_temp.save('t', pg_temp.draft(
+  jsonb_build_array(pg_temp.image_block('00000000-0000-4000-8000-0000000000c4', pg_temp.mid('photo'))), 'T'));
+select public.lock_release(pg_temp.cid('t'));
+select public.trash(pg_temp.cid('t'));
 select pg_temp.as_person('editor2');
 select public.lock_take(pg_temp.cid('z'));
 
@@ -133,18 +141,28 @@ select throws_ok(
 select is(
   public.media_replace(pg_temp.mid('photo'), pg_temp.mid('fond')),
   jsonb_build_object(
-    'replaced', 2,
+    'replaced', 3,
     'kept', jsonb_build_array(jsonb_build_object(
       'id', pg_temp.cid('z'), 'title', 'Z', 'holder', 'editeur2@tests.local'
     ))
   ),
-  'deux brouillons remplacés ; celui qu''editor2 écrit est gardé, avec son nom'
+  'trois brouillons remplacés, la Corbeille comprise ; celui qu''editor2 écrit est gardé, avec son nom'
 );
 select is(
   (select array_agg(c.title order by c.title) from public.contents c
     where c.draft_media_ids @> array[pg_temp.mid('fond')]),
-  array['X', 'Y'],
-  'les brouillons de X et Y utilisent le nouveau fichier'
+  array['T', 'X', 'Y'],
+  'les brouillons de X, Y et T (à la Corbeille) utilisent le nouveau fichier'
+);
+select is(
+  (select alt from public.media where id = pg_temp.mid('fond')), 'Un chat',
+  'le nouveau fichier reprend le texte alternatif de l''ancien'
+);
+select is(
+  (select count(*)::int from public.media_uses(pg_temp.mid('photo')) u
+    where u.content_id = pg_temp.cid('t')),
+  0,
+  'l''ancien fichier n''est plus utilisé par le contenu de la Corbeille'
 );
 select ok(
   (select c.draft_media_ids @> array[pg_temp.mid('photo')] from public.contents c where c.id = pg_temp.cid('z')),

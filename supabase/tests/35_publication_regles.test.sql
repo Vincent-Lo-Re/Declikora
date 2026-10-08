@@ -8,7 +8,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(167);
+select plan(170);
 
 select pg_temp.create_people();
 select pg_temp.empty_media_library();
@@ -315,6 +315,11 @@ select matches(
   pg_temp.error_of($$select pg_temp.publish('vide')$$), 'bloc n° 2, bloc n° 3',
   'image_sans_fichier : le détail donne la place des blocs (encadrés compris)'
 );
+select is(
+  pg_temp.facts_of($$select pg_temp.publish('vide')$$),
+  '{"code": "image_sans_fichier", "hint": [2, 3]}'::jsonb,
+  'image_sans_fichier : hint, les numéros des blocs en tableau JSON'
+);
 
 select lives_ok($$select pg_temp.create_content('mauvais', 'article')$$, 'un article qui cite un son comme image');
 select lives_ok(
@@ -327,6 +332,11 @@ select lives_ok(
 select throws_ok(
   $$select pg_temp.publish('mauvais')$$, 'P0001', 'fichier_inadapte',
   'publier un son dans un bloc Image est refusé'
+);
+select is(
+  pg_temp.facts_of($$select pg_temp.publish('mauvais')$$),
+  '{"code": "fichier_inadapte", "hint": ["son.mp3"]}'::jsonb,
+  'fichier_inadapte : hint, les noms des fichiers en tableau JSON'
 );
 
 select lives_ok($$select pg_temp.create_content('indispo', 'article')$$, 'un article qui cite un fichier');
@@ -343,6 +353,11 @@ select pg_temp.as_person('editor');
 select throws_ok(
   $$select pg_temp.publish('indispo')$$, 'P0001', 'fichier_indisponible',
   'publier un fichier qui n''est plus prêt est refusé'
+);
+select is(
+  pg_temp.facts_of($$select pg_temp.publish('indispo')$$),
+  '{"code": "fichier_indisponible", "hint": [{"name": "vieux.webp", "state": "pending"}]}'::jsonb,
+  'publication, fichier_indisponible : hint, chaque fichier et son état en JSON'
 );
 select pg_temp.as_postgres();
 update public.media set status = 'ready' where id = pg_temp.mid('vieux');

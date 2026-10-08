@@ -273,7 +273,7 @@ select pg_temp.as_person('admin');
 
 -- La langue de toute l'admin : l'anglais au départ ; un admin la change (en ou fr seulement), un
 -- éditeur non ; tout le monde la lit par admin_brand().
-select is((select language from public.admin_brand()), 'en', 'l''anglais au départ');
+select col_default_is('public', 'admin_identity', 'language', 'en'::text, 'l''anglais au départ');
 select pg_temp.as_person('editor');
 select is(
   pg_temp.affected($$update public.admin_identity set language = 'fr'$$), 0,

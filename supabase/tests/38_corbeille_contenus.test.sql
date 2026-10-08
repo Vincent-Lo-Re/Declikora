@@ -5,7 +5,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(42);
+select plan(44);
 
 select pg_temp.create_people();
 select pg_temp.empty_media_library();
@@ -49,6 +49,18 @@ select is(
   'verrou_tenu | editeur2@tests.local écrit ce brouillon : attends qu''il ait fini, ou reprends la main. | editeur2@tests.local',
   'verrou_tenu : le nom (ou l''e-mail) de la personne dans detail et hint'
 );
+-- Sans nom ni e-mail : hint vide, jamais un mot de français (l'admin écrit « Quelqu'un »).
+select pg_temp.as_postgres();
+update public.profiles set email = '' where id = pg_temp.person_id('editor2');
+select pg_temp.as_person('editor');
+select is(
+  pg_temp.facts_of(format('select public.trash(%L)', pg_temp.cid('article'))),
+  '{"code": "verrou_tenu", "hint": ""}'::jsonb,
+  'verrou_tenu : sans nom ni e-mail, hint vide (et toujours refusé)'
+);
+select pg_temp.as_postgres();
+update public.profiles set email = 'editeur2@tests.local' where id = pg_temp.person_id('editor2');
+select pg_temp.as_person('editor');
 select pg_temp.as_person('editor2');
 select public.lock_release(pg_temp.cid('article'));
 select public.lock_take(pg_temp.cid('article'));
@@ -204,8 +216,13 @@ select pg_temp.save(
 );
 select is(
   pg_temp.error_of(format('select public.trash(%L)', pg_temp.cid('tpl'))),
-  'modele_utilise | Ce modèle est utilisé dans : Avec contact. | ',
+  'modele_utilise | Ce modèle est utilisé dans : Avec contact. | ["Avec contact"]',
   'un modèle « bloc partagé » cité par un brouillon ne part pas à la corbeille'
+);
+select is(
+  pg_temp.facts_of(format('select public.trash(%L)', pg_temp.cid('tpl'))),
+  '{"code": "modele_utilise", "hint": ["Avec contact"]}'::jsonb,
+  'modele_utilise : hint, les titres des contenus en tableau JSON'
 );
 select public.trash(pg_temp.cid('lie'));
 select throws_ok(
