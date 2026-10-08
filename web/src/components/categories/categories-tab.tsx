@@ -365,7 +365,7 @@ function isUsageFilter(value: unknown): value is UsageFilter {
 }
 
 /**
- * « Utilisée dans », comme l'utilisation d'un fichier dans la Médiathèque : un lien si des
+ * La colonne « État », comme l'utilisation d'un fichier dans la Médiathèque : un lien si des
  * brouillons la citent, un lien coupé sinon ; leur nombre dans l'infobulle.
  */
 function UsesCell({ uses }: { uses: number }) {

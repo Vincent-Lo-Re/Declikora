@@ -1032,7 +1032,8 @@ export const en = {
     searchPlaceholder: "Search by name…",
     columns: {
       name: "Name",
-      uses: "Used in",
+      // Utilisée ou non par des brouillons, en icône (comme le filtre « État »).
+      uses: "Status",
       createdAt: "Created",
     },
     // Colonne « Utilisée dans » : les brouillons qui la citent.

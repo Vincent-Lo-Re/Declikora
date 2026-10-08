@@ -1055,7 +1055,8 @@ export const fr: Texts = {
     searchPlaceholder: "Rechercher par nom…",
     columns: {
       name: "Nom",
-      uses: "Utilisée dans",
+      // Utilisée ou non par des brouillons, en icône (comme le filtre « État »).
+      uses: "État",
       createdAt: "Créée le",
     },
     // Colonne « Utilisée dans » : les brouillons qui la citent.
