@@ -52,14 +52,29 @@ describe("état de publication", () => {
     expect(
       publicationStatus({ ...base, scheduled_at: at }, 1, Date.parse(at))
         .schedule
-    ).toEqual({ kind: "waiting", at, overdue: false })
+    ).toEqual({ kind: "waiting", at, overdue: false, edited: true })
     expect(
       publicationStatus(
         { ...base, scheduled_at: at },
         1,
         Date.parse(at) + SCHEDULE_GRACE_MS + 1000
       ).schedule
-    ).toEqual({ kind: "waiting", at, overdue: true })
+    ).toEqual({ kind: "waiting", at, overdue: true, edited: true })
+    // La tâche n'attend que si le brouillon a changé depuis la programmation.
+    expect(
+      publicationStatus(
+        { ...base, scheduled_at: at, scheduled_rev: 1 },
+        1,
+        Date.parse(at) + SCHEDULE_GRACE_MS + 1000
+      ).schedule
+    ).toEqual({ kind: "waiting", at, overdue: true, edited: false })
+    expect(
+      publicationStatus(
+        { ...base, scheduled_at: at, scheduled_rev: 1 },
+        2,
+        Date.parse(at)
+      ).schedule
+    ).toMatchObject({ edited: true })
     expect(
       publicationStatus(
         { ...base, schedule_error: "brouillon_en_cours_d_ecriture" },
