@@ -8,6 +8,7 @@ import {
   adminBrandKey,
   BrandFileError,
   brandFileAccept,
+  hasBrandVariants,
   prepareBrandFile,
   removeBrandFile,
   saveBrandFile,
@@ -41,9 +42,14 @@ export function BrandFileSlot({
   // Un SVG aux couleurs modifiables, en attente de la réponse : le décliner ou non.
   const [asking, setAsking] = useState<PreparedBrandFile | null>(null)
 
-  const onDone = async (message: string) => {
+  // Les déclinaisons existantes partent avec un fichier envoyé sans être décliné, ou retiré : on
+  // le dit sous le message (un SVG aux couleurs modifiables repose la question avant).
+  const hadVariants = brand ? hasBrandVariants(brand, kind) : false
+  const onDone = async (message: string, variantsRemoved: boolean) => {
     await queryClient.invalidateQueries({ queryKey: adminBrandKey })
-    toast.success(message)
+    toast.success(message, {
+      description: variantsRemoved ? labels.variants.removed : undefined,
+    })
   }
   const onError = (error: Error) =>
     toast.error(
@@ -64,13 +70,16 @@ export function BrandFileSlot({
       }
     },
     onSuccess: (_, { decline }) =>
-      onDone(decline ? labels.variants.done : labels.saved),
+      onDone(
+        decline ? labels.variants.done : labels.saved,
+        !decline && hadVariants
+      ),
     onError,
     onSettled: () => setAsking(null),
   })
   const remove = useMutation({
-    mutationFn: (path: string) => removeBrandFile(slot, path, !other),
-    onSuccess: () => onDone(labels.removed),
+    mutationFn: (path: string) => removeBrandFile(slot, path),
+    onSuccess: () => onDone(labels.removed, hadVariants),
     onError,
   })
   const busy = save.isPending || remove.isPending

@@ -94,6 +94,11 @@ const variantFolders = {
 // Neutrine, la palette d'origine : le logo garde ses couleurs, avec sa version pour l'autre fond.
 const ORIGIN: PresetId = "neutral-none"
 
+/** Le logotype (ou le monogramme) a des déclinaisons par palette. */
+export function hasBrandVariants(brand: AdminBrand, kind: BrandKind): boolean {
+  return Object.keys(brand.variants).some((key) => key.startsWith(`${kind}:`))
+}
+
 /** Les palettes pour lesquelles un logo est décliné : toutes, Neutrine comprise. */
 export const variantPresets = palettePresets
 
@@ -226,16 +231,16 @@ export async function saveBrandFile(
 }
 
 /**
- * Retire un fichier de la marque (admins) : l'autre version, ou le nom, prend sa place. Le dernier
- * fichier du logotype (ou du monogramme) emporte ses déclinaisons.
+ * Retire un fichier de la marque (admins) : l'autre version, ou le nom, prend sa place. Les
+ * déclinaisons du logotype (ou du monogramme) partent avec : elles venaient de l'un de ses deux
+ * fichiers, et l'autre ne leur ressemble peut-être pas.
  */
 export async function removeBrandFile(
   slot: BrandSlot,
-  previous: string,
-  last: boolean
+  previous: string
 ): Promise<void> {
   await updateIdentity({ [brandSlots[slot].column]: null })
-  if (last) await clearBrandVariants(slotKind(slot))
+  await clearBrandVariants(slotKind(slot))
   await supabase.storage.from(BUCKET).remove([previous])
 }
 

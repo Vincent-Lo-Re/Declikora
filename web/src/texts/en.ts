@@ -2133,6 +2133,8 @@ export const en = {
           keep: "Keep original colors",
           confirm: (count: number) => `Adapt for all ${count} palettes`,
           done: "File saved and adapted to each palette.",
+          // Sous le message : un fichier envoyé sans être décliné, ou retiré, emporte les déclinaisons.
+          removed: "Its palette versions were removed.",
           status: (count: number) =>
             `Adapted for ${count} palette${count === 1 ? "" : "s"}`,
         },

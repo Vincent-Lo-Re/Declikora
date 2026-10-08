@@ -2172,6 +2172,8 @@ export const fr: Texts = {
           keep: "Garder tel quel",
           confirm: (count: number) => `Décliner pour les ${count} palettes`,
           done: "Logo enregistré et décliné pour les palettes.",
+          // Sous le message : un fichier envoyé sans être décliné, ou retiré, emporte les déclinaisons.
+          removed: "Ses déclinaisons par palette ont été retirées.",
           status: (count: number) =>
             `Décliné pour ${count} palette${count > 1 ? "s" : ""}`,
         },

@@ -287,11 +287,10 @@ describe("Paramètres : le logotype et le monogramme", () => {
       within(cardOf(dark)).getByRole("button", { name: files.remove })
     )
     await waitFor(() =>
+      // Ses déclinaisons partent avec lui (removeBrandFile).
       expect(identityApi.removeBrandFile).toHaveBeenCalledWith(
         "logotype-dark",
-        logo.path,
-        // Le dernier fichier du logotype : ses déclinaisons partent avec lui.
-        true
+        logo.path
       )
     )
   })
