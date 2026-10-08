@@ -16,6 +16,13 @@ import {
   type ContentKind,
   type ContentSettings,
 } from "@/lib/contents/api"
+import {
+  getPublication,
+  publicationStatus,
+  publishContent,
+} from "@/lib/contents/publication"
+import { errorMessage } from "@/lib/errors"
+import { kickFiles } from "@/lib/media/api"
 import { texts } from "@/texts"
 
 /** Ce que dit un refus quand quelqu'un écrit déjà le contenu (soi-même dans un autre onglet compris). */
@@ -110,6 +117,56 @@ export function saveFromList(
       payload
     )
     return true
+  })
+}
+
+/** Ce qu'a fait « Retirer » : republié, retirée du brouillon seulement, ou rien (déjà fait). */
+export type CategoryRemoved =
+  | { result: "draft" | "republished" | "unchanged" }
+  // Retirée du brouillon, sans republier : des modifications attendaient, ou la publication a
+  // été refusée (publishError, la raison).
+  | { result: "draftOnly"; publishError: string | null }
+
+/**
+ * Retire une catégorie du brouillon d'un contenu, sous son verrou, puis republie s'il était en
+ * ligne sans autre modification (rien d'autre ne part). L'état est relu sous le verrou : un
+ * contenu programmé entre-temps est refusé (scheduledError), une modification arrivée
+ * entre-temps empêche de republier.
+ */
+export function removeCategory(
+  contentId: string,
+  categoryId: string,
+  myId: string,
+  words: HeldWords & { scheduled: string }
+): Promise<CategoryRemoved> {
+  return withBorrowedLock(contentId, myId, words, async (content, session) => {
+    if (!content.category_ids.includes(categoryId))
+      return { result: "unchanged" }
+    const publication = await getPublication(contentId)
+    if (publication?.scheduled_at) throw new Error(words.scheduled)
+    const live = publication
+      ? publicationStatus(publication, content.draft_rev, Date.now()).live
+      : "draft"
+    const settings = settingsOf(content)
+    const saved = await saveDraft(
+      contentId,
+      content.draft_rev,
+      content.draft,
+      session,
+      settingsDiff(settings, {
+        ...settings,
+        categoryIds: settings.categoryIds.filter((id) => id !== categoryId),
+      })
+    )
+    if (live === "modified") return { result: "draftOnly", publishError: null }
+    if (live !== "live") return { result: "draft" }
+    try {
+      const published = await publishContent(contentId, saved.rev)
+      if (published.needsFileSync) void kickFiles()
+      return { result: "republished" }
+    } catch (error) {
+      return { result: "draftOnly", publishError: errorMessage(error) }
+    }
   })
 }
 

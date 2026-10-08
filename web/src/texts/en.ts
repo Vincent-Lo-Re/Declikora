@@ -1042,6 +1042,75 @@ export const en = {
       open: (name: string) => `See where ${name} is used`,
       title: "Where this category is used",
       fileName: (name: string) => `uses-category-${name}.csv`,
+      // Retirer la catégorie d'un contenu, depuis la fenêtre : ce que fait « Remove » dépend de
+      // l'état du contenu (lib/contents/category-removal.ts).
+      columns: { status: "Status" },
+      remove: "Remove",
+      removeFrom: (title: string) => `Remove the category from “${title}”`,
+      removeMany: (count: number) => `Remove (${count})`,
+      states: {
+        draft: "Draft",
+        withdrawn: "Unpublished",
+        live: "Published",
+        modified: "Changed",
+        scheduled: "Scheduled",
+        writing: "Being edited",
+        trash: "In the Trash",
+      },
+      // L'infobulle de l'état : ce que « Remove » fera, ou pourquoi il est indisponible.
+      tips: {
+        draft: "Not in the app: the category is removed from the draft.",
+        withdrawn: "Not in the app: the category is removed from the draft.",
+        live: "In the app, with no other changes: the category is removed and the content is republished right away.",
+        modified:
+          "Changed since publishing: the category is removed from the draft only, so unfinished changes don't go live. Republish it for the app to follow.",
+        notInDraft:
+          "Already removed from the draft, still in the app: republish it for the app to follow.",
+        scheduled: "Scheduled: open it to change its categories.",
+        writing: (name: string) =>
+          `${name} is editing it right now: wait until they're done.`,
+        writingSelf:
+          "You're editing it in another tab: change its categories there.",
+        trash:
+          "In the Trash, it can't be changed. It loses the category when it's deleted permanently.",
+      },
+      confirm: {
+        title: (count: number) =>
+          count === 1
+            ? "Remove the category from 1 item?"
+            : `Remove the category from ${count} items?`,
+        draft: (count: number) =>
+          count === 1
+            ? "1 draft loses it. The app doesn't change."
+            : `${count} drafts lose it. The app doesn't change.`,
+        republish: (count: number) =>
+          count === 1
+            ? "1 published item is republished without it right away."
+            : `${count} published items are republished without it right away.`,
+        draftOnly: (count: number) =>
+          count === 1
+            ? "1 item changed since publishing loses it in its draft only. Republish it for the app to follow."
+            : `${count} items changed since publishing lose it in their drafts only. Republish them for the app to follow.`,
+        confirm: "Remove",
+      },
+      // Le résumé, une fois fait.
+      done: {
+        removed: (count: number) =>
+          count === 1 ? "Removed from 1 item" : `Removed from ${count} items`,
+        republished: (count: number) => `${count} republished`,
+        toRepublish: (count: number) => `${count} to republish`,
+        kept: (count: number) => `${count} kept`,
+      },
+      // Programmé entre l'ouverture de la fenêtre et le clic.
+      scheduledNow:
+        "It was scheduled in the meantime: open it to change its categories.",
+      heldBy: (name: string) =>
+        `${name} is editing it right now. Wait until they're done.`,
+      heldSelf:
+        "You're editing it in another tab. Change its categories there.",
+      yourselfElsewhere: "You (in another tab)",
+      notRepublished: (title: string, reason: string) =>
+        `“${title}” lost the category in its draft, but wasn't republished: ${reason}`,
     },
     create: "New category",
     // La fenêtre d'une catégorie : la créer, ou la modifier (menu « … », clic sur la ligne).
