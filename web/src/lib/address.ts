@@ -166,13 +166,14 @@ export function writeMediaFilters(
 
 // --- Modèles de bloc ------------------------------------------------------------------------
 
-const tabChoice: Choice<"all" | TemplateSort> = {
+const tabChoice: Choice<"all" | TemplateSort | "unused"> = {
   name: "tab",
   words: {
     all: "all",
     style: "style",
     shared: "shared",
     starter: "starter",
+    unused: "unused",
   },
   fallback: "all",
 }
@@ -180,14 +181,14 @@ const tabChoice: Choice<"all" | TemplateSort> = {
 /** L'onglet des Modèles de bloc, lu dans l'adresse. */
 export function templateTabFromAddress(
   params: URLSearchParams
-): "all" | TemplateSort {
+): "all" | TemplateSort | "unused" {
   return readChoice(params, tabChoice)
 }
 
 /** Écrit l'onglet des Modèles de bloc dans l'adresse. */
 export function writeTemplateTab(
   params: URLSearchParams,
-  tab: "all" | TemplateSort
+  tab: "all" | TemplateSort | "unused"
 ) {
   writeChoice(params, tabChoice, tab)
 }

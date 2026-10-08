@@ -603,7 +603,10 @@ test("Podcasts : épisode refusé sans audio, audio de la médiathèque, durée,
     ])
   const card = page.getByRole("button", { name: texts.media.open(audioName) })
   await expect(
-    card.getByRole("img", { name: texts.media.status.ready })
+    page
+      .getByRole("listitem")
+      .filter({ has: card })
+      .getByRole("img", { name: texts.media.status.ready })
   ).toBeVisible({
     timeout: 60_000,
   })

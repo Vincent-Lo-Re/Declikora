@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Ellipsis,
   FilterX,
-  Link as LinkIcon,
   Search,
   SquarePen,
   Tags,
@@ -14,6 +13,7 @@ import { toast } from "sonner"
 
 import { SelectAllHead } from "@/components/bulk-selection"
 import { CategoryDialog } from "@/components/categories/category-dialog"
+import { CategoryUsesButton } from "@/components/categories/category-uses"
 import type { CategoriesBulk } from "@/components/categories/use-categories-bulk"
 import { SortableRow } from "@/components/contents/sortable-rows"
 import { IconBadge } from "@/components/icon-badge"
@@ -366,14 +366,14 @@ function isUsageFilter(value: unknown): value is UsageFilter {
 
 /**
  * La colonne « État », comme l'utilisation d'un fichier dans la Médiathèque : un lien si des
- * brouillons la citent, un lien coupé sinon ; leur nombre dans l'infobulle.
+ * brouillons la citent (leur nombre dans l'infobulle ; il ouvre la liste des contenus, avec son
+ * export), un lien coupé sinon.
  */
-function UsesCell({ uses }: { uses: number }) {
-  return (
-    <IconBadge
-      icon={uses > 0 ? LinkIcon : Unlink}
-      label={labels.usesCount(uses)}
-    />
+function UsesCell({ category }: { category: Category }) {
+  return category.uses > 0 ? (
+    <CategoryUsesButton category={category} />
+  ) : (
+    <IconBadge icon={Unlink} label={labels.usesCount(0)} />
   )
 }
 
@@ -464,7 +464,7 @@ function CategoryTable({
                   </button>
                 </TableCell>
                 <TableCell>
-                  <UsesCell uses={category.uses} />
+                  <UsesCell category={category} />
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatDateTime(category.created_at)}

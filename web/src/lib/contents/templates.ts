@@ -11,6 +11,7 @@ import {
   type ContentKind,
 } from "@/lib/contents/api"
 import { supabase } from "@/lib/supabase"
+import type { ContentUse } from "@/lib/uses-export"
 
 /** style : mise en forme réutilisable ; shared : bloc identique partout ; starter : point de départ. */
 export type TemplateSort = "style" | "shared" | "starter"
@@ -70,6 +71,11 @@ export const templateKeys = {
   usesOf: (id: string) => ["contents", "templates", "uses", id] as const,
   // Les brouillons qui citent un modèle, quel qu'il soit (« Mes blocs » de l'éditeur du Fil).
   allUses: ["contents", "templates", "uses", "all"] as const,
+  // La colonne « État » des Modèles de bloc : le nombre d'endroits de chaque modèle, et la liste
+  // des endroits d'un modèle (fenêtre des utilisations).
+  usage: ["contents", "templates", "uses", "usage"] as const,
+  where: (id: string) =>
+    ["contents", "templates", "uses", "where", id] as const,
   allOutdated: ["contents", "templates", "outdated"] as const,
   outdated: (id: string) => ["contents", "templates", "outdated", id] as const,
   byIds: (ids: string[]) => ["contents", "templates", "by-ids", ids] as const,
@@ -148,6 +154,119 @@ export async function listTemplateUses(
     title: row.title ?? "",
     inTrash: row.deleted_at !== null,
     templateIds: row.draft_template_ids,
+  }))
+}
+
+type CopyRow = {
+  content: {
+    id: string
+    kind: string
+    title: string | null
+    deleted_at: string | null
+  } | null
+}
+
+/**
+ * Où un modèle sert : pour un bloc partagé, les contenus qui le citent (brouillon, Corbeille
+ * comprise) ou dont la version en ligne le cite ; pour une mise en forme ou un point de départ,
+ * les contenus où il a été copié (template_copies). Triés par titre.
+ */
+export async function getTemplateUses(
+  template: Pick<TemplateItem, "id" | "sort">
+): Promise<ContentUse[]> {
+  if (template.sort !== "shared") {
+    const { data, error, status } = await supabase
+      .from("template_copies")
+      .select(
+        "content:contents!template_copies_content_id_fkey!inner(id, kind, title, deleted_at)"
+      )
+      .eq("template_id", template.id)
+    if (error) throw toContentError(error, status)
+    return (data as unknown as CopyRow[])
+      .flatMap(({ content }) =>
+        content
+          ? [
+              {
+                content_id: content.id,
+                kind: content.kind,
+                title: content.title ?? "",
+                in_draft: false,
+                in_app: false,
+                in_trash: content.deleted_at !== null,
+                copied: true,
+              },
+            ]
+          : []
+      )
+      .sort((a, b) => a.title.localeCompare(b.title))
+  }
+  const [drafts, live] = await Promise.all([
+    listTemplateUses([template.id]),
+    supabase
+      .from("contents")
+      .select(
+        "id, kind, title, deleted_at, live:versions!contents_live_version_fkey!inner(template_ids)"
+      )
+      .contains("live.template_ids", [template.id]),
+  ])
+  if (live.error) throw toContentError(live.error, live.status)
+  const byId = new Map<string, ContentUse>()
+  for (const use of drafts) {
+    byId.set(use.id, {
+      content_id: use.id,
+      kind: use.kind,
+      title: use.title,
+      in_draft: true,
+      in_app: false,
+      in_trash: use.inTrash,
+    })
+  }
+  for (const row of live.data) {
+    const known = byId.get(row.id)
+    byId.set(row.id, {
+      content_id: row.id,
+      kind: row.kind,
+      title: row.title ?? "",
+      in_draft: known?.in_draft ?? false,
+      in_app: true,
+      in_trash: row.deleted_at !== null,
+    })
+  }
+  return [...byId.values()].sort((a, b) => a.title.localeCompare(b.title))
+}
+
+/**
+ * Le nombre d'endroits où chaque modèle sert : les contenus qui citent un bloc partagé
+ * (brouillon, Corbeille comprise), et ceux où une mise en forme ou un point de départ a été copié.
+ */
+export async function templateUsage(): Promise<Map<string, number>> {
+  const [linked, copies] = await Promise.all([
+    listTemplateUses(),
+    listTemplateCopies(),
+  ])
+  const contents = new Map<string, Set<string>>()
+  const add = (templateId: string, contentId: string) => {
+    const set = contents.get(templateId) ?? new Set<string>()
+    set.add(contentId)
+    contents.set(templateId, set)
+  }
+  for (const use of linked) for (const id of use.templateIds) add(id, use.id)
+  for (const copy of copies) add(copy.templateId, copy.contentId)
+  return new Map([...contents].map(([id, set]) => [id, set.size]))
+}
+
+/** Les modèles copiés et les contenus où ils l'ont été (pour compter les utilisations). */
+async function listTemplateCopies(): Promise<
+  { templateId: string; contentId: string }[]
+> {
+  const { data, error, status } = await supabase
+    .from("template_copies")
+    .select("template_id, content_id")
+    .limit(5000)
+  if (error) throw toContentError(error, status)
+  return data.map((row) => ({
+    templateId: row.template_id,
+    contentId: row.content_id,
   }))
 }
 

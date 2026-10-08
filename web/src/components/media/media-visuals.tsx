@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 
 import { IconBadge } from "@/components/icon-badge"
+import { MediaUsesButton } from "@/components/media/media-uses"
 import { kindIcons, rejectedText } from "@/components/media/media-kinds"
 import { INTERRUPTED_AFTER_MS, type Media } from "@/lib/media/constants"
 import { texts } from "@/texts"
@@ -94,13 +95,24 @@ export function MediaStatusIcon({ media, now }: { media: Media; now: number }) {
   }
 }
 
-/** Utilisation d'un fichier (grille et liste) : un lien s'il sert, un lien coupé sinon. */
-export function MediaUseIcon({ media }: { media: Media }) {
+/**
+ * Utilisation d'un fichier : un lien s'il sert, un lien coupé sinon. openable (grille et liste) :
+ * le lien ouvre la liste des endroits où il sert, avec son export (MediaUsesButton).
+ */
+export function MediaUseIcon({
+  media,
+  openable = false,
+}: {
+  media: Media
+  openable?: boolean
+}) {
   // Seule la liste lit media_in_use : absent (fiche) ou null (hors équipe), rien à montrer.
   if (media.media_in_use == null) return null
-  return media.media_in_use ? (
-    <IconBadge icon={Link} label={texts.media.used} />
+  if (!media.media_in_use)
+    return <IconBadge icon={Unlink} label={texts.media.unused} />
+  return openable ? (
+    <MediaUsesButton media={media} />
   ) : (
-    <IconBadge icon={Unlink} label={texts.media.unused} />
+    <IconBadge icon={Link} label={texts.media.used} />
   )
 }

@@ -22,6 +22,7 @@ import {
   listTemplates,
   listTemplateUses,
   templateKeys,
+  templateUsage,
 } from "@/lib/contents/templates"
 import {
   getLatestAudit,
@@ -102,6 +103,10 @@ export const categoriesRead = (section: CategorySection) =>
 
 export const templateListRead = () =>
   queryOptions({ queryKey: templateKeys.list, queryFn: listTemplates })
+
+/** Le nombre d'endroits où chaque modèle sert : colonne « État » et onglet « Non utilisés ». */
+export const templateUsageRead = () =>
+  queryOptions({ queryKey: templateKeys.usage, queryFn: templateUsage })
 
 /** Les points de départ d'une sorte de contenu ([D42]), proposés par « Nouvel article »… */
 export const startersRead = (kind: ContentKind) =>

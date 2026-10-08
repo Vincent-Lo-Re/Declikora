@@ -30,6 +30,7 @@ import {
   storageRead,
   teamRead,
   templateListRead,
+  templateUsageRead,
   templateOutdatedRead,
   templateUsesRead,
   trashRead,
@@ -97,8 +98,12 @@ export function prepareContentList(kind: ContentKind): Prepare {
   }
 }
 
-export const prepareTemplates: Prepare = ({ queryClient }) =>
-  ready(queryClient, templateListRead())
+export const prepareTemplates: Prepare = async ({ queryClient }) => {
+  await Promise.all([
+    ready(queryClient, templateListRead()),
+    ready(queryClient, templateUsageRead()),
+  ])
+}
 
 export const prepareMedia: Prepare = async ({ queryClient, search }) => {
   const askedId = askedFileFromAddress(search)
