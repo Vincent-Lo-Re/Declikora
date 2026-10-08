@@ -5,7 +5,7 @@
 -- Lancer avec : npm run db:test (Supabase doit tourner : npm run db:start)
 begin;
 \ir aides/roles.inc
-select plan(97);
+select plan(99);
 
 select pg_temp.create_people();
 select pg_temp.empty_media_library();
@@ -346,6 +346,16 @@ select matches(
   '^fichier_indisponible \| .*vieux\.webp',
   'fichier dans la corbeille refusé, et nommé'
 );
+select is(
+  pg_temp.facts_of($$select pg_temp.save('page', pg_temp.draft(jsonb_build_array(
+    pg_temp.image_block('00000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000003'),
+    pg_temp.image_block('00000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-0000000000ff')
+  )))$$),
+  '{"code": "fichier_indisponible", "hint": [
+    {"name": "vieux.webp", "state": "trashed"}, {"name": null, "state": "missing"}
+  ]}'::jsonb,
+  'brouillon, fichier_indisponible : hint, chaque fichier et son état (nom null s''il n''existe plus)'
+);
 select throws_ok(
   $$select pg_temp.save('page', pg_temp.draft('[]', 'Aide',
     '{"cover": {"mediaId": "10000000-0000-4000-8000-0000000000ff"}}'))$$,
@@ -663,6 +673,11 @@ select is(
 select throws_ok(
   $$select public.media_trash('10000000-0000-4000-8000-000000000001')$$, 'P0001', 'fichier_utilise',
   'un fichier cité par un brouillon ne va pas à la corbeille'
+);
+select is(
+  pg_temp.facts_of($$select public.media_trash('10000000-0000-4000-8000-000000000001')$$),
+  '{"code": "fichier_utilise", "hint": ["Aide", "Entretien", "Interview"]}'::jsonb,
+  'fichier_utilise : hint, les titres des contenus en tableau JSON'
 );
 select is(
   (select array_agg(u.title order by u.title)
