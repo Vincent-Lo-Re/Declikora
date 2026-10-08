@@ -18,19 +18,60 @@ Deno.test("invite : e-mail nettoyé, nom facultatif", () => {
     parseRequest({ action: "invite", email: "  Marie@Exemple.FR ", role: "editor" }),
     {
       ok: true,
-      request: { action: "invite", email: "marie@exemple.fr", full_name: null, role: "editor" },
+      request: {
+        action: "invite",
+        email: "marie@exemple.fr",
+        full_name: null,
+        role: "editor",
+        language: null,
+      },
     },
   )
   assertEquals(
     parseRequest({ action: "invite", email: "a@b.fr", full_name: "  Marie Curie ", role: "admin" }),
     {
       ok: true,
-      request: { action: "invite", email: "a@b.fr", full_name: "Marie Curie", role: "admin" },
+      request: {
+        action: "invite",
+        email: "a@b.fr",
+        full_name: "Marie Curie",
+        role: "admin",
+        language: null,
+      },
     },
   )
   assertEquals(
     parseRequest({ action: "invite", email: "a@b.fr", full_name: "   ", role: "admin" }),
-    { ok: true, request: { action: "invite", email: "a@b.fr", full_name: null, role: "admin" } },
+    {
+      ok: true,
+      request: {
+        action: "invite",
+        email: "a@b.fr",
+        full_name: null,
+        role: "admin",
+        language: null,
+      },
+    },
+  )
+})
+
+Deno.test("invite : la langue du membre invité, facultative", () => {
+  assertEquals(
+    parseRequest({ action: "invite", email: "a@b.fr", role: "editor", language: "fr" }),
+    {
+      ok: true,
+      request: {
+        action: "invite",
+        email: "a@b.fr",
+        full_name: null,
+        role: "editor",
+        language: "fr",
+      },
+    },
+  )
+  assertEquals(
+    refused({ action: "invite", email: "a@b.fr", role: "editor", language: "de" }),
+    "La langue doit être « en » ou « fr ».",
   )
 })
 

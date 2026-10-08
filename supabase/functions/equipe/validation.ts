@@ -2,9 +2,18 @@
 
 export type TeamRole = "admin" | "editor"
 
+// La langue de l'admin du membre invité (celle de l'admin qui l'invite) : ses e-mails la lisent.
+export type TeamLanguage = "en" | "fr"
+
 export type TeamRequest =
   | { action: "list" }
-  | { action: "invite"; email: string; full_name: string | null; role: TeamRole }
+  | {
+    action: "invite"
+    email: string
+    full_name: string | null
+    role: TeamRole
+    language: TeamLanguage | null
+  }
   | { action: "resend"; user_id: string }
   | { action: "set_role"; user_id: string; role: TeamRole }
   | { action: "remove"; user_id: string }
@@ -21,7 +30,7 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 // Champs acceptés pour chaque action, en plus de « action ». Tout autre champ est refusé.
 const fieldsByAction = {
   list: [],
-  invite: ["email", "full_name", "role"],
+  invite: ["email", "full_name", "role", "language"],
   resend: ["user_id"],
   set_role: ["user_id", "role"],
   remove: ["user_id"],
@@ -60,6 +69,13 @@ function readRole(value: unknown): TeamRole {
   throw new InvalidRequest("Le rôle doit être « admin » ou « editor ».")
 }
 
+// Facultative : sans elle, les e-mails partent dans la langue de départ (l'anglais).
+function readLanguage(value: unknown): TeamLanguage | null {
+  if (value === undefined || value === null) return null
+  if (value === "en" || value === "fr") return value
+  throw new InvalidRequest("La langue doit être « en » ou « fr ».")
+}
+
 function readUserId(value: unknown): string {
   if (typeof value !== "string" || !uuidPattern.test(value)) {
     throw new InvalidRequest("Le membre n'est pas valide.")
@@ -91,6 +107,7 @@ export function parseRequest(body: unknown): ParseResult {
             email: readEmail(fields.email),
             full_name: readName(fields.full_name),
             role: readRole(fields.role),
+            language: readLanguage(fields.language),
           },
         }
       case "set_role":

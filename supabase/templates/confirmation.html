@@ -1,26 +1,32 @@
 <!doctype html>
-<html lang="fr">
+<html lang="{{ if and .Data.language (eq .Data.language "fr") }}fr{{ else }}en{{ end }}">
   <head>
+    <!--
+      Confirmation d'adresse : ne devrait pas servir (inscriptions fermées), traduite par prudence.
+      Deux langues : le français si le membre l'a choisi (user_metadata.language, Mon compte ou
+      l'invitation), sinon l'anglais, la langue de départ (ADMIN § 7, « En anglais et en français »).
+    -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Confirme ton adresse e-mail</title>
+    <title>{{ if and .Data.language (eq .Data.language "fr") }}Confirme ton adresse e-mail{{ else }}Confirm your email address{{ end }}</title>
   </head>
   <body style="margin: 0; padding: 24px; background: #f5f5f5; font-family: Inter, Arial, sans-serif; color: #171717">
     <div style="max-width: 480px; margin: 0 auto; padding: 32px; background: #ffffff; border-radius: 12px">
+      {{ if and .Data.language (eq .Data.language "fr") }}
       <h1 style="margin: 0 0 16px; font-size: 20px">Confirme ton adresse e-mail</h1>
-      <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.5">
-        Clique sur le bouton ci-dessous pour confirmer ton adresse e-mail.
-      </p>
+      <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.5">Clique sur le bouton ci-dessous pour confirmer ton adresse e-mail.</p>
       <p style="margin: 0 0 24px">
-        <a
-          href="{{ .ConfirmationURL }}"
-          style="display: inline-block; padding: 12px 20px; background: #171717; color: #ffffff; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none"
-          >Confirmer mon adresse</a
-        >
+        <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 12px 20px; background: #171717; color: #ffffff; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none">Confirmer mon adresse</a>
       </p>
-      <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #525252">
-        Si tu n'es pas à l'origine de cette demande, ignore cet e-mail.
+      <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #525252">Si tu n'es pas à l'origine de cette demande, ignore cet e-mail.</p>
+      {{ else }}
+      <h1 style="margin: 0 0 16px; font-size: 20px">Confirm your email address</h1>
+      <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.5">Click the button below to confirm your email address.</p>
+      <p style="margin: 0 0 24px">
+        <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 12px 20px; background: #171717; color: #ffffff; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none">Confirm my email</a>
       </p>
+      <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #525252">If you didn't make this request, you can ignore this email.</p>
+      {{ end }}
     </div>
   </body>
 </html>

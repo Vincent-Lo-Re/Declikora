@@ -10,7 +10,7 @@
 
 import { createClient, isAuthApiError, type User } from "@supabase/supabase-js"
 import { corsHeaders } from "./cors.ts"
-import { parseRequest, type TeamRequest, type TeamRole } from "./validation.ts"
+import { parseRequest, type TeamLanguage, type TeamRequest, type TeamRole } from "./validation.ts"
 
 type Profile = {
   id: string
@@ -179,17 +179,22 @@ async function sendInvitation(email: string): Promise<void> {
 }
 
 // Crée le compte avec son rôle dans app_metadata (que seule la clé secrète peut écrire) : la
-// base crée la fiche avec ce rôle (handle_new_user), puis l'invitation part. Si l'e-mail ne part
+// base crée la fiche avec ce rôle (handle_new_user), puis l'invitation part. Le nom et la langue
+// vont dans user_metadata, que lisent les e-mails (et la langue, l'admin). Si l'e-mail ne part
 // pas, le compte est supprimé : il n'y a jamais de membre à moitié invité.
 async function createInvitedUser(
   email: string,
   fullName: string | null,
   role: TeamRole,
+  language: TeamLanguage | null,
 ): Promise<User> {
   const { data, error } = await admin.auth.admin.createUser({
     email,
     app_metadata: { role },
-    user_metadata: fullName ? { full_name: fullName } : {},
+    user_metadata: {
+      ...(fullName ? { full_name: fullName } : {}),
+      ...(language ? { language } : {}),
+    },
   })
   if (error || !data.user) throw inviteError(error)
   try {
@@ -216,7 +221,12 @@ async function run(request: TeamRequest, caller: User): Promise<unknown> {
       if (error) throw new Error(`profil : ${error.message}`)
       if (existing) throw new HttpError(409, "deja_membre", messages.alreadyMember)
 
-      const user = await createInvitedUser(request.email, request.full_name, request.role)
+      const user = await createInvitedUser(
+        request.email,
+        request.full_name,
+        request.role,
+        request.language,
+      )
       const [member] = await listMembers(user.id)
       return { member }
     }

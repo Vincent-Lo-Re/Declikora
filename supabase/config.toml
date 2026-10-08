@@ -261,20 +261,21 @@ otp_expiry = 600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Modèles d'e-mails en français. Les chemins partent de la racine du dépôt.
+# Modèles d'e-mails, en anglais ou en français selon la langue du membre (user_metadata.language,
+# l'anglais sinon) ; l'objet aussi. Les chemins partent de la racine du dépôt.
 # Invitation : lien vers la page /invitation de l'admin, qui demande un clic avant de valider.
 [auth.email.template.invite]
-subject = "Ton invitation à rejoindre l'équipe"
+subject = "{{ if and .Data.language (eq .Data.language \"fr\") }}Ton invitation à rejoindre l'équipe{{ else }}You're invited to join the team{{ end }}"
 content_path = "./supabase/templates/invitation.html"
 
 # Code de connexion (envoyé par signInWithOtp à un membre qui a déjà accepté son invitation).
 [auth.email.template.magic_link]
-subject = "Ton code de connexion"
+subject = "{{ if and .Data.language (eq .Data.language \"fr\") }}Ton code de connexion{{ else }}Your sign-in code{{ end }}"
 content_path = "./supabase/templates/code-connexion.html"
 
 # Confirmation d'adresse : ne devrait pas servir (inscriptions fermées), traduite par prudence.
 [auth.email.template.confirmation]
-subject = "Confirme ton adresse e-mail"
+subject = "{{ if and .Data.language (eq .Data.language \"fr\") }}Confirme ton adresse e-mail{{ else }}Confirm your email address{{ end }}"
 content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize notification email template
